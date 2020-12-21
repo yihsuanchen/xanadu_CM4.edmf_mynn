@@ -94,10 +94,12 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    INTEGER :: spp_pbl           = 0         ! 1 stochastic perturbation to condensation  
 
    integer :: initflag = 1
-   logical :: FLAG_QI  = .true.            ! (flags for whether cloud and ice mixing rations and number concentrations are mixed separately)
+   logical :: FLAG_QI  = .false.             ! (flags for whether cloud and ice mixing rations and number concentrations are mixed separately)
    logical :: FLAG_QNI = .false.            ! all false
    logical :: FLAG_QC  = .false.
    logical :: FLAG_QNC = .false.
+
+   REAL :: scaleaware=0.
 
 !############################
 !############################
@@ -633,7 +635,7 @@ end type am4_edmf_output_type
   !Use Ito et al. (2015, BLM) scale-aware (0: no, 1: yes). Note that this also has impacts
   !on the cloud PDF and mass-flux scheme, using Honnert et al. (2011) similarity function
   !for TKE in the upper PBL/cloud layer.
-  REAL, PARAMETER :: scaleaware=0.
+  !REAL, PARAMETER :: scaleaware=0.
 
 
   !Adding top-down diffusion driven by cloud-top radiative cooling
@@ -3993,13 +3995,22 @@ ENDIF
     ENDIF
 
 !***  Begin debugging
-    IMD=(IMS+IME)/2
-    JMD=(JMS+JME)/2
+!    IMD=(IMS+IME)/2
+!    JMD=(JMS+JME)/2
 !***  End debugging 
 
-    JTF=MIN0(JTE,JDE-1)
-    ITF=MIN0(ITE,IDE-1)
-    KTF=MIN0(KTE,KDE-1)
+!    JTF=MIN0(JTE,JDE-1)
+!    ITF=MIN0(ITE,IDE-1)
+!    KTF=MIN0(KTE,KDE-1)
+
+   imd=ims
+   jmd=jms
+
+   jtf=jte
+   itf=ite
+   ktf=kte
+
+
 
     levflag=mynn_level
 
@@ -4151,7 +4162,7 @@ ENDIF
 
 
 
-             !UPDATE 3D VARIABLES
+             !UPDATE 3D VARIABLE
              DO k=KTS,KTE !KTF
                 el_pbl(i,k,j)=el(k)
                 sh3d(i,k,j)=sh(k)
@@ -8273,7 +8284,7 @@ write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
   endif
 
 !! debug01, check semi-prognostic variables in offline code
-  call random_number (Output_edmf%Qke)
+!  call random_number (Output_edmf%Qke)
 !  call random_number (Output_edmf%el_pbl     )
 !  call random_number (Output_edmf%cldfra_bl  )
 !  call random_number (Output_edmf%qc_bl      )
