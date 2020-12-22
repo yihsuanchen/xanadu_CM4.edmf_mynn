@@ -99,7 +99,6 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    logical :: FLAG_QC  = .false.
    logical :: FLAG_QNC = .false.
 
-   REAL :: scaleaware=0.
 
 !############################
 !############################
@@ -635,7 +634,7 @@ end type am4_edmf_output_type
   !Use Ito et al. (2015, BLM) scale-aware (0: no, 1: yes). Note that this also has impacts
   !on the cloud PDF and mass-flux scheme, using Honnert et al. (2011) similarity function
   !for TKE in the upper PBL/cloud layer.
-  !REAL, PARAMETER :: scaleaware=0.
+  REAL, PARAMETER :: scaleaware=0.
 
 
   !Adding top-down diffusion driven by cloud-top radiative cooling
@@ -3939,7 +3938,7 @@ ENDIF
                             qc_bl1D_old,cldfra_bl1D_old
 
 !local vars
-    INTEGER :: ITF,JTF,KTF, IMD,JMD
+!  INTEGER :: ITF,JTF,KTF, IMD,JMD
     INTEGER :: i,j,k
     REAL, DIMENSION(KTS:KTE) :: thl,thvl,tl,sqv,sqc,sqi,sqw,&
          &El, Dfm, Dfh, Dfq, Tcd, Qcd, Pdk, Pdt, Pdq, Pdc, &
@@ -4003,13 +4002,9 @@ ENDIF
 !    ITF=MIN0(ITE,IDE-1)
 !    KTF=MIN0(KTE,KDE-1)
 
-   imd=ims
-   jmd=jms
-
-   jtf=jte
-   itf=ite
-   ktf=kte
-
+  
+  
+print *,'QKEstart',QKE
 
 
     levflag=mynn_level
@@ -4069,8 +4064,8 @@ ENDIF
        vt(kts:kte)=0.0
        vq(kts:kte)=0.0
 
-       DO j=JTS,JTF
-          DO i=ITS,ITF
+       DO j=JTS,JTE
+          DO i=ITS,ITE
              DO k=KTS,KTE !KTF
                 dz1(k)=dz(i,k,j)
                 u1(k) = u(i,k,j)
@@ -4140,6 +4135,7 @@ ENDIF
              CALL GET_PBLH(KTS,KTE,PBLH(i,j),thvl,&
                &  Qke1,zw,dz1,xland(i,j),KPBL(i,j))
              
+            print *,'kpbl1',i,j,kpbl
              IF (scaleaware > 0.) THEN
                 CALL SCALE_AWARE(dx,PBLH(i,j),Psig_bl(i,j),Psig_shcu(i,j))
              ELSE
@@ -4159,7 +4155,6 @@ ENDIF
                   &edmf_w1,edmf_a1,edmf_qc1,bl_mynn_edmf,&
                   &edmf_w_dd1,edmf_a_dd1,edmf_qc_dd1,bl_mynn_edmf_dd,&
                   &spp_pbl,rstoch_col,KPBL(i,j) )
-
 
 
              !UPDATE 3D VARIABLE
@@ -4191,8 +4186,8 @@ ENDIF
     ENDIF
 
 
-    DO j=JTS,JTF
-       DO i=ITS,ITF
+    DO j=JTS,JTE
+       DO i=ITS,ITE
           DO k=KTS,KTE !KTF
             !JOE-TKE BUDGET
              IF ( bl_mynn_tkebudget == 1) THEN
@@ -4796,13 +4791,13 @@ ENDIF
 
           !JOE-add tke_pbl for coupling w/shallow-cu schemes (TKE_PBL = QKE/2.)
           !    TKE_PBL is defined on interfaces, while QKE is at middle of layer.
-          tke_pbl(i,kts,j) = 0.5*MAX(qke(i,kts,j),1.0e-10)
-          DO k = kts+1,kte
-             afk = dz1(k)/( dz1(k)+dz1(k-1) )
-             abk = 1.0 -afk
-             tke_pbl(i,k,j) = 0.5*MAX(qke(i,k,j)*abk+qke(i,k-1,j)*afk,1.0e-3)
-          ENDDO
-
+    !      tke_pbl(i,kts,j) = 0.5*MAX(qke(i,kts,j),1.0e-10)
+    !      DO k = kts+1,kte
+    !         afk = dz1(k)/( dz1(k)+dz1(k-1) )
+    !         abk = 1.0 -afk
+    !         tke_pbl(i,k,j) = 0.5*MAX(qke(i,k,j)*abk+qke(i,k-1,j)*afk,1.0e-3)
+    !      ENDDO
+    !     print *,'i,j,kpbl4',i,j,kpbl
        ENDDO
     ENDDO
 
@@ -4811,6 +4806,8 @@ ENDIF
        qke_adv=qke
     ENDIF
 !ACF-end
+
+print *,'qkeEND',qke
 
   END SUBROUTINE mynn_bl_driver
 
@@ -4842,16 +4839,14 @@ ENDIF
 !    REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME),INTENT(INOUT) :: &
 !         &qc_bl,cldfra_bl
 
-    INTEGER :: I,J,K,ITF,JTF,KTF
+    INTEGER :: I,J,K
     
-    JTF=MIN0(JTE,JDE-1)
-    KTF=MIN0(KTE,KDE-1)
-    ITF=MIN0(ITE,IDE-1)
+ 
     
     IF(.NOT.RESTART)THEN
-       DO J=JTS,JTF
-          DO K=KTS,KTF
-             DO I=ITS,ITF
+       DO J=JTS,JTE
+          DO K=KTS,KTE
+             DO I=ITS,ITE
                 RUBLTEN(i,k,j)=0.
                 RVBLTEN(i,k,j)=0.
                 RTHBLTEN(i,k,j)=0.
@@ -8231,52 +8226,49 @@ write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
 !---------------------------------------------------------------------
 
   call mynn_bl_driver(            &
-       &initflag,grav_settling,         &
-       &Input_edmf%delt,Input_edmf%dz,Input_edmf%dx,Input_edmf%znt,                 &
-       &Input_edmf%u,Input_edmf%v,Input_edmf%w,Input_edmf%th,Input_edmf%qv,Input_edmf%qc,Input_edmf%qi,Input_edmf%qni,Input_edmf%qnc,      &
-       &Input_edmf%p,Input_edmf%exner,Input_edmf%rho,Input_edmf%T3D,                &
-       &Input_edmf%xland,Input_edmf%ts,Input_edmf%qsfc,Input_edmf%qcg,Input_edmf%ps,           &
-       &Input_edmf%ust,Input_edmf%ch,Input_edmf%hfx,Input_edmf%qfx,Input_edmf%rmol,Input_edmf%wspd,       &
-       &Input_edmf%uoce,Input_edmf%voce,                      & !ocean current
-       &Input_edmf%vdfg,                           & !Katata-added for fog dep
-       &Output_edmf%Qke,Output_edmf%tke_pbl,                    &
-       &Output_edmf%qke_adv,bl_mynn_tkeadvect,      & !ACF for QKE advection
-#if (WRF_CHEM == 1)
-       chem3d, vd3d, nchem,             & ! WA 7/29/15 For WRF-Chem
-       kdvel, ndvel, num_vert_mix,      &
-#endif
-       &Output_edmf%Tsq,Output_edmf%Qsq,Output_edmf%Cov,                    &
-       &Output_edmf%RUBLTEN,Output_edmf%RVBLTEN,Output_edmf%RTHBLTEN,       &
-       &Output_edmf%RQVBLTEN,Output_edmf%RQCBLTEN,Output_edmf%RQIBLTEN,     &
-       &Output_edmf%RQNIBLTEN,                      &
-       &Output_edmf%exch_h,Output_edmf%exch_m,                  &
-       &Output_edmf%Pblh,Output_edmf%kpbl,                      & 
-       &Output_edmf%el_pbl,                         &
-       &Output_edmf%dqke,Output_edmf%qWT,Output_edmf%qSHEAR,Output_edmf%qBUOY,Output_edmf%qDISS,    & !JOE-TKE BUDGET
-       &Output_edmf%wstar,Output_edmf%delta,                    & !JOE-added for grims
-       &bl_mynn_tkebudget,              &
-       &bl_mynn_cloudpdf,Output_edmf%Sh3D,          &
-       &bl_mynn_mixlength,              &
-       &icloud_bl,Output_edmf%qc_bl,Output_edmf%cldfra_bl,      &
-       &bl_mynn_edmf,                   &
-       &bl_mynn_edmf_dd,                   &
-       &bl_mynn_edmf_mom,bl_mynn_edmf_tke, &
-       &bl_mynn_edmf_part,bl_mynn_edmf_Lent,&
-       &bl_mynn_cloudmix,bl_mynn_mixqt, &
-       &Output_edmf%edmf_a,Output_edmf%edmf_w,Output_edmf%edmf_qt,          &
-       &Output_edmf%edmf_thl,Output_edmf%edmf_ent,Output_edmf%edmf_qc,      &
-       &Output_edmf%edmf_debug1,Output_edmf%edmf_debug2,        &
-       &Output_edmf%edmf_debug3,Output_edmf%edmf_debug4,        &
-       &Output_edmf%edmf_a_dd,Output_edmf%edmf_w_dd,Output_edmf%edmf_qt_dd,    &
-       &Output_edmf%edmf_thl_dd,Output_edmf%edmf_ent_dd,Output_edmf%edmf_qc_dd,&
-       &Output_edmf%mynn_ql,                        &
-       &Output_edmf%nupdraft,Output_edmf%maxMF,Output_edmf%ktop_shallow,    &
-       &spp_pbl,Output_edmf%pattern_spp_pbl,        &
-       &Output_edmf%RTHRATEN,                       &
-       &FLAG_QI,FLAG_QNI,FLAG_QC,FLAG_QNC &
-       &,Input_edmf%IDS,Input_edmf%IDE,Input_edmf%JDS,Input_edmf%JDE,Input_edmf%KDS,Input_edmf%KDE        &
-       &,Input_edmf%IMS,Input_edmf%IME,Input_edmf%JMS,Input_edmf%JME,Input_edmf%KMS,Input_edmf%KME        &
-       &,Input_edmf%ITS,Input_edmf%ITE,Input_edmf%JTS,Input_edmf%JTE,Input_edmf%KTS,Input_edmf%KTE)
+       &initflag=initflag,grav_settling=grav_settling,         &
+       &delt=Input_edmf%delt,dz=Input_edmf%dz,dx=Input_edmf%dx,znt=Input_edmf%znt,                 &
+       &u=Input_edmf%u,v=Input_edmf%v,w=Input_edmf%w,th=Input_edmf%th,qv=Input_edmf%qv,             &
+       &qc=Input_edmf%qc,qi=Input_edmf%qi,qni=Input_edmf%qni,qnc=Input_edmf%qnc,                    &
+       &p=Input_edmf%p,exner=Input_edmf%exner,rho=Input_edmf%rho,T3D=Input_edmf%T3D,                &
+       &xland=Input_edmf%xland,ts=Input_edmf%ts,qsfc=Input_edmf%qsfc,qcg=Input_edmf%qcg,ps=Input_edmf%ps,           &
+       &ust=Input_edmf%ust,ch=Input_edmf%ch,hfx=Input_edmf%hfx,qfx=Input_edmf%qfx,rmol=Input_edmf%rmol,wspd=Input_edmf%wspd,       &
+       &uoce=Input_edmf%uoce,voce=Input_edmf%voce,                      & 
+       &vdfg=Input_edmf%vdfg,                           & 
+       &qke=Output_edmf%Qke,tke_pbl=Output_edmf%tke_pbl,                    &
+       &qke_adv=Output_edmf%qke_adv,bl_mynn_tkeadvect=bl_mynn_tkeadvect,      &
+       &Tsq=Output_edmf%Tsq,Qsq=Output_edmf%Qsq,Cov=Output_edmf%Cov,                    &
+       &RUBLTEN=Output_edmf%RUBLTEN,RVBLTEN=Output_edmf%RVBLTEN,RTHBLTEN=Output_edmf%RTHBLTEN,       &
+       &RQVBLTEN=Output_edmf%RQVBLTEN,RQCBLTEN=Output_edmf%RQCBLTEN,RQIBLTEN=Output_edmf%RQIBLTEN,     &
+       &RQNIBLTEN=Output_edmf%RQNIBLTEN,                      &
+       &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
+       &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
+       &el_pbl=Output_edmf%el_pbl,                         &
+       &dqke=Output_edmf%dqke,qwt=Output_edmf%qWT,qshear=Output_edmf%qSHEAR,qbuoy=Output_edmf%qBUOY,qdiss=Output_edmf%qDISS,    &
+       &wstar=Output_edmf%wstar,delta=Output_edmf%delta,                    & !JOE-added for grims
+       &bl_mynn_tkebudget=bl_mynn_tkebudget,              &
+       &bl_mynn_cloudpdf=bl_mynn_cloudpdf,sh3D=Output_edmf%Sh3D,          &
+       &bl_mynn_mixlength=bl_mynn_mixlength,              &
+       &icloud_bl=icloud_bl,qc_bl=Output_edmf%qc_bl,cldfra_bl=Output_edmf%cldfra_bl,      &
+       &bl_mynn_edmf=bl_mynn_edmf,                   &
+       &bl_mynn_edmf_dd=bl_mynn_edmf_dd,                   &
+       &bl_mynn_edmf_mom=bl_mynn_edmf_mom,bl_mynn_edmf_tke=bl_mynn_edmf_tke, &
+       &bl_mynn_edmf_part=bl_mynn_edmf_part,bl_mynn_edmf_Lent=bl_mynn_edmf_Lent,&
+       &bl_mynn_cloudmix=bl_mynn_cloudmix,bl_mynn_mixqt=bl_mynn_mixqt, &
+       &edmf_a=Output_edmf%edmf_a,edmf_w=Output_edmf%edmf_w,edmf_qt=Output_edmf%edmf_qt,          &
+       &edmf_thl=Output_edmf%edmf_thl,edmf_ent=Output_edmf%edmf_ent,edmf_qc=Output_edmf%edmf_qc,      &
+       &edmf_debug1=Output_edmf%edmf_debug1,edmf_debug2=Output_edmf%edmf_debug2,        &
+       &edmf_debug3=Output_edmf%edmf_debug3,edmf_debug4=Output_edmf%edmf_debug4,        &
+       &edmf_a_dd=Output_edmf%edmf_a_dd,edmf_w_dd=Output_edmf%edmf_w_dd,edmf_qt_dd=Output_edmf%edmf_qt_dd,    &
+       &edmf_thl_dd=Output_edmf%edmf_thl_dd,edmf_ent_dd=Output_edmf%edmf_ent_dd,edmf_qc_dd=Output_edmf%edmf_qc_dd,&
+       &mynn_ql=Output_edmf%mynn_ql,                        &
+       &nupdraft=Output_edmf%nupdraft,maxMF=Output_edmf%maxMF,ktop_shallow=Output_edmf%ktop_shallow,    &
+       &spp_pbl=spp_pbl,pattern_spp_pbl=Output_edmf%pattern_spp_pbl,        &
+       &RTHRATEN=Output_edmf%RTHRATEN,                       &
+       &FLAG_QI=FLAG_QI,FLAG_QNI=FLAG_QNI,FLAG_QC=FLAG_QC,FLAG_QNC=FLAG_QNC &
+       &,IDS=Input_edmf%IDS,IDE=Input_edmf%IDE,JDS=Input_edmf%JDS,JDE=Input_edmf%JDE,KDS=Input_edmf%KDS,KDE=Input_edmf%KDE        &
+       &,IMS=Input_edmf%IMS,IME=Input_edmf%IME,JMS=Input_edmf%JMS,JME=Input_edmf%JME,KMS=Input_edmf%KMS,KME=Input_edmf%KME        &
+       &,ITS=Input_edmf%ITS,ITE=Input_edmf%ITE,JTS=Input_edmf%JTS,JTE=Input_edmf%JTE,KTS=Input_edmf%KTS,KTE=Input_edmf%KTE)
 
   !--- SCM, set initfla
   if (initflag == 1) then
