@@ -8956,11 +8956,11 @@ subroutine edmf_alloc ( &
 !-------------------------------------------------------------------------
 
   ! semi-prognostic variables
-  !Output_edmf%Qke       = rdiag(:,:,:,nQke) 
-  !Output_edmf%el_pbl    = rdiag(:,:,:,nel_pbl)
-  !Output_edmf%cldfra_bl = rdiag(:,:,:,ncldfra_bl)
-  !Output_edmf%qc_bl     = rdiag(:,:,:,nqc_bl)
-  !Output_edmf%Sh3D      = rdiag(:,:,:,nSh3D)
+  Output_edmf%Qke       = rdiag(:,:,:,nQke) 
+  Output_edmf%el_pbl    = rdiag(:,:,:,nel_pbl)
+  Output_edmf%cldfra_bl = rdiag(:,:,:,ncldfra_bl)
+  Output_edmf%qc_bl     = rdiag(:,:,:,nqc_bl)
+  Output_edmf%Sh3D      = rdiag(:,:,:,nSh3D)
 
 !-------------------------------
 
