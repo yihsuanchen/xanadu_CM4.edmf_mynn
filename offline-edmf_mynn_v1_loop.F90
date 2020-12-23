@@ -8309,6 +8309,16 @@ write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
 ! write out fields to history files
 !---------------------------------------------------------------------
 
+!!------- zonal wind stress (units: kg/m/s2) at one level -------
+!      if ( id_u_flux > 0) then
+!        used = send_data (id_u_flux, u_flux, Time_next, is, js )
+!      endif
+!
+!!------- meridional wind stress (units: kg/m/s2) at one level -------
+!      if ( id_v_flux > 0) then
+!        used = send_data (id_v_flux, v_flux, Time_next, is, js )
+!      endif
+!
 !!------- u_star from u_flux and v_flux (units: m/s) at one level -------
 !      if ( id_u_star_updated > 0) then
 !        used = send_data (id_u_star_updated, Input_edmf%u_star_updated, Time_next, is, js )
