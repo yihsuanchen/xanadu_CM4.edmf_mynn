@@ -8199,13 +8199,13 @@ subroutine edmf_mynn_driver ( &
 ! Arguments (Intent inout)  
 !
 !      Physics_tendency_block derived type variable containing:
-!          1) u_dt           zonal wind tendency [ m / s**2 ]
-!          2) v_dt           meridional wind tendency [ m / s**2 ]
-!          3) t_dt           temperature tendency [ deg k / sec ]
-!          4) q_dt           multiple tracer tendencies 
+!          1) udt           zonal wind tendency [ m / s**2 ]
+!          2) vdt           meridional wind tendency [ m / s**2 ]
+!          3) tdt           temperature tendency [ deg k / sec ]
+!          4) rdt           multiple tracer tendencies 
 !                            (index 1 = specific humidity) 
 !                            [ unit / unit / sec ]
-!          5) qdiag          multiple 3d diagnostic tracer fields 
+!          5) rdiag          multiple 3d diagnostic tracer fields 
 !                            [ unit / unit ]
 !---------------------------------------------------------------------
   real, intent(inout), dimension(:,:,:) :: &
@@ -8221,9 +8221,6 @@ subroutine edmf_mynn_driver ( &
   type(edmf_input_type)  :: Input_edmf
   type(edmf_output_type) :: Output_edmf
   type(am4_edmf_output_type) :: am4_Output_edmf
-
-!  real, dimension(:,:,:)  , pointer :: udt, vdt, tdt
-!  real, dimension(:,:,:,:), pointer :: rdt, rdiag
 
   logical used
 
@@ -8499,6 +8496,25 @@ subroutine edmf_alloc ( &
 !            The evaporation rate), kg vapor/m^2/s, is
 !                 density*u_star*q_star
 !                 So, u_star*q_star is surface moisture flux, <w'q'>, unit: (m/s * kg vapor/kg air)
+!
+!    2. The u,v,t,q are at full levels. The vertical indexing is counted downward, i.e. k=1 is at the top of the model.
+!
+!         --------- 1   (top of the atmospheric model)
+!           * 1    
+!         --------- 2
+!           * 2          -->  full levels where u,v,t,q are located
+!         --------- k-1
+!           * k-1
+!         --------- k    
+!           * k               
+!         --------- k+1
+!           * k+1
+!         --------- ...
+!           ....
+!         --------- kx
+!           * kx
+!         --------- kxp=kx+1, surface
+!
 !---------------------------------------------------------------------
   integer, intent(in)                   :: is, ie, js, je, npz
   type(time_type), intent(in)           :: Time_next
