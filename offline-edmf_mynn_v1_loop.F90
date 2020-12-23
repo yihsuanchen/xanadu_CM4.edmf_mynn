@@ -124,7 +124,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    !logical :: do_writeout_column_nml = .true.
    logical :: do_writeout_column_nml = .false.
-   logical :: do_edmf_mynn_diagnostic = .true.
+   !logical :: do_edmf_mynn_diagnostic = .true.
+   logical :: do_edmf_mynn_diagnostic = .false.
 
 !==================
 type edmf_input_type
@@ -8324,6 +8325,13 @@ write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nSh3D)',rdiag(:,:,:,nSh3D)
+
+!  !<-- test tendency purposes
+!  am4_Output_edmf%udt_edmf = 1./dt
+!  am4_Output_edmf%vdt_edmf = 2./dt
+!  am4_Output_edmf%tdt_edmf = -1./dt
+!  am4_Output_edmf%qdt_edmf = -2./dt
+!  !--> test tendency purposes
 
   !--- updated tendencies
   if (.not.do_edmf_mynn_diagnostic) then
