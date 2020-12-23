@@ -124,6 +124,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    !logical :: do_writeout_column_nml = .true.
    logical :: do_writeout_column_nml = .false.
+   logical :: do_edmf_mynn_diagnostic = .true.
 
 !==================
 type edmf_input_type
@@ -8324,6 +8325,15 @@ write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nSh3D)',rdiag(:,:,:,nSh3D)
 
+  !--- updated tendencies
+  if (.not.do_edmf_mynn_diagnostic) then
+    udt(:,:,:) = udt(:,:,:) + am4_Output_edmf%udt_edmf(:,:,:)
+    vdt(:,:,:) = vdt(:,:,:) + am4_Output_edmf%vdt_edmf(:,:,:)
+    tdt(:,:,:) = tdt(:,:,:) + am4_Output_edmf%tdt_edmf(:,:,:)
+
+    rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
+  end if
+
   !--- write out EDMF-MYNN input and output fields for debugging purpose
   call edmf_writeout_column ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
@@ -9781,9 +9791,10 @@ if (input_profile == "SCM_am4p0_DCBL_C1_01") then
   Physics_input_block%v = vv
   Physics_input_block%q(:,:,:,1) = qq
 
-stop
-
   do mm = 1,loop_times
+    ! set tendencies to zeros
+    udt = 0. ; vdt = 0. ; tdt = 0.; rdt = 0.   
+
     print*,''
     print*,'----------------------'
     print*, 'loop times=',mm
@@ -9792,6 +9803,12 @@ stop
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, & 
               udt, vdt, tdt, rdt, rdiag)
+
+    ! update fields
+    Physics_input_block%u = Physics_input_block%u + udt(:,:,:)*dt
+    Physics_input_block%v = Physics_input_block%v + vdt(:,:,:)*dt
+    Physics_input_block%t = Physics_input_block%t + tdt(:,:,:)*dt
+    Physics_input_block%q(:,:,:,nsphum) = Physics_input_block%q(:,:,:,1) + rdt(:,:,:,nsphum)*dt
   enddo
 
 
