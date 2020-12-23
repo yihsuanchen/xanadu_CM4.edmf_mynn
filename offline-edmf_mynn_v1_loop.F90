@@ -8620,8 +8620,8 @@ subroutine edmf_alloc ( &
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2)) :: &
     u_star_host, shflx_host, lhflx_host, w1_thv1_surf_host, w1_th1_surf_host, w1_q1_surf_host, Obukhov_length_host, &
-    u_star_star, shflx_star, lhflx_star, w1_thv1_surf_star, w1_th1_surf_star, w1_q1_surf_star, Obukhov_length_star,  &
-    u_star_updated, shflx_updated, lhflx_updated, w1_thv1_surf_updated, w1_th1_surf_updated, w1_q1_surf_updated, Obukhov_length_updated, &
+    u_star_star, shflx_star, lhflx_star, w1_thv1_surf_star, w1_th1_surf_star, w1_t1_surf_star, w1_q1_surf_star, Obukhov_length_star,  &
+    u_star_updated, shflx_updated, lhflx_updated, w1_thv1_surf_updated, w1_th1_surf_updated, w1_t1_surf_updated, w1_q1_surf_updated, Obukhov_length_updated, &
     tv_ref, thv_ref, rho_ref
 
   integer :: i, j, k, kk
@@ -8866,14 +8866,16 @@ subroutine edmf_alloc ( &
   w1_thv1_surf_star     (:,:) = u_star(:,:) * b_star(:,:) * thv_host(:,:,kx)/g
   w1_th1_surf_star      (:,:) = (w1_thv1_surf_star(:,:) - d608*th_host(:,:,kx)*w1_q1_surf_star(:,:)) &
                                  / (1.+d608*qv_host(:,:,kx))
+  w1_t1_surf_star       (:,:) = w1_th1_surf_star * exner_host(:,:,kx)
   lhflx_star            (:,:) = w1_q1_surf_star(:,:) * rho_host(:,:,kx)
-  shflx_star            (:,:) = w1_th1_surf_star(:,:) * rho_host(:,:,kx) * cp_air
+  shflx_star            (:,:) = w1_t1_surf_star(:,:) * rho_host(:,:,kx) * cp_air
 
   ! compute surface fluxes and Obukhov length from quantities that after surface-atmosphere coupling
   u_star_updated           (:,:) = sqrt( sqrt( u_flux(:,:)**2+v_flux(:,:)**2 ) / rho_host(:,:,kx) )
   shflx_updated            (:,:) = shflx(:,:)
   lhflx_updated            (:,:) = lhflx(:,:)
-  w1_th1_surf_updated      (:,:) = shflx_updated(:,:) / rho_host(:,:,kx) / cp_air
+  w1_t1_surf_updated       (:,:) = shflx_updated(:,:) / rho_host(:,:,kx) / cp_air
+  w1_th1_surf_updated      (:,:) = w1_t1_surf_updated(:,:) / exner_host(:,:,kx)
   w1_q1_surf_updated       (:,:) = lhflx(:,:) / rho_host(:,:,kx)
   w1_thv1_surf_updated     (:,:) = (1.+d608*qv_host(:,:,kx)) * w1_th1_surf_updated(:,:) + d608*th_host(:,:,kx)*w1_q1_surf_updated(:,:)
   Obukhov_length_updated   (:,:) = -1.*u_star_updated(:,:)**3*thv_host(:,:,kx) / vonkarm / g / w1_thv1_surf_updated(:,:)
