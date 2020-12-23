@@ -57,6 +57,13 @@ type physics_input_block_type
     q
 end type physics_input_block_type
 
+!type physics_tendency_block_type
+!    real, dimension(ni,nj,nfull), target :: &
+!      u_dt, v_dt, t_dt
+!    real, dimension(ni,nj,nfull,ntracer), target ::  &
+!      q_dt, qdiag
+!end type physics_tendency_block_type
+
 real, public, parameter :: VONKARM     = 0.40       !< Von Karman constant [dimensionless]
 real, public, parameter :: rdgas  = 287.04
 real, public, parameter :: rvgas = 461.50
@@ -8168,8 +8175,9 @@ end function rsat_temf
 
 subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag )
-
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              udt, vdt, tdt, rdt, rdiag)
+ 
 !---------------------------------------------------------------------
 ! Arguments (Intent in)  
 !   Descriptions of the input arguments are in subroutine edmf_alloc
@@ -8181,15 +8189,29 @@ subroutine edmf_mynn_driver ( &
     frac_land, area, u_star, b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux
   type(physics_input_block_type)        :: Physics_input_block
 
-  real, intent(inout), dimension(:,:,:,:) :: rdiag
-
   real,    intent(in), dimension(:,:)   :: &  ! dimension(nlon,nlat)
     lon,  &     ! longitude in radians
     lat         ! latitude  in radians
 
 !---------------------------------------------------------------------
-! Arguments (Intent out)  
+! Arguments (Intent inout)  
+!
+!      Physics_tendency_block derived type variable containing:
+!          1) u_dt           zonal wind tendency [ m / s**2 ]
+!          2) v_dt           meridional wind tendency [ m / s**2 ]
+!          3) t_dt           temperature tendency [ deg k / sec ]
+!          4) q_dt           multiple tracer tendencies 
+!                            (index 1 = specific humidity) 
+!                            [ unit / unit / sec ]
+!          5) qdiag          multiple 3d diagnostic tracer fields 
+!                            [ unit / unit ]
 !---------------------------------------------------------------------
+  real, intent(inout), dimension(:,:,:) :: &
+    udt, vdt, tdt
+  real, intent(inout), dimension(:,:,:,:) :: &
+    rdt
+  real, intent(inout), dimension(:,:,:,:) :: &
+    rdiag
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -8197,6 +8219,9 @@ subroutine edmf_mynn_driver ( &
   type(edmf_input_type)  :: Input_edmf
   type(edmf_output_type) :: Output_edmf
   type(am4_edmf_output_type) :: am4_Output_edmf
+
+!  real, dimension(:,:,:)  , pointer :: udt, vdt, tdt
+!  real, dimension(:,:,:,:), pointer :: rdt, rdiag
 
   logical used
 
@@ -9604,6 +9629,7 @@ program test111
 
   implicit none
   type(physics_input_block_type) :: Physics_input_block
+  !type(physics_tendency_block_type) :: Physics_tendency_block
   type(time_type)           :: Time_next
   integer                   :: is, ie, js, je
   !real                      :: dt
@@ -9619,6 +9645,9 @@ program test111
   real,    dimension(ni,nj)   :: buoy_flux, w1_thv1_surf, w1_qt1_surf
 
   real,    dimension(ni,nj,nfull,ntracer) :: rdiag
+  real,    dimension(ni,nj,nfull) :: udt, vdt, tdt
+  real,    dimension(ni,nj,nfull,tr) :: rdt 
+  
   integer mm
 
 !==============================
@@ -9752,6 +9781,8 @@ if (input_profile == "SCM_am4p0_DCBL_C1_01") then
   Physics_input_block%v = vv
   Physics_input_block%q(:,:,:,1) = qq
 
+stop
+
   do mm = 1,loop_times
     print*,''
     print*,'----------------------'
@@ -9759,7 +9790,8 @@ if (input_profile == "SCM_am4p0_DCBL_C1_01") then
     print*,'----------------------'
     call edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag )
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, & 
+              udt, vdt, tdt, rdt, rdiag)
   enddo
 
 
