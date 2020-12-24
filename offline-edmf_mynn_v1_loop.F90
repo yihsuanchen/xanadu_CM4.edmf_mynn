@@ -122,8 +122,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    !logical :: do_writeout_column_nml = .true.
    logical :: do_writeout_column_nml = .false.
-   logical :: do_edmf_mynn_diagnostic = .true.
- !  logical :: do_edmf_mynn_diagnostic = .false.
+   !logical :: do_edmf_mynn_diagnostic = .true.
+   logical :: do_edmf_mynn_diagnostic = .false.
 
 !==================
 type edmf_input_type
@@ -6457,7 +6457,8 @@ write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
 !---------------------------------------------------------------------
 
   !--- convert Output_edmf to am4_Output_edmf
-  call convert_edmf_to_am4_array (Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
+  call convert_edmf_to_am4_array (size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
+                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
 !! debug01
 write(6,*) 'edmf_mynn, after mynn'
@@ -7722,25 +7723,26 @@ end subroutine edmf_writeout_column
 
 !########################
 
-subroutine convert_edmf_to_am4_array (Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
+subroutine convert_edmf_to_am4_array (ix, jx, kx, &
+                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
 !--- input arguments
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   type(edmf_output_type)    , intent(in)  :: Output_edmf
+  integer                   , intent(in)  :: ix, jx, kx
 
 !--- output arguments
   type(am4_edmf_output_type), intent(inout) :: am4_Output_edmf
   real, dimension (:,:,:,:) , intent(inout) :: rdiag
 
 !--- local variable
-  integer ix, jx, kx
   integer i,j,k,kk
 !------------------------------------------
 
 !print*,'convert, Output_edmf%Qke, ix,jx,kx',size(Output_edmf%Qke,1),size(Output_edmf%Qke,2),size(Output_edmf%Qke,3)
-  ix = size(Output_edmf%Qke,1)
-  jx = size(Output_edmf%Qke,3)
-  kx = size(Output_edmf%Qke,2)
+  !ix = size(Output_edmf%Qke,1)
+  !jx = size(Output_edmf%Qke,3)
+  !kx = size(Output_edmf%Qke,2)
   !print*,'convert, ix,jx,kx',ix,jx,kx
 
   do i=1,ix
@@ -7954,6 +7956,8 @@ if (input_profile == "SCM_am4p0_DCBL_C1_01") then
   do mm = 1,loop_times
     ! set tendencies to zeros
     udt = 0. ; vdt = 0. ; tdt = 0.; rdt = 0.   
+
+!print*,'tt',Physics_input_block%t
 
     print*,''
     print*,'----------------------'
