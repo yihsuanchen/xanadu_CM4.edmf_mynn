@@ -377,7 +377,15 @@ real    :: cosp_frequency = 10800.
 logical :: do_edmf_mynn = .false.
 logical :: do_edmf_mynn_diagnostic = .true.   ! .true.  : diagnostic edmf_mynn, no update on tendencies
                                               ! .false. : interactive edmf_mynn, update on tendencies
-logical :: do_writeout_column = .false.
+integer :: ii_write = -999                    ! i index for column written out. Set to 0 if you want to write out in SCM
+integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
+real    :: lat_write = -999.99                ! latitude  (radian) for column written out
+real    :: lon_write = -999.99                ! longitude (radian) for column written out
+logical :: do_stop_run = .false.              ! whether to stop the simulation
+logical :: do_writeout_column_nml = .false.   ! switch to control whether writing out the column
+
+logical :: do_writeout_column = .false.       ! local variable
+real    :: lat_lower, lat_upper, lon_lower, lon_upper
 !--> yhc, add edmf_mynn nml
 
 
@@ -391,7 +399,8 @@ namelist / physics_driver_nml / do_radiation, do_clubb,  do_cosp, &
                                 qmin, N_land, N_ocean, do_liq_num,  &
                                 do_ice_num, qcvar, overlap, N_min, &
                                 min_diam_ice, dcs, min_diam_drop, &
-                                do_edmf_mynn, do_edmf_mynn_diagnostic, do_writeout_column, & ! yhc add
+                                do_edmf_mynn, do_edmf_mynn_diagnostic, & ! yhc add
+                                do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write, & ! yhc add
                                 max_diam_drop, use_tau, cosp_frequency
 
 
@@ -1913,6 +1922,54 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
          used = send_cmip_data_3d (ID_zg, z_full, Time_next, is, js, 1)
       endif
 
+!<-- yhc, determine whether writing out the selected column 
+  do_writeout_column = .false.
+  if (do_writeout_column_nml) then
+
+    !--- for global simulations
+    if (ii_write.ne.-999 .and. jj_write.ne.-999) then
+      do_writeout_column = .true.
+
+      if (lat_write.ne.-999.99 .and. lon_write.ne.-999.99) then
+
+        lat_lower = lat_write - 0.001
+        lat_upper = lat_write + 0.001
+        lon_lower = lon_write - 0.001
+        lon_upper = lon_write + 0.001
+
+        if (lat (ii_write,jj_write).gt.lat_lower .and. lat (ii_write,jj_write).lt.lat_upper .and. &
+            lon (ii_write,jj_write).gt.lon_lower .and. lon (ii_write,jj_write).lt.lon_upper ) then
+          do_writeout_column = .true.
+        else
+          do_writeout_column = .false.
+        endif
+      endif
+    endif
+
+    !--- SCM
+    if (ii_write.eq.0 .and. jj_write.eq.0) then
+      do_writeout_column = .true.
+      ii_write = 1
+      jj_write = 1
+    endif
+  endif  ! end if of do_writeout_column_nml
+!--> yhc, determine whether writing out the selected column
+
+!<-- yhc
+  if (do_writeout_column) then
+        write(6,*) '-------------- i,j,',ii_write,jj_write
+        write(6,*) 'lat',lat (ii_write,jj_write)
+        write(6,*) 'lon',lon (ii_write,jj_write)
+        write(6,*) 'data t_physics_down_begin/'    ,t(ii_write,jj_write,:)
+        write(6,*) 'data q_physics_down_begin/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data udt_physics_down_begin/'    ,udt(ii_write,jj_write,:)
+        write(6,*) 'data vdt_physics_down_begin/'    ,vdt(ii_write,jj_write,:)
+        write(6,*) 'data tdt_physics_down_begin/'    ,tdt(ii_write,jj_write,:)
+        write(6,*) 'data qdt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,1)
+        write(6,*) '-------------- i,j,',ii_write,jj_write
+  endif
+!--> yhc
+
 !---------------------------------------------------------------------
 
 !rab      if(do_grey_radiation) then !rif:(09/10/09) 
@@ -1952,6 +2009,19 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                            u_ref, v_ref, z_pbl,                     &  !bqx+
                            udt, vdt, tdt, rdt(:,:,:,1), rdt)
      call mpp_clock_end ( damping_clock )
+
+!<-- yhc
+  if (do_writeout_column) then
+        write(6,*) '-------------- i,j,',ii_write,jj_write
+        write(6,*) 'lat',lat (ii_write,jj_write)
+        write(6,*) 'lon',lon (ii_write,jj_write)
+        write(6,*) 'data t_damping/'    ,t(ii_write,jj_write,:)
+        write(6,*) 'data q_damping/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data tdt_damping/'    ,tdt(ii_write,jj_write,:)
+        write(6,*) 'data qdt_damping/'    ,rdt(ii_write,jj_write,:,1)
+       write(6,*) '-------------- i,j,',ii_write,jj_write
+  endif
+!--> yhc
 
 !---------------------------------------------------------------------
 !    call vert_turb_driver to calculate diffusion coefficients. save
@@ -2017,6 +2087,19 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                                 Rad_flux_block%flux_sw_down_vis_dir, &
                                 Rad_flux_block%flux_sw_down_vis_dif)
       call mpp_clock_end ( tracer_clock )
+
+!<-- yhc
+  if (do_writeout_column) then
+        write(6,*) '-------------- i,j,',ii_write,jj_write
+        write(6,*) 'lat',lat (ii_write,jj_write)
+        write(6,*) 'lon',lon (ii_write,jj_write)
+        write(6,*) 'data t_tracer/'    ,t(ii_write,jj_write,:)
+        write(6,*) 'data q_tracer/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data tdt_tracer/'    ,tdt(ii_write,jj_write,:)
+        write(6,*) 'data qdt_tracer/'    ,rdt(ii_write,jj_write,:,1)
+       write(6,*) '-------------- i,j,',ii_write,jj_write
+  endif
+!--> yhc
 
 !-----------------------------------------------------------------------
 !    optionally use an implicit calculation of the vertical diffusion 
@@ -2122,6 +2205,22 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                              Time_next, is, js, 1)
         endif
       end do
+
+!<-- yhc
+  if (do_writeout_column) then
+        write(6,*) '-------------- i,j,',ii_write,jj_write
+        write(6,*) 'lat',lat (ii_write,jj_write)
+        write(6,*) 'lon',lon (ii_write,jj_write)
+        write(6,*) 'data t_physics_down_end/'    ,t(ii_write,jj_write,:)
+        write(6,*) 'data q_physics_down_end/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data udt_physics_down_end/'    ,udt(ii_write,jj_write,:)
+        write(6,*) 'data vdt_physics_down_end/'    ,vdt(ii_write,jj_write,:)
+        write(6,*) 'data tdt_physics_down_end/'    ,tdt(ii_write,jj_write,:)
+        write(6,*) 'data qdt_physics_down_end/'    ,rdt(ii_write,jj_write,:,1)
+       write(6,*) '-------------- i,j,',ii_write,jj_write
+  endif
+!--> yhc
+
 
 !---------------------------------------------------------------------
 !    if desired, return diff_m and diff_t to calling routine.
@@ -2424,6 +2523,21 @@ real,dimension(:,:),    intent(inout)             :: gust
       vdt => Physics_tendency_block%v_dt      ! yhc
       rdiag => Physics_tendency_block%qdiag   ! yhc
 
+!<-- yhc
+  if (do_writeout_column) then
+    write(6,*) '-------------- i,j,',ii_write,jj_write
+    write(6,*) 'lat',lat(ii_write,jj_write)  ! radians
+    write(6,*) 'lon',lon(ii_write,jj_write)  ! radians
+    write(6,*) 'data t_physics_up_begin/'    ,t(ii_write,jj_write,:)
+    write(6,*) 'data q_physics_up_begin/'    ,r(ii_write,jj_write,:,1)
+    write(6,*) 'data udt_physics_up_begin/'    ,udt(ii_write,jj_write,:)
+    write(6,*) 'data vdt_physics_up_begin/'    ,vdt(ii_write,jj_write,:)
+    write(6,*) 'data tdt_physics_up_begin/'    ,tdt(ii_write,jj_write,:)
+    write(6,*) 'data qdt_physics_up_begin/'    ,rdt(ii_write,jj_write,:,1)
+    write(6,*) '-------------- i,j,',ii_write,jj_write
+  endif
+!--> yhc
+
 !---------------------------------------------------------------------
 !    verify that the module is initialized.
 !---------------------------------------------------------------------
@@ -2516,6 +2630,21 @@ real,dimension(:,:),    intent(inout)             :: gust
       endif
 !--> yhc
 
+!<-- yhc
+  if (do_writeout_column) then
+        write(6,*) '-------------- i,j,',ii_write,jj_write
+        write(6,*) 'lat',lat (ii_write,jj_write)
+        write(6,*) 'lon',lon (ii_write,jj_write)
+        write(6,*) 'data t_diff_up/'    ,t(ii_write,jj_write,:)
+        write(6,*) 'data q_diff_up/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data udt_diff_up/'    ,udt(ii_write,jj_write,:)
+        write(6,*) 'data vdt_diff_up/'    ,vdt(ii_write,jj_write,:)
+        write(6,*) 'data tdt_diff_up/'    ,tdt(ii_write,jj_write,:)
+        write(6,*) 'data qdt_diff_up/'    ,rdt(ii_write,jj_write,:,1)
+       write(6,*) '-------------- i,j,',ii_write,jj_write
+  endif
+!--> yhc
+
 !      call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
 !                                Surf_diff, tdt, rdt(:,:,:,1), rdt )
 
@@ -2564,8 +2693,20 @@ real,dimension(:,:),    intent(inout)             :: gust
                do_edmf_mynn_diagnostic, &
                udt, vdt, tdt, rdt, rdiag)
   endif
-!--> yhc
 
+ if (do_writeout_column) then
+        write(6,*) '-------------- i,j,',ii_write,jj_write
+        write(6,*) 'lat',lat (ii_write,jj_write)
+        write(6,*) 'lon',lon (ii_write,jj_write)
+        write(6,*) 'data t_edmf_mynn/'    ,t(ii_write,jj_write,:)
+        write(6,*) 'data q_edmf_mynn/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data udt_edmf_mynn/'    ,udt(ii_write,jj_write,:)
+        write(6,*) 'data vdt_edmf_mynn/'    ,vdt(ii_write,jj_write,:)
+        write(6,*) 'data tdt_edmf_mynn/'    ,tdt(ii_write,jj_write,:)
+        write(6,*) 'data qdt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,1)
+       write(6,*) '-------------- i,j,',ii_write,jj_write
+  endif
+!--> yhc
 
 !-----------------------------------------------------------------------
 !    prepare to call moist_processes, which calculates moist physics terms,
@@ -2645,6 +2786,19 @@ real,dimension(:,:),    intent(inout)             :: gust
               Surf_diff, Removal_mp, shflx, lhflx,  &
               lprec, fprec, gust_cv, Aerosol=Aerosol)
         call mpp_clock_end ( moist_processes_clock )
+
+!<-- yhc
+  if (do_writeout_column) then
+    write(6,*) '-------------- i,j,',ii_write,jj_write
+    write(6,*) 'lat',lat(ii_write,jj_write)  ! radians
+    write(6,*) 'lon',lon(ii_write,jj_write)  ! radians
+        write(6,*) 'data t_moist_up/'    ,t(ii_write,jj_write,:)
+        write(6,*) 'data q_moist_up/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data tdt_moist_up/'    ,tdt(ii_write,jj_write,:)
+        write(6,*) 'data qdt_moist_up/'    ,rdt(ii_write,jj_write,:,1)
+       write(6,*) '-------------- i,j,',ii_write,jj_write
+  endif
+!--> yhc
 
 !-------------------------------------------------------------------------
 !    save the cumulus momentum output field in a module variable for use
@@ -2844,6 +2998,29 @@ real,dimension(:,:),    intent(inout)             :: gust
         endif ! (do_cosp)
       endif ! do_moist_processes
        
+!<-- yhc
+  if (do_writeout_column) then
+    write(6,*) '-------------- i,j,',ii_write,jj_write
+    write(6,*) 'lat',lat(ii_write,jj_write)  ! radians
+    write(6,*) 'lon',lon(ii_write,jj_write)  ! radians
+    write(6,*) 'data t_physics_up_end/'    ,t(ii_write,jj_write,:)
+    write(6,*) 'data q_physics_up_end/'    ,r(ii_write,jj_write,:,1)
+    write(6,*) 'data udt_physics_up_end/'    ,udt(ii_write,jj_write,:)
+    write(6,*) 'data vdt_physics_up_end/'    ,vdt(ii_write,jj_write,:)
+    write(6,*) 'data tdt_physics_up_end/'    ,tdt(ii_write,jj_write,:)
+    write(6,*) 'data qdt_physics_up_end/'    ,rdt(ii_write,jj_write,:,1)
+    write(6,*) '-------------- i,j,',ii_write,jj_write
+  endif
+!--> yhc
+
+
+!<-- yhc
+  if (do_stop_run) then
+    call error_mesg('physics_driver_up',  &
+                    'stop by yihsuan', FATAL)
+  endif
+!--> yhc
+
 !-----------------------------------------------------------------------
 !    nullify all local pointers.
 !-----------------------------------------------------------------------
