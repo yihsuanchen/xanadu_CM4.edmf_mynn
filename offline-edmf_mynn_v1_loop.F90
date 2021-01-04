@@ -3155,7 +3155,7 @@ CONTAINS
 
     REAL :: rhs,gfluxm,gfluxp,dztop,maxdfh,mindfh,maxcf,maxKh,zw
     REAL :: grav_settling2,vdfg1    !Katata-fogdes
-    REAL :: t,esat,qsl,onoff
+    REAL :: t,esat,qsl,onoff,ustovwsp
     INTEGER :: k,kk,nz,itr
     REAL, INTENT(IN)      :: dx,PBLH,HFX
     REAL, DIMENSION(kts:kte), INTENT(INOUT) :: qc_bl1D,cldfra_bl1d,sgm
@@ -3164,6 +3164,14 @@ CONTAINS
     nz=kte-kts+1
 
     dztop=.5*(dz(kte)+dz(kte-1))
+
+
+   ! USTAR/WSPD make sure it does not blow up when WSPD = 0.
+   IF (wspd .le. 0.) THEN
+     ustovwsp=0.
+   ELSE 
+       ustovwsp=ust/wspd
+   ENDIF
 
     ! REGULATE THE MOMENTUM MIXING FROM THE MASS-FLUX SCHEME (on or off)
     ! Note that s_awu and s_awv already come in as 0.0 if bl_mynn_edmf_mom == 0, so
@@ -3210,9 +3218,9 @@ CONTAINS
     k=kts
 
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust**2/wspd) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
     c(1)=-dtz(k)*dfm(k+1) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-    d(1)=u(k) + dtz(k)*uoce*ust**2/wspd - dtz(k)*s_awu(k+1)*onoff - dtz(k)*sd_awu(k+1)*onoff 
+    d(1)=u(k) + dtz(k)*uoce*ust*ustovwsp - dtz(k)*s_awu(k+1)*onoff - dtz(k)*sd_awu(k+1)*onoff 
 
 
 
@@ -3256,10 +3264,10 @@ CONTAINS
     k=kts
 
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust**2/wspd) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
     c(1)=   - dtz(k)*dfm(k+1)               - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
 !!    d(1)=v(k)
-    d(1)=v(k) + dtz(k)*voce*ust**2/wspd - dtz(k)*s_awv(k+1)*onoff
+    d(1)=v(k) + dtz(k)*voce*ust*ustovwsp - dtz(k)*s_awv(k+1)*onoff
 
     DO k=kts+1,kte-1
        a(k)=   - dtz(k)*dfm(k)            + 0.5*dtz(k)*s_aw(k)*onoff + 0.5*dtz(k)*sd_aw(k)*onoff 
