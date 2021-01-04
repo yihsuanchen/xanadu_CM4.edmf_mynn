@@ -17,7 +17,7 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
   !character*50 :: input_profile = "xxx"
 
-  integer, parameter :: loop_times = 5
+  integer, parameter :: loop_times = 24
 
   integer, parameter :: ni = 1
   integer, parameter :: nj = 1
@@ -6337,8 +6337,9 @@ END SUBROUTINE DDMF_JPL
 subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              do_edmf_mynn_diagnostic, &
               udt, vdt, tdt, rdt, rdiag)
- 
+
 !---------------------------------------------------------------------
 ! Arguments (Intent in)  
 !   Descriptions of the input arguments are in subroutine edmf_alloc
@@ -6347,12 +6348,10 @@ subroutine edmf_mynn_driver ( &
   type(time_type), intent(in)           :: Time_next
   real,    intent(in)                   :: dt
   real,    intent(in), dimension(:,:)   :: &
-    frac_land, area, u_star, b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux
+   lon, lat, &  ! longitude and latitude in radians
+   frac_land, area, u_star, b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux
   type(physics_input_block_type)        :: Physics_input_block
-
-  real,    intent(in), dimension(:,:)   :: &  ! dimension(nlon,nlat)
-    lon,  &     ! longitude in radians
-    lat         ! latitude  in radians
+  logical, intent(in)                   :: do_edmf_mynn_diagnostic
 
 !---------------------------------------------------------------------
 ! Arguments (Intent inout)  
@@ -8019,7 +8018,7 @@ endif ! end if of input profile
     ! set tendencies to zeros
     udt = 0. ; vdt = 0. ; tdt = 0.; rdt = 0.   
 
-!print*,'tt',Physics_input_block%t
+print*,'tt',Physics_input_block%t
 
     print*,''
     print*,'----------------------'
@@ -8028,6 +8027,7 @@ endif ! end if of input profile
     call edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, & 
+              do_edmf_mynn_diagnostic, &
               udt, vdt, tdt, rdt, rdiag)
 
     ! update fields
