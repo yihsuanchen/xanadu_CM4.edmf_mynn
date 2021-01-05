@@ -17,7 +17,8 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
   !character*50 :: input_profile = "xxx"
 
-  integer, parameter :: loop_times = 3 
+  integer, parameter :: loop_times = 20 
+  !integer, parameter :: loop_times = 60 
 
   integer, parameter :: ni = 1
   integer, parameter :: nj = 1
@@ -42,6 +43,7 @@ MODULE module_bl_mynn
   integer, parameter :: nqa = 4
 
   real, parameter :: dt = 1800.
+  !real, parameter :: dt = 300.
   integer :: FATAL
   logical :: do_stop_run = .false.
   character*20 :: option_surface_flux = "star"
@@ -122,8 +124,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    !integer :: jj_write = -999       ! j index for column written out. Set to 0 if you want to write out in SCM
    real    :: lat_write = -999.99   ! latitude  (radian) for column written out
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
-   logical :: do_writeout_column_nml = .true.
-   !logical :: do_writeout_column_nml = .false.
+   !logical :: do_writeout_column_nml = .true.
+   logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
 
@@ -7178,11 +7180,18 @@ subroutine edmf_alloc ( &
 !-------------------------------------------------------------------------
 
   ! semi-prognostic variables
-  Output_edmf%Qke       = rdiag(:,:,:,nQke) 
-  Output_edmf%el_pbl    = rdiag(:,:,:,nel_pbl)
-  Output_edmf%cldfra_bl = rdiag(:,:,:,ncldfra_bl)
-  Output_edmf%qc_bl     = rdiag(:,:,:,nqc_bl)
-  Output_edmf%Sh3D      = rdiag(:,:,:,nSh3D)
+  do i=1,ix    
+  do j=1,jx    
+  do k=1,kx 
+    kk=kx-k+1   
+    Output_edmf%Qke       (i,kk,j) = rdiag(i,j,k,nQke) 
+    Output_edmf%el_pbl    (i,kk,j) = rdiag(i,j,k,nel_pbl)
+    Output_edmf%cldfra_bl (i,kk,j) = rdiag(i,j,k,ncldfra_bl)
+    Output_edmf%qc_bl     (i,kk,j) = rdiag(i,j,k,nqc_bl)
+    Output_edmf%Sh3D      (i,kk,j) = rdiag(i,j,k,nSh3D)
+  enddo  ! end loop of k
+  enddo  ! end loop of j
+  enddo  ! end loop of i
 
 !-------------------------------
 
@@ -7455,6 +7464,13 @@ subroutine edmf_writeout_column ( &
 !-------------------------------------------------------------------------
 ! writing out the selected column
 !-------------------------------------------------------------------------
+
+! debug purpose 
+!           do k=1,kx
+!             kk=kx-k+1
+!             var_temp1(k) = Input_edmf%th(1,kk,1)
+!           enddo
+!        write(6,3001) '  th = (/'    ,var_temp1(:)
 
   if (do_writeout_column) then
         write(6,*)    ';@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
