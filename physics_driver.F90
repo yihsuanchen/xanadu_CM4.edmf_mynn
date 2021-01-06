@@ -1966,7 +1966,6 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data vdt_physics_down_begin/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_physics_down_begin/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,1)
-        write(6,*) '-------------- i,j,',ii_write,jj_write
   endif
 !--> yhc
 
@@ -2019,7 +2018,6 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data q_damping/'    ,r(ii_write,jj_write,:,1)
         write(6,*) 'data tdt_damping/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_damping/'    ,rdt(ii_write,jj_write,:,1)
-       write(6,*) '-------------- i,j,',ii_write,jj_write
   endif
 !--> yhc
 
@@ -2095,9 +2093,10 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'lon',lon (ii_write,jj_write)
         write(6,*) 'data t_tracer/'    ,t(ii_write,jj_write,:)
         write(6,*) 'data q_tracer/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data udt_tracer/'    ,udt(ii_write,jj_write,:)
+        write(6,*) 'data vdt_tracer/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_tracer/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_tracer/'    ,rdt(ii_write,jj_write,:,1)
-       write(6,*) '-------------- i,j,',ii_write,jj_write
   endif
 !--> yhc
 
@@ -2217,7 +2216,6 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data vdt_physics_down_end/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_physics_down_end/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_physics_down_end/'    ,rdt(ii_write,jj_write,:,1)
-       write(6,*) '-------------- i,j,',ii_write,jj_write
   endif
 !--> yhc
 
@@ -2534,7 +2532,6 @@ real,dimension(:,:),    intent(inout)             :: gust
     write(6,*) 'data vdt_physics_up_begin/'    ,vdt(ii_write,jj_write,:)
     write(6,*) 'data tdt_physics_up_begin/'    ,tdt(ii_write,jj_write,:)
     write(6,*) 'data qdt_physics_up_begin/'    ,rdt(ii_write,jj_write,:,1)
-    write(6,*) '-------------- i,j,',ii_write,jj_write
   endif
 !--> yhc
 
@@ -2641,7 +2638,6 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data vdt_diff_up/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_diff_up/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_diff_up/'    ,rdt(ii_write,jj_write,:,1)
-       write(6,*) '-------------- i,j,',ii_write,jj_write
   endif
 !--> yhc
 
@@ -2686,6 +2682,9 @@ real,dimension(:,:),    intent(inout)             :: gust
 !---------------------------------------------------------------------
 !    call edmf_mynn to to calculate tendencies from convective mass flux
 !---------------------------------------------------------------------
+
+!write(6,*) 'a0.0, nQke, rdiag(:,:,:,nQke)', rdiag(:,:,:,28)
+
   if (do_edmf_mynn) then
     call edmf_mynn_driver ( &
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
@@ -2704,7 +2703,6 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data vdt_edmf_mynn/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_edmf_mynn/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,1)
-       write(6,*) '-------------- i,j,',ii_write,jj_write
   endif
 !--> yhc
 
@@ -2796,7 +2794,6 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data q_moist_up/'    ,r(ii_write,jj_write,:,1)
         write(6,*) 'data tdt_moist_up/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_moist_up/'    ,rdt(ii_write,jj_write,:,1)
-       write(6,*) '-------------- i,j,',ii_write,jj_write
   endif
 !--> yhc
 
@@ -3009,7 +3006,6 @@ real,dimension(:,:),    intent(inout)             :: gust
     write(6,*) 'data vdt_physics_up_end/'    ,vdt(ii_write,jj_write,:)
     write(6,*) 'data tdt_physics_up_end/'    ,tdt(ii_write,jj_write,:)
     write(6,*) 'data qdt_physics_up_end/'    ,rdt(ii_write,jj_write,:,1)
-    write(6,*) '-------------- i,j,',ii_write,jj_write
   endif
 !--> yhc
 
@@ -3025,12 +3021,17 @@ real,dimension(:,:),    intent(inout)             :: gust
 !    nullify all local pointers.
 !-----------------------------------------------------------------------
 
+!write(6,*) 'a1.0, nQke, rdiag(:,:,:,nQke)', rdiag(:,:,:,28)
+
       t => null()
       r => null()
       p_full => null()
       p_half => null()
       tdt => null()
       rdt => null()
+      udt => null()     ! yhc
+      vdt => null()     ! yhc
+      rdiag => null()   ! yhc
 
       Phys_mp_exch%diff_t => null()
       Phys_mp_exch%radturbten => null()
