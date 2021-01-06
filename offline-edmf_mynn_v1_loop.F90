@@ -6380,7 +6380,8 @@ subroutine edmf_mynn_driver ( &
     udt, vdt, tdt
   real, intent(inout), dimension(:,:,:,:) :: &
     rdt
-  real, intent(inout), dimension(:,:,:,:) :: &
+  !real, intent(inout), dimension(:,:,:,:) :: &
+  real, intent(inout), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
 !---------------------------------------------------------------------
@@ -6398,7 +6399,7 @@ subroutine edmf_mynn_driver ( &
 write(6,*) 'edmf_mynn, beginning'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
 write(6,*) 'initflag,',initflag
-write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
+write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
@@ -6411,6 +6412,7 @@ write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
   call edmf_alloc ( &
               is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, &
+              rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf)
 
 !---------------------------------------------------------------------
@@ -6477,13 +6479,14 @@ write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
 
   !--- convert Output_edmf to am4_Output_edmf
   call convert_edmf_to_am4_array (size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
+                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
+                                  rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D) )
 
 !! debug01
 write(6,*) 'edmf_mynn, after mynn'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
 write(6,*) 'initflag,',initflag
-write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
+write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
@@ -6623,6 +6626,7 @@ end subroutine edmf_mynn_driver
 subroutine edmf_alloc ( &
               is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, &
+              Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
               Input_edmf, Output_edmf, am4_Output_edmf )
 
 !---------------------------------------------------------------------
@@ -6688,7 +6692,9 @@ subroutine edmf_alloc ( &
   real,    intent(in), dimension(:,:)   :: &
     frac_land, area, u_star, b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux
   type(physics_input_block_type)        :: Physics_input_block
-  real, intent(inout), dimension(:,:,:,:) :: rdiag
+  real, intent(in), dimension(:,:,:,:)  :: rdiag
+  real, intent(in), dimension(:,:,:)    :: &
+    Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
 
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
@@ -7192,11 +7198,11 @@ subroutine edmf_alloc ( &
   do j=1,jx    
   do k=1,kx 
     kk=kx-k+1   
-    Output_edmf%Qke       (i,kk,j) = rdiag(i,j,k,nQke) 
-    Output_edmf%el_pbl    (i,kk,j) = rdiag(i,j,k,nel_pbl)
-    Output_edmf%cldfra_bl (i,kk,j) = rdiag(i,j,k,ncldfra_bl)
-    Output_edmf%qc_bl     (i,kk,j) = rdiag(i,j,k,nqc_bl)
-    Output_edmf%Sh3D      (i,kk,j) = rdiag(i,j,k,nSh3D)
+    Output_edmf%Qke       (i,kk,j) = Qke       (i,j,k) 
+    Output_edmf%el_pbl    (i,kk,j) = el_pbl    (i,j,k)
+    Output_edmf%cldfra_bl (i,kk,j) = cldfra_bl (i,j,k)
+    Output_edmf%qc_bl     (i,kk,j) = qc_bl     (i,j,k)
+    Output_edmf%Sh3D      (i,kk,j) = Sh3D      (i,j,k)
   enddo  ! end loop of k
   enddo  ! end loop of j
   enddo  ! end loop of i
@@ -7767,7 +7773,8 @@ end subroutine edmf_writeout_column
 !########################
 
 subroutine convert_edmf_to_am4_array (ix, jx, kx, &
-                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
+                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
+                                      Qke, el_pbl, cldfra_bl, qc_bl, Sh3D )
 
 !--- input arguments
   type(edmf_input_type)     , intent(in)  :: Input_edmf
@@ -7777,6 +7784,8 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 !--- output arguments
   type(am4_edmf_output_type), intent(inout) :: am4_Output_edmf
   real, dimension (:,:,:,:) , intent(inout) :: rdiag
+  real, intent(inout), dimension(:,:,:)    :: &
+    Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
 
 !--- local variable
   integer i,j,k,kk
@@ -7806,11 +7815,11 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
 
     !--- change rdiag
-    rdiag(i,j,kk,nQke)       = Output_edmf%Qke       (i,k,j)
-    rdiag(i,j,kk,nel_pbl)    = Output_edmf%el_pbl    (i,k,j)
-    rdiag(i,j,kk,ncldfra_bl) = Output_edmf%cldfra_bl (i,k,j)
-    rdiag(i,j,kk,nqc_bl)     = Output_edmf%qc_bl     (i,k,j)
-    rdiag(i,j,kk,nSh3D)      = Output_edmf%Sh3D      (i,k,j)
+    Qke       (i,j,kk) = Output_edmf%Qke       (i,k,j)
+    el_pbl    (i,j,kk) = Output_edmf%el_pbl    (i,k,j)
+    cldfra_bl (i,j,kk) = Output_edmf%cldfra_bl (i,k,j)
+    qc_bl     (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
+    Sh3D      (i,j,kk) = Output_edmf%Sh3D      (i,k,j)
     !!! rdiag(i,j,kk,n)      = Output_edmf%      (i,k,j)
 
   enddo  ! end loop of k
@@ -7819,6 +7828,7 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 
 end subroutine convert_edmf_to_am4_array
 
+!#############################
 
 !###################################
 !###################################
