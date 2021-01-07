@@ -124,8 +124,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    !integer :: jj_write = -999       ! j index for column written out. Set to 0 if you want to write out in SCM
    real    :: lat_write = -999.99   ! latitude  (radian) for column written out
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
-   !logical :: do_writeout_column_nml = .true.
-   logical :: do_writeout_column_nml = .false.
+   logical :: do_writeout_column_nml = .true.
+   !logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
 
@@ -175,7 +175,8 @@ end type edmf_output_type
 type am4_edmf_output_type
 
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
-    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qcdt_edmf
+    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qcdt_edmf, &
+    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc
 
 end type am4_edmf_output_type
 
@@ -6515,10 +6516,10 @@ write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
-!---------------------------------------------------------------------
-! write out fields to history files
-!---------------------------------------------------------------------
-
+!!---------------------------------------------------------------------
+!! write out fields to history files
+!!---------------------------------------------------------------------
+!
 !!------- zonal wind stress (units: kg/m/s2) at one level -------
 !      if ( id_u_flux > 0) then
 !        used = send_data (id_u_flux, u_flux, Time_next, is, js )
@@ -6607,6 +6608,36 @@ write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !!------- qc tendency from edmf_mynn (units: kg/kg/s) at full level -------
 !      if ( id_qcdt_edmf > 0) then
 !        used = send_data (id_qcdt_edmf, am4_Output_edmf%qcdt_edmf, Time_next, is, js, 1 )
+!      endif
+!
+!!------- updraft area (units: none) at full level -------
+!      if ( id_edmf_a > 0) then
+!        used = send_data (id_edmf_a, am4_Output_edmf%edmf_a, Time_next, is, js, 1 )
+!      endif
+!
+!!------- vertical velocity of updrafts (units: m/s) at full level -------
+!      if ( id_edmf_w > 0) then
+!        used = send_data (id_edmf_w, am4_Output_edmf%edmf_w, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qt in updrafts (units: kg/kg) at full level -------
+!      if ( id_edmf_qt > 0) then
+!        used = send_data (id_edmf_qt, am4_Output_edmf%edmf_qt, Time_next, is, js, 1 )
+!      endif
+!
+!!------- thl in updrafts (units: K) at full level -------
+!      if ( id_edmf_thl > 0) then
+!        used = send_data (id_edmf_thl, am4_Output_edmf%edmf_thl, Time_next, is, js, 1 )
+!      endif
+!
+!!------- entrainment in updrafts (units: 1/m) at full level -------
+!      if ( id_edmf_ent > 0) then
+!        used = send_data (id_edmf_ent, am4_Output_edmf%edmf_ent, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qc in updrafts (units: kg/kg) at full level -------
+!      if ( id_edmf_qc > 0) then
+!        used = send_data (id_edmf_qc, am4_Output_edmf%edmf_qc, Time_next, is, js, 1 )
 !      endif
 
 !---------------------------------------------------------------------
@@ -7044,6 +7075,12 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qdt_edmf    (ix,jx,kx))  ; am4_Output_edmf%qdt_edmf    = 0.
   allocate (am4_Output_edmf%qidt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qidt_edmf   = 0.
   allocate (am4_Output_edmf%qcdt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qcdt_edmf   = 0.
+  allocate (am4_Output_edmf%edmf_a      (ix,jx,kx))  ; am4_Output_edmf%edmf_a      = 0.
+  allocate (am4_Output_edmf%edmf_w      (ix,jx,kx))  ; am4_Output_edmf%edmf_w      = 0.
+  allocate (am4_Output_edmf%edmf_qt     (ix,jx,kx))  ; am4_Output_edmf%edmf_qt     = 0.
+  allocate (am4_Output_edmf%edmf_thl    (ix,jx,kx))  ; am4_Output_edmf%edmf_thl    = 0.
+  allocate (am4_Output_edmf%edmf_ent    (ix,jx,kx))  ; am4_Output_edmf%edmf_ent    = 0.
+  allocate (am4_Output_edmf%edmf_qc     (ix,jx,kx))  ; am4_Output_edmf%edmf_qc     = 0.
 
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
@@ -7383,6 +7420,12 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qdt_edmf    )  
   deallocate (am4_Output_edmf%qidt_edmf   )  
   deallocate (am4_Output_edmf%qcdt_edmf   )  
+  deallocate (am4_Output_edmf%edmf_a      )
+  deallocate (am4_Output_edmf%edmf_w      )
+  deallocate (am4_Output_edmf%edmf_qt     )
+  deallocate (am4_Output_edmf%edmf_thl    )
+  deallocate (am4_Output_edmf%edmf_ent    )
+  deallocate (am4_Output_edmf%edmf_qc     )
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -7813,6 +7856,12 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
     am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN (i,k,j)
     am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN (i,k,j)
     am4_Output_edmf%qcdt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN (i,k,j)
+    am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a   (i,k,j)
+    am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w   (i,k,j)
+    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
+    am4_Output_edmf%edmf_thl    (i,j,kk) = Output_edmf%edmf_thl (i,k,j)
+    am4_Output_edmf%edmf_ent    (i,j,kk) = Output_edmf%edmf_ent (i,k,j)
+    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
 
     !--- change rdiag
@@ -7830,6 +7879,7 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 end subroutine convert_edmf_to_am4_array
 
 !#############################
+
 
 !###################################
 !###################################
