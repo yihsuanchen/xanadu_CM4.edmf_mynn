@@ -5843,7 +5843,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
 
     ! entrainment parameters
         REAL,PARAMETER :: &
-        & L0=100,&!100,&
+        & L0=100.,&!100,&
         & ENT0=0.2
         ! print *, "Lent in updraft = ", L0
 
@@ -5954,12 +5954,13 @@ IF ( wthv >= 0.0 ) then
 ! get dz/L0
     do i=1,Nup
         do k=kts+1,kte
-          ! ENTf(k,i)=(ZW(k)-ZW(k-1))/L0! s(k)
-          if (ZW(k) < Z_i) then
-            ENTf(k,i) = (ZW(k)-ZW(k-1)) * (3.5 * exp((-(Z_i-ZW(k)))/70.) + 1./L0)
-          else
-            ENTf(k,i) = (ZW(k)-ZW(k-1)) * (3.5 * exp(1./70.) + 1./L0)
-          endif
+           ENTf(k,i)=(ZW(k)-ZW(k-1))/L0! s(k)
+! Elynn's modification of entrainment rate
+!          if (ZW(k) < Z_i) then
+!            ENTf(k,i) = (ZW(k)-ZW(k-1)) * (3.5 * exp((-(Z_i-ZW(k)))/70.) + 1./L0)
+!          else
+!            ENTf(k,i) = (ZW(k)-ZW(k-1)) * (3.5 * exp(1./70.) + 1./L0)
+!          endif
          enddo
     enddo
 
@@ -8095,5 +8096,6 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 end subroutine convert_edmf_to_am4_array
 
 !#############################
+
 
 end module edmf_mynn_mod
