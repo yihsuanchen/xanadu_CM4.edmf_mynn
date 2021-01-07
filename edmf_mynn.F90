@@ -16,6 +16,10 @@ module edmf_mynn_mod
 !   2020/12/15  ver 1.0
 !   2020/12/20  ver 2.0, the mynn and edmf_* programs are taken from 
 !                        xanadu_CM4.edmf_mynn/offline-edmf_mynn_v1_loop.F90, 939a7f5a9fe1f13c009b25925a0e4207593155d5
+!   2021/01/04  ver 2.1, the mynn and edmf_* programs are taken from 
+!                        xanadu_CM4.edmf_mynn/offline-edmf_mynn_v1_loop.F90, 44a5ce610f3ba13f36ca421d4052c2543668df95
+!   2021/01/05  ver 2.2, the mynn and edmf_* programs are taken from 
+!                        xanadu_CM4.edmf_mynn/offline-edmf_mynn_v1_loop.F90, fe4d5aa337747eb04ec6cefbc0cf0cbb738fdfed
 !=======================================================================
 
 use           mpp_mod, only: input_nml_file
@@ -127,7 +131,8 @@ end type edmf_output_type
 type am4_edmf_output_type
 
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
-    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qcdt_edmf
+    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qcdt_edmf, &
+    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc
 
 end type am4_edmf_output_type
 
@@ -345,9 +350,7 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni  ! tracer indices for stratiform clo
 integer :: nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl ! tracer index for EDMF-MYNN tracers
 integer :: ntp          ! number of prognostic tracers
 
-integer :: & 
-  id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, &
-  id_tke, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qcdt_edmf
+integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qcdt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc
 
 !---------------------------------------------------------------------
 
@@ -532,6 +535,32 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
   id_qcdt_edmf = register_diag_field (mod_name, 'qcdt_edmf', axes(full), Time, &
                  'qc tendency from edmf_mynn', 'kg/kg/s' , &
                  missing_value=missing_value )
+
+  id_edmf_a = register_diag_field (mod_name, 'edmf_a', axes(full), Time, &
+                 'updraft area', 'none' , &
+                 missing_value=missing_value )
+
+  id_edmf_w = register_diag_field (mod_name, 'edmf_w', axes(full), Time, &
+                 'vertical velocity of updrafts', 'm/s' , &
+                 missing_value=missing_value )
+
+  id_edmf_qt = register_diag_field (mod_name, 'edmf_qt', axes(full), Time, &
+                 'qt in updrafts', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_edmf_thl = register_diag_field (mod_name, 'edmf_thl', axes(full), Time, &
+                 'thl in updrafts', 'K' , &
+                 missing_value=missing_value )
+
+  id_edmf_ent = register_diag_field (mod_name, 'edmf_ent', axes(full), Time, &
+                 'entrainment in updrafts', '1/m' , &
+                 missing_value=missing_value )
+
+  id_edmf_qc = register_diag_field (mod_name, 'edmf_qc', axes(full), Time, &
+                 'qc in updrafts', 'kg/kg' , &
+                 missing_value=missing_value )
+
+
 
 !-----------------------------------------------------------------------
 !--- Done with initialization
@@ -3354,7 +3383,7 @@ end subroutine edmf_mynn_end
 
     REAL :: rhs,gfluxm,gfluxp,dztop,maxdfh,mindfh,maxcf,maxKh,zw
     REAL :: grav_settling2,vdfg1    !Katata-fogdes
-    REAL :: t,esat,qsl,onoff
+    REAL :: t,esat,qsl,onoff,ustovwsp
     INTEGER :: k,kk,nz,itr
     REAL, INTENT(IN)      :: dx,PBLH,HFX
     REAL, DIMENSION(kts:kte), INTENT(INOUT) :: qc_bl1D,cldfra_bl1d,sgm
@@ -3363,6 +3392,14 @@ end subroutine edmf_mynn_end
     nz=kte-kts+1
 
     dztop=.5*(dz(kte)+dz(kte-1))
+
+
+   ! USTAR/WSPD make sure it does not blow up when WSPD = 0.
+   IF (wspd .le. 0.) THEN
+     ustovwsp=0.
+   ELSE 
+       ustovwsp=ust/wspd
+   ENDIF
 
     ! REGULATE THE MOMENTUM MIXING FROM THE MASS-FLUX SCHEME (on or off)
     ! Note that s_awu and s_awv already come in as 0.0 if bl_mynn_edmf_mom == 0, so
@@ -3409,9 +3446,9 @@ end subroutine edmf_mynn_end
     k=kts
 
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust**2/wspd) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
     c(1)=-dtz(k)*dfm(k+1) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-    d(1)=u(k) + dtz(k)*uoce*ust**2/wspd - dtz(k)*s_awu(k+1)*onoff - dtz(k)*sd_awu(k+1)*onoff 
+    d(1)=u(k) + dtz(k)*uoce*ust*ustovwsp - dtz(k)*s_awu(k+1)*onoff - dtz(k)*sd_awu(k+1)*onoff 
 
 
 
@@ -3455,10 +3492,10 @@ end subroutine edmf_mynn_end
     k=kts
 
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust**2/wspd) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
     c(1)=   - dtz(k)*dfm(k+1)               - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
 !!    d(1)=v(k)
-    d(1)=v(k) + dtz(k)*voce*ust**2/wspd - dtz(k)*s_awv(k+1)*onoff
+    d(1)=v(k) + dtz(k)*voce*ust*ustovwsp - dtz(k)*s_awv(k+1)*onoff
 
     DO k=kts+1,kte-1
        a(k)=   - dtz(k)*dfm(k)            + 0.5*dtz(k)*s_aw(k)*onoff + 0.5*dtz(k)*sd_aw(k)*onoff 
@@ -6530,7 +6567,7 @@ subroutine edmf_mynn_driver ( &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
               udt, vdt, tdt, rdt, rdiag)
- 
+
 !---------------------------------------------------------------------
 ! Arguments (Intent in)  
 !   Descriptions of the input arguments are in subroutine edmf_alloc
@@ -6561,7 +6598,8 @@ subroutine edmf_mynn_driver ( &
     udt, vdt, tdt
   real, intent(inout), dimension(:,:,:,:) :: &
     rdt
-  real, intent(inout), dimension(:,:,:,:) :: &
+  !real, intent(inout), dimension(:,:,:,:) :: &
+  real, intent(inout), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
 !---------------------------------------------------------------------
@@ -6576,10 +6614,10 @@ subroutine edmf_mynn_driver ( &
 !-------------------------
 
 !! debug01
-!write(6,*) 'edmf_mynn, beginning'
+write(6,*) 'edmf_mynn, beginning'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
-!write(6,*) 'initflag,',initflag
-!write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
+write(6,*) 'initflag,',initflag
+write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
@@ -6592,6 +6630,7 @@ subroutine edmf_mynn_driver ( &
   call edmf_alloc ( &
               is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, &
+              rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf)
 
 !---------------------------------------------------------------------
@@ -6658,13 +6697,14 @@ subroutine edmf_mynn_driver ( &
 
   !--- convert Output_edmf to am4_Output_edmf
   call convert_edmf_to_am4_array (size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
+                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
+                                  rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D) )
 
 !! debug01
-!write(6,*) 'edmf_mynn, after mynn'
+write(6,*) 'edmf_mynn, after mynn'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
-!write(6,*) 'initflag,',initflag
-!write(6,*) 'rdiag(:,:,:,nQke)',rdiag(:,:,:,nQke)
+write(6,*) 'initflag,',initflag
+write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
@@ -6786,6 +6826,36 @@ subroutine edmf_mynn_driver ( &
         used = send_data (id_qcdt_edmf, am4_Output_edmf%qcdt_edmf, Time_next, is, js, 1 )
       endif
 
+!------- updraft area (units: none) at full level -------
+      if ( id_edmf_a > 0) then
+        used = send_data (id_edmf_a, am4_Output_edmf%edmf_a, Time_next, is, js, 1 )
+      endif
+
+!------- vertical velocity of updrafts (units: m/s) at full level -------
+      if ( id_edmf_w > 0) then
+        used = send_data (id_edmf_w, am4_Output_edmf%edmf_w, Time_next, is, js, 1 )
+      endif
+
+!------- qt in updrafts (units: kg/kg) at full level -------
+      if ( id_edmf_qt > 0) then
+        used = send_data (id_edmf_qt, am4_Output_edmf%edmf_qt, Time_next, is, js, 1 )
+      endif
+
+!------- thl in updrafts (units: K) at full level -------
+      if ( id_edmf_thl > 0) then
+        used = send_data (id_edmf_thl, am4_Output_edmf%edmf_thl, Time_next, is, js, 1 )
+      endif
+
+!------- entrainment in updrafts (units: 1/m) at full level -------
+      if ( id_edmf_ent > 0) then
+        used = send_data (id_edmf_ent, am4_Output_edmf%edmf_ent, Time_next, is, js, 1 )
+      endif
+
+!------- qc in updrafts (units: kg/kg) at full level -------
+      if ( id_edmf_qc > 0) then
+        used = send_data (id_edmf_qc, am4_Output_edmf%edmf_qc, Time_next, is, js, 1 )
+      endif
+
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
 !---------------------------------------------------------------------
@@ -6804,6 +6874,7 @@ end subroutine edmf_mynn_driver
 subroutine edmf_alloc ( &
               is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, &
+              Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
               Input_edmf, Output_edmf, am4_Output_edmf )
 
 !---------------------------------------------------------------------
@@ -6869,7 +6940,9 @@ subroutine edmf_alloc ( &
   real,    intent(in), dimension(:,:)   :: &
     frac_land, area, u_star, b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux
   type(physics_input_block_type)        :: Physics_input_block
-  real, intent(inout), dimension(:,:,:,:) :: rdiag
+  real, intent(in), dimension(:,:,:,:)  :: rdiag
+  real, intent(in), dimension(:,:,:)    :: &
+    Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
 
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
@@ -7218,6 +7291,12 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qdt_edmf    (ix,jx,kx))  ; am4_Output_edmf%qdt_edmf    = 0.
   allocate (am4_Output_edmf%qidt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qidt_edmf   = 0.
   allocate (am4_Output_edmf%qcdt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qcdt_edmf   = 0.
+  allocate (am4_Output_edmf%edmf_a      (ix,jx,kx))  ; am4_Output_edmf%edmf_a      = 0.
+  allocate (am4_Output_edmf%edmf_w      (ix,jx,kx))  ; am4_Output_edmf%edmf_w      = 0.
+  allocate (am4_Output_edmf%edmf_qt     (ix,jx,kx))  ; am4_Output_edmf%edmf_qt     = 0.
+  allocate (am4_Output_edmf%edmf_thl    (ix,jx,kx))  ; am4_Output_edmf%edmf_thl    = 0.
+  allocate (am4_Output_edmf%edmf_ent    (ix,jx,kx))  ; am4_Output_edmf%edmf_ent    = 0.
+  allocate (am4_Output_edmf%edmf_qc     (ix,jx,kx))  ; am4_Output_edmf%edmf_qc     = 0.
 
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
@@ -7369,11 +7448,18 @@ subroutine edmf_alloc ( &
 !-------------------------------------------------------------------------
 
   ! semi-prognostic variables
-  Output_edmf%Qke       = rdiag(:,:,:,nQke) 
-  Output_edmf%el_pbl    = rdiag(:,:,:,nel_pbl)
-  Output_edmf%cldfra_bl = rdiag(:,:,:,ncldfra_bl)
-  Output_edmf%qc_bl     = rdiag(:,:,:,nqc_bl)
-  Output_edmf%Sh3D      = rdiag(:,:,:,nSh3D)
+  do i=1,ix    
+  do j=1,jx    
+  do k=1,kx 
+    kk=kx-k+1   
+    Output_edmf%Qke       (i,kk,j) = Qke       (i,j,k) 
+    Output_edmf%el_pbl    (i,kk,j) = el_pbl    (i,j,k)
+    Output_edmf%cldfra_bl (i,kk,j) = cldfra_bl (i,j,k)
+    Output_edmf%qc_bl     (i,kk,j) = qc_bl     (i,j,k)
+    Output_edmf%Sh3D      (i,kk,j) = Sh3D      (i,j,k)
+  enddo  ! end loop of k
+  enddo  ! end loop of j
+  enddo  ! end loop of i
 
 !-------------------------------
 
@@ -7550,6 +7636,12 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qdt_edmf    )  
   deallocate (am4_Output_edmf%qidt_edmf   )  
   deallocate (am4_Output_edmf%qcdt_edmf   )  
+  deallocate (am4_Output_edmf%edmf_a      )
+  deallocate (am4_Output_edmf%edmf_w      )
+  deallocate (am4_Output_edmf%edmf_qt     )
+  deallocate (am4_Output_edmf%edmf_thl    )
+  deallocate (am4_Output_edmf%edmf_ent    )
+  deallocate (am4_Output_edmf%edmf_qc     )
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -7596,6 +7688,9 @@ subroutine edmf_writeout_column ( &
   integer :: i, j, k, kk
   logical :: do_writeout_column
   real    :: lat_lower, lat_upper, lon_lower, lon_upper
+
+  real, dimension(size(Physics_input_block%t,3)) ::  &
+    var_temp1
 !-------------------------------------------------------------------------
 !  define input array sizes.
 !-------------------------------------------------------------------------
@@ -7644,6 +7739,13 @@ subroutine edmf_writeout_column ( &
 ! writing out the selected column
 !-------------------------------------------------------------------------
 
+! debug purpose 
+!           do k=1,kx
+!             kk=kx-k+1
+!             var_temp1(k) = Input_edmf%th(1,kk,1)
+!           enddo
+!        write(6,3001) '  th = (/'    ,var_temp1(:)
+
   if (do_writeout_column) then
         write(6,*)    ';@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
         write(6,*)    '; i,j,',ii_write,jj_write
@@ -7688,6 +7790,13 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ''
         write(6,*)    '; temperatur at full levels (K)'
         write(6,3001) '  tt = (/'    ,Physics_input_block%t(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '; potential temperatur at full levels (K)'
+           do k=1,kx
+             kk=kx-k+1
+             var_temp1(k) = Input_edmf%th(ii_write,kk,jj_write)
+           enddo
+        write(6,3001) '  th = (/'    ,var_temp1(:)
         write(6,*)    ''
         write(6,*)    '; specific humidity at full levels (kg/kg)'
         write(6,3002) '  qq = (/'    ,Physics_input_block%q(ii_write,jj_write,:,1)
@@ -7924,7 +8033,8 @@ end subroutine edmf_writeout_column
 !########################
 
 subroutine convert_edmf_to_am4_array (ix, jx, kx, &
-                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
+                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
+                                      Qke, el_pbl, cldfra_bl, qc_bl, Sh3D )
 
 !--- input arguments
   type(edmf_input_type)     , intent(in)  :: Input_edmf
@@ -7934,6 +8044,8 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 !--- output arguments
   type(am4_edmf_output_type), intent(inout) :: am4_Output_edmf
   real, dimension (:,:,:,:) , intent(inout) :: rdiag
+  real, intent(inout), dimension(:,:,:)    :: &
+    Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
 
 !--- local variable
   integer i,j,k,kk
@@ -7960,14 +8072,20 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
     am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN (i,k,j)
     am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN (i,k,j)
     am4_Output_edmf%qcdt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN (i,k,j)
+    am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a   (i,k,j)
+    am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w   (i,k,j)
+    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
+    am4_Output_edmf%edmf_thl    (i,j,kk) = Output_edmf%edmf_thl (i,k,j)
+    am4_Output_edmf%edmf_ent    (i,j,kk) = Output_edmf%edmf_ent (i,k,j)
+    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
 
     !--- change rdiag
-    rdiag(i,j,kk,nQke)       = Output_edmf%Qke       (i,k,j)
-    rdiag(i,j,kk,nel_pbl)    = Output_edmf%el_pbl    (i,k,j)
-    rdiag(i,j,kk,ncldfra_bl) = Output_edmf%cldfra_bl (i,k,j)
-    rdiag(i,j,kk,nqc_bl)     = Output_edmf%qc_bl     (i,k,j)
-    rdiag(i,j,kk,nSh3D)      = Output_edmf%Sh3D      (i,k,j)
+    Qke       (i,j,kk) = Output_edmf%Qke       (i,k,j)
+    el_pbl    (i,j,kk) = Output_edmf%el_pbl    (i,k,j)
+    cldfra_bl (i,j,kk) = Output_edmf%cldfra_bl (i,k,j)
+    qc_bl     (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
+    Sh3D      (i,j,kk) = Output_edmf%Sh3D      (i,k,j)
     !!! rdiag(i,j,kk,n)      = Output_edmf%      (i,k,j)
 
   enddo  ! end loop of k
