@@ -375,7 +375,7 @@ real    :: cosp_frequency = 10800.
 
 !<-- yhc, add edmf_mynn nml
 logical :: do_edmf_mynn = .false.
-logical :: do_edmf_mynn_diagnostic = .true.   ! .true.  : diagnostic edmf_mynn, no update on tendencies
+logical :: do_edmf_mynn_diagnostic = .false.  ! .true.  : diagnostic edmf_mynn, no update on tendencies
                                               ! .false. : interactive edmf_mynn, update on tendencies
 integer :: ii_write = -999                    ! i index for column written out. Set to 0 if you want to write out in SCM
 integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
@@ -1853,6 +1853,13 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       real, dimension(:,:,:,:), pointer :: rdt, rdiag
       real, dimension(:,:,:), pointer :: u, v, t, um, vm, tm 
 
+!<-- yhc
+      real, dimension( size(Physics_tendency_block%u_dt,1), &
+                       size(Physics_tendency_block%u_dt,2), &
+                       size(Physics_tendency_block%u_dt,3)  )  :: &
+        udt_before_vdiff_down, vdt_before_vdiff_down
+!--> yhc
+
 !---------------------------------------------------------------------
 !    set up local pointers into the physics input and physics tendency
 !    blocks.
@@ -2172,6 +2179,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       elseif (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
         diff_m = 0.   ! set diff_m and diff_t to zeros
         diff_t = 0.
+        udt_before_vdiff_down(:,:,:) = udt(:,:,:)
+        vdt_before_vdiff_down(:,:,:) = vdt(:,:,:)
+
         call vert_diff_driver_down (is, js, Time_next, dt, p_half,   &
                                     p_full, z_full,   &
                                     diff_m(is:ie,js:je,:),         &  
@@ -2180,6 +2190,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                                     dtau_du, dtau_dv, tau_x, tau_y,  &
                                     udt, vdt, tdt, rdt(:,:,:,1), rdt,        &
                                     Surf_diff)
+
+        udt(:,:,:) = udt_before_vdiff_down(:,:,:)  ! yhc, even diff_m=0., udt and vdt at the lowest atm loevel are still changed.
+        vdt(:,:,:) = vdt_before_vdiff_down(:,:,:)  !      make sure udt and vdt are reset to the values before vdiff_down
       !<-- yhc
 
       else
