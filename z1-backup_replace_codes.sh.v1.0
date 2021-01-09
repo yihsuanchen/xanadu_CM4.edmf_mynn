@@ -1,0 +1,177 @@
+#!/bin/bash 
+#===================================
+#  Bourne-Again shell script
+#
+#  Description:
+#
+#
+#  Usage:
+#
+#
+#  History:
+#
+#  Author:
+#    Yi-Hsuan Chen
+#    yihsuan@umich.edu
+#===================================
+
+#**********************
+#  Description:
+#    copy files from the source folder to the target folder, with modifications of file names if needed
+#**********************
+
+###################
+# user setting
+###################
+
+#--- set srcdir by reading setting_file 
+setting_file="./zz-setting.txt"
+if [ ! -f $setting_file ]; then echo "ERROR: setting file [$setting_file] does not exist" ; exit 1 ; fi
+srcdir=`grep "srcdir=" $setting_file | cut -d '=' -f 2`
+
+#--- set code directory and files
+codedir="$srcdir/atmos_param/"
+
+
+#--- choose option
+#option="backup"
+option="replace"
+
+#--- set each option
+# option: backup, copy $files_input to ${backup_dir}/${filename}${backup_tail}
+if [ $option -a $option == "backup" ]; then
+  backup_tail=".xanadu.origin"
+  backup_dir="./"
+  comd="cp -i"
+
+             #"$codedir/moist_processes/moist_processes.F90"
+             #"$codedir/vert_diff_driver/vert_diff_driver.F90"
+             #"$codedir/vert_diff/vert_diff.F90"
+#         "$codedir/mass_flux/mass_flux.F90" 
+#         "$codedir/physics_driver/physics_driver.F90" 
+#         "$codedir/vert_turb_driver/vert_turb_driver.F90" 
+#         "$codedir/entrain/entrain.F90" \
+#         "$codedir/convection_driver/convection_driver.F90"
+#radiation/driver/radiation_driver_diag.F90
+files_input=(\
+   "$codedir/convection_driver/convection_driver.F90"
+   "$codedir/moist_conv/moist_conv.F90"
+   "$codedir/lscloud_driver/lscloud_driver.F90"
+            )
+
+# option: replace, copy ${replace_dir}/${filename}${replace_tail} to $files_input 
+elif [ $option -a $option == "replace" ]; then
+
+  replace_dir="./"
+  replace_tail=""
+  comd="cp"
+
+files_input=(\
+            "$codedir/edmf_mynn/edmf_mynn.F90"
+            "$codedir/physics_driver/physics_driver.F90"
+            "$srcdir/atmos_drivers/coupled/atmos_model.F90"
+            "$codedir/donner_deep/fms_donner.F90"
+            "$codedir/radiation/driver/radiation_driver_diag.F90"
+           )
+         #"$codedir/convection_driver/convection_driver.F90"
+         #"$codedir/mass_flux/mass_flux.F90" 
+         #"$codedir/physics_driver/physics_driver.F90" 
+         #"$srcdir/atmos_drivers/coupled/atmos_model.F90"
+         #"$codedir/donner_deep/fms_donner.F90"
+         #"$codedir/radiation/driver/radiation_driver_diag.F90"
+         #"$srcdir/coupler/coupler_main.F90"
+         #"/ncrc/home2/Yi-hsuan.Chen/awg/xanadu/cm4p12_xanadu_am4p0_mf_qmf/src/FMS/sat_vapor_pres/sat_vapor_pres.F90"
+
+#files_input=(\
+#         "$codedir/vert_turb_driver/vert_turb_driver.F90" \
+#         "$codedir/physics_driver/physics_driver.F90" \
+#         "$codedir/mass_flux/mass_flux.F90" \
+#         )
+
+else
+  echo "ERROR: unsupported option!"
+  echo "STOP"
+  exit 1
+
+fi
+
+##################
+# program start
+##################
+
+# temp variable
+temp=`date +%Y%m%d%H%M%S`
+
+nfile=${#files_input[@]}
+
+#----------------------------------
+# set input and output work files
+#----------------------------------
+for ((i=0; i<$nfile; i=i+1))
+do
+  file1=${files_input[$i]}
+  name1=`echo ${file1##*/}` 
+
+  if [ ! -f $file1 ]; then
+    echo "ERROR: file [$file1] does not exist!"
+    exit 1
+  fi
+
+  # option = "backup"
+  if [ $option -a $option == "backup" ]; then
+    file2=${backup_dir}/${name1}${backup_tail}
+    files_input_work[$i]=$file1
+    files_output_work[$i]=$file2
+    #echo $file1, $file2
+  fi
+
+  # option = "replace"
+  if [ $option -a $option == "replace" ]; then
+    file2=${replace_dir}/${name1}${replace_tail}
+    if [ ! -f $file2 ]; then
+      echo "ERROR: file [$file2] does not exist!"
+      exit 1
+    fi
+    files_input_work[$i]=$file2
+    files_output_work[$i]=$file1
+    #echo $file1, $file2
+  fi
+done
+
+#------------------
+# check with users
+#------------------
+echo "------------------------"
+echo "option: [$option]"
+echo ""
+echo "command:"
+echo ""
+
+for ((i=0; i<$nfile; i=i+1))
+do
+  i_plus=$(($i+1))
+  file1=${files_input_work[$i]}
+  file2=${files_output_work[$i]}
+  echo "  $i_plus/$nfile:  $comd [$file1] [$file2]"
+done
+
+echo ""
+
+read -p "Is that correct? (y/n) " choice
+
+#----------
+# execute
+#----------
+if [ $choice == "y" ]; then
+  for ((i=0; i<$nfile; i=i+1))
+  do
+    i_plus=$(($i+1))
+    file1=${files_input_work[$i]}
+    file2=${files_output_work[$i]}
+    $comd $file1 $file2 && \
+      echo "Done. create [$file2]" || exit 1
+  done
+fi 
+
+exit 0
+

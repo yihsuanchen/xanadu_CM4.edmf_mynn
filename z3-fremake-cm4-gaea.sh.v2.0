@@ -1,0 +1,321 @@
+#!/bin/bash 
+#===================================
+#  Bourne-Again shell script
+#
+#  Description:
+#    Compile CM4 model.
+#    By default, the source code would be at "~/awg/$FMS_COMP_EXP". 
+#    If the source code does not exist, fremake would use git to download the codes.
+#
+#  Usage:
+#    Edit this script and then execute it
+#
+#  History:
+#    2020/04/22  ver 1.0
+#    2020/05/03  ver 2.0, Add backup sbatch script, XML file, and this script
+#
+#  Author:
+#    Yi-Hsuan Chen
+#    yihsuan@umich.edu
+#===================================
+
+###################
+# user setting
+###################
+
+#--- set path on Gaea
+username="Yi-hsuan.Chen"
+homepath="/ncrc/home2/$username/"
+awgdir="$homepath/awg/"
+lustre="/lustre/f2/dev/$username/awg/"
+
+backup_dir="$homepath/work/research/edmf_AM4/running_scripts/"
+this_dir=`pwd`  # this directory
+
+#--- set xml file. Reading xml_dir & xml_name from the setting_file
+setting_file="./zz-setting.txt"
+if [ ! -f $setting_file ]; then echo "ERROR: setting file [$setting_file] does not exist" ; exit 1 ; fi
+
+xml_dir=`grep "xml_dir=" $setting_file | cut -d '=' -f 2`
+xml_name=`grep "xml_name=" $setting_file | cut -d '=' -f 2`
+
+wrkdir="./"
+xml_localfile="$wrkdir/$xml_name"
+xml_file="$xml_dir/$xml_name"
+
+#--- set the name of compiled model, i.e. FMS_COMP_EXP, which MUST has "component" in the xml file
+#      the value of "FMS_COMP_EXP" would be \$(AWG_BASE)_\$(AWG_VERSION)_${FMS_COMP_EXPNAME}
+FMS_COMP_EXPNAME=`grep "FMS_COMP_EXPNAME=" $setting_file | cut -d '=' -f 2`
+
+#FMS_COMP_EXPNAME=""  # leave blank if used the current FMS_COMP_EXP
+
+#--- set platform, target
+PLATFORM=`grep "PLATFORM=" $setting_file | cut -d '=' -f 2`
+TARGET=`grep "TARGET=" $setting_file | cut -d '=' -f 2`
+
+#PLATFORM="ncrc3.intel"     # platform used in fre* command
+#TARGET="openmp"             # target   used in fre* command
+
+# set check options
+do_check_code="T"
+
+# set fremake parameters other than -x, -p, -t
+#   -F, --force-compile		force compile in case the executable directory exists
+fremake_others="-F" 
+
+##################
+##################
+#                #
+# program start  #
+#                #
+##################
+##################
+
+#--- temp variable
+temp=`date +%m%d-%H%M`
+
+#---------------
+# check parts
+#---------------
+
+# do_check_code
+if [ $do_check_code -a $do_check_code == "T" ]; then
+  echo ""
+  read -p "Are you sure all changes in src codes are done? (y/n) " choice1
+  if [ ! $choice1 == "y" ]; then
+    echo "STOP"
+    exit 0
+  fi
+fi
+
+# check whether $xml_localfile exists
+if [ ! -f $xml_localfile ]; then 
+  echo "ERROR: local xml file [$xml_localfile] does not exist!"
+  exit 101
+
+# check whether $xml_dir is correct
+elif [ ! -d $xml_dir/awg_include ] || [ ! -d $xml_dir/scripts ]; then
+  echo "ERROR: dir [$xml_dir] MUST have sub-dir [awg_include] and [scripts]"
+  exit 101
+
+# rename xml file if it already exists
+#elif [ -f $xml_file ]; then
+#  echo "WARNING: xml file [$xml_file] already exist!"
+#  mv $xml_file ${xml_file}.$temp && echo "rename to [${xml_file}.$temp]" || exit 101
+fi
+
+#---------------
+# set values
+#---------------
+
+# read values from the local xml file
+RELEASE=`grep 'property name="RELEASE"' $xml_localfile | sed "s/.*value=//g" | cut -d '"' -f 2`
+AWG_GIT_TAG=`grep 'property name="AWG_GIT_TAG"' $xml_localfile | sed "s/.*value=//g" | cut -d '"' -f 2`
+AWG_BASE=`grep 'property name="AWG_BASE"' $xml_localfile | sed "s/.*value=//g" | cut -d '"' -f 2`
+AWG_VERSION=`grep 'property name="AWG_VERSION"' $xml_localfile | sed "s/.*value=//g" | cut -d '"' -f 2`
+FMS_COMP_EXP_old=`grep 'property name="FMS_COMP_EXP"' $xml_localfile | sed "s/.*value=//g" | cut -d '"' -f 2`
+#=`grep 'property name=""' $xml_localfile | sed "s/.*value=//g" | cut -d '"' -f 2`
+
+# set FMS_COMP_EXP in the local xml file
+if [ ${FMS_COMP_EXPNAME} ]; then
+  pp="\ \ <property name=\"FMS_COMP_EXP\" value=\"\$(AWG_BASE)_\$(AWG_VERSION)_${FMS_COMP_EXPNAME}\"/>"
+  n1=`grep -n 'property name="FMS_COMP_EXP"' $xml_localfile | cut -d ':' -f 1`
+  #sed -i "${n1}a $pp" $xml_localfile && echo "Add [$pp] into [$xml_localfile]" || exit 102
+  sed -i "${n1}a $pp" $xml_localfile || exit 102
+  sed -i "${n1}d" $xml_localfile || exit 102
+fi
+
+# get current FMS_COMP_EXP
+FMS_COMP_EXP_current=`grep 'property name="FMS_COMP_EXP"' $xml_localfile | sed "s/.*value=//g" | cut -d '"' -f 2`
+FMS_COMP_EXP1=${FMS_COMP_EXP_current:27:1000}   # get FMS-COMP_EXP1 from $(AWG_BASE)_$(AWG_VERSION)_${FMS-COMP_EXP1}
+FMS_COMP_EXP="${AWG_BASE}_${AWG_VERSION}_${FMS_COMP_EXP1}"
+
+# set path
+#EXEPATH_CM4="$lustre/$RELEASE/$FMS_COMP_EXP/$PLATFORM-$TARGET/exec/"
+EXEPATH_CM4="$lustre/$RELEASE/$FMS_COMP_EXP/$PLATFORM-prod-$TARGET/exec/"
+EXENAME_CM4="fms_${FMS_COMP_EXP}.x"
+EXE_CM4="$EXEPATH_CM4/${EXENAME_CM4}"
+
+LOGNAME_CM4="compile_${FMS_COMP_EXP}.csh"
+COMPILE_CM4="$EXEPATH_CM4/$LOGNAME_CM4"
+
+#---------------
+# set commands
+#---------------
+
+#--- set fremake command
+comd_fremake="fremake $fremake_others -x $xml_name -p $PLATFORM -t $TARGET $FMS_COMP_EXP"
+text_fremake="# compile the model"
+
+#--- set the commands
+comd_CM4=(\
+           "cp -i $xml_localfile $xml_file"
+           "cd $xml_dir"  \
+           "$comd_fremake" \
+           "sbatch $COMPILE_CM4" \
+           "squeue -u $username" \
+           "\ncd $EXEPATH_CM4 \nll ${LOGNAME_CM4}.o* \ntail ${COMPILE_CM4}.o" \
+         )
+
+#--- set the description of each command
+text_CM4=(\
+           "# copy local xml file to xml dir"
+           "# move to the xml direcotry" 
+           "$text_fremake" \
+           "# submit the sbatch script"
+           "# see the queue" 
+           "# If compile fails, you will get an email. If it is successful, you should see 'exit 0' at the end of this file compile*.oNNN"
+         )
+
+# the last ${ncomd_noexe} commands will NOT execute automatically
+ncomd_noexe=1
+
+#-------------------
+# check with user
+#-------------------
+
+#--- print out into on screen
+echo ""
+echo "CM4 Compile settings:"
+echo "  RELEASE               : $RELEASE"
+echo "  AWG_GIT_TAG           : $AWG_GIT_TAG"
+echo "  AWG_BASE              : $AWG_BASE"
+echo "  AWG_VERSION           : $AWG_VERSION"
+echo "  FMS_COMP_EXP          : $FMS_COMP_EXP_current ($FMS_COMP_EXP)"
+echo "  Previous FMS_COMP_EXP : $FMS_COMP_EXP_old"
+echo ""
+echo "  XML dir               : $xml_dir"
+echo "  XML file              : $xml_localfile"
+echo "  TARGET                : $TARGET"
+echo "  PLATFORM              : $PLATFORM"
+echo ""
+echo "  fremake command       : $comd_fremake"
+
+echo ""
+read -p "Do you want to compile automatically (a), manually (m), or not compile (n)? (a/m/n) " choice
+echo ""
+
+#--- compile manually. show step-by-step commands
+if [ $choice == "m" ]; then
+
+  echo "---------------------------------------"
+  echo ""
+  echo "# rename xml file if it already exists"
+  echo "mv $xml_file ${xml_file}.$temp"
+  echo ""
+
+  ncomd=${#comd_CM4[@]}
+  for ((i=0; i<ncomd; i=i+1))
+  do
+    comd1=${comd_CM4[$i]}
+    text1=${text_CM4[$i]}
+    echo "$text1"
+    echo -e "$comd1"
+    echo ""
+  done
+
+#--- compile automatically
+elif [ $choice == "a" ]; then
+  ncomd=${#comd_CM4[@]}
+  ncomd_minus=$((ncomd-$ncomd_noexe))
+  for ((i=0; i<ncomd; i=i+1))
+  do
+    comd1=${comd_CM4[$i]}
+    text1=${text_CM4[$i]}
+    echo "$text1"
+    echo -e "$comd1"
+    
+    # do not execute sbatch & tail command
+    if [ $i -lt $ncomd_minus ]; then
+      $comd1 || exit 201
+      #echo bb,"$comd1"
+    else
+      aa=0
+      #echo aa,"$comd1"
+    fi
+
+    echo ""
+  done
+
+else
+  echo "STOP"
+  exit 0
+fi # end if of choice
+
+#------------------
+# backup scripts
+#------------------
+
+do_backup="T"
+if [ $do_backup -a $do_backup == "T" ]; then
+
+# backup directory
+dir1="$backup_dir/$RELEASE/$FMS_COMP_EXP/$PLATFORM-$TARGET/$exp_name/fremake/"
+if [ ! -d $dir1 ]; then
+  mkdir -p $dir1 || exit 1
+fi
+
+# get sbatch script 
+head0="$temp"
+
+echo ""
+echo "======================================"
+echo "Backup frerun-created script, the XML file, and this script..."
+read -p "Please enter the head of backup (default is $head0): " head1
+
+sbatch1="$COMPILE_CM4"
+if [ $sbatch1 -a -f $sbatch1 ]; then
+  aa=0
+else
+  echo "ERROR: file [$sbatch1] does not exist"
+  exit 0
+fi
+
+# backup file head
+if [ ! "$head1" ]; then
+  head1="${temp}"
+fi
+
+#sbatch1="/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/script/fremake-cm4-gaea.sh.v1.0"
+this_script="$this_dir/$0"
+
+echo ""
+echo "Backup scripts: "
+echo "  sbatch script: [$sbatch1]"
+echo "  XML file     : [$xml_file]"
+echo "  this script  : [$this_script]"
+echo ""
+echo "  backup dir   : [$dir1]"
+echo "  new file head: [$head1]"
+echo ""
+
+read -p "Is that correct? (y/n) "  choice
+
+if [ $choice -a $choice == "y" ]; then
+  files=($sbatch1 $xml_file $this_script)
+  for file1 in ${files[@]}
+  do
+    if [ -f $file1 ]; then
+      name1=${file1##*/}
+      file2="$dir1/${head1}-$name1"
+      #echo file,$file1
+      #echo name,$name1
+      #echo $file1, $file2
+      cp -i $file1 $file2 && echo "Done. create [$file2]" || exit 5
+
+    else
+      echo "ERROR: file [$file1] does not exist!"
+      exit 1
+    fi
+  done
+
+else
+  echo "STOP"
+  exit 0
+fi
+
+fi # end if of do_backup
+
+exit 0
+
+

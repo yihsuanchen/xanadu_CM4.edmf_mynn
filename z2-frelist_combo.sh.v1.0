@@ -1,0 +1,220 @@
+#!/bin/bash 
+#===================================
+#  Bourne-Again shell script
+#
+#  Description:
+#    Use frelist to list several information from the given XML file.
+#
+#  Usage:
+#    > ./frelist_combo.sh [experiment_name (optional)] [xml_name (optional)]
+#
+#  History:
+#    2020/05/08  ver 1.0
+#    2020/05/09  ver 1.0  Add GFDL analysis path
+#
+#  Author:
+#    Yi-Hsuan Chen
+#    yihsuan@umich.edu
+#===================================
+
+###################
+# user setting
+###################
+
+#--- set path on Gaea
+username="Yi-hsuan.Chen"
+homepath="/ncrc/home2/$username/"
+awgdir="$homepath/awg/"
+
+#--- set experiment name
+exp_name="b12_c96L33_am4p0_donner_my25"
+
+#--- set xml file. Reading xml_dir & xml_name from the setting_file
+setting_file="./zz-setting.txt"
+if [ ! -f $setting_file ]; then echo "ERROR: setting file [$setting_file] does not exist" ; exit 1 ; fi
+
+xml_dir=`grep "xml_dir=" $setting_file | cut -d '=' -f 2`
+xml_name=`grep "xml_name=" $setting_file | cut -d '=' -f 2`
+xml_file="$xml_dir/$xml_name"
+
+PLATFORM=`grep "PLATFORM=" $setting_file | cut -d '=' -f 2`
+TARGET=`grep "TARGET=" $setting_file | cut -d '=' -f 2`
+
+#PLATFORM="ncrc3.intel"     # platform used in fre* command
+#TARGET="openmp"            # targer   used in fre* command
+
+##################
+##################
+#                #
+# program start  #
+#                #
+##################
+##################
+
+# temp variable
+temp=`date +%Y%m%d%H%M%S`
+
+# give the experiment name from command line
+name1=$1               
+if [ $name1 ]; then
+  exp_name=$name1
+fi
+
+# give the xml file name from command line
+name1=$2
+file1=$xml_dir/$name1           
+if [ "$file1" -a -f $file1 ]; then
+  xml_file=$file1
+  xml_name=$name1
+fi
+
+#---------------
+# check parts
+#---------------
+
+# check whether xml_dir exists
+if [ ! -d $xml_dir ]; then
+  echo "ERROR: the xml dir [$xml_dir] does not exist!"
+  exit 101
+
+# check whether xml_file exists
+elif [ ! -f $xml_file ]; then
+  echo "ERROR: the xml file [$xml_file] does not exist!"
+  exit 101
+
+# check whether xml_dir is correct
+elif [ ! -d $xml_dir/awg_include ] || [ ! -d $xml_dir/scripts ]; then
+  echo "ERROR: dir [$xml_dir] MUST have sub-dir [awg_include] and [scripts]"
+  exit 101
+fi
+
+#---------------------------------
+# get GFDL analysis archive path
+#---------------------------------
+
+# get archive using frelist
+archive_lustre=`frelist -x $xml_file -p $PLATFORM -d archive $exp_name`
+if [ ! $archive_lustre ]; then
+  echo ""
+  echo "The xml file is [$xml_file]"
+  echo ""
+  echo "Available experiments:"
+  frelist -x $xml_file
+  echo ""
+  echo "STOP"
+  exit 0
+fi
+
+# remove the luster & the folder name at the end
+tt1=`echo ${archive_lustre##*${username}/}`
+tt2=`echo ${tt1%/*}`
+#echo tt1,$tt1
+#echo tt2,$tt2
+
+# get GFDL archive path
+path1="/archive/${username}"
+if [ $PLATFORM == "ncrc3.intel" ]; then
+  platform1=`echo ${PLATFORM} | sed 's/\./-/g'`
+else
+  platform1=${PLATFORM}
+fi
+name1="gfdl.${platform1}-prod-${TARGET}"
+archive_gfdl="$path1/$tt2/$name1"
+
+#echo $archive_gfdl
+
+#---------------
+# frelist combo
+#---------------
+
+list_dirs="src,exec,scripts,stdout,state,archive,postProcess"
+
+#| sed 's/:/\t:/g'"
+#--- set the commands
+comd_frelist=(\
+              "frelist -x $xml_file -p $PLATFORM -d $list_dirs $exp_name"  
+              "echo $archive_gfdl"
+              "frelist -D -x $xml_file $exp_name"
+              "frelist --diagtable -x $xml_file -p $PLATFORM $exp_name"
+              "frelist -x $xml_file"
+              "frelist --namelist -x $xml_file -p $PLATFORM $exp_name"
+             )
+
+#--- set the description of each command
+text_frelist=(\
+              "### list directories for the experiment"
+              "### archive path at GFDL analysis"
+              "### show experiment description"
+              "### show the diag_table of the experiment"
+              "### show all experiments in the xml file"
+              "### show all namelist of the experiment"
+             )
+
+# the last ${ncomd_noexe} commands will NOT execute automatically
+ncomd_noexe=3
+
+ncomd=${#comd_frelist[@]}
+ncomd_minus=$((ncomd-ncomd_noexe))
+
+#echo ncomd,$ncomd
+#echo ncomd_minus,$ncomd_minus
+#exit 0
+
+#---------------
+# print on screen
+#---------------
+
+# check with the user
+echo ""
+echo "=============================="
+echo "XML dir    : $xml_dir"
+echo "XML file   : $xml_name"
+echo "Experiment : $exp_name"
+echo "=============================="
+echo ""
+
+read -p "Is this correct? (y/n) " choice1
+if [ ! $choice1 == "y" ]; then
+  # print out commnds
+  echo "=============================="
+  echo ""
+  for ((i=0; i<$ncomd; i=i+1))
+  do
+    comd1=${comd_frelist[$i]}
+    text1=${text_frelist[$i]}
+    echo "$text1"
+    echo "$comd1"
+    echo ""
+  done
+
+  echo "STOP"
+  exit 0
+fi
+echo ""
+
+# execute frelist commands
+for ((i=0; i<$ncomd_minus; i=i+1))
+do
+  comd1=${comd_frelist[$i]}
+  text1=${text_frelist[$i]}
+
+  echo "$text1"
+  echo ""
+  $comd1 | sed "s/^/  /g" || exit 1
+  echo ""
+done
+
+# print out commnds
+echo "=============================="
+echo ""
+for ((i=0; i<$ncomd; i=i+1))
+do
+  comd1=${comd_frelist[$i]}
+  text1=${text_frelist[$i]}
+  echo "$text1"
+  echo "$comd1"
+  echo ""
+done
+
+exit 0
+

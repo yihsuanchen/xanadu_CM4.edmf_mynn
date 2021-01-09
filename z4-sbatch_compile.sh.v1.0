@@ -1,0 +1,80 @@
+#!/bin/bash 
+#===================================
+#  Bourne-Again shell script
+#
+#  Description:
+#
+#
+#  Usage:
+#
+#
+#  History:
+#
+#  Author:
+#    Yi-Hsuan Chen
+#    yihsuan@umich.edu
+#===================================
+
+#----------------
+# user settings
+#----------------
+
+username="Yi-hsuan.Chen"
+
+# sbatch script to compile the model
+setting_file="./zz-setting.txt"
+if [ ! -f $setting_file ]; then echo "ERROR: setting file [$setting_file] does not exist" ; exit 1 ; fi
+
+sbatch_script=`grep "sbatch_script=" $setting_file | cut -d '=' -f 2`
+
+#----------------
+# program start
+#----------------
+
+# check $sbatch_script
+if [ ! -x $sbatch_script ]; then
+  echo "ERROR: sbatch script [$sbatch_script] cannot be executed!"
+  echo "STOP"
+  exit 1
+fi
+
+# set sbatch log file path
+sbatch_log="${sbatch_script}.o*"
+
+#echo $sbatch_log
+log_latest=`echo $sbatch_log | awk '{print $NF}'`
+
+# check with user
+echo ""
+echo "sbatch script: [$sbatch_script]"
+echo ""
+read -p "Do you replace the code and ready to submit it? (y/n) " choice1
+if [ ! "$choice1" == "y" ]; then
+  echo "STOP"
+  echo ""
+  echo "view sbatch log files:"
+  echo ""
+  #ls -l $sbatch_log
+  echo "-------------- tail of the log file"
+  tail $log_latest
+  echo "--------------"
+  echo ""
+  ls -l $log_latest
+  name1=`echo $log_latest | awk '{print $NF}'`
+  echo ""
+  echo "vi $name1"
+  echo ""
+  exit 0
+fi
+
+# submit the sbatch script
+echo ""
+sbatch $sbatch_script && echo "Done. submit [$sbatch_script]" || exit 1
+
+# see queue
+echo ""
+squeue -u $username
+
+exit 0
+
+

@@ -1,0 +1,434 @@
+#!/bin/bash 
+#===================================
+#  Bourne-Again shell script
+#
+#  Description:
+#    run the CM4/SCM
+#
+#  Usage:
+#    Edit this script and then execute it
+#    Experiment name can be given from command line, like ./frerun.sh <exp_name>
+#
+#  History:
+#    2020/04/23  ver 1.0
+#
+#  Author:
+#    Yi-Hsuan Chen
+#    yihsuan@umich.edu
+#===================================
+
+###################
+# user setting
+###################
+
+#--- set path on Gaea
+username="Yi-hsuan.Chen"
+homepath="/ncrc/home2/$username/"
+awgdir="$homepath/awg/"
+lustre="/lustre/f2/dev/$username/awg/"
+
+backup_dir="$homepath/work/research/edmf_AM4/running_scripts/"  # backup running scripts into this folder
+this_dir=`pwd`  # this directory
+
+#--- set CM4 experiment name, which is must defined in the xml_file
+exp_names=(\
+          "a00-c96L33_am4p0_donner"
+          #"e00-c96L33_am4p0_qmf_allqmf_off_MFent500"
+          #"e01-c96L33_am4p0_donner-ED_up2_expMFent500_qmfALLoff"
+          #"e02-c96L33_am4p0_donner-ED_up2_impMFent500_qmfALLoff"
+          #"a00-c96L33_am4p0_donner"
+          #"d01-c96L33_am4p0_donner-EDonly"
+          #"d02-c96L33_am4p0_donner-EDonly_down"
+          #"d03-c96L33_am4p0_donner-EDonly_up_twice"
+          #"d04-c96L33_am4p0_donner-EDonly_up_difft0"
+          )
+
+name1=$1               # you can give the file name from command line
+if [ $name1 ]; then
+  exp_name=$name1
+fi
+
+#--- set xml file. Reading xml_dir & xml_name from the setting_file
+setting_file="./zz-setting.txt"
+if [ ! -f $setting_file ]; then echo "ERROR: setting file [$setting_file] does not exist" ; exit 1 ; fi
+
+xml_dir=`grep "xml_dir=" $setting_file | cut -d '=' -f 2`
+xml_name=`grep "xml_name=" $setting_file | cut -d '=' -f 2`
+xml_file="$xml_dir/$xml_name"
+
+#--- set frerun commands
+#     -r STRING, --regression=STRING         run in regression test mode STRING with minimal output processing
+#       run in regression test mode that has minimal treatment of output files
+#       The keyword 'all' requests all of them,
+#       The keyword 'suite' requests all available regression runs, labeled by 'basic', 'restarts' or 'scaling'
+#     -q STRING, --qos=STRING                quality-of-service STRING to pass to scheduler for model runs
+#     -o,        --overwrite                 overwrite the main run of existing experiment
+#     -u,        --unique                    create a new unique run of existing experiment
+#     -s,        --submit                    Submit all the created scripts as batch jobs.
+#PLATFORM="ncrc4.intel19"     # platform used in fre* command
+#TARGET="openmp"
+
+PLATFORM=`grep "PLATFORM=" $setting_file | cut -d '=' -f 2`
+TARGET=`grep "TARGET=" $setting_file | cut -d '=' -f 2`
+
+#regression="debug"        
+#regression="debug_30d"
+regression="basic"
+
+#qos="debug"
+qos="normal"
+
+run_type="regression"
+#run_type="AMIP"
+#run_type="restart_AMIP"
+
+#frerun_others="-o"
+#frerun_others="-o -s"
+#frerun_others="-u"
+frerun_others="-u -s"
+
+if [ $run_type == "regression" ]; then
+  ## regression test
+  comd_frerun="frerun $frerun_others -x $xml_name -p $PLATFORM -t $TARGET -r $regression -q $qos ${exp_names[@]}"
+
+elif [ $run_type == "AMIP" ]; then
+  ## AMIP run
+  comd_frerun="frerun $frerun_others -x $xml_name -p $PLATFORM -t $TARGET ${exp_names[@]}"
+
+elif [ $run_type == "restart_AMIP" ]; then
+  ## restartAMIP run, The -e option stands for "extend"
+  frerun_others="-e -s"
+  comd_frerun="frerun $frerun_others -x $xml_name -p $PLATFORM -t $TARGET ${exp_names[@]}"
+
+  echo ""
+  echo "Extend the exisiting AMIP run"
+  read -p "  Are you sure you have already changed EXP_AMIP_END, EXP_AMIP_LEN, ANA_AMIP_END, and ANA_AMIP_LEN? (y/n)  " choice
+  echo ""
+  if [ ! $choice == "y" ]; then
+    echo "STOP"
+    exit 0
+  fi
+
+fi
+
+#comd_frerun="frerun -o -r $regression -x $xml_name -p $PLATFORM -t $TARGET -q $qos $exp_name"
+text_frerun="# generate the CM4 running script"
+
+do_backup="T"
+#do_backup="F"
+
+##################
+##################
+#                #
+# program start  #
+#                #
+##################
+##################
+
+#--- temp variable
+temp=`date +%m%d-%H%M`
+
+#---------------
+# check parts
+#---------------
+
+# check whether $xml_file exists
+if [ ! -d $xml_dir ]; then 
+  echo "ERROR: the xml dir [$xml_dir] does not exist!"
+  exit 101
+
+elif [ ! -f $xml_file ]; then 
+  echo "ERROR: the xml file [$xml_file] does not exist!"
+  exit 101
+
+# check whether $xml_dir is correct
+elif [ ! -d $xml_dir/awg_include ] || [ ! -d $xml_dir/scripts ]; then
+  echo "ERROR: dir [$xml_dir] MUST have sub-dir [awg_include] and [scripts]"
+  exit 101
+
+# rename xml file if it already exists
+#elif [ -f $xml_file ]; then
+#  echo "WARNING: xml file [$xml_file] already exist!"
+#  mv $xml_file ${xml_file}.$temp && echo "rename to [${xml_file}.$temp]" || exit 101
+fi
+
+#--------------------------------
+# read values from the xml_file
+#--------------------------------
+
+#--- read FMS values from the xml_file
+RELEASE=`grep 'property name="RELEASE"' $xml_file | sed "s/.*value=//g" | cut -d '"' -f 2`
+AWG_GIT_TAG=`grep 'property name="AWG_GIT_TAG"' $xml_file | sed "s/.*value=//g" | cut -d '"' -f 2`
+AWG_BASE=`grep 'property name="AWG_BASE"' $xml_file | sed "s/.*value=//g" | cut -d '"' -f 2`
+AWG_VERSION=`grep 'property name="AWG_VERSION"' $xml_file | sed "s/.*value=//g" | cut -d '"' -f 2`
+FMS_COMP_EXP=`grep 'property name="FMS_COMP_EXP"' $xml_file | sed "s/.*value=//g" | cut -d '"' -f 2`
+
+FMS_COMP_EXPNAME=${FMS_COMP_EXP:27:1000}   # get FMS-COMP_EXP1 from $(AWG_BASE)_$(AWG_VERSION)_${FMS-COMP_EXP1}
+FMS_COMP_EXP="${AWG_BASE}_${AWG_VERSION}_${FMS_COMP_EXPNAME}"
+#=`grep 'property name=""' $xml_file | sed "s/.*value=//g" | cut -d '"' -f 2`
+
+if [ $PLATFORM == "ncrc3.intel" ]; then
+  platform1=`echo ${PLATFORM} | sed 's/\./-/g'`
+else
+  platform1=${PLATFORM}
+fi
+ARCHIVE_CM4="/archive/Yi-hsuan.Chen/awg/$RELEASE/${FMS_COMP_EXP}/${exp_name}/gfdl.${platform1}-${TARGET}/"
+
+#*** these pathes I don't know ***
+LOGPATH_CM4="$lustre/$RELEASE/$FMS_COMP_EXP/$exp_name/$PLATFORM-$TARGET/stdout/run/"
+LOGNAME_CM4="${exp_name}_"
+LOG_CM4="$LOGPATH_CM4/$LOGNAME_CM4"
+EXEPATH_SCM="$lustre/$RELEASE/$FMS_COMP_EXP/$PLATFORM-$TARGET/exec/"
+EXE_CM4="$EXEPATH_CM4/fms_${FMS_COMP_EXP}.x"
+SBATCH_CM4="$xml_dir/scripts/$PLATFORM-$TARGET/run/${exp_name}_1x0m2d_432x1a"
+
+# check CM4 executable file
+#if [ ! -x $EXE_CM4 ]; then
+#  echo "ERROR: The executable file [$EXE_CM4] does not exist!"
+#  echo "You must finish compiling CM4_COMP_EXP [$CM4_COMP_EXP] before running the model"
+#  exit 1
+#fi
+
+#---------------
+# set commands
+#---------------
+
+#--- set the commands
+comd_CM4=(\
+           "cp -i $xml_name $xml_file" \
+           "cd $xml_dir"  \
+           "$comd_frerun" \
+           "comd_CM401" \
+           "squeue -u $username" \
+           "cd $LOGPATH_CM4 ; \ntail $LOGNAME_CM4 ; \ntail $LOG_CM4"
+           "cd $ARCHIVE_CM4"
+         )
+
+#--- set the description of each command
+text_CM4=(\
+           "# copy local xml file to xml dir" \
+           "# move to the xml direcotry" \
+           "$text_frerun" \
+           "# submit the sbatch script" \
+           "# see the queue" \
+           "# If model run is successful, you should see 'exit 0' at the end of this file. Make sure the script name (e.g. $name1) is consistent with the name of these pathes."
+           "# You can find the CM4 output at analysis. Make sure the script name (e.g. $name1) is consistent with the name of this path"
+         )
+
+# the last ${ncomd_noexe} commands will NOT execute automatically
+ncomd_noexe=2
+
+ncomd=${#comd_CM4[@]}
+ncomd_minus=$((ncomd-ncomd_noexe))
+
+#-------------------
+# check with user
+#-------------------
+
+#--- print out into on screen
+echo ""
+echo "CM4 running settings:"
+echo "  RELEASE               : $RELEASE"
+echo "  AWG_GIT_TAG           : $AWG_GIT_TAG"
+echo "  AWG_BASE              : $AWG_BASE"
+echo "  AWG_VERSION           : $AWG_VERSION"
+echo "  FMS_COMP_EXP          : $FMS_COMP_EXP"
+echo ""
+echo "  XML dir               : $xml_dir"
+echo "  XML file              : $xml_file"
+echo "  Experiment name       : $exp_name"
+echo ""
+echo "  TARGET                : $TARGET"
+echo "  PLATFORM              : $PLATFORM"
+echo ""
+echo "  frerun command        : $comd_frerun"
+
+echo ""
+read -p "Do you want to run automatically (a), manually (m), or not compile (n)? (a/m/n) " choice
+echo ""
+
+#--- compile manually. show step-by-step commands
+if [ $choice == "m" ]; then
+
+  echo "---------------------------------------"
+  echo ""
+  echo "# backup xml file if it already exists"
+  echo "cp $xml_file ${xml_file}.$temp"
+  echo ""
+
+  for ((i=0; i<$ncomd; i=i+1))
+  do
+    comd1=${comd_CM4[$i]}
+    text1=${text_CM4[$i]}
+    #if [ $i -lt $ncomd_minus ]; then
+      echo "$text1"
+      if [ "$comd1" == "comd_CM401" ]; then
+        comd1="[submit the script] sbatch "
+      fi
+      echo -e "$comd1"
+      echo ""
+    #fi
+  done
+
+
+#--- compile automatically
+elif [ $choice == "a" ]; then
+  for ((i=0; i<$ncomd; i=i+1))
+  do
+    comd1=${comd_CM4[$i]}
+    text1=${text_CM4[$i]}
+    echo "$text1"
+    echo -e "$comd1"
+    
+    # do not execute sbatch & tail command
+    if [ $i -lt $ncomd_minus ]; then
+      if [ "$comd1" == "comd_CM401" ]; then
+        read -p 'Enter the sbatch script name and would you like to submit it? (name; y/n, default is y)? ' sbatch1 choice1
+
+        if [ ! $choice1 ]; then choice1="y" ; fi
+
+        if [ $sbatch1 -a -f $sbatch1 ] && [ "$choice1" -a "$choice1" == "y" ];then
+          #echo gg,$sbatch1
+          echo ""
+          echo "# submit sbatch script"
+          sbatch $sbatch1 || exit 1
+          echo ""
+          #name1="1x0m1d_1x1a"
+          #name0="test_uwOFF_rad_BOMEX_c96L32_am4g11r11_1x0m1d_1x1a2"
+
+          name0="${sbatch1##*/}"  # get script name, e.g. test_uwOFF_rad_BOMEX_c96L32_am4g11r11_1x0m1d_1x1a2 
+          #echo $sbatch1, $name0
+          nn1=`echo ${#exp_name}` # remove the exp_name
+          name1=`echo ${name0:$((nn1+1)):1111}`  # remove the exp_name, e.g. get 1x0m1d_1x1a2 
+          LOGPATH_CM4="$lustre/$RELEASE/$FMS_COMP_EXP/$exp_name/$PLATFORM-$TARGET/stdout/run/"
+          LOGNAME_CM4="${exp_name}_${name1}.o"
+          LOG_CM4="$LOGPATH_CM4/$LOGNAME_CM4"
+          ARCHIVE_CM4="/archive/Yi-hsuan.Chen/awg/$RELEASE/${FMS_COMP_EXP}/${exp_name}/gfdl.${platform1}-${TARGET}/$name1"
+
+          echo "# pathes of log file "
+          echo -e "  cd $LOGPATH_CM4 ; \ntail $LOGNAME_CM4 ; \ntail $LOG_CM4"
+          echo ""
+          echo "# path of archive"
+          echo "  cd $ARCHIVE_CM4"
+
+        else
+          echo ""
+          echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+          echo "NOTE: the sbatch script is NOT submitted yet"
+          echo "  sbatch script: [$sbatch1]"
+          echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        fi
+      else
+        $comd1 || exit 201
+        #echo bb,"$comd1"
+      fi
+    else
+      aa=0
+      #echo aa,"$comd1"
+    fi
+    echo ""
+  done
+
+else
+  echo "STOP"
+fi # end if of choice
+
+#------------------
+# backup scripts
+#------------------
+
+# get exp_name
+nexp=${#exp_names[@]}
+
+for exp1 in ${exp_names[@]}
+do
+#echo ttt,$exp1
+  exp1_head=${exp1:0:4}
+  exp1_tail=${exp1##*_}
+#echo ggg, $exp1_tail
+  exp11=${exp1_head}..${exp1_tail}
+  #exp_name=${exp11}_${exp_name}${exp11}_
+  exp_name="${exp_name}${exp11}__"
+done
+
+#echo $exp_name
+
+if [ $do_backup -a $do_backup == "T" ]; then
+
+# backup directory
+dir1="$backup_dir/$RELEASE/$FMS_COMP_EXP/$PLATFORM-$TARGET/$exp_name/frerun"
+if [ ! -d $dir1 ]; then
+  mkdir -p $dir1 && echo "create [$dir1]" || exit 1
+fi
+
+# get head0
+if [ $run_type == "regression" ]; then
+  head0="${temp}_r_${regression}"
+
+elif [ $run_type == "AMIP" ]; then
+  head0="${temp}_amip"
+
+elif [ $run_type == "restart_AMIP" ]; then
+  head0="${temp}_amip_extension"
+
+else
+  head0="${temp}"
+
+fi
+
+this_script="$this_dir/$0"
+
+echo ""
+echo "======================================"
+echo "Backup frerun-created script, the XML file, and this script..."
+#echo "  sbatch script: [$sbatch1]"
+echo "  XML file     : [$xml_file]"
+echo "  this script  : [$this_script]"
+echo ""
+echo "  backup dir   : [$dir1]"
+echo "  file head    : [$head0]"
+echo ""
+
+read -p "Is that correct? (y/n) & enter new file head if needed:  "  choice head1
+
+## check sbatch script
+#if [ $sbatch1 -a -f $sbatch1 ]; then
+#  aa=0
+#else
+#  echo "ERROR: file [$sbatch1] does not exist"
+#  exit 0
+#fi
+
+# backup file head
+if [ ! "$head1" ]; then
+  head1=$head0
+fi
+
+if [ $choice -a $choice == "y" ]; then
+  #files=($sbatch1 $xml_file $this_script)
+  files=($xml_file $this_script)
+  for file1 in ${files[@]}
+  do
+    if [ -f $file1 ]; then
+      name1=${file1##*/}
+      file2="$dir1/${head1}-$name1"
+      #echo file,$file1
+      #echo name,$name1
+      #echo $file1, $file2
+      cp -i $file1 $file2 && echo "Done. create [$file2]" || exit 5
+
+    else
+      echo "ERROR: file [$file1] does not exist!"
+      exit 1
+    fi
+  done
+else
+  echo "STOP"
+  exit 0
+fi
+
+fi # end if of do_backup
+
+
+exit 0
+

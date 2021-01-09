@@ -1,0 +1,49 @@
+#------------------
+# README
+#
+# set pathes of required files for executing CM4 working suite that is developed by Yi-Hsuan Chen
+#
+# Author
+#   Yi-Hsuan Chen (yihsuan@umich.edu)
+#------------------
+
+#------------------------------------------
+# platform and target used in fre* commands
+#------------------------------------------
+
+PLATFORM=ncrc4.intel19
+#PLAT__FORM=ncrc4.intel18
+TARGET=openmp
+
+#---------------------------
+# XML directory and name
+#---------------------------
+
+xml_dir=/ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_am4p0_edmf_mynn
+xml_name=awg_xanadu_am4p0_edmf_mynn.xml
+
+#---------------------------
+# set model name, FMS_COMP_EXPNAME
+#   the value of "FMS_COMP_EXP" would be \$(AWG_BASE)_\$(AWG_VERSION)_${FMS_COMP_EXPNAME}
+#   e.g. cm4p12_xanadu_donner_my25_turb_mf
+#---------------------------
+
+FMS_COMP_EXPNAME=am4p0_edmf_mynn
+
+#---------------------------------
+# path of source code directory 
+#---------------------------------
+
+srcdir=/ncrc/home2/Yi-hsuan.Chen/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/src
+
+#--------------------------------
+# path of model compile script 
+#   the file path is got from fremake command
+#--------------------------------
+
+sbatch_script=/lustre/f2/dev/Yi-hsuan.Chen/awg//xanadu/cm4p12_xanadu_am4p0_edmf_mynn/ncrc4.intel19-prod-openmp/exec//compile_cm4p12_xanadu_am4p0_edmf_mynn.csh
+
+# frerun script
+#/ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_am4p0_edmf_mynn/scripts/ncrc4.intel19-prod-openmp/run/x05-c96L33_am4p0_donner_qmf_allmf_off_1x0m8d_216x1a
+
+

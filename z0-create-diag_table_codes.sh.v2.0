@@ -1,0 +1,405 @@
+#!/bin/bash 
+#===================================
+#  Bourne-Again shell script
+#
+#  Description:
+#    Create codes for diagnostic outputs in GFDL model, including
+#      1. output files  in diag_table
+#      2. output fields in diag_table
+#      3. function register_diag_fidld
+#      4. function send_data
+#
+#      Ref    : Summer School 2012 FMS DiagManager.pdf, pages 24-39 for diag_table information.
+#      Example: (verona/SCM_AM4_base_v20170216_bx15) /src/atmos_scm/SCM_include/diag_table/
+#
+#  Usage:
+#    Edit this script and then execute
+#    The output files and output fields will be showed on screen.
+#
+#  History:
+#    2020/04/24  ver 1.0
+#    2020/04/26  ver 2.0  combine field_name, long_name, units, axes togeter
+#
+#  Author:
+#    Yi-Hsuan Chen
+#    yihsuan@umich.edu
+#===================================
+
+###################
+# user setting
+###################
+
+#---------------------
+# general setting
+#----------------------
+
+# set comments at each section
+username="yi-hsuan"
+date=`date +%Y-%m-%d`
+comment="$username, $date"
+
+outfile_comment="$comment"    # comments for outfile
+outfield_comment="$comment"   # comments for outfield
+register_comment="$comment"   # comments for register_diag_field
+send_comment="$comment"       # comments for send_data
+
+# diag_table file
+diag_dir="/ncrc/home2/Yi-hsuan.Chen/awg/verona/xml_v20170216_bx15/scm_include/diag_table/"
+diag_name="diag_table_dcbl"
+diag_table="$diag_dir/$diag_name"
+
+# set options 
+do_output_files="T"
+#do_output_files="F"
+
+do_output_fields="T"
+#do_output_fields="F"
+
+do_register_send="T"
+#do_register_send="F"
+
+#do_keep_tempfile="T"
+do_keep_tempfile="F"
+
+#----------------------------
+# set write-out variables
+#----------------------------
+
+#---output files, multiple files are allowed
+#     file_name, output frequency, output_freq_units, file_format, time_axis_unit, time_axis_name
+
+#file_name_outfile=("atmos_strat" "atmos_uw" "atmos_donner")
+file_name_outfile=("atmos_vert_turb")
+output_freq=("30")		# -1: Output at the end of the run only
+                    		#  0: Output every time step.
+                    		# >0: Output frequency in output_freq_units
+output_freq_units=("minutes")  	# "years", "months", "days", "minutes", "hours" or "seconds"
+file_format=1
+time_axis_unit=("days")        	# "years", "months", "days", "minutes", "hours", or "seconds"
+time_axis_name=("time")        	# is usually just "time"
+
+#--- output fields, multiple fields are allowed
+#      module_name, field_name, output_name, file_name, time_sampling, reduction_method, regional_section, packing
+
+module_name=("vert_turb")			# Module that contains the field_name variable
+#output_name				# Name of the file as written in file_name. Set to same as the field_name
+time_sampling="all"			# Currently not used. Please use string "all"
+reduction_method=".true."		# Data reduction method to perform prior to writing data to the file
+					#	.true. OR "average": Average over length of file writes (defined in file description)
+					#	.false. OR "none": No reduction performed. Write current time step value
+					#	"min", "max": Write minimum / maximum value over length of file writes
+regional_section="none"			# Bounds of the regional section to capture. Each region must be written to a separate file.
+					#	"none": indicates a global region
+					#	"lon_min, lon_max, lat_min, lat_max, vert_min, vert_max"
+					#		Example: “25.5, 94.3, -60.0, -55.0, 100, 920”
+					#		         “50.0, 52.0, 45.5, 46.5, -1, -1” (vert_min=-1 means for all vertical levels)
+					#		         “-1, -1, -1, -1, 150, 850”       (lon=lat=-1  means for vertical sub-region)
+packing=2				# Fortran number KIND of the data written. 1: double precision, 2: float
+
+# Name of the file where the field is to be written. The file_name must be defined in output file description
+#   if its number is less than the number of field_name, the last one will be used for the rest 
+file_name_outfield=("atmos_vert_turb" \
+                    "atmos_vert_turb" \
+                   )
+
+# filed_name, long_name, units, axes. Separate each by "!"
+#	field_name: Module variable name that has data to be written to file
+#	long_name : long name of the field_name
+#	units     : units     of the field name
+#       axes      : axes      of the field_name, full: nlayers, half: nlayer+1, 1:2: two-dimension
+all_names=(\
+          "is_mass_flux	! presentance of updraft	! none		!	1:2"  \
+          "up_aw	! updraft area*w		! m/s		!	half" \
+          "up_awu	! updraft area*w*u		! m2/s2		!	half" \
+          "up_awv	! updraft area*w*v		! m2/s2		!	half"	 \
+          "up_awthv	! updraft area*w*theta_v	! K m/s		!	half" \
+          "up_awqt	! updraft area*w*qt		! kg/kg m/s	!	half" \
+          "p_half	! p at half level		! Pa		!	half" \
+          "p_full	! p at full level		! Pa		!	half" \
+          "z_half	! z at half level		! meter		!	half" \
+          "z_full	! z at full level		! meter		!	half" \
+          "u_star	! u*				! m/s		!	1:2" \
+          "b_star	! b*				! m/s2		!	1:2" \
+          "q_star	! q*				! kg/kg		!	1:2" \
+          "z_pbl	! PBL depth			! meter		!	1:2" \
+          "uu		! zonal wind			! m/s		!	full" \
+          "vv		! meridional wind		! m/s		!	full" \
+          "tt		! temperature			! K		!	full" \
+          "qq		! speficic humidity		! kg/kg		!	full" \
+          "udt_mf	! u tendency from mass flux	! m/s2		!	full" \
+          "vdt_mf	! v tendency from mass flux	! m/s2		!	full" \
+          "tdt_mf	! t tendency from mass flux	! K/s		!	full" \
+          "qdt_mf	! q tendency from mass flux	! kg/kg/s	!	full" \
+          "thvdt_mf	! thv tendency from mass flux	! K/s		!	full" \
+          "qtdt_mf	! qt tendency from mass flux	! kg/kg/s	!	full" \
+          )
+#        "!	!	!"
+i=0
+for all1 in ${all_names[@]}
+do
+  all_1=${all_names[$i]}
+  field_name1=`echo $all_1 | cut -d '!' -f 1 | sed "s/^ //g" | sed "s/ $//g"`
+  long_name1=`echo $all_1 | cut -d '!' -f 2 | sed "s/^ //g" | sed "s/ $//g"`
+  units1=`echo $all_1 | cut -d '!' -f 3 | sed "s/^ //g" | sed "s/ $//g"`
+  axes1=`echo $all_1 | cut -d '!' -f 4 | sed "s/^ //g" | sed "s/ $//g"`
+
+  field_name[$i]=$field_name1
+  long_name[$i]=$long_name1
+  units[$i]=$units1
+  axes[$i]=$axes1
+  #[$i]=$
+
+  i=$(($i+1))
+done
+
+register_time="Time"                          	# time variable    for register_diag_field
+register_other="missing_value=missing_value"	# other parameters for register_diag_field
+
+send_time="Time_next"      # time variable    for send_data
+send_other=""              # other parameters for send_data
+
+# set temp file
+wrkdir="./"
+temp=`date +%Y%m%d%H%M%S`
+ftemp=$wrkdir/hhssoogg.$temp
+
+#ftemp_="${ftemp}."
+ftemp_outfile="${ftemp}.01outfile"
+ftemp_outfield="${ftemp}.02outfield"
+ftemp_register="${ftemp}.03register"
+ftemp_send="${ftemp}.04send"
+ftemp_note="${ftemp}.XXnote"
+
+##################
+##################
+##################
+#
+# program start
+#
+##################
+##################
+##################
+
+#set -x
+
+nfile=${#file_name_outfile[@]}
+#nfield=${#field_name[@]}
+nfield=${#all_names[@]}
+
+#---------------------
+#---------------------
+# write output files
+#---------------------
+#---------------------
+
+if [ $do_output_files -a $do_output_files == "T" ]; then
+
+# write title
+cat > $ftemp_outfile << EOF
+=================================================
+#output files
+#--> $outfile_comment
+#file_name, output frequency, output_freq_units, file_format, time_axis_unit, time_axis_name
+EOF
+
+# write values
+for file1 in ${file_name_outfile[@]}
+do
+  #echo $file1
+  cat >> $ftemp_outfile << EOF
+"$file1"	, $output_freq, "$output_freq_units", $file_format, "$time_axis_unit", "$time_axis_name",
+EOF
+done
+
+# write end
+cat >> $ftemp_outfile << EOF
+#<-- $outfile_comment
+EOF
+
+fi # end if of do_output_files
+
+#---------------------
+#---------------------
+# write output fields
+#---------------------
+#---------------------
+
+if [ $do_output_fields -a $do_output_fields == "T" ]; then
+
+# write title
+cat >> $ftemp_outfield << EOF
+
+=================================================
+#output fields
+#--> $outfield_comment
+#module_name, field_name, output_name, file_name, time_sampling, reduction_method, regional_section, packing
+EOF
+
+# write values
+i=0
+for field1 in ${field_name[@]}
+do
+  #echo $field1
+  output_name1=$field1
+  if [ ${file_name_outfield[$i]} ]; then
+    file1=${file_name_outfield[$i]}
+  fi
+  cat >> $ftemp_outfield << EOF
+ "$module_name", "${field1}"	, "$output_name1"	, "$file1", "$time_sampling", $reduction_method, "$regional_section", $packing,
+EOF
+ i=$(($i+1))
+done
+
+# write end
+cat >> $ftemp_outfield << EOF
+#<-- $outfield_comment
+EOF
+
+fi # end if of do_output_fields
+
+#--------------------------------------------
+#--------------------------------------------
+# write register_diag_field and send_data
+#--------------------------------------------
+#--------------------------------------------
+
+id_all="integer :: "
+
+for ((i=0; i<$nfield; i=i+1))
+do
+    field1=${field_name[$i]}
+    id1="id_${field1}"
+    id_all="${id_all}${id1}, "
+done
+
+if [ $do_register_send -a $do_register_send == "T" ]; then
+
+  #*****************************
+  # write register_diag_field
+  #*****************************
+
+# write title of register
+cat >> $ftemp_register << EOF
+
+=================================================
+!# register_diag_field
+!--> $register_comment
+EOF
+
+  for ((i=0; i<$nfield; i=i+1))
+  do
+    field1=${field_name[$i]}
+    axes1=${axes[$i]}
+    name1=${long_name[$i]}
+    units1=${units[$i]}
+
+cat >> $ftemp_register << EOF
+  id_${field1} = register_diag_field (mod_name, '$field1', axes($axes1), $register_time, &
+                 '$name1', '$units1' , &
+                 $register_other )
+
+EOF
+  done
+
+# write end of register
+cat >> $ftemp_register << EOF
+!<-- $register_comment
+EOF
+#
+
+  #*****************************
+  # write send_data
+  #*****************************
+
+# write title of send
+cat >> $ftemp_send << EOF
+
+=================================================
+!# send_data
+!--> $send_comment
+EOF
+
+  for ((i=0; i<$nfield; i=i+1))
+  do
+    field1=${field_name[$i]}
+    axes1=${axes[$i]}
+    name1=${long_name[$i]}
+    units1=${units[$i]}
+
+    if   [ $axes1 == "half" ]; then
+      is_js_ks="is, js, 1"
+      axes1_name="half"
+    elif [ $axes1 == "full" ]; then
+      is_js_ks="is, js, 1"
+      axes1_name="full"
+    elif [ $axes1 == "1:2" ]; then
+      is_js_ks="is, js"
+      axes1_name="one"
+    else
+      is_js_ks="IS, JS, KS"
+      axes1_name="??"
+    fi
+
+    if [ $send_other ]; then 
+      send_end=", $send_other"
+    else
+      send_end=""
+    fi
+
+    field_all="${field_all} ,${field1}"
+cat >> $ftemp_send << EOF
+!------- $name1 (units: $units1) at $axes1_name level -------
+      if ( id_${field1} > 0) then
+        used = send_data (id_${field1}, $field1, $send_time, $is_js_ks $send_end)
+      endif
+
+EOF
+  done
+
+# write end of send
+cat >> $ftemp_send << EOF
+!<-- $send_comment
+EOF
+
+fi # end if of do_register_send
+
+#---------------------------
+#---------------------------
+# print out on screen
+#---------------------------
+#---------------------------
+
+cat >> $ftemp_note << EOF
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+The parts of output files and fields MUST be added into the diag_table file
+   [$diag_table] given by the user
+
+   The path of diag_table be found by searching "diagTable" within the experiment sections in the XML file
+
+   To check the diag_table, use diag_table_chk command:
+     $ diag_table_chk $diag_table
+
+The parts of register_diag_fields and send_data are added into the corresponding Fortran files, e.g. vert_turb_driver.F90
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!<-- $comment
+$id_all
+!--> $comment
+
+EOF
+
+# print out on screen
+cat $ftemp*
+
+# delete or keep the temp file
+if [ $do_keep_tempfile -a  $do_keep_tempfile == "T" ]; then
+  echo "keep the files/fields in a file [$ftemp]"
+else
+  rm $ftemp* || exit 1
+  aa=0
+fi
+
+exit 0
+
