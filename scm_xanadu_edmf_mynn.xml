@@ -5607,10 +5607,93 @@ unset occam_file
     </input>
   </experiment>
 
+  <experiment name="a00_dt05min-GCSS_ARM-am4p0_rad" inherit="GCSS_ARM_$(AWG_EXPERIMENT)">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="coupler_nml">
+        months = $months,
+        days   = $days,
+        hours  = $hours,
+        dt_atmos = 300,
+        dt_cpld = 300,
+        current_date = 1997, 6, 21, 11, 30, 0,
+        calendar = 'julian'
+        concurrent = .false.
+        do_ocean = .false.
+        do_land  = .false.
+        ocean_npes = 0
+        atmos_npes = $atm_ranks
+        atmos_nthreads = $atm_threads
+      </namelist>
+      <namelist name="scm_gcss_arm_nml">
+         tracer_vert_advec_scheme = 4,
+         temp_vert_advec_scheme = 4,
+         momentum_vert_advec_scheme = 1,
+         do_geo  =.true.,
+         rad_scheme = 'simplified'
+         init_date  = 1997, 6, 21, 11, 30, 0,
+         current_date = 1997, 6, 21, 11, 30, 0,
+         dt_atmos = 300,
+      </namelist>
+      <namelist name="physics_driver_nml">
+        do_radiation = .true.
+      </namelist>
+      <namelist name="radiation_driver_nml">
+        do_radiation = .true.,
+        rad_time_step= 10800,
+        rad_package = 'sea_esf',
+        do_clear_sky_pass=.true.,
+        !calc_hemi_integrals = .false.,
+        renormalize_sw_fluxes=.true.,
+        zenith_spec = 'diurnally_varying',
+        using_restart_file = .false.
+        do_conserve_energy = .true.
+        sw_rad_time_step = 3600,
+        use_single_lw_sw_ts = .false.,
+      </namelist>
+    </input>
+  </experiment>
 
   <experiment name="b00-BOMEX-am4p0_rad" inherit="BOMEX_$(AWG_EXPERIMENT)">
     <input>
       <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="physics_driver_nml">
+        do_radiation = .true.
+      </namelist>
+      <namelist name="radiation_driver_nml">
+        do_radiation = .true.,
+        rad_time_step= 10800,
+        rad_package = 'sea_esf',
+        do_clear_sky_pass=.true.,
+        !calc_hemi_integrals = .false.,
+        renormalize_sw_fluxes=.true.,
+        zenith_spec = 'diurnally_varying',
+        using_restart_file = .false.
+        do_conserve_energy = .true.
+        sw_rad_time_step = 3600,
+        use_single_lw_sw_ts = .false.,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b00_dt05min-BOMEX-am4p0_rad" inherit="BOMEX_$(AWG_EXPERIMENT)">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="coupler_nml">
+        months = $months,
+        days   = $days,
+        hours  = $hours,
+        dt_atmos = 300,
+        dt_cpld = 300,
+        current_date = 1969, 6, 22, 0, 0, 0,
+        calendar = 'julian'
+        concurrent = .false.
+        do_ocean = .false.
+        do_land  = .false.
+        ocean_npes = 0
+        atmos_npes = $atm_ranks
+        atmos_nthreads = $atm_threads
+      </namelist>
       <namelist name="physics_driver_nml">
         do_radiation = .true.
       </namelist>
@@ -5865,6 +5948,42 @@ Code used
     </input>
   </experiment>
 
+  <experiment name="a01_dt05min-GCSS_ARM-am4p0_rad_mynn" inherit="a00_dt05min-GCSS_ARM-am4p0_rad">
+<description>
+Code used
+  edmf_mynn.F90, 87439d66438801c5bd1538e2fd97bfc6039fa266
+  physics_driver.F90, 111e8f4339f2010beec07dec8b568703e9788686
+</description>
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ DO_SIMPLE       = F,
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="b01-BOMEX-am4p0_rad_mynn" inherit="b00-BOMEX-am4p0_rad">
 <description>
 Code used
@@ -5901,6 +6020,41 @@ Code used
     </input>
   </experiment>
 
+  <experiment name="b01_dt05min-BOMEX-am4p0_rad_mynn" inherit="b00_dt05min-BOMEX-am4p0_rad">
+<description>
+Code used
+  edmf_mynn.F90, 87439d66438801c5bd1538e2fd97bfc6039fa266
+  physics_driver.F90, 111e8f4339f2010beec07dec8b568703e9788686
+</description>
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ DO_SIMPLE       = F,
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
 
 
 <!--
@@ -5910,6 +6064,9 @@ Code used
 ##########################
 ##########################
 -->
+  <experiment name="x01-b01-BOMEX-am4p0_rad_mynn" inherit="b01-BOMEX-am4p0_rad_mynn">
+  </experiment>
+
   <experiment name="w01a-BOMEX-am4p0_rad_edmf_diag" inherit="b00-BOMEX-am4p0_rad">
     <description>
        edmf_mynn.F90.xanadu.v2.0 
