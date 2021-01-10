@@ -13,11 +13,12 @@ MODULE module_bl_mynn
 !############################
 !############################
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_01"
-  character*50 :: input_profile = "SCM_am4p0_DCBL_C1_02_u,vdt_NaN"
-  !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
+  !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_02_u,vdt_NaN"
+  character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
   !character*50 :: input_profile = "xxx"
 
-  integer, parameter :: loop_times = 20 
+  integer, parameter :: loop_times = 1
+  !integer, parameter :: loop_times = 20 
   !integer, parameter :: loop_times = 60 
 
   integer, parameter :: ni = 1
@@ -124,8 +125,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    !integer :: jj_write = -999       ! j index for column written out. Set to 0 if you want to write out in SCM
    real    :: lat_write = -999.99   ! latitude  (radian) for column written out
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
-   !logical :: do_writeout_column_nml = .true.
-   logical :: do_writeout_column_nml = .false.
+   logical :: do_writeout_column_nml = .true.
+   !logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
 
@@ -7597,8 +7598,20 @@ subroutine edmf_writeout_column ( &
            enddo
         write(6,3001) '  th = (/'    ,var_temp1(:)
         write(6,*)    ''
+        write(6,*)    '; ice-liquid water potential temperatur at full levels (K)'
+        write(6,3001) '  thl = (/'    , am4_Output_edmf%thl_edmf(ii_write,jj_write,:)
+        write(6,*)    ''
         write(6,*)    '; specific humidity at full levels (kg/kg)'
-        write(6,3002) '  qq = (/'    ,Physics_input_block%q(ii_write,jj_write,:,1)
+        write(6,3002) '  qq = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nsphum)
+        write(6,*)    ''
+        write(6,*)    '; cloud liquid water mixing ratio at full levels (kg/kg)'
+        write(6,3002) '  ql = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nql)
+        write(6,*)    ''
+        write(6,*)    '; cloud ice water mixing ratio at full levels (kg/kg)'
+        write(6,3002) '  qi = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nqi)
+        write(6,*)    ''
+        write(6,*)    '; total water mixing ratio (qv+ql+qi) at full levels (kg/kg)'
+        write(6,3002) '  qt = (/'    ,am4_Output_edmf%qt_edmf(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; surface air temperature (K)'
         write(6,3000) '  t_ref= (/'    , t_ref (ii_write,jj_write)
@@ -7924,7 +7937,7 @@ program test111
   integer                   :: is, ie, js, je
   !real                      :: dt
   real,    dimension(ni,nj,nhalf) :: p_half, z_half, z_half_actual
-  real,    dimension(ni,nj,nfull) :: p_full, z_full, z_full_actual, uu, vv, tt, qq, thv, ww, ql, qi, omega
+  real,    dimension(ni,nj,nfull) :: p_full, z_full, z_full_actual, uu, vv, tt, qq, ql, qi, thv, ww, omega
   !real,    dimension(nhalf) :: p_half, z_half, z_half_actual
   !real,    dimension(nfull) :: p_full, z_full, z_full_actual, uu, vv, tt, qq, thv, ww, ql, qi
   real,    dimension(ni,nj,nfull) :: diff_t, diff_m
@@ -7947,6 +7960,10 @@ program test111
 !==============================
 
 is = 1
+
+! initialize
+ql = 0.
+qi = 0.
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 if (input_profile == "SCM_am4p0_BOMEX_01") then
@@ -8121,7 +8138,9 @@ endif ! end if of input profile
   Physics_input_block%t = tt
   Physics_input_block%u = uu
   Physics_input_block%v = vv
-  Physics_input_block%q(:,:,:,1) = qq
+  Physics_input_block%q(:,:,:,nsphum) = qq
+  Physics_input_block%q(:,:,:,nql) = ql
+  Physics_input_block%q(:,:,:,nqi) = qi
 
   do mm = 1,loop_times
     ! set tendencies to zeros
