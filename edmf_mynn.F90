@@ -131,8 +131,9 @@ end type edmf_output_type
 type am4_edmf_output_type
 
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
-    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qcdt_edmf, &
-    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc
+    thl_edmf, qt_edmf,  & ! diagnostic purpose
+    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qcdt_edmf, &  ! outputs from EDMF-MYNN scheme
+    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
 end type am4_edmf_output_type
 
@@ -4949,7 +4950,7 @@ ENDIF
 
 
 
-print *,'qkeEND',qke
+!print *,'qkeEND',qke
 
   END SUBROUTINE mynn_bl_driver
 
@@ -7105,6 +7106,7 @@ subroutine edmf_alloc ( &
                    size(Physics_input_block%t,2), &
                    size(Physics_input_block%t,3)) :: &
     dz_host, u_host, v_host, w_host, th_host, qv_host, p_host, exner_host, rho_host, T3D_host, qc_host, ql_host, qi_host, qnc_host, qni_host, &
+    thl_host, qt_host, &
     tv_host, thv_host, omega_host
 
   real, dimension (size(Physics_input_block%t,1), &
@@ -7298,6 +7300,8 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%edmf_thl    (ix,jx,kx))  ; am4_Output_edmf%edmf_thl    = 0.
   allocate (am4_Output_edmf%edmf_ent    (ix,jx,kx))  ; am4_Output_edmf%edmf_ent    = 0.
   allocate (am4_Output_edmf%edmf_qc     (ix,jx,kx))  ; am4_Output_edmf%edmf_qc     = 0.
+  allocate (am4_Output_edmf%thl_edmf    (ix,jx,kx))  ; am4_Output_edmf%thl_edmf    = 0.
+  allocate (am4_Output_edmf%qt_edmf     (ix,jx,kx))  ; am4_Output_edmf%qt_edmf     = 0.
 
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
@@ -7326,6 +7330,9 @@ subroutine edmf_alloc ( &
   thv_host  (:,:,:) = tv_host(:,:,:) / exner_host(:,:,:)
   rho_host  (:,:,:) = p_host(:,:,:) / rdgas / tv_host(:,:,:)
   w_host    (:,:,:) = -1.*omega_host(:,:,:) / rho_host(:,:,:) / g 
+
+  thl_host   (:,:,:) = th_host(:,:,:) - ( hlv*ql_host(:,:,:)+hls*qi_host(:,:,:) ) / cp_air / exner_host(:,:,:)
+  qt_host    (:,:,:) = qv_host(:,:,:) + ql_host(:,:,:) + qi_host(:,:,:)
 
   qnc_host = 0.  ! not used, set to zero
   qni_host = 0.  ! not used, set to zero
@@ -7461,6 +7468,12 @@ subroutine edmf_alloc ( &
   enddo  ! end loop of k
   enddo  ! end loop of j
   enddo  ! end loop of i
+
+!-------------------------------------------------------------------------
+! set values for am4_Output_edmf 
+!-------------------------------------------------------------------------
+  am4_Output_edmf%thl_edmf (:,:,:) = thl_host (:,:,:)
+  am4_Output_edmf%qt_edmf  (:,:,:) = qt_host  (:,:,:)
 
 !-------------------------------
 
@@ -7643,6 +7656,8 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%edmf_thl    )
   deallocate (am4_Output_edmf%edmf_ent    )
   deallocate (am4_Output_edmf%edmf_qc     )
+  deallocate (am4_Output_edmf%thl_edmf    )
+  deallocate (am4_Output_edmf%qt_edmf     )
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -7799,8 +7814,20 @@ subroutine edmf_writeout_column ( &
            enddo
         write(6,3001) '  th = (/'    ,var_temp1(:)
         write(6,*)    ''
+        write(6,*)    '; ice-liquid water potential temperatur at full levels (K)'
+        write(6,3001) '  thl = (/'    , am4_Output_edmf%thl_edmf(ii_write,jj_write,:)
+        write(6,*)    ''
         write(6,*)    '; specific humidity at full levels (kg/kg)'
-        write(6,3002) '  qq = (/'    ,Physics_input_block%q(ii_write,jj_write,:,1)
+        write(6,3002) '  qq = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nsphum)
+        write(6,*)    ''
+        write(6,*)    '; cloud liquid water mixing ratio at full levels (kg/kg)'
+        write(6,3002) '  ql = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nql)
+        write(6,*)    ''
+        write(6,*)    '; cloud ice water mixing ratio at full levels (kg/kg)'
+        write(6,3002) '  qi = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nqi)
+        write(6,*)    ''
+        write(6,*)    '; total water mixing ratio (qv+ql+qi) at full levels (kg/kg)'
+        write(6,3002) '  qt = (/'    ,am4_Output_edmf%qt_edmf(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; surface air temperature (K)'
         write(6,3000) '  t_ref= (/'    , t_ref (ii_write,jj_write)
@@ -8096,6 +8123,5 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 end subroutine convert_edmf_to_am4_array
 
 !#############################
-
 
 end module edmf_mynn_mod
