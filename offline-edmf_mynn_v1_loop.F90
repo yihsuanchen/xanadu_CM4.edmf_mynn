@@ -124,8 +124,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    !integer :: jj_write = -999       ! j index for column written out. Set to 0 if you want to write out in SCM
    real    :: lat_write = -999.99   ! latitude  (radian) for column written out
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
-   logical :: do_writeout_column_nml = .true.
-   !logical :: do_writeout_column_nml = .false.
+   !logical :: do_writeout_column_nml = .true.
+   logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
 
@@ -175,8 +175,9 @@ end type edmf_output_type
 type am4_edmf_output_type
 
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
-    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qcdt_edmf, &
-    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc
+    thl_edmf, qt_edmf,  & ! diagnostic purpose
+    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qcdt_edmf, &  ! outputs from EDMF-MYNN scheme
+    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc  
 
 end type am4_edmf_output_type
 
@@ -6398,10 +6399,10 @@ subroutine edmf_mynn_driver ( &
 !-------------------------
 
 !! debug01
-write(6,*) 'edmf_mynn, beginning'
+!write(6,*) 'edmf_mynn, beginning'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
-write(6,*) 'initflag,',initflag
-write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
+!write(6,*) 'initflag,',initflag
+!write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
@@ -6485,10 +6486,10 @@ write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
                                   rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D) )
 
 !! debug01
-write(6,*) 'edmf_mynn, after mynn'
+!write(6,*) 'edmf_mynn, after mynn'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
-write(6,*) 'initflag,',initflag
-write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
+!write(6,*) 'initflag,',initflag
+!write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
@@ -6516,10 +6517,10 @@ write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
-!!---------------------------------------------------------------------
-!! write out fields to history files
-!!---------------------------------------------------------------------
-!
+!---------------------------------------------------------------------
+! write out fields to history files
+!---------------------------------------------------------------------
+
 !!------- zonal wind stress (units: kg/m/s2) at one level -------
 !      if ( id_u_flux > 0) then
 !        used = send_data (id_u_flux, u_flux, Time_next, is, js )
@@ -6888,6 +6889,7 @@ subroutine edmf_alloc ( &
                    size(Physics_input_block%t,2), &
                    size(Physics_input_block%t,3)) :: &
     dz_host, u_host, v_host, w_host, th_host, qv_host, p_host, exner_host, rho_host, T3D_host, qc_host, ql_host, qi_host, qnc_host, qni_host, &
+    thl_host, qt_host, &
     tv_host, thv_host, omega_host
 
   real, dimension (size(Physics_input_block%t,1), &
@@ -7081,6 +7083,8 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%edmf_thl    (ix,jx,kx))  ; am4_Output_edmf%edmf_thl    = 0.
   allocate (am4_Output_edmf%edmf_ent    (ix,jx,kx))  ; am4_Output_edmf%edmf_ent    = 0.
   allocate (am4_Output_edmf%edmf_qc     (ix,jx,kx))  ; am4_Output_edmf%edmf_qc     = 0.
+  allocate (am4_Output_edmf%thl_edmf    (ix,jx,kx))  ; am4_Output_edmf%thl_edmf    = 0.
+  allocate (am4_Output_edmf%qt_edmf     (ix,jx,kx))  ; am4_Output_edmf%qt_edmf     = 0.
 
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
@@ -7109,6 +7113,9 @@ subroutine edmf_alloc ( &
   thv_host  (:,:,:) = tv_host(:,:,:) / exner_host(:,:,:)
   rho_host  (:,:,:) = p_host(:,:,:) / rdgas / tv_host(:,:,:)
   w_host    (:,:,:) = -1.*omega_host(:,:,:) / rho_host(:,:,:) / g 
+
+  thl_host   (:,:,:) = th_host(:,:,:) - ( hlv*ql_host(:,:,:)+hls*qi_host(:,:,:) ) / cp_air / exner_host(:,:,:)
+  qt_host    (:,:,:) = qv_host(:,:,:) + ql_host(:,:,:) + qi_host(:,:,:)
 
   qnc_host = 0.  ! not used, set to zero
   qni_host = 0.  ! not used, set to zero
@@ -7244,6 +7251,12 @@ subroutine edmf_alloc ( &
   enddo  ! end loop of k
   enddo  ! end loop of j
   enddo  ! end loop of i
+
+!-------------------------------------------------------------------------
+! set values for am4_Output_edmf 
+!-------------------------------------------------------------------------
+  am4_Output_edmf%thl_edmf (:,:,:) = thl_host (:,:,:)
+  am4_Output_edmf%qt_edmf  (:,:,:) = qt_host  (:,:,:)
 
 !-------------------------------
 
@@ -7426,6 +7439,8 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%edmf_thl    )
   deallocate (am4_Output_edmf%edmf_ent    )
   deallocate (am4_Output_edmf%edmf_qc     )
+  deallocate (am4_Output_edmf%thl_edmf    )
+  deallocate (am4_Output_edmf%qt_edmf     )
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -7879,7 +7894,6 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 end subroutine convert_edmf_to_am4_array
 
 !#############################
-
 
 !###################################
 !###################################
