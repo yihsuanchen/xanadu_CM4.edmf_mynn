@@ -351,7 +351,7 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni  ! tracer indices for stratiform clo
 integer :: nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl ! tracer index for EDMF-MYNN tracers
 integer :: ntp          ! number of prognostic tracers
 
-integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qcdt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc
+integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qcdt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf
 
 !---------------------------------------------------------------------
 
@@ -561,7 +561,13 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  'qc in updrafts', 'kg/kg' , &
                  missing_value=missing_value )
 
+  id_thl_edmf = register_diag_field (mod_name, 'thl_edmf', axes(full), Time, &
+                 'theta_li in edmf_mynn', 'K' , &
+                 missing_value=missing_value )
 
+  id_qt_edmf = register_diag_field (mod_name, 'qt_edmf', axes(full), Time, &
+                 'qt in edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
 
 !-----------------------------------------------------------------------
 !--- Done with initialization
@@ -6856,6 +6862,16 @@ subroutine edmf_mynn_driver ( &
 !------- qc in updrafts (units: kg/kg) at full level -------
       if ( id_edmf_qc > 0) then
         used = send_data (id_edmf_qc, am4_Output_edmf%edmf_qc, Time_next, is, js, 1 )
+      endif
+
+!------- theta_li in edmf_mynn (units: K) at full level -------
+      if ( id_thl_edmf > 0) then
+        used = send_data (id_thl_edmf, am4_Output_edmf%thl_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- qt in edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qt_edmf > 0) then
+        used = send_data (id_qt_edmf, am4_Output_edmf%qt_edmf, Time_next, is, js, 1 )
       endif
 
 !---------------------------------------------------------------------
