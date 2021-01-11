@@ -92,7 +92,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    INTEGER :: bl_mynn_tkebudget = 0         ! if 1 the budget terms in the TKE equation are allocated for output (WRF), if 0 then not
    INTEGER :: bl_mynn_cloudpdf  = 1         ! define the type of the subgrid PDF for cloud computation, 1= Nakanishi & Niino 2004
    INTEGER :: bl_mynn_mixlength = 2         ! defines the ED mixing length formulation
-   INTEGER :: bl_mynn_edmf      = 0         ! controls  the version of the EDMF to be called 3=JPLedmf documented by Wu et al., 2020
+   INTEGER :: bl_mynn_edmf      = 3         ! controls  the version of the EDMF to be called 3=JPLedmf documented by Wu et al., 2020
                                             ! set “bl_mynn_edmf=0” and “bl_mynn_edmf_dd<>1” then the scheme will be MYNN only.
    INTEGER :: bl_mynn_edmf_dd   = 0         ! 0 - no downdrafts, 1 - Wu et al., 2020 downdrafts 
    REAL    :: bl_mynn_edmf_Lent = 0.        ! dummy argument
@@ -3164,6 +3164,7 @@ CONTAINS
     REAL, DIMENSION(kts:kte) :: dtz,vt,vq,dfhc,dfmc !Kh for clouds (Pr < 2)
     REAL, DIMENSION(kts:kte) :: sqv2,sqc2,sqi2,sqw2,qni2 !,qnc2 !AFTER MIXING
     REAL, DIMENSION(kts:kte) :: zfac,plumeKh,th_temp
+    REAl, DIMENSION(kts:kte) :: upcont,dncont ! updraft/downdraft contribution to fluxes for explicit calculation
     REAL, DIMENSION(1:kte-kts+1) :: a,b,c,d,x
 
     REAL :: rhs,gfluxm,gfluxp,dztop,maxdfh,mindfh,maxcf,maxKh,zw
@@ -3173,6 +3174,12 @@ CONTAINS
     REAL, INTENT(IN)      :: dx,PBLH,HFX
     REAL, DIMENSION(kts:kte), INTENT(INOUT) :: qc_bl1D,cldfra_bl1d,sgm
     REAL, DIMENSION(kts:kte), INTENT(IN) :: Sh,el
+    REAL upwind
+    
+    ! upwind=1. ... use upwind approximation for mass-flux calculation
+    ! upwind=0.5 ... use centered difference for mass-flux calculation
+    upwind=1. 
+
 
     nz=kte-kts+1
 
@@ -3228,20 +3235,23 @@ CONTAINS
 !! u
 !!============================================
 
+
+   DO k=kts+1,kte
+    upcont(k)=onoff*(s_awu(k)-s_aw(k+1)*(u(k+1)*upwind+u(k)*(1.-upwind)))
+    dncont(k)=onoff*(sd_awu(k)-sd_aw(k+1)*(u(k+1)*upwind+u(k)*(1.-upwind)))
+   ENDDO
+
     k=kts
-
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-    c(1)=-dtz(k)*dfm(k+1) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-    d(1)=u(k) + dtz(k)*uoce*ust*ustovwsp - dtz(k)*s_awu(k+1)*onoff - dtz(k)*sd_awu(k+1)*onoff 
-
-
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) 
+    c(1)=-dtz(k)*dfm(k+1) 
+    d(1)=u(k) + dtz(k)*uoce*ust*ustovwsp -dtz(k)*(upcont(k+1)+dncont(k+1))
 
     DO k=kts+1,kte-1
-       a(k)=   - dtz(k)*dfm(k)            + 0.5*dtz(k)*s_aw(k)*onoff + 0.5*dtz(k)*sd_aw(k)*onoff
-       b(k)=1. + dtz(k)*(dfm(k)+dfm(k+1)) + 0.5*dtz(k)*(s_aw(k)-s_aw(k+1))*onoff + 0.5*dtz(k)*(sd_aw(k)-sd_aw(k+1))*onoff
-       c(k)=   - dtz(k)*dfm(k+1)          - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-       d(k)=u(k) + dtz(k)*(s_awu(k)-s_awu(k+1))*onoff + dtz(k)*(sd_awu(k)-sd_awu(k+1))*onoff
+       a(k)=   - dtz(k)*dfm(k)          
+       b(k)=1. + dtz(k)*(dfm(k)+dfm(k+1)) 
+       c(k)=   - dtz(k)*dfm(k+1)          
+       d(k)=u(k) -dtz(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
     ENDDO
 
 !! no flux at the top
@@ -3274,19 +3284,23 @@ CONTAINS
 !! v
 !!============================================
 
-    k=kts
+   DO k=kts+1,kte
+    upcont(k)=onoff*(s_awv(k)-s_aw(k+1)*(v(k+1)*upwind+v(k)*(1.-upwind)))
+    dncont(k)=onoff*(sd_awv(k)-sd_aw(k+1)*(v(k+1)*upwind+v(k)*(1.-upwind)))
+   ENDDO
 
+
+    k=kts
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-    c(1)=   - dtz(k)*dfm(k+1)               - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-!!    d(1)=v(k)
-    d(1)=v(k) + dtz(k)*voce*ust*ustovwsp - dtz(k)*s_awv(k+1)*onoff
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) 
+    c(1)=   - dtz(k)*dfm(k+1)               
+    d(1)=v(k) + dtz(k)*voce*ust*ustovwsp -dtz(k)*(upcont(k+1)+dncont(k+1))
 
     DO k=kts+1,kte-1
-       a(k)=   - dtz(k)*dfm(k)            + 0.5*dtz(k)*s_aw(k)*onoff + 0.5*dtz(k)*sd_aw(k)*onoff 
-       b(k)=1. + dtz(k)*(dfm(k)+dfm(k+1)) + 0.5*dtz(k)*(s_aw(k)-s_aw(k+1))*onoff + 0.5*dtz(k)*(sd_aw(k)-sd_aw(k+1))*onoff
-       c(k)=   - dtz(k)*dfm(k+1)          - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-       d(k)=v(k) + dtz(k)*(s_awv(k)-s_awv(k+1))*onoff + dtz(k)*(sd_awv(k)-sd_awv(k+1))*onoff
+       a(k)=   - dtz(k)*dfm(k)           
+       b(k)=1. + dtz(k)*(dfm(k)+dfm(k+1)) 
+       c(k)=   - dtz(k)*dfm(k+1)         
+       d(k)=v(k) -dtz(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
     ENDDO
 
 !! no flux at the top
@@ -3319,18 +3333,35 @@ CONTAINS
 !! thl tendency
 !! NOTE: currently, gravitational settling is removed
 !!============================================
+ 
+ 
+ ! explicit mass-flux
+ 
+ !  upcont,dncont=sum a_i*w_i*(thl_i-<thl>) for updrafts and downdrafts, respectively 
+ ! upwind=1. upwind approximation, upwind=0.5 centered difference	
+ ! (note: we do not need surface conditions)
+ !
+   DO k=kts+1,kte
+   upcont(k)=s_awthl(k)-s_aw(k+1)*(thl(k+1)*upwind+thl(k)*(1.-upwind))
+   dncont(k)=sd_awthl(k)-sd_aw(k+1)*(thl(k+1)*upwind+thl(k)*(1.-upwind))
+   ENDDO
+ 
+ 
     k=kts
 
+
     a(k)=0.
-    b(k)=1.+dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
-    c(k)=  -dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
-    d(k)=thl(k) + dtz(k)*flt + tcd(k)*delt -dtz(k)*s_awthl(kts+1) -dtz(k)*sd_awthl(kts+1)
+    b(k)=1.+dtz(k)*dfh(k+1) 
+    c(k)=  -dtz(k)*dfh(k+1) 
+    d(k)=thl(k) + dtz(k)*flt + tcd(k)*delt -dtz(k)*(upcont(k+1)+dncont(k+1))
+
+!
 
     DO k=kts+1,kte-1
-       a(k)=  -dtz(k)*dfh(k)            + 0.5*dtz(k)*s_aw(k) + 0.5*dtz(k)*sd_aw(k)
-       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) + 0.5*dtz(k)*(s_aw(k)-s_aw(k+1)) + 0.5*dtz(k)*(sd_aw(k)-sd_aw(k+1))
-       c(k)=  -dtz(k)*dfh(k+1)          - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
-       d(k)=thl(k) + tcd(k)*delt + dtz(k)*(s_awthl(k)-s_awthl(k+1)) + dtz(k)*(sd_awthl(k)-sd_awthl(k+1))
+       a(k)=  -dtz(k)*dfh(k)            
+       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) 
+       c(k)=  -dtz(k)*dfh(k+1)          
+       d(k)=thl(k) + tcd(k)*delt -dtz(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
     ENDDO
 
 !! no flux at the top
@@ -3368,22 +3399,28 @@ IF (bl_mynn_mixqt > 0) THEN
  !       subtract out the moisture excess (sqc & sqi)
  !============================================
 
-    k=kts
 
+   DO k=kts+1,kte
+     upcont(k)=s_awqt(k)-s_aw(k+1)*(sqw(k+1)*upwind+sqw(k)*(1.-upwind))
+     dncont(k)=sd_awqt(k)-sd_aw(k+1)*(sqw(k+1)*upwind+sqw(k)*(1.-upwind))
+   ENDDO
+
+
+
+    k=kts
     a(k)=0.
-    b(k)=1.+dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
-    c(k)=  -dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
+    b(k)=1.+dtz(k)*dfh(k+1) 
+    c(k)=  -dtz(k)*dfh(k+1)
 
     !rhs= qcd(k) !+ (gfluxp - gfluxm)/dz(k)& 
 
-    d(k)=sqw(k) + dtz(k)*flq + qcd(k)*delt - dtz(k)*s_awqt(k+1) - dtz(k)*sd_awqt(k+1)
+    d(k)=sqw(k) + dtz(k)*flq + qcd(k)*delt -dtz(k)*(upcont(k+1)+dncont(k+1))
 
     DO k=kts+1,kte-1
-       a(k)=  -dtz(k)*dfh(k)            + 0.5*dtz(k)*s_aw(k) + 0.5*dtz(k)*sd_aw(k)
-       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) + 0.5*dtz(k)*(s_aw(k)-s_aw(k+1)) + 0.5*dtz(k)*(sd_aw(k)-sd_aw(k+1))
-       c(k)=  -dtz(k)*dfh(k+1)          - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
-
-       d(k)=sqw(k) + qcd(k)*delt + dtz(k)*(s_awqt(k)-s_awqt(k+1)) + dtz(k)*(sd_awqt(k)-sd_awqt(k+1))
+       a(k)=  -dtz(k)*dfh(k)           
+       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) 
+       c(k)=  -dtz(k)*dfh(k+1) 
+       d(k)=sqw(k) + qcd(k)*delt  -dtz(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
     ENDDO
 
 !! no flux at the top
@@ -3420,21 +3457,25 @@ IF (bl_mynn_mixqt == 0) THEN
 !============================================
   IF (bl_mynn_cloudmix > 0 .AND. FLAG_QC) THEN
 
+   DO k=kts+1,kte
+    upcont(k)=s_awqc(k)-s_aw(k+1)*(sqc(k+1)*upwind+sqc(k)*(1.-upwind))
+    dncont(k)=sd_awqc(k)-sd_aw(k+1)*(sqc(k+1)*upwind+sqc(k)*(1.-upwind))
+   ENDDO
+ 
     k=kts
-
     a(k)=0.
-    b(k)=1.+dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
-    c(k)=  -dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
+    b(k)=1.+dtz(k)*dfh(k+1) 
+    c(k)=  -dtz(k)*dfh(k+1) 
 
-    d(k)=sqc(k) + dtz(k)*flqc + qcd(k)*delt -dtz(k)*s_awqc(k+1)
+    d(k)=sqc(k) + dtz(k)*flqc + qcd(k)*delt -dtz(k)*(upcont(k+1)+dncont(k+1))
 
     DO k=kts+1,kte-1
-       a(k)=  -dtz(k)*dfh(k)            + 0.5*dtz(k)*s_aw(k) + 0.5*dtz(k)*sd_aw(k)
-       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) + 0.5*dtz(k)*(s_aw(k)-s_aw(k+1)) + 0.5*dtz(k)*(sd_aw(k)-sd_aw(k+1))
-       c(k)=  -dtz(k)*dfh(k+1)          - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
+       a(k)=  -dtz(k)*dfh(k)            
+       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) 
+       c(k)=  -dtz(k)*dfh(k+1)         
 
-       d(k)=sqc(k) + qcd(k)*delt + dtz(k)*(s_awqc(k)-s_awqc(k+1)) + dtz(k)*(sd_awqc(k)-sd_awqc(k+1))
-    ENDDO
+       d(k)=sqc(k) + qcd(k)*delt -dtz(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
+    ENDDO   
 
 ! prescribed value
     a(nz)=0.
@@ -3460,32 +3501,26 @@ IF (bl_mynn_mixqt == 0) THEN
   ! then sqv will be backed out of saturation check (below).
   !============================================
 
-    k=kts
 
+   DO k=kts+1,kte
+    upcont(k)=s_awqv(k)-s_aw(k+1)*(sqv(k+1)*upwind+sqv(k)*(1.-upwind))
+    dncont(k)=sd_awqv(k)-sd_aw(k+1)*(sqv(k+1)*upwind+sqv(k)*(1.-upwind))
+   ENDDO
+
+
+    k=kts
     a(k)=0.
-    b(k)=1.+dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
-    c(k)=  -dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
-    d(k)=sqv(k) + dtz(k)*flqv + qcd(k)*delt - dtz(k)*s_awqv(k+1)  !note: using qt, not qv...
+    b(k)=1.+dtz(k)*dfh(k+1) 
+    c(k)=  -dtz(k)*dfh(k+1)
+    d(k)=sqv(k) + dtz(k)*flqv + qcd(k)*delt -dtz(k)*(upcont(k+1)+dncont(k+1))
 
     DO k=kts+1,kte-1
-       a(k)=  -dtz(k)*dfh(k)            + 0.5*dtz(k)*s_aw(k) + 0.5*dtz(k)*sd_aw(k)
-       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) + 0.5*dtz(k)*(s_aw(k)-s_aw(k+1)) + 0.5*dtz(k)*(sd_aw(k)-sd_aw(k+1))
-       c(k)=  -dtz(k)*dfh(k+1)          - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
-       d(k)=sqv(k) + qcd(k)*delt + dtz(k)*(s_awqv(k)-s_awqv(k+1)) + dtz(k)*(sd_awqv(k)-sd_awqv(k+1))
+       a(k)=  -dtz(k)*dfh(k)           
+       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) 
+       c(k)=  -dtz(k)*dfh(k+1)          
+       d(k)=sqv(k) + qcd(k)*delt -dtz(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
     ENDDO
 
-! no flux at the top
-!    a(nz)=-1.
-!    b(nz)=1.
-!    c(nz)=0.
-!    d(nz)=0.
-
-! specified gradient at the top
-! assume gradqw_top=gradqv_top
-!    a(nz)=-1.
-!    b(nz)=1.
-!    c(nz)=0.
-!    d(nz)=gradqv_top*dztop
 
 ! prescribed value
     a(nz)=0.
@@ -3496,9 +3531,6 @@ IF (bl_mynn_mixqt == 0) THEN
 !    CALL tridiag(nz,a,b,c,d)
     CALL tridiag2(nz,a,b,c,d,sqv2)
 
-!    DO k=kts,kte
-!       sqv2(k)=d(k-kts+1)
-!    ENDDO
 ELSE
     sqv2=sqv
 ENDIF
@@ -3598,7 +3630,7 @@ ENDIF
 !!=============================================================
     IF (bl_mynn_mixqt == 2) THEN
         th_temp = th
-        DO itr = 1, 5 !a few iterations to get a more accurate qc
+        DO itr = 1, 2 !a few iterations to get a more accurate qc
           CALL  mym_condensation ( kts,kte,      &
                &dx,dz,thl,sqw2,p,exner,          &
                &tsq, qsq, cov,                   &
@@ -7504,7 +7536,7 @@ subroutine edmf_writeout_column ( &
 !-------------------------------------------------------------------------
 !  determine whether writing out the selected column
 !-------------------------------------------------------------------------
-  do_writeout_column = .false.
+  do_writeout_column = .true.
   if (do_writeout_column_nml) then
 
     !--- for global simulations
