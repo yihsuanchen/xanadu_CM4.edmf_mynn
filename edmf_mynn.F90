@@ -562,11 +562,11 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  missing_value=missing_value )
 
   id_thl_edmf = register_diag_field (mod_name, 'thl_edmf', axes(full), Time, &
-                 'theta_li in edmf_mynn', 'K' , &
+                 'grid-scale theta_li in edmf_mynn', 'K' , &
                  missing_value=missing_value )
 
   id_qt_edmf = register_diag_field (mod_name, 'qt_edmf', axes(full), Time, &
-                 'qt in edmf_mynn', 'kg/kg' , &
+                 'grid-scale qt in edmf_mynn', 'kg/kg' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
