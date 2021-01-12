@@ -331,6 +331,8 @@ end type am4_edmf_output_type
   integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
   real    :: lat_write = -999.99                ! latitude  (radian) for column written out
   real    :: lon_write = -999.99                ! longitude (radian) for column written out
+  real    :: lat_range = 0.001
+  real    :: lon_range = 0.001
   logical :: do_writeout_column_nml = .false.   ! switch to control whether writing out the column
   logical :: do_stop_run = .false.              ! whether to stop the simulation
   character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
@@ -6618,6 +6620,8 @@ subroutine edmf_mynn_driver ( &
   type(am4_edmf_output_type) :: am4_Output_edmf
 
   logical used
+  logical do_writeout_column
+  real    :: lat_lower, lat_upper, lon_lower, lon_upper, lat_temp, lon_temp
 
 !-------------------------
 
@@ -6631,6 +6635,57 @@ subroutine edmf_mynn_driver ( &
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nSh3D)',rdiag(:,:,:,nSh3D)
 !!write(6,*) 'ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl',ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl
+
+!-------------------------------------------------------------------------
+!  determine whether writing out the selected column
+!-------------------------------------------------------------------------
+  do_writeout_column = .false.
+  if (do_writeout_column_nml) then
+
+    !--- for global simulations
+    if (ii_write.ne.-999 .and. jj_write.ne.-999) then
+      do_writeout_column = .true.
+
+      if (lat_write.ne.-999.99 .and. lon_write.ne.-999.99) then
+
+        lat_lower = lat_write - lat_range
+        lat_upper = lat_write + lat_range
+        lon_lower = lon_write - lon_range
+        lon_upper = lon_write + lon_range
+
+        if (lat_lower.gt.lat_upper) then
+          lat_temp  = lat_upper
+          lat_upper = lat_lower
+          lat_lower = lat_temp
+        endif
+
+        if (lon_lower.gt.lon_upper) then
+          lon_temp  = lon_upper
+          lon_upper = lon_lower
+          lon_lower = lon_temp
+        endif
+
+        if (lat (ii_write,jj_write).gt.lat_lower .and. lat (ii_write,jj_write).lt.lat_upper .and. &
+            lon (ii_write,jj_write).gt.lon_lower .and. lon (ii_write,jj_write).lt.lon_upper ) then
+          do_writeout_column = .true.
+        else
+          do_writeout_column = .false.
+        endif
+      endif
+    endif
+
+    !--- SCM
+    if (ii_write.eq.0 .and. jj_write.eq.0) then
+      do_writeout_column = .true.
+      ii_write = 1
+      jj_write = 1
+    endif
+  endif  ! end if of do_writeout_column_nml
+
+if (do_writeout_column) then
+  write(6,*) 'initflag, in',initflag
+  write(6,*) 'rdiag(:,:,:,nQke), in',rdiag(ii_write,jj_write,:,nQke)
+endif
 
 !---------------------------------------------------------------------
 ! allocate input and output variables for the EDMF-MYNN program
@@ -6736,9 +6791,15 @@ subroutine edmf_mynn_driver ( &
 
   !--- write out EDMF-MYNN input and output fields for debugging purpose
   call edmf_writeout_column ( &
+              do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
+
+if (do_writeout_column) then
+  write(6,*) 'initflag, out',initflag
+  write(6,*) 'rdiag(:,:,:,nQke), out',rdiag(ii_write,jj_write,:,nQke)
+endif
 
 !---------------------------------------------------------------------
 ! write out fields to history files
@@ -7689,6 +7750,7 @@ end subroutine edmf_dealloc
 !###################################
 
 subroutine edmf_writeout_column ( &
+              do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
@@ -7711,15 +7773,18 @@ subroutine edmf_writeout_column ( &
   type(edmf_output_type), intent(in) :: Output_edmf
 
   type(am4_edmf_output_type), intent(in) :: am4_Output_edmf
-  real, dimension (:,:,:,:) , intent(in) :: rdiag
+  !real, dimension (:,:,:,:) , intent(in) :: rdiag
+  real, intent(inout), dimension(:,:,:,ntp+1:) :: &
+    rdiag
+
+  logical, intent(in) :: do_writeout_column
 
 !---------------------------------------------------------------------
 ! local variables  
 !---------------------------------------------------------------------
   integer :: ix, jx, kx, nt, kxp
   integer :: i, j, k, kk
-  logical :: do_writeout_column
-  real    :: lat_lower, lat_upper, lon_lower, lon_upper
+  real    :: lat_lower, lat_upper, lon_lower, lon_upper, lat_temp, lon_temp
 
   real, dimension(size(Physics_input_block%t,3)) ::  &
     var_temp1
@@ -7733,39 +7798,51 @@ subroutine edmf_writeout_column ( &
 
   kxp = kx + 1
 
-!-------------------------------------------------------------------------
-!  determine whether writing out the selected column
-!-------------------------------------------------------------------------
-  do_writeout_column = .false.
-  if (do_writeout_column_nml) then
-
-    !--- for global simulations
-    if (ii_write.ne.-999 .and. jj_write.ne.-999) then
-      do_writeout_column = .true.
-
-      if (lat_write.ne.-999.99 .and. lon_write.ne.-999.99) then
-
-        lat_lower = lat_write - 0.001
-        lat_upper = lat_write + 0.001
-        lon_lower = lon_write - 0.001
-        lon_upper = lon_write + 0.001
-
-        if (lat (ii_write,jj_write).gt.lat_lower .and. lat (ii_write,jj_write).lt.lat_upper .and. &
-            lon (ii_write,jj_write).gt.lon_lower .and. lon (ii_write,jj_write).lt.lon_upper ) then
-          do_writeout_column = .true.
-        else
-          do_writeout_column = .false.
-        endif
-      endif
-    endif
-
-    !--- SCM
-    if (ii_write.eq.0 .and. jj_write.eq.0) then
-      do_writeout_column = .true.
-      ii_write = 1
-      jj_write = 1
-    endif
-  endif  ! end if of do_writeout_column_nml
+!!-------------------------------------------------------------------------
+!!  determine whether writing out the selected column
+!!-------------------------------------------------------------------------
+!  do_writeout_column = .false.
+!  if (do_writeout_column_nml) then
+!
+!    !--- for global simulations
+!    if (ii_write.ne.-999 .and. jj_write.ne.-999) then
+!      do_writeout_column = .true.
+!
+!      if (lat_write.ne.-999.99 .and. lon_write.ne.-999.99) then
+!
+!        lat_lower = lat_write - lat_range
+!        lat_upper = lat_write + lat_range
+!        lon_lower = lon_write - lon_range
+!        lon_upper = lon_write + lon_range
+!
+!        if (lat_lower.gt.lat_upper) then
+!          lat_temp  = lat_upper
+!          lat_upper = lat_lower
+!          lat_lower = lat_temp
+!        endif
+!
+!        if (lon_lower.gt.lon_upper) then
+!          lon_temp  = lon_upper
+!          lon_upper = lon_lower
+!          lon_lower = lon_temp
+!        endif
+!
+!        if (lat (ii_write,jj_write).gt.lat_lower .and. lat (ii_write,jj_write).lt.lat_upper .and. &
+!            lon (ii_write,jj_write).gt.lon_lower .and. lon (ii_write,jj_write).lt.lon_upper ) then
+!          do_writeout_column = .true.
+!        else
+!          do_writeout_column = .false.
+!        endif
+!      endif
+!    endif
+!
+!    !--- SCM
+!    if (ii_write.eq.0 .and. jj_write.eq.0) then
+!      do_writeout_column = .true.
+!      ii_write = 1
+!      jj_write = 1
+!    endif
+!  endif  ! end if of do_writeout_column_nml
 
 !-------------------------------------------------------------------------
 ! writing out the selected column
