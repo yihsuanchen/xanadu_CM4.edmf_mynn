@@ -6682,10 +6682,10 @@ subroutine edmf_mynn_driver ( &
     endif
   endif  ! end if of do_writeout_column_nml
 
-if (do_writeout_column) then
-  write(6,*) 'initflag, in',initflag
-  write(6,*) 'rdiag(:,:,:,nQke), in',rdiag(ii_write,jj_write,:,nQke)
-endif
+!if (do_writeout_column) then
+!  write(6,*) 'initflag, in',initflag
+!  write(6,*) 'rdiag(:,:,:,nQke), in',rdiag(ii_write,jj_write,:,nQke)
+!endif
 
 !---------------------------------------------------------------------
 ! allocate input and output variables for the EDMF-MYNN program
@@ -6796,10 +6796,10 @@ endif
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
-if (do_writeout_column) then
-  write(6,*) 'initflag, out',initflag
-  write(6,*) 'rdiag(:,:,:,nQke), out',rdiag(ii_write,jj_write,:,nQke)
-endif
+!if (do_writeout_column) then
+!  write(6,*) 'initflag, out',initflag
+!  write(6,*) 'rdiag(:,:,:,nQke), out',rdiag(ii_write,jj_write,:,nQke)
+!endif
 
 !---------------------------------------------------------------------
 ! write out fields to history files
