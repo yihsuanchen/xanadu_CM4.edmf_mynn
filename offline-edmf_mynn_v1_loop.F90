@@ -154,6 +154,10 @@ type edmf_input_type
   real, dimension(:,:), allocatable   :: &   ! DIMENSION(IMS:IME,JMS:JME), diagnostic purpose
     u_star_star, shflx_star, lhflx_star, w1_thv1_surf_star, w1_th1_surf_star, w1_q1_surf_star, Obukhov_length_star,  &
     u_star_updated, shflx_updated, lhflx_updated, w1_thv1_surf_updated, w1_th1_surf_updated, w1_q1_surf_updated, Obukhov_length_updated
+
+  real, dimension(:,:,:), allocatable :: &   ! INPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
+    Qke, Sh3D, el_pbl, cldfra_bl, qc_bl      ! semi-prognostic variables
+
 end type edmf_input_type
 
 !==================
@@ -7209,6 +7213,13 @@ subroutine edmf_alloc ( &
   allocate (Input_edmf%qni   (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%qni   = 0.
   !allocate (Input_edmf%(IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf% = 0.
 
+  ! semi-prognostic variables
+  allocate (Input_edmf%Qke         (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%Qke         = 0.
+  allocate (Input_edmf%Sh3D        (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%Sh3D        = 0.
+  allocate (Input_edmf%el_pbl      (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%el_pbl      = 0.
+  allocate (Input_edmf%cldfra_bl   (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%cldfra_bl   = 0.
+  allocate (Input_edmf%qc_bl       (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%qc_bl       = 0.
+
 !******************
 !--- Output_edmf
 !******************
@@ -7445,6 +7456,12 @@ subroutine edmf_alloc ( &
   do j=1,jx    
   do k=1,kx 
     kk=kx-k+1   
+    Input_edmf%Qke        (i,kk,j) = Qke       (i,j,k) 
+    Input_edmf%el_pbl     (i,kk,j) = el_pbl    (i,j,k)
+    Input_edmf%cldfra_bl  (i,kk,j) = cldfra_bl (i,j,k)
+    Input_edmf%qc_bl      (i,kk,j) = qc_bl     (i,j,k)
+    Input_edmf%Sh3D       (i,kk,j) = Sh3D      (i,j,k)
+
     Output_edmf%Qke       (i,kk,j) = Qke       (i,j,k) 
     Output_edmf%el_pbl    (i,kk,j) = el_pbl    (i,j,k)
     Output_edmf%cldfra_bl (i,kk,j) = cldfra_bl (i,j,k)
@@ -7564,6 +7581,12 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Input_edmf%qnc   )  
   deallocate (Input_edmf%qni   )  
   !deallocate (Input_edmf%)  
+
+  deallocate (Input_edmf%Qke         )
+  deallocate (Input_edmf%Sh3D        )
+  deallocate (Input_edmf%el_pbl      )
+  deallocate (Input_edmf%cldfra_bl   )
+  deallocate (Input_edmf%qc_bl       )
 
 !******************
 !--- Output_edmf
