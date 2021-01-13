@@ -12,14 +12,15 @@ MODULE module_bl_mynn
 !
 !############################
 !############################
-  !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_01"
+  character*50 :: input_profile = "SCM_am4p0_DCBL_C1_01"
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_02_u,vdt_NaN"
-  character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
+  !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
+  !character*50 :: input_profile = "AMIP_i27_j01_IndOcn"
   !character*50 :: input_profile = "xxx"
 
- ! integer, parameter :: loop_times = 1
+  integer, parameter :: loop_times = 1
  ! integer, parameter :: loop_times = 100
-  integer, parameter :: loop_times = 60 
+ ! integer, parameter :: loop_times = 60 
 
   integer, parameter :: ni = 1
   integer, parameter :: nj = 1
@@ -43,11 +44,12 @@ MODULE module_bl_mynn
   integer, parameter :: nqi = 3
   integer, parameter :: nqa = 4
 
- ! real, parameter :: dt = 1800.
-  real, parameter :: dt = 300.
+  real, parameter :: dt = 1800.
+  !real, parameter :: dt = 300.
   integer :: FATAL
   logical :: do_stop_run = .false.
-  character*20 :: option_surface_flux = "star"
+  !character*20 :: option_surface_flux = "star"
+  character*20 :: option_surface_flux = "updated"
 
 type time_type
   integer :: tt1, tt2
@@ -125,10 +127,16 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    !integer :: jj_write = -999       ! j index for column written out. Set to 0 if you want to write out in SCM
    real    :: lat_write = -999.99   ! latitude  (radian) for column written out
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
+   real    :: lat_range = 0.001
+   real    :: lon_range = 0.001
    logical :: do_writeout_column_nml = .true.
    !logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
+
+   real    :: tdt_max     = 500. ! K/day
+   logical :: do_limit_tdt = .false.
+   real    :: tdt_limit =   200. ! K/day
 
 !==================
 type edmf_input_type
@@ -6498,7 +6506,10 @@ subroutine edmf_mynn_driver ( &
   type(am4_edmf_output_type) :: am4_Output_edmf
 
   logical used
-
+  logical do_writeout_column
+  real    :: lat_lower, lat_upper, lon_lower, lon_upper, lat_temp, lon_temp
+  real    :: tt1
+  integer :: i,j,k
 !-------------------------
 
 !! debug01
@@ -6511,6 +6522,57 @@ subroutine edmf_mynn_driver ( &
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nSh3D)',rdiag(:,:,:,nSh3D)
 !!write(6,*) 'ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl',ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl
+
+!-------------------------------------------------------------------------
+!  determine whether writing out the selected column
+!-------------------------------------------------------------------------
+  do_writeout_column = .false.
+  if (do_writeout_column_nml) then
+
+    !--- for global simulations
+    if (ii_write.ne.-999 .and. jj_write.ne.-999) then
+      do_writeout_column = .true.
+
+      if (lat_write.ne.-999.99 .and. lon_write.ne.-999.99) then
+
+        lat_lower = lat_write - lat_range
+        lat_upper = lat_write + lat_range
+        lon_lower = lon_write - lon_range
+        lon_upper = lon_write + lon_range
+
+        if (lat_lower.gt.lat_upper) then
+          lat_temp  = lat_upper
+          lat_upper = lat_lower
+          lat_lower = lat_temp
+        endif
+
+        if (lon_lower.gt.lon_upper) then
+          lon_temp  = lon_upper
+          lon_upper = lon_lower
+          lon_lower = lon_temp
+        endif
+
+        if (lat (ii_write,jj_write).gt.lat_lower .and. lat (ii_write,jj_write).lt.lat_upper .and. &
+            lon (ii_write,jj_write).gt.lon_lower .and. lon (ii_write,jj_write).lt.lon_upper ) then
+          do_writeout_column = .true.
+        else
+          do_writeout_column = .false.
+        endif
+      endif
+    endif
+
+    !--- SCM
+    if (ii_write.eq.0 .and. jj_write.eq.0) then
+      do_writeout_column = .true.
+      ii_write = 1
+      jj_write = 1
+    endif
+  endif  ! end if of do_writeout_column_nml
+
+!if (do_writeout_column) then
+!  write(6,*) 'initflag, in',initflag
+!  write(6,*) 'rdiag(:,:,:,nQke), in',rdiag(ii_write,jj_write,:,nQke)
+!endif
 
 !---------------------------------------------------------------------
 ! allocate input and output variables for the EDMF-MYNN program
@@ -6605,6 +6667,27 @@ subroutine edmf_mynn_driver ( &
 !  am4_Output_edmf%qdt_edmf = -2./dt
 !  !--> test tendency purposes
 
+!<-- debug 
+  tt1 = tdt_max / 86400.  ! change unit from K/day to K/sec
+  do i=1,size(am4_Output_edmf%tdt_edmf,1)
+  do j=1,size(am4_Output_edmf%tdt_edmf,2)
+  do k=1,size(am4_Output_edmf%tdt_edmf,3)
+    if ( abs(am4_Output_edmf%tdt_edmf(i,j,k)) .ge. tt1 ) then
+      write(6,*) 'edmf, >tdt_max,i,j,lat,lon,',tdt_max,i,j,lat(i,j),lon(i,j)
+
+      if (do_limit_tdt) then
+        if (am4_Output_edmf%tdt_edmf(i,j,k).ge.0.) then
+          am4_Output_edmf%tdt_edmf(i,j,k) = tdt_limit / 86400.
+        else
+          am4_Output_edmf%tdt_edmf(i,j,k) = -1.*tdt_limit / 86400.
+        endif
+      endif
+    endif
+  enddo
+  enddo
+  enddo
+!-->
+
   !--- updated tendencies
   if (.not.do_edmf_mynn_diagnostic) then
     udt(:,:,:) = udt(:,:,:) + am4_Output_edmf%udt_edmf(:,:,:)
@@ -6616,14 +6699,20 @@ subroutine edmf_mynn_driver ( &
 
   !--- write out EDMF-MYNN input and output fields for debugging purpose
   call edmf_writeout_column ( &
+              do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
-!---------------------------------------------------------------------
-! write out fields to history files
-!---------------------------------------------------------------------
+!if (do_writeout_column) then
+!  write(6,*) 'initflag, out',initflag
+!  write(6,*) 'rdiag(:,:,:,nQke), out',rdiag(ii_write,jj_write,:,nQke)
+!endif
 
+!!---------------------------------------------------------------------
+!! write out fields to history files
+!!---------------------------------------------------------------------
+!
 !!------- zonal wind stress (units: kg/m/s2) at one level -------
 !      if ( id_u_flux > 0) then
 !        used = send_data (id_u_flux, u_flux, Time_next, is, js )
@@ -6742,6 +6831,16 @@ subroutine edmf_mynn_driver ( &
 !!------- qc in updrafts (units: kg/kg) at full level -------
 !      if ( id_edmf_qc > 0) then
 !        used = send_data (id_edmf_qc, am4_Output_edmf%edmf_qc, Time_next, is, js, 1 )
+!      endif
+!
+!!------- theta_li in edmf_mynn (units: K) at full level -------
+!      if ( id_thl_edmf > 0) then
+!        used = send_data (id_thl_edmf, am4_Output_edmf%thl_edmf, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qt in edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_qt_edmf > 0) then
+!        used = send_data (id_qt_edmf, am4_Output_edmf%qt_edmf, Time_next, is, js, 1 )
 !      endif
 
 !---------------------------------------------------------------------
@@ -7559,6 +7658,7 @@ end subroutine edmf_dealloc
 !###################################
 
 subroutine edmf_writeout_column ( &
+              do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
@@ -7581,15 +7681,18 @@ subroutine edmf_writeout_column ( &
   type(edmf_output_type), intent(in) :: Output_edmf
 
   type(am4_edmf_output_type), intent(in) :: am4_Output_edmf
-  real, dimension (:,:,:,:) , intent(in) :: rdiag
+  !real, dimension (:,:,:,:) , intent(in) :: rdiag
+  real, intent(inout), dimension(:,:,:,ntp+1:) :: &
+    rdiag
+
+  logical, intent(in) :: do_writeout_column
 
 !---------------------------------------------------------------------
 ! local variables  
 !---------------------------------------------------------------------
   integer :: ix, jx, kx, nt, kxp
   integer :: i, j, k, kk
-  logical :: do_writeout_column
-  real    :: lat_lower, lat_upper, lon_lower, lon_upper
+  real    :: lat_lower, lat_upper, lon_lower, lon_upper, lat_temp, lon_temp
 
   real, dimension(size(Physics_input_block%t,3)) ::  &
     var_temp1
@@ -7603,39 +7706,51 @@ subroutine edmf_writeout_column ( &
 
   kxp = kx + 1
 
-!-------------------------------------------------------------------------
-!  determine whether writing out the selected column
-!-------------------------------------------------------------------------
-  do_writeout_column = .true.
-  if (do_writeout_column_nml) then
-
-    !--- for global simulations
-    if (ii_write.ne.-999 .and. jj_write.ne.-999) then
-      do_writeout_column = .true.
-
-      if (lat_write.ne.-999.99 .and. lon_write.ne.-999.99) then
-
-        lat_lower = lat_write - 0.001
-        lat_upper = lat_write + 0.001
-        lon_lower = lon_write - 0.001
-        lon_upper = lon_write + 0.001
-
-        if (lat (ii_write,jj_write).gt.lat_lower .and. lat (ii_write,jj_write).lt.lat_upper .and. &
-            lon (ii_write,jj_write).gt.lon_lower .and. lon (ii_write,jj_write).lt.lon_upper ) then
-          do_writeout_column = .true.
-        else
-          do_writeout_column = .false.
-        endif
-      endif
-    endif
-
-    !--- SCM
-    if (ii_write.eq.0 .and. jj_write.eq.0) then
-      do_writeout_column = .true.
-      ii_write = 1
-      jj_write = 1
-    endif
-  endif  ! end if of do_writeout_column_nml
+!!-------------------------------------------------------------------------
+!!  determine whether writing out the selected column
+!!-------------------------------------------------------------------------
+!  do_writeout_column = .false.
+!  if (do_writeout_column_nml) then
+!
+!    !--- for global simulations
+!    if (ii_write.ne.-999 .and. jj_write.ne.-999) then
+!      do_writeout_column = .true.
+!
+!      if (lat_write.ne.-999.99 .and. lon_write.ne.-999.99) then
+!
+!        lat_lower = lat_write - lat_range
+!        lat_upper = lat_write + lat_range
+!        lon_lower = lon_write - lon_range
+!        lon_upper = lon_write + lon_range
+!
+!        if (lat_lower.gt.lat_upper) then
+!          lat_temp  = lat_upper
+!          lat_upper = lat_lower
+!          lat_lower = lat_temp
+!        endif
+!
+!        if (lon_lower.gt.lon_upper) then
+!          lon_temp  = lon_upper
+!          lon_upper = lon_lower
+!          lon_lower = lon_temp
+!        endif
+!
+!        if (lat (ii_write,jj_write).gt.lat_lower .and. lat (ii_write,jj_write).lt.lat_upper .and. &
+!            lon (ii_write,jj_write).gt.lon_lower .and. lon (ii_write,jj_write).lt.lon_upper ) then
+!          do_writeout_column = .true.
+!        else
+!          do_writeout_column = .false.
+!        endif
+!      endif
+!    endif
+!
+!    !--- SCM
+!    if (ii_write.eq.0 .and. jj_write.eq.0) then
+!      do_writeout_column = .true.
+!      ii_write = 1
+!      jj_write = 1
+!    endif
+!  endif  ! end if of do_writeout_column_nml
 
 !-------------------------------------------------------------------------
 ! writing out the selected column
@@ -8010,7 +8125,7 @@ end subroutine convert_edmf_to_am4_array
 
 !#############################
 
-!###################################
+
 !###################################
 !  do not copy these subroutiens
 
@@ -8215,11 +8330,115 @@ elseif (input_profile == "SCM_am4p0_DCBL_C1_02_u,vdt_NaN") then
   shflx  =     0.7055E+02
   lhflx  =     0.0000E+00
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!elseif (input_profile == "AMIP_i27_j01_IndOcn") then
+!
+! ; pressure at half level (Pa)
+!                        p_half = (/     100.000  ,   400.000  ,   818.602  ,  1378.887  ,  2091.795  ,  2983.641  ,  4121.790  ,  5579.221  ,  7423.256  ,  9716.552  , 12522.353  , 15899.633  , 19908.460  , 24600.766  , 30021.499  , 36176.497  , 42962.595  , 50087.943  , 57132.067  , 63737.257  , 69719.872  , 75027.597  , 79668.902  , 83677.950  , 87106.285  , 90015.063  , 92466.879  , 94514.280  , 96209.152  , 97592.883  , 98698.461  , 99559.012  ,100184.997  ,100597.537  ,
+! 
+! ; height at half level above the surface (m)
+!                        z_half = (/   46289.491  , 36095.944  , 31316.489  , 28138.724  , 25800.740  , 23836.012  , 22004.274  , 20268.001  , 18575.083  , 16920.538  , 15348.348  , 13846.831  , 12388.741  , 10958.811  ,  9561.390  ,  8206.637  ,  6918.021  ,  5739.691  ,  4706.733  ,  3831.908  ,  3104.380  ,  2501.275  ,  2000.752  ,  1586.402  ,  1244.729  ,   963.455  ,   732.203  ,   543.069  ,   389.130  ,   265.057  ,   166.854  ,    90.957  ,    36.047  ,     0.000  ,  
+!
+! ; pressure at full level (Pa)
+!                        p_full = (/     216.404  ,   584.531  ,  1074.508  ,  1710.654  ,  2511.381  ,  3522.120  ,  4813.790  ,  6457.415  ,  8518.517  , 11060.200  , 14143.854  , 17828.995  , 22171.921  , 27221.236  , 33003.396  , 39472.371  , 46434.189  , 53532.785  , 60374.455  , 66683.842  , 72341.285  , 77325.035  , 81657.024  , 85380.646  , 88552.712  , 91235.480  , 93486.843  , 95359.206  , 96899.371  , 98144.634  , 99128.114  , 99871.677  ,100391.126  ,
+!
+! ; height at full level above the surface (m)
+!                        z_full = (/   41192.717  , 33706.216  , 29727.606  , 26969.732  , 24818.376  , 22920.143  , 21136.138  , 19421.542  , 17747.810  , 16134.443  , 14597.590  , 13117.786  , 11673.776  , 10260.100  ,  8884.014  ,  7562.329  ,  6328.856  ,  5223.212  ,  4269.321  ,  3468.144  ,  2802.827  ,  2251.014  ,  1793.577  ,  1415.566  ,  1104.092  ,   847.829  ,   637.636  ,   466.099  ,   327.093  ,   215.955  ,   128.905  ,    63.502  ,    18.024  ,
+!
+! ; actual height at half level (m)
+!                 z_half_actual = (/   46289.491  , 36095.944  , 31316.489  , 28138.724  , 25800.740  , 23836.012  , 22004.274  , 20268.001  , 18575.083  , 16920.538  , 15348.348  , 13846.831  , 12388.741  , 10958.811  ,  9561.390  ,  8206.637  ,  6918.021  ,  5739.691  ,  4706.733  ,  3831.908  ,  3104.380  ,  2501.275  ,  2000.752  ,  1586.402  ,  1244.729  ,   963.455  ,   732.203  ,   543.069  ,   389.130  ,   265.057  ,   166.854  ,    90.957  ,    36.047  ,     0.000  ,
+!
+! ; actual height at full level (m)
+!                 z_full_actual = (/   41192.717  , 33706.216  , 29727.606  , 26969.732  , 24818.376  , 22920.143  , 21136.138  , 19421.542  , 17747.810  , 16134.443  , 14597.590  , 13117.786  , 11673.776  , 10260.100  ,  8884.014  ,  7562.329  ,  6328.856  ,  5223.212  ,  4269.321  ,  3468.144  ,  2802.827  ,  2251.014  ,  1793.577  ,  1415.566  ,  1104.092  ,   847.829  ,   637.636  ,   466.099  ,   327.093  ,   215.955  ,   128.905  ,    63.502  ,    18.024  ,
+!
+! ; zonal wind velocity at full levels (m/s)
+!                            uu = (/      -9.397  ,     4.722  ,    -7.509  ,   -30.445  ,   -21.034  ,   -42.805  ,   -50.711  ,   -42.975  ,   -27.240  ,   -15.554  ,    -4.676  ,     6.622  ,    14.952  ,    19.582  ,    21.487  ,    22.148  ,    22.180  ,    21.714  ,    20.426  ,    18.479  ,    16.715  ,    15.455  ,    14.349  ,    13.231  ,    12.068  ,    10.841  ,     9.590  ,     8.595  ,     7.537  ,     6.831  ,     6.423  ,     6.106  ,     5.892  ,
+!
+! ; meridional wind velocity at full levels (m/s)
+!                            vv = (/     -10.772  ,    -1.941  ,     9.326  ,    24.917  ,    18.109  ,    12.998  ,     6.501  ,     2.375  ,     0.438  ,     1.280  ,     2.325  ,     3.622  ,     4.500  ,     3.757  ,     0.964  ,    -1.502  ,    -1.897  ,    -0.274  ,     1.185  ,     1.193  ,     0.887  ,     1.026  ,     1.322  ,     1.412  ,     1.553  ,     1.706  ,     1.720  ,     1.629  ,     1.449  ,     1.324  ,     1.252  ,     1.204  ,     1.185  ,
+!
+! ; vertical velocity (Pa/s)
+!                         omega = (/    0.4778E-01  ,  0.1178E+00  ,  0.1400E+00  , -0.1303E+00  , -0.5612E+00  , -0.1077E+01  , -0.1685E+01  , -0.2501E+01  , -0.3388E+01  , -0.4142E+01  , -0.4731E+01  , -0.4981E+01  , -0.4972E+01  , -0.4709E+01  , -0.4027E+01  , -0.3123E+01  , -0.2075E+01  , -0.9894E+00  , -0.2052E-01  ,  0.7587E+00  ,  0.1341E+01  ,  0.1760E+01  ,  0.2053E+01  ,  0.2249E+01  ,  0.2373E+01  ,  0.2445E+01  ,  0.2479E+01  ,  0.2489E+01  ,  0.2487E+01  ,  0.2479E+01  ,  0.2470E+01  ,  0.2462E+01  ,  0.2456E+01  ,
+!
+! ; temperatur at full levels (K)
+!                            tt = (/     251.046  ,   227.860  ,   208.068  ,   191.534  ,   188.875  ,   193.502  ,   195.745  ,   202.312  ,   209.703  ,   211.443  ,   214.492  ,   221.131  ,   230.369  ,   239.190  ,   247.486  ,   255.224  ,   261.343  ,   267.013  ,   271.844  ,   275.586  ,   279.205  ,   282.982  ,   286.137  ,   288.316  ,   289.981  ,   291.284  ,   292.227  ,   292.983  ,   293.771  ,   294.619  ,   295.345  ,   295.893  ,   296.255  ,
+!
+! ; potential temperatur at full levels (K)
+!                            th = (/    1449.125  ,   990.199  ,   759.832  ,   612.429  ,   541.182  ,   503.367  ,   465.718  ,   442.593  ,   423.853  ,   396.647  ,   375.065  ,   361.921  ,   354.273  ,   346.895  ,   339.708  ,   332.863  ,   325.387  ,   319.205  ,   314.002  ,   309.412  ,   306.266  ,   304.556  ,   303.193  ,   301.634  ,   300.230  ,   299.018  ,   297.905  ,   296.988  ,   296.427  ,   296.200  ,   296.085  ,   296.002  ,   295.925  ,
+!
+! ; ice-liquid water potential temperatur at full levels (K)
+!                           thl = (/    1449.125  ,   990.199  ,   759.832  ,   309.813  ,   239.057  ,   255.864  ,   273.571  ,   284.486  ,   297.197  ,   304.923  ,   322.111  ,   319.194  ,   323.112  ,   322.741  ,   320.961  ,   318.561  ,   313.746  ,   312.516  ,   311.967  ,   308.532  ,   306.266  ,   304.556  ,   303.192  ,   301.634  ,   300.230  ,   299.018  ,   297.905  ,   296.988  ,   296.427  ,   296.200  ,   296.085  ,   296.002  ,   295.925  ,
+!
+! ; specific humidity at full levels (kg/kg)
+!                            qq = (/    0.1739E-05  ,  0.1855E-05  ,  0.1560E-05  ,  0.3233E-04  ,  0.1266E-03  ,  0.2511E-03  ,  0.4159E-03  ,  0.7140E-03  ,  0.9894E-03  ,  0.1140E-02  ,  0.1527E-02  ,  0.2000E-02  ,  0.2240E-02  ,  0.2721E-02  ,  0.3501E-02  ,  0.4397E-02  ,  0.5206E-02  ,  0.6173E-02  ,  0.7037E-02  ,  0.7617E-02  ,  0.8472E-02  ,  0.9987E-02  ,  0.1152E-01  ,  0.1255E-01  ,  0.1345E-01  ,  0.1419E-01  ,  0.1476E-01  ,  0.1529E-01  ,  0.1606E-01  ,  0.1686E-01  ,  0.1751E-01  ,  0.1780E-01  ,  0.1798E-01  ,
+!
+! ; cloud liquid water mixing ratio at full levels (kg/kg)
+!                            ql = (/    0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.2452E-27  ,  0.7210E-11  ,  0.1524E-09  ,  0.1846E-10  ,  0.0000E+00  ,  0.0000E+00  ,  0.2088E-22  ,  0.1630E-02  ,  0.4802E-02  ,  0.2934E-02  ,  0.1679E-02  ,  0.1380E-02  ,  0.7867E-03  ,  0.4757E-03  ,  0.3621E-03  ,  0.3589E-03  ,  0.3151E-03  ,  0.3099E-06  ,  0.1409E-06  ,  0.1331E-06  ,  0.2486E-07  ,  0.8844E-08  ,  0.9335E-09  ,  0.2614E-09  ,  0.1848E-10  ,  0.3879E-11  ,  0.3139E-10  ,  0.1515E-10  ,  0.8348E-14  ,  0.4705E-27  ,
+!
+! ; cloud ice water mixing ratio at full levels (kg/kg)
+!                            qi = (/    0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.3355E-01  ,  0.3738E-01  ,  0.3373E-01  ,  0.2863E-01  ,  0.2562E-01  ,  0.2221E-01  ,  0.1733E-01  ,  0.9297E-02  ,  0.5018E-02  ,  0.4595E-02  ,  0.4423E-02  ,  0.3624E-02  ,  0.3193E-02  ,  0.2895E-02  ,  0.1664E-02  ,  0.3079E-03  ,  0.0000E+00  ,  0.1078E-43  ,  0.1679E-64  ,  0.5140E-69  ,  0.3375E-79  ,  0.2493E-97  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.2044-209  ,  0.0000E+00  ,
+!
+! ; total water mixing ratio (qv+ql+qi) at full levels (kg/kg)
+!                            qt = (/    0.1739E-05  ,  0.1855E-05  ,  0.1560E-05  ,  0.3358E-01  ,  0.3751E-01  ,  0.3398E-01  ,  0.2905E-01  ,  0.2633E-01  ,  0.2320E-01  ,  0.1847E-01  ,  0.1245E-01  ,  0.1182E-01  ,  0.9769E-02  ,  0.8823E-02  ,  0.8505E-02  ,  0.8378E-02  ,  0.8576E-02  ,  0.8199E-02  ,  0.7704E-02  ,  0.7932E-02  ,  0.8472E-02  ,  0.9988E-02  ,  0.1152E-01  ,  0.1255E-01  ,  0.1345E-01  ,  0.1419E-01  ,  0.1476E-01  ,  0.1529E-01  ,  0.1606E-01  ,  0.1686E-01  ,  0.1751E-01  ,  0.1780E-01  ,  0.1798E-01  ,
+!
+! ; surface air temperature (K)
+!                          t_ref= (/    297.69,
+!
+! ; surface air specific humidity (kg/kg)
+!                         q_ref = (/    0.1835E-01,
+!
+! ; zonal wind stress
+!                        u_flux = (/   -0.1940E-01  ,
+!
+! ; meridional wind stress
+!                        v_flux = (/    0.6170E-02  ,
+! ;
+!                        u_star = (/    0.1609E+00,
+!                        b_star = (/    0.5990E-02,
+!                        q_star = (/    0.2036E-03,
+!                        shflx  = (/    0.2087E+02,
+!                        lhflx  = (/    0.2891E-04,
+!
+! ; friction velocity (m/s)
+!                u_star_star    = (/    0.1609E+00,
+!                u_star_updated = (/    0.1320E+00,
+!
+! ; sensible heat flux (W/m2)
+!                 shflx_star    = (/    0.2733E+02,
+!                 shflx_updated = (/    0.2087E+02,
+!
+! ; evaporation flux (kg water/m2/s)
+!                 lhflx_star    = (/    0.3826E-04,
+!                 lhflx_updated = (/    0.2891E-04,
+!
+! ; surface heat flux (K m/s)
+!           w1_th1_surf_star    = (/    0.2327E-01,
+!           w1_th1_surf_updated = (/    0.1777E-01,
+!
+! ; surface moisture flux (kg water/kg air * m/s)
+!            w1_q1_surf_star    = (/    0.3277E-04,
+!            w1_q1_surf_updated = (/    0.2475E-04,
+!
+! ; kinematic virtual temperature flux (K m/s)
+!          w1_thv1_surf_star    = (/    0.2942E-01,
+!          w1_thv1_surf_updated = (/    0.2241E-01,
+!
+! ; Obukhov length (m)
+!        Obukhov_length_star    = (/    -10.81,
+!        Obukhov_length_updated = (/     -7.84,
+!
+!
+!
+
+
 else
   print*,'ERROR: unsupported input_profile, ', input_profile
   stop
   
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!elseif (input_profile == "") then
 endif ! end if of input profile  
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   
