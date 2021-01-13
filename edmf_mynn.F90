@@ -335,11 +335,15 @@ end type am4_edmf_output_type
   real    :: lon_range = 0.001
   logical :: do_writeout_column_nml = .false.   ! switch to control whether writing out the column
   logical :: do_stop_run = .false.              ! whether to stop the simulation
-  character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
-  !character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
+  real    :: tdt_max     = 500. ! K/day
+  logical :: do_limit_tdt = .false.
+  real    :: tdt_limit =   200. ! K/day
+  !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
+  character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, &
                             option_surface_flux, &
+                            tdt_max, do_limit_tdt, tdt_limit, &
                             do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write
          
 !---------------------------------------------------------------------
@@ -6622,7 +6626,8 @@ subroutine edmf_mynn_driver ( &
   logical used
   logical do_writeout_column
   real    :: lat_lower, lat_upper, lon_lower, lon_upper, lat_temp, lon_temp
-
+  real    :: tt1
+  integer :: i,j,k
 !-------------------------
 
 !! debug01
@@ -6779,6 +6784,27 @@ subroutine edmf_mynn_driver ( &
 !  am4_Output_edmf%tdt_edmf = -1./dt
 !  am4_Output_edmf%qdt_edmf = -2./dt
 !  !--> test tendency purposes
+
+!<-- debug 
+  tt1 = tdt_max / 86400.  ! change unit from K/day to K/sec
+  do i=1,size(am4_Output_edmf%tdt_edmf,1)
+  do j=1,size(am4_Output_edmf%tdt_edmf,2)
+  do k=1,size(am4_Output_edmf%tdt_edmf,3)
+    if ( abs(am4_Output_edmf%tdt_edmf(i,j,k)) .ge. tt1 ) then
+      write(6,*) '>tdt_max,i,j,lat,lon,',tdt_max,i,j,lat(i,j),lon(i,j)
+
+      if (do_limit_tdt) then
+        if (am4_Output_edmf%tdt_edmf(i,j,k).ge.0.) then
+          am4_Output_edmf%tdt_edmf(i,j,k) = tdt_limit / 86400.
+        else
+          am4_Output_edmf%tdt_edmf(i,j,k) = -1.*tdt_limit / 86400.
+        endif
+      endif
+    endif
+  enddo
+  enddo
+  enddo
+!-->
 
   !--- updated tendencies
   if (.not.do_edmf_mynn_diagnostic) then
