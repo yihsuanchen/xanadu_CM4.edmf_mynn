@@ -105,7 +105,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    INTEGER :: bl_mynn_mixqt     = 2         ! will mix moist conserved variables, after mixing invokes PDF cloud scheme to convert moist variables to dry
    INTEGER :: icloud_bl         = 1         ! 1, cloud cover and liquid water from the PDF scheme will be on the cloud output
 
-   integer :: initflag = 1
+   integer :: initflag = 1 
    logical :: FLAG_QI  = .false.             ! (flags for whether cloud and ice mixing rations and number concentrations are mixed separately)
    logical :: FLAG_QNI = .false.            ! all false
    logical :: FLAG_QC  = .false.
@@ -129,8 +129,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    real    :: lat_range = 0.001
    real    :: lon_range = 0.001
-   logical :: do_writeout_column_nml = .true.
-   !logical :: do_writeout_column_nml = .false.
+   !logical :: do_writeout_column_nml = .true.
+   logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
 
@@ -5071,9 +5071,9 @@ subroutine Poisson(istart,iend,jstart,jend,mu,POI)
 
   do i=istart,iend
     do j=jstart,jend
-       print *, "Poisson mu: ", mu(i,j) 
+       !print *, "Poisson mu: ", mu(i,j) 
       call   random_Poisson(mu(i,j),.true.,POI(i,j))
-       print *, "POI: ", POI(i,j)
+       !print *, "POI: ", POI(i,j)
     enddo
   enddo
 
@@ -6519,8 +6519,8 @@ subroutine edmf_mynn_driver ( &
 !! debug01
 !write(6,*) 'edmf_mynn, beginning'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
-!write(6,*) 'initflag,',initflag
-!write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
+write(6,*) 'initflag,',initflag
+write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
@@ -6706,6 +6706,7 @@ subroutine edmf_mynn_driver ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
 !if (do_writeout_column) then
@@ -7684,6 +7685,7 @@ subroutine edmf_writeout_column ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 !---------------------------------------------------------------------
 ! Arguments (Intent in)
@@ -7699,6 +7701,9 @@ subroutine edmf_writeout_column ( &
   real,    intent(in), dimension(:,:)   :: &  ! dimension(nlon,nlat)
     lon,  &     ! longitude in radians
     lat         ! latitude  in radians
+
+  real, intent(in), dimension(:,:,:)    :: &
+    Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
 
   type(edmf_input_type) , intent(in) :: Input_edmf
   type(edmf_output_type), intent(in) :: Output_edmf
@@ -7899,6 +7904,21 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; Obukhov length (m)'
         write(6,3000) '  Obukhov_length_star    = (/',Input_edmf%Obukhov_length_star(ii_write,jj_write)
         write(6,3000) '  Obukhov_length_updated = (/',Input_edmf%Obukhov_length_updated(ii_write,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nQke), input'
+        write(6,3002) '  rdiag(1,1,:,nQke) = (/'    ,Input_edmf%Qke(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nSh3D), input'
+        write(6,3002) '  rdiag(1,1,:,nSh3D) = (/'    ,Input_edmf%Sh3D(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nel_pbl), input'
+        write(6,3002) '  rdiag(1,1,:,nel_pbl) = (/'    ,Input_edmf%el_pbl(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,ncldfra_bl), input'
+        write(6,3002) '  rdiag(1,1,:,ncldfra_bl) = (/'    ,Input_edmf%cldfra_bl(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nqc_bl), input'
+        write(6,3002) '  rdiag(1,1,:,nqc_bl) = (/'    ,Input_edmf%qc_bl(ii_write,:,jj_write)
         !write(6,*)    ' '
         !write(6,*)    '; '
         !write(6,3002) '  = (/'    ,
@@ -7941,16 +7961,16 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ';=============='
         write(6,*)    ';=============='
         write(6,*)    ''
-        write(6,*)    ';   rdiag'
+        write(6,*)    ';   rdiag after mynn'
         write(6,*)    ''
         write(6,*)    ';=============='
         write(6,*)    ';=============='
         write(6,*)    ''
-        write(6,*)    'rdiag_Qke',rdiag(ii_write,jj_write,:,nQke)
-        write(6,*)    'rdiag_Sh3D',rdiag(ii_write,jj_write,:,nSh3D)
-        write(6,*)    'rdiag_el_pbl',rdiag(ii_write,jj_write,:,nel_pbl)
-        write(6,*)    'rdiag_cldfra_bl',rdiag(ii_write,jj_write,:,ncldfra_bl)
-        write(6,*)    'rdiag_qc_bl',rdiag(ii_write,jj_write,:,nqc_bl)
+        write(6,*)    'rdiag_Qke',Qke
+        write(6,*)    'rdiag_Sh3D',Sh3D
+        write(6,*)    'rdiag_el_pbl',el_pbl
+        write(6,*)    'rdiag_cldfra_bl',cldfra_bl
+        write(6,*)    'rdiag_qc_bl',qc_bl
         !write(6,*)    'rdiag_',rdiag(ii_write,jj_write,:,n)
         write(6,*)    ''
         write(6,*)    ';======================'
@@ -8305,6 +8325,9 @@ elseif (input_profile == "SCM_am4p0_DCBL_C1_01") then
   shflx  =     0.6954E+02
   lhflx  =     0.0000E+00
 
+  rdiag(1,1,:,nQke) = 0.5
+print*,'aaa,rdiag(1,1,:,nQke)',rdiag(1,1,:,nQke)
+
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 elseif (input_profile == "SCM_am4p0_DCBL_C1_02_u,vdt_NaN") then
@@ -8500,7 +8523,8 @@ print*,'tt',Physics_input_block%t
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, & 
               do_edmf_mynn_diagnostic, &
-              udt, vdt, tdt, rdt, rdiag)
+              udt, vdt, tdt, rdt, rdiag(:,:,:,ntp+1:))
+              !udt, vdt, tdt, rdt, rdiag)
 
     ! update fields
     Physics_input_block%u = Physics_input_block%u + udt(:,:,:)*dt
