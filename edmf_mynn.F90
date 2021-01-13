@@ -100,6 +100,9 @@ type edmf_input_type
   real, dimension(:,:), allocatable   :: &   ! DIMENSION(IMS:IME,JMS:JME), diagnostic purpose
     u_star_star, shflx_star, lhflx_star, w1_thv1_surf_star, w1_th1_surf_star, w1_q1_surf_star, Obukhov_length_star,  &
     u_star_updated, shflx_updated, lhflx_updated, w1_thv1_surf_updated, w1_th1_surf_updated, w1_q1_surf_updated, Obukhov_length_updated
+
+  real, dimension(:,:,:), allocatable :: &   ! INPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
+    Qke, Sh3D, el_pbl, cldfra_bl, qc_bl      ! semi-prognostic variables
 end type edmf_input_type
 
 !==================
@@ -327,6 +330,10 @@ end type am4_edmf_output_type
   logical :: FLAG_QC  = .false.
   logical :: FLAG_QNC = .false.
 
+  logical :: expmf = .true.              ! .true.  ... explicit mass-flux, .false. .... implicit mass-flux
+  real    :: upwind = 1.                 ! upwind=1. ... use upwind approximation for mass-flux calculation
+                                         ! upwind=0.5 ... use centered difference for mass-flux calculation
+
   integer :: ii_write = -999                    ! i index for column written out. Set to 0 if you want to write out in SCM
   integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
   real    :: lat_write = -999.99                ! latitude  (radian) for column written out
@@ -341,7 +348,7 @@ end type am4_edmf_output_type
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
 
-namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, &
+namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, &
                             do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write
@@ -3402,16 +3409,16 @@ end subroutine edmf_mynn_end
     REAL, INTENT(IN)      :: dx,PBLH,HFX
     REAL, DIMENSION(kts:kte), INTENT(INOUT) :: qc_bl1D,cldfra_bl1d,sgm
     REAL, DIMENSION(kts:kte), INTENT(IN) :: Sh,el
-    REAL upwind 
-    LOGICAl expmf 
-    
-    ! upwind=1. ... use upwind approximation for mass-flux calculation
-    ! upwind=0.5 ... use centered difference for mass-flux calculation
-    upwind=1. 
-
-   ! expmf=.true.  ... explicit mass-flux
-   ! expmf =.false. .... implicit mass-flux
-    expmf=.true. 
+!yhc move to namelist    REAL upwind 
+!yhc move to namelist    LOGICAl expmf 
+!yhc move to namelist    
+!yhc move to namelist    ! upwind=1. ... use upwind approximation for mass-flux calculation
+!yhc move to namelist    ! upwind=0.5 ... use centered difference for mass-flux calculation
+!yhc move to namelist    upwind=1. 
+!yhc move to namelist
+!yhc move to namelist   ! expmf=.true.  ... explicit mass-flux
+!yhc move to namelist   ! expmf =.false. .... implicit mass-flux
+!yhc move to namelist    expmf=.true. 
 
     nz=kte-kts+1
 
