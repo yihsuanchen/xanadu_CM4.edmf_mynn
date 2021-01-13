@@ -3392,6 +3392,7 @@ end subroutine edmf_mynn_end
     REAL, DIMENSION(kts:kte) :: dtz,vt,vq,dfhc,dfmc !Kh for clouds (Pr < 2)
     REAL, DIMENSION(kts:kte) :: sqv2,sqc2,sqi2,sqw2,qni2 !,qnc2 !AFTER MIXING
     REAL, DIMENSION(kts:kte) :: zfac,plumeKh,th_temp
+    REAl, DIMENSION(kts:kte) :: upcont,dncont ! updraft/downdraft contribution to fluxes for explicit calculation
     REAL, DIMENSION(1:kte-kts+1) :: a,b,c,d,x
 
     REAL :: rhs,gfluxm,gfluxp,dztop,maxdfh,mindfh,maxcf,maxKh,zw
@@ -3401,6 +3402,16 @@ end subroutine edmf_mynn_end
     REAL, INTENT(IN)      :: dx,PBLH,HFX
     REAL, DIMENSION(kts:kte), INTENT(INOUT) :: qc_bl1D,cldfra_bl1d,sgm
     REAL, DIMENSION(kts:kte), INTENT(IN) :: Sh,el
+    REAL upwind 
+    LOGICAl expmf 
+    
+    ! upwind=1. ... use upwind approximation for mass-flux calculation
+    ! upwind=0.5 ... use centered difference for mass-flux calculation
+    upwind=1. 
+
+   ! expmf=.true.  ... explicit mass-flux
+   ! expmf =.false. .... implicit mass-flux
+    expmf=.true. 
 
     nz=kte-kts+1
 
@@ -3456,14 +3467,33 @@ end subroutine edmf_mynn_end
 !! u
 !!============================================
 
+ IF(expmf) THEN
+
+   DO k=kts+1,kte
+    upcont(k)=onoff*(s_awu(k)-s_aw(k)*(u(k+1)*upwind+u(k)*(1.-upwind)))
+    dncont(k)=onoff*(sd_awu(k)-sd_aw(k)*(u(k+1)*upwind+u(k)*(1.-upwind)))
+   ENDDO
+
     k=kts
-
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) 
+    c(1)=-dtz(k)*dfm(k+1) 
+    d(1)=u(k) + dtz(k)*uoce*ust*ustovwsp -dtz(k)*(upcont(k+1)+dncont(k+1))
+
+    DO k=kts+1,kte-1
+       a(k)=   - dtz(k)*dfm(k)          
+       b(k)=1. + dtz(k)*(dfm(k)+dfm(k+1)) 
+       c(k)=   - dtz(k)*dfm(k+1)          
+       d(k)=u(k) -dtz(k)*(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
+    ENDDO
+
+  ELSE
+   
+    k=kts
+    a(1)=0.
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust**2/wspd) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
     c(1)=-dtz(k)*dfm(k+1) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-    d(1)=u(k) + dtz(k)*uoce*ust*ustovwsp - dtz(k)*s_awu(k+1)*onoff - dtz(k)*sd_awu(k+1)*onoff 
-
-
+    d(1)=u(k) + dtz(k)*uoce*ust**2/wspd - dtz(k)*s_awu(k+1)*onoff - dtz(k)*sd_awu(k+1)*onoff 
 
     DO k=kts+1,kte-1
        a(k)=   - dtz(k)*dfm(k)            + 0.5*dtz(k)*s_aw(k)*onoff + 0.5*dtz(k)*sd_aw(k)*onoff
@@ -3471,6 +3501,9 @@ end subroutine edmf_mynn_end
        c(k)=   - dtz(k)*dfm(k+1)          - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
        d(k)=u(k) + dtz(k)*(s_awu(k)-s_awu(k+1))*onoff + dtz(k)*(sd_awu(k)-sd_awu(k+1))*onoff
     ENDDO
+  
+ ENDIF 
+
 
 !! no flux at the top
 !    a(nz)=-1.
@@ -3502,13 +3535,34 @@ end subroutine edmf_mynn_end
 !! v
 !!============================================
 
-    k=kts
+ IF(expmf) THEN
 
+   DO k=kts+1,kte
+    upcont(k)=onoff*(s_awv(k)-s_aw(k)*(v(k+1)*upwind+v(k)*(1.-upwind)))
+    dncont(k)=onoff*(sd_awv(k)-sd_aw(k)*(v(k+1)*upwind+v(k)*(1.-upwind)))
+   ENDDO
+
+
+    k=kts
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) 
+    c(1)=   - dtz(k)*dfm(k+1)               
+    d(1)=v(k) + dtz(k)*voce*ust*ustovwsp -dtz(k)*(upcont(k+1)+dncont(k+1))
+
+    DO k=kts+1,kte-1
+       a(k)=   - dtz(k)*dfm(k)           
+       b(k)=1. + dtz(k)*(dfm(k)+dfm(k+1)) 
+       c(k)=   - dtz(k)*dfm(k+1)         
+       d(k)=v(k) -dtz(k)*(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
+    ENDDO
+
+ ELSE 
+
+    k=kts
+    a(1)=0.
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust**2/wspd) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
     c(1)=   - dtz(k)*dfm(k+1)               - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-!!    d(1)=v(k)
-    d(1)=v(k) + dtz(k)*voce*ust*ustovwsp - dtz(k)*s_awv(k+1)*onoff
+    d(1)=v(k) + dtz(k)*voce*ust**2/wspd - dtz(k)*s_awv(k+1)*onoff
 
     DO k=kts+1,kte-1
        a(k)=   - dtz(k)*dfm(k)            + 0.5*dtz(k)*s_aw(k)*onoff + 0.5*dtz(k)*sd_aw(k)*onoff 
@@ -3517,17 +3571,8 @@ end subroutine edmf_mynn_end
        d(k)=v(k) + dtz(k)*(s_awv(k)-s_awv(k+1))*onoff + dtz(k)*(sd_awv(k)-sd_awv(k+1))*onoff
     ENDDO
 
-!! no flux at the top
-!    a(nz)=-1.
-!    b(nz)=1.
-!    c(nz)=0.
-!    d(nz)=0.
+  ENDIF
 
-!! specified gradient at the top
-!    a(nz)=-1.
-!    b(nz)=1.
-!    c(nz)=0.
-!    d(nz)=gradv_top*dztop
 
 !! prescribed value
     a(nz)=0
@@ -3547,8 +3592,40 @@ end subroutine edmf_mynn_end
 !! thl tendency
 !! NOTE: currently, gravitational settling is removed
 !!============================================
+ 
+ 
+ ! explicit mass-flux
+ 
+ !  upcont,dncont=sum a_i*w_i*(thl_i-<thl>) for updrafts and downdrafts, respectively 
+ ! upwind=1. upwind approximation, upwind=0.5 centered difference	
+ ! (note: we do not need surface conditions)
+ !
+ 
+ 
+  IF(expmf) THEN
+  
+   DO k=kts+1,kte
+   upcont(k)=s_awthl(k)-s_aw(k)*(thl(k+1)*upwind+thl(k)*(1.-upwind))
+   dncont(k)=sd_awthl(k)-sd_aw(k)*(thl(k+1)*upwind+thl(k)*(1.-upwind))
+   ENDDO
+ 
     k=kts
 
+    a(k)=0.
+    b(k)=1.+dtz(k)*dfh(k+1) 
+    c(k)=  -dtz(k)*dfh(k+1) 
+    d(k)=thl(k) + dtz(k)*flt + tcd(k)*delt -dtz(k)*(upcont(k+1)+dncont(k+1))
+
+    DO k=kts+1,kte-1
+       a(k)=  -dtz(k)*dfh(k)            
+       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) 
+       c(k)=  -dtz(k)*dfh(k+1)          
+       d(k)=thl(k) + tcd(k)*delt -dtz(k)*(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
+    ENDDO
+
+ ELSE
+ 
+    k=kts
     a(k)=0.
     b(k)=1.+dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
     c(k)=  -dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
@@ -3560,19 +3637,10 @@ end subroutine edmf_mynn_end
        c(k)=  -dtz(k)*dfh(k+1)          - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
        d(k)=thl(k) + tcd(k)*delt + dtz(k)*(s_awthl(k)-s_awthl(k+1)) + dtz(k)*(sd_awthl(k)-sd_awthl(k+1))
     ENDDO
+ 
+  ENDIF
 
-!! no flux at the top
-!    a(nz)=-1.
-!    b(nz)=1.
-!    c(nz)=0.
-!    d(nz)=0.
 
-!! specified gradient at the top
-!assume gradthl_top=gradth_top
-!    a(nz)=-1.
-!    b(nz)=1.
-!    c(nz)=0.
-!    d(nz)=gradth_top*dztop
 
 !! prescribed value
     a(nz)=0.
@@ -3596,6 +3664,27 @@ IF (bl_mynn_mixqt > 0) THEN
  !       subtract out the moisture excess (sqc & sqi)
  !============================================
 
+ IF(expmf) THEN
+   DO k=kts+1,kte
+     upcont(k)=s_awqt(k)-s_aw(k)*(sqw(k+1)*upwind+sqw(k)*(1.-upwind))
+     dncont(k)=sd_awqt(k)-sd_aw(k)*(sqw(k+1)*upwind+sqw(k)*(1.-upwind))
+   ENDDO
+
+    k=kts
+    a(k)=0.
+    b(k)=1.+dtz(k)*dfh(k+1) 
+    c(k)=  -dtz(k)*dfh(k+1)
+
+    d(k)=sqw(k) + dtz(k)*flq + qcd(k)*delt -dtz(k)*(upcont(k+1)+dncont(k+1))
+
+    DO k=kts+1,kte-1
+       a(k)=  -dtz(k)*dfh(k)           
+       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) 
+       c(k)=  -dtz(k)*dfh(k+1) 
+       d(k)=sqw(k) + qcd(k)*delt  -dtz(k)*(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
+    ENDDO
+    
+  ELSE  
     k=kts
 
     a(k)=0.
@@ -3613,18 +3702,8 @@ IF (bl_mynn_mixqt > 0) THEN
 
        d(k)=sqw(k) + qcd(k)*delt + dtz(k)*(s_awqt(k)-s_awqt(k+1)) + dtz(k)*(sd_awqt(k)-sd_awqt(k+1))
     ENDDO
-
-!! no flux at the top
-!    a(nz)=-1.
-!    b(nz)=1.
-!    c(nz)=0.
-!    d(nz)=0.
-!! specified gradient at the top
-!assume gradqw_top=gradqv_top
-!    a(nz)=-1.
-!    b(nz)=1.
-!    c(nz)=0.
-!    d(nz)=gradqv_top*dztop
+  ENDIF   
+     
 !! prescribed value
     a(nz)=0.
     b(nz)=1.
@@ -3648,7 +3727,32 @@ IF (bl_mynn_mixqt == 0) THEN
 !============================================
   IF (bl_mynn_cloudmix > 0 .AND. FLAG_QC) THEN
 
+
+  IF(expmf) THEN
+
+   DO k=kts+1,kte
+    upcont(k)=s_awqc(k)-s_aw(k)*(sqc(k+1)*upwind+sqc(k)*(1.-upwind))
+    dncont(k)=sd_awqc(k)-sd_aw(k)*(sqc(k+1)*upwind+sqc(k)*(1.-upwind))
+   ENDDO
+ 
     k=kts
+    a(k)=0.
+    b(k)=1.+dtz(k)*dfh(k+1) 
+    c(k)=  -dtz(k)*dfh(k+1) 
+
+    d(k)=sqc(k) + dtz(k)*flqc + qcd(k)*delt -dtz(k)*(upcont(k+1)+dncont(k+1))
+
+    DO k=kts+1,kte-1
+       a(k)=  -dtz(k)*dfh(k)            
+       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) 
+       c(k)=  -dtz(k)*dfh(k+1)         
+
+       d(k)=sqc(k) + qcd(k)*delt -dtz(k)*(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
+    ENDDO   
+
+  ELSE
+  
+     k=kts
 
     a(k)=0.
     b(k)=1.+dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
@@ -3663,6 +3767,7 @@ IF (bl_mynn_mixqt == 0) THEN
 
        d(k)=sqc(k) + qcd(k)*delt + dtz(k)*(s_awqc(k)-s_awqc(k+1)) + dtz(k)*(sd_awqc(k)-sd_awqc(k+1))
     ENDDO
+  ENDIF
 
 ! prescribed value
     a(nz)=0.
@@ -3688,6 +3793,27 @@ IF (bl_mynn_mixqt == 0) THEN
   ! then sqv will be backed out of saturation check (below).
   !============================================
 
+ IF(expmf) THEN
+   DO k=kts+1,kte
+    upcont(k)=s_awqv(k)-s_aw(k)*(sqv(k+1)*upwind+sqv(k)*(1.-upwind))
+    dncont(k)=sd_awqv(k)-sd_aw(k)*(sqv(k+1)*upwind+sqv(k)*(1.-upwind))
+   ENDDO
+
+
+    k=kts
+    a(k)=0.
+    b(k)=1.+dtz(k)*dfh(k+1) 
+    c(k)=  -dtz(k)*dfh(k+1)
+    d(k)=sqv(k) + dtz(k)*flqv + qcd(k)*delt -dtz(k)*(upcont(k+1)+dncont(k+1))
+
+    DO k=kts+1,kte-1
+       a(k)=  -dtz(k)*dfh(k)           
+       b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) 
+       c(k)=  -dtz(k)*dfh(k+1)          
+       d(k)=sqv(k) + qcd(k)*delt -dtz(k)*(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
+    ENDDO
+
+  ELSE
     k=kts
 
     a(k)=0.
@@ -3701,19 +3827,8 @@ IF (bl_mynn_mixqt == 0) THEN
        c(k)=  -dtz(k)*dfh(k+1)          - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
        d(k)=sqv(k) + qcd(k)*delt + dtz(k)*(s_awqv(k)-s_awqv(k+1)) + dtz(k)*(sd_awqv(k)-sd_awqv(k+1))
     ENDDO
+  ENDIF
 
-! no flux at the top
-!    a(nz)=-1.
-!    b(nz)=1.
-!    c(nz)=0.
-!    d(nz)=0.
-
-! specified gradient at the top
-! assume gradqw_top=gradqv_top
-!    a(nz)=-1.
-!    b(nz)=1.
-!    c(nz)=0.
-!    d(nz)=gradqv_top*dztop
 
 ! prescribed value
     a(nz)=0.
@@ -3724,9 +3839,6 @@ IF (bl_mynn_mixqt == 0) THEN
 !    CALL tridiag(nz,a,b,c,d)
     CALL tridiag2(nz,a,b,c,d,sqv2)
 
-!    DO k=kts,kte
-!       sqv2(k)=d(k-kts+1)
-!    ENDDO
 ELSE
     sqv2=sqv
 ENDIF
@@ -3826,7 +3938,7 @@ ENDIF
 !!=============================================================
     IF (bl_mynn_mixqt == 2) THEN
         th_temp = th
-        DO itr = 1, 5 !a few iterations to get a more accurate qc
+        DO itr = 1, 2 !a few iterations to get a more accurate qc
           CALL  mym_condensation ( kts,kte,      &
                &dx,dz,thl,sqw2,p,exner,          &
                &tsq, qsq, cov,                   &
@@ -4962,7 +5074,7 @@ ENDIF
 
 
 
-!print *,'qkeEND',qke
+print *,'qkeEND',qke
 
   END SUBROUTINE mynn_bl_driver
 
@@ -5175,9 +5287,9 @@ subroutine Poisson(istart,iend,jstart,jend,mu,POI)
 
   do i=istart,iend
     do j=jstart,jend
-       print *, "Poisson mu: ", mu(i,j) 
+       !print *, "Poisson mu: ", mu(i,j) 
       call   random_Poisson(mu(i,j),.true.,POI(i,j))
-       print *, "POI: ", POI(i,j)
+       !print *, "POI: ", POI(i,j)
     enddo
   enddo
 
@@ -5856,21 +5968,10 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
 
     ! entrainment parameters
         REAL,PARAMETER :: &
-        & L0=100.,&!100,&
+        & L0=100.,&
         & ENT0=0.2
-        ! print *, "Lent in updraft = ", L0
 
-! check the inputs
-!     print *,'dt',dt
-!     print *,'dz',dz
-!     print *,'u',u
-!     print *,'v',v
-!     print *,'thl',thl
-!     print *,'qt',qt
-!     print *,'ust',ust
-!     print *,'wthl',wthl
-!     print *,'wqt',wqt
-!     print *,'pblh',pblh
+
 
 !Initialize values:
 ktop = 0
@@ -5913,18 +6014,18 @@ s_awqke=0.
 
 ! This part is specific for Stratocumulus
 cloudflg = .false.
-DO k = MAX(1,kpbl-2),kpbl+5
-    IF(qc(k).gt. 1.e-6 .AND. cldfra_bl1D(k).gt.0.5) THEN
-       cloudflg=.true. !found Sc cloud
-       qlTop = k ! index for Sc cloud top
-    ENDIF
-ENDDO
-Z00 = 1000.
-IF (cloudflg) THEN ! if Sc exist, slows down updraft near inversion
-    Z_i = ZW(qlTop+1) ! let updraft go above cloud top a little
-ELSE
-    Z_i = ZW(kte) ! otherwise set to model top so it does not affect updraft w
-ENDIF
+!DO k = MAX(1,kpbl-2),kpbl+5
+!    IF(qc(k).gt. 1.e-6 .AND. cldfra_bl1D(k).gt.0.5) THEN
+!       cloudflg=.true. !found Sc cloud
+!       qlTop = k ! index for Sc cloud top
+!    ENDIF
+!ENDDO
+!Z00 = 1000.
+!IF (cloudflg) THEN ! if Sc exist, slows down updraft near inversion
+!    Z_i = ZW(qlTop+1) ! let updraft go above cloud top a little
+!ELSE
+!    Z_i = ZW(kte) ! otherwise set to model top so it does not affect updraft w
+!ENDIF
 ! print*, "[EDMF_JPL]: Sc found at z = ", Z_i
 ! if surface buoyancy is positive we do integration otherwise not
 
@@ -6023,12 +6124,13 @@ IF ( wthv >= 0.0 ) then
             call condensation_edmf(QTn,THLn,(P(K)+P(K-1))/2.,ZW(k),THVn,QCn)
 
             B=g*(0.5*(THVn+UPTHV(k-1,I))/THV(k-1)-1)
-            IF (ZW(k) <= Z_i) THEN
-                Beta_un = Wb*ENT(K,I) + 0.5/(Z_i-ZW(k)+deltaZ) * max(1. - exp((Z_i-ZW(k)+deltaZ)/Z00-1.) , 0.)
-            ELSE
-                Beta_un = Wb*ENT(K,I) + 0.5/deltaZ * (1. - exp(deltaZ/Z00-1.))
-            END IF
-            EntW = exp(-2.*Beta_un*deltaZ) ! exp(-2.*(Wb*ENT(K,I))*deltaZ)
+ !           IF (ZW(k) <= Z_i) THEN
+ !               Beta_un = Wb*ENT(K,I) + 0.5/(Z_i-ZW(k)+deltaZ) * max(1. - exp((Z_i-ZW(k)+deltaZ)/Z00-1.) , 0.)
+ !           ELSE
+ !               Beta_un = Wb*ENT(K,I) + 0.5/deltaZ * (1. - exp(deltaZ/Z00-1.))
+ !           END IF
+            Beta_un=wb*ENT(K,I)   
+           EntW = exp(-2.*Beta_un*deltaZ) ! exp(-2.*(Wb*ENT(K,I))*deltaZ)
             IF (Beta_un>0) THEN
                 Wn2=UPW(K-1,I)**2*EntW+(1.-EntW)*Wa*B/Beta_un
             ELSE
@@ -6633,8 +6735,8 @@ subroutine edmf_mynn_driver ( &
 !! debug01
 !write(6,*) 'edmf_mynn, beginning'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
-!write(6,*) 'initflag,',initflag
-!write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
+write(6,*) 'initflag,',initflag
+write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
@@ -6791,7 +6893,7 @@ subroutine edmf_mynn_driver ( &
   do j=1,size(am4_Output_edmf%tdt_edmf,2)
   do k=1,size(am4_Output_edmf%tdt_edmf,3)
     if ( abs(am4_Output_edmf%tdt_edmf(i,j,k)) .ge. tt1 ) then
-      write(6,*) '>tdt_max,i,j,lat,lon,',tdt_max,i,j,lat(i,j),lon(i,j)
+      write(6,*) 'edmf, >tdt_max,i,j,lat,lon,',tdt_max,i,j,lat(i,j),lon(i,j)
 
       if (do_limit_tdt) then
         if (am4_Output_edmf%tdt_edmf(i,j,k).ge.0.) then
@@ -6820,6 +6922,7 @@ subroutine edmf_mynn_driver ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
 !if (do_writeout_column) then
@@ -7327,6 +7430,13 @@ subroutine edmf_alloc ( &
   allocate (Input_edmf%qni   (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%qni   = 0.
   !allocate (Input_edmf%(IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf% = 0.
 
+  ! semi-prognostic variables
+  allocate (Input_edmf%Qke         (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%Qke         = 0.
+  allocate (Input_edmf%Sh3D        (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%Sh3D        = 0.
+  allocate (Input_edmf%el_pbl      (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%el_pbl      = 0.
+  allocate (Input_edmf%cldfra_bl   (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%cldfra_bl   = 0.
+  allocate (Input_edmf%qc_bl       (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%qc_bl       = 0.
+
 !******************
 !--- Output_edmf
 !******************
@@ -7563,6 +7673,12 @@ subroutine edmf_alloc ( &
   do j=1,jx    
   do k=1,kx 
     kk=kx-k+1   
+    Input_edmf%Qke        (i,kk,j) = Qke       (i,j,k) 
+    Input_edmf%el_pbl     (i,kk,j) = el_pbl    (i,j,k)
+    Input_edmf%cldfra_bl  (i,kk,j) = cldfra_bl (i,j,k)
+    Input_edmf%qc_bl      (i,kk,j) = qc_bl     (i,j,k)
+    Input_edmf%Sh3D       (i,kk,j) = Sh3D      (i,j,k)
+
     Output_edmf%Qke       (i,kk,j) = Qke       (i,j,k) 
     Output_edmf%el_pbl    (i,kk,j) = el_pbl    (i,j,k)
     Output_edmf%cldfra_bl (i,kk,j) = cldfra_bl (i,j,k)
@@ -7683,6 +7799,12 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Input_edmf%qni   )  
   !deallocate (Input_edmf%)  
 
+  deallocate (Input_edmf%Qke         )
+  deallocate (Input_edmf%Sh3D        )
+  deallocate (Input_edmf%el_pbl      )
+  deallocate (Input_edmf%cldfra_bl   )
+  deallocate (Input_edmf%qc_bl       )
+
 !******************
 !--- Output_edmf
 !******************
@@ -7779,6 +7901,7 @@ subroutine edmf_writeout_column ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 !---------------------------------------------------------------------
 ! Arguments (Intent in)
@@ -7794,6 +7917,9 @@ subroutine edmf_writeout_column ( &
   real,    intent(in), dimension(:,:)   :: &  ! dimension(nlon,nlat)
     lon,  &     ! longitude in radians
     lat         ! latitude  in radians
+
+  real, intent(in), dimension(:,:,:)    :: &
+    Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
 
   type(edmf_input_type) , intent(in) :: Input_edmf
   type(edmf_output_type), intent(in) :: Output_edmf
@@ -7994,6 +8120,21 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; Obukhov length (m)'
         write(6,3000) '  Obukhov_length_star    = (/',Input_edmf%Obukhov_length_star(ii_write,jj_write)
         write(6,3000) '  Obukhov_length_updated = (/',Input_edmf%Obukhov_length_updated(ii_write,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nQke), input'
+        write(6,3002) '  rdiag(1,1,:,nQke) = (/'    ,Input_edmf%Qke(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nSh3D), input'
+        write(6,3002) '  rdiag(1,1,:,nSh3D) = (/'    ,Input_edmf%Sh3D(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nel_pbl), input'
+        write(6,3002) '  rdiag(1,1,:,nel_pbl) = (/'    ,Input_edmf%el_pbl(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,ncldfra_bl), input'
+        write(6,3002) '  rdiag(1,1,:,ncldfra_bl) = (/'    ,Input_edmf%cldfra_bl(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nqc_bl), input'
+        write(6,3002) '  rdiag(1,1,:,nqc_bl) = (/'    ,Input_edmf%qc_bl(ii_write,:,jj_write)
         !write(6,*)    ' '
         !write(6,*)    '; '
         !write(6,3002) '  = (/'    ,
@@ -8036,16 +8177,16 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ';=============='
         write(6,*)    ';=============='
         write(6,*)    ''
-        write(6,*)    ';   rdiag'
+        write(6,*)    ';   rdiag after mynn'
         write(6,*)    ''
         write(6,*)    ';=============='
         write(6,*)    ';=============='
         write(6,*)    ''
-        write(6,*)    'rdiag_Qke',rdiag(ii_write,jj_write,:,nQke)
-        write(6,*)    'rdiag_Sh3D',rdiag(ii_write,jj_write,:,nSh3D)
-        write(6,*)    'rdiag_el_pbl',rdiag(ii_write,jj_write,:,nel_pbl)
-        write(6,*)    'rdiag_cldfra_bl',rdiag(ii_write,jj_write,:,ncldfra_bl)
-        write(6,*)    'rdiag_qc_bl',rdiag(ii_write,jj_write,:,nqc_bl)
+        write(6,*)    'rdiag_Qke',Qke
+        write(6,*)    'rdiag_Sh3D',Sh3D
+        write(6,*)    'rdiag_el_pbl',el_pbl
+        write(6,*)    'rdiag_cldfra_bl',cldfra_bl
+        write(6,*)    'rdiag_qc_bl',qc_bl
         !write(6,*)    'rdiag_',rdiag(ii_write,jj_write,:,n)
         write(6,*)    ''
         write(6,*)    ';======================'
