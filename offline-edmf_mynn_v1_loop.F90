@@ -111,7 +111,9 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    logical :: FLAG_QC  = .false.
    logical :: FLAG_QNC = .false.
 
-
+  logical :: expmf = .true.              ! .true.  ... explicit mass-flux, .false. .... implicit mass-flux
+  real    :: upwind = 1.                 ! upwind=1. ... use upwind approximation for mass-flux calculation
+                                         ! upwind=0.5 ... use centered difference for mass-flux calculation
 !############################
 !############################
 
@@ -3186,16 +3188,16 @@ CONTAINS
     REAL, INTENT(IN)      :: dx,PBLH,HFX
     REAL, DIMENSION(kts:kte), INTENT(INOUT) :: qc_bl1D,cldfra_bl1d,sgm
     REAL, DIMENSION(kts:kte), INTENT(IN) :: Sh,el
-    REAL upwind 
-    LOGICAl expmf 
-    
-    ! upwind=1. ... use upwind approximation for mass-flux calculation
-    ! upwind=0.5 ... use centered difference for mass-flux calculation
-    upwind=1. 
-
-   ! expmf=.true.  ... explicit mass-flux
-   ! expmf =.false. .... implicit mass-flux
-    expmf=.true. 
+!yhc move to namelist    REAL upwind 
+!yhc move to namelist    LOGICAl expmf 
+!yhc move to namelist    
+!yhc move to namelist    ! upwind=1. ... use upwind approximation for mass-flux calculation
+!yhc move to namelist    ! upwind=0.5 ... use centered difference for mass-flux calculation
+!yhc move to namelist    upwind=1. 
+!yhc move to namelist
+!yhc move to namelist   ! expmf=.true.  ... explicit mass-flux
+!yhc move to namelist   ! expmf =.false. .... implicit mass-flux
+!yhc move to namelist    expmf=.true. 
 
     nz=kte-kts+1
 
@@ -4858,7 +4860,7 @@ ENDIF
 
 
 
-print *,'qkeEND',qke
+!print *,'qkeEND',qke
 
   END SUBROUTINE mynn_bl_driver
 
@@ -6519,8 +6521,8 @@ subroutine edmf_mynn_driver ( &
 !! debug01
 !write(6,*) 'edmf_mynn, beginning'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
-write(6,*) 'initflag,',initflag
-write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
+!write(6,*) 'initflag,',initflag
+!write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
@@ -7457,11 +7459,11 @@ subroutine edmf_alloc ( &
   do j=1,jx    
   do k=1,kx 
     kk=kx-k+1   
-    Input_edmf%Qke        (i,kk,j) = Qke       (i,j,k) 
-    Input_edmf%el_pbl     (i,kk,j) = el_pbl    (i,j,k)
-    Input_edmf%cldfra_bl  (i,kk,j) = cldfra_bl (i,j,k)
-    Input_edmf%qc_bl      (i,kk,j) = qc_bl     (i,j,k)
-    Input_edmf%Sh3D       (i,kk,j) = Sh3D      (i,j,k)
+    Input_edmf%Qke        (i,k,j) = Qke       (i,j,k) 
+    Input_edmf%el_pbl     (i,k,j) = el_pbl    (i,j,k)
+    Input_edmf%cldfra_bl  (i,k,j) = cldfra_bl (i,j,k)
+    Input_edmf%qc_bl      (i,k,j) = qc_bl     (i,j,k)
+    Input_edmf%Sh3D       (i,k,j) = Sh3D      (i,j,k)
 
     Output_edmf%Qke       (i,kk,j) = Qke       (i,j,k) 
     Output_edmf%el_pbl    (i,kk,j) = el_pbl    (i,j,k)
@@ -7807,56 +7809,56 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ';=========================='
         write(6,*)    ''
         write(6,*)    '; pressure at half level (Pa)'
-        write(6,3001) '  p_half = (/',Physics_input_block%p_half(ii_write,jj_write,:)
+        write(6,3001) '  p_half  = (/',Physics_input_block%p_half(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; height at half level above the surface (m)'
-        write(6,3001) '  z_half = (/',Physics_input_block%z_half(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
+        write(6,3001) '  z_half  = (/',Physics_input_block%z_half(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
         write(6,*)    ''
         write(6,*)    '; pressure at full level (Pa)'
-        write(6,3001) '  p_full = (/',Physics_input_block%p_full(ii_write,jj_write,:)
+        write(6,3001) '  p_full  = (/',Physics_input_block%p_full(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; height at full level above the surface (m)'
-        write(6,3001) '  z_full = (/',Physics_input_block%z_full(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
+        write(6,3001) '  z_full  = (/',Physics_input_block%z_full(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
         write(6,*)    ''
         write(6,*)    '; actual height at half level (m)'
-        write(6,3001) '  z_half_actual = (/',Physics_input_block%z_half(ii_write,jj_write,:)
+        write(6,3001) '  z_half_actual  = (/',Physics_input_block%z_half(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; actual height at full level (m)'
-        write(6,3001) '  z_full_actual = (/',Physics_input_block%z_full(ii_write,jj_write,:)
+        write(6,3001) '  z_full_actual  = (/',Physics_input_block%z_full(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; zonal wind velocity at full levels (m/s)'
-        write(6,3001) '  uu = (/'    ,Physics_input_block%u(ii_write,jj_write,:)
+        write(6,3001) '  uu  = (/'    ,Physics_input_block%u(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; meridional wind velocity at full levels (m/s)'
-        write(6,3001) '  vv = (/'    ,Physics_input_block%v(ii_write,jj_write,:)
+        write(6,3001) '  vv  = (/'    ,Physics_input_block%v(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; vertical velocity (Pa/s)'
-        write(6,3002) '  omega = (/'    ,Physics_input_block%omega(ii_write,jj_write,:)
+        write(6,3002) '  omega  = (/'    ,Physics_input_block%omega(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; temperatur at full levels (K)'
-        write(6,3001) '  tt = (/'    ,Physics_input_block%t(ii_write,jj_write,:)
+        write(6,3001) '  tt  = (/'    ,Physics_input_block%t(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; potential temperatur at full levels (K)'
            do k=1,kx
              kk=kx-k+1
              var_temp1(k) = Input_edmf%th(ii_write,kk,jj_write)
            enddo
-        write(6,3001) '  th = (/'    ,var_temp1(:)
+        write(6,3001) '  th  = (/'    ,var_temp1(:)
         write(6,*)    ''
         write(6,*)    '; ice-liquid water potential temperatur at full levels (K)'
-        write(6,3001) '  thl = (/'    , am4_Output_edmf%thl_edmf(ii_write,jj_write,:)
+        write(6,3001) '  thl  = (/'    , am4_Output_edmf%thl_edmf(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; specific humidity at full levels (kg/kg)'
-        write(6,3002) '  qq = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nsphum)
+        write(6,3002) '  qq  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nsphum)
         write(6,*)    ''
         write(6,*)    '; cloud liquid water mixing ratio at full levels (kg/kg)'
-        write(6,3002) '  ql = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nql)
+        write(6,3002) '  ql  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nql)
         write(6,*)    ''
         write(6,*)    '; cloud ice water mixing ratio at full levels (kg/kg)'
-        write(6,3002) '  qi = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nqi)
+        write(6,3002) '  qi  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nqi)
         write(6,*)    ''
         write(6,*)    '; total water mixing ratio (qv+ql+qi) at full levels (kg/kg)'
-        write(6,3002) '  qt = (/'    ,am4_Output_edmf%qt_edmf(ii_write,jj_write,:)
+        write(6,3002) '  qt  = (/'    ,am4_Output_edmf%qt_edmf(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; surface air temperature (K)'
         write(6,3000) '  t_ref= (/'    , t_ref (ii_write,jj_write)
@@ -7876,6 +7878,23 @@ subroutine edmf_writeout_column ( &
         write(6,3003) '  q_star = (/',q_star(ii_write,jj_write)
         write(6,3003) '  shflx  = (/',shflx(ii_write,jj_write)
         write(6,3003) '  lhflx  = (/',lhflx(ii_write,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nQke), input'
+        write(6,3002) '  rdiag(1,1,:,nQke) = (/'    ,Input_edmf%Qke(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nSh3D), input'
+        write(6,3002) '  rdiag(1,1,:,nSh3D) = (/'    ,Input_edmf%Sh3D(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nel_pbl), input'
+        write(6,3002) '  rdiag(1,1,:,nel_pbl) = (/'    ,Input_edmf%el_pbl(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,ncldfra_bl), input'
+        write(6,3002) '  rdiag(1,1,:,ncldfra_bl) = (/'    ,Input_edmf%cldfra_bl(ii_write,:,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; rdiag(1,1,:,nqc_bl), input'
+        write(6,3002) '  rdiag(1,1,:,nqc_bl) = (/'    ,Input_edmf%qc_bl(ii_write,:,jj_write)
+        write(6,*)    ''
+        write(6,*)    '----- end of fieles needed by the offline program ---'
         write(6,*)    ''
         write(6,*)    '; friction velocity (m/s)'
         write(6,3003) '  u_star_star    = (/',Input_edmf%u_star_star(ii_write,jj_write)
@@ -7904,21 +7923,6 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; Obukhov length (m)'
         write(6,3000) '  Obukhov_length_star    = (/',Input_edmf%Obukhov_length_star(ii_write,jj_write)
         write(6,3000) '  Obukhov_length_updated = (/',Input_edmf%Obukhov_length_updated(ii_write,jj_write)
-        write(6,*)    ' '
-        write(6,*)    '; rdiag(1,1,:,nQke), input'
-        write(6,3002) '  rdiag(1,1,:,nQke) = (/'    ,Input_edmf%Qke(ii_write,:,jj_write)
-        write(6,*)    ' '
-        write(6,*)    '; rdiag(1,1,:,nSh3D), input'
-        write(6,3002) '  rdiag(1,1,:,nSh3D) = (/'    ,Input_edmf%Sh3D(ii_write,:,jj_write)
-        write(6,*)    ' '
-        write(6,*)    '; rdiag(1,1,:,nel_pbl), input'
-        write(6,3002) '  rdiag(1,1,:,nel_pbl) = (/'    ,Input_edmf%el_pbl(ii_write,:,jj_write)
-        write(6,*)    ' '
-        write(6,*)    '; rdiag(1,1,:,ncldfra_bl), input'
-        write(6,3002) '  rdiag(1,1,:,ncldfra_bl) = (/'    ,Input_edmf%cldfra_bl(ii_write,:,jj_write)
-        write(6,*)    ' '
-        write(6,*)    '; rdiag(1,1,:,nqc_bl), input'
-        write(6,3002) '  rdiag(1,1,:,nqc_bl) = (/'    ,Input_edmf%qc_bl(ii_write,:,jj_write)
         !write(6,*)    ' '
         !write(6,*)    '; '
         !write(6,3002) '  = (/'    ,
@@ -7966,11 +7970,11 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ';=============='
         write(6,*)    ';=============='
         write(6,*)    ''
-        write(6,*)    'rdiag_Qke',Qke
-        write(6,*)    'rdiag_Sh3D',Sh3D
-        write(6,*)    'rdiag_el_pbl',el_pbl
-        write(6,*)    'rdiag_cldfra_bl',cldfra_bl
-        write(6,*)    'rdiag_qc_bl',qc_bl
+        write(6,*)    'rdiag_Qke',Qke(ii_write,jj_write,:)
+        write(6,*)    'rdiag_Sh3D',Sh3D(ii_write,jj_write,:)
+        write(6,*)    'rdiag_el_pbl',el_pbl(ii_write,jj_write,:)
+        write(6,*)    'rdiag_cldfra_bl',cldfra_bl(ii_write,jj_write,:)
+        write(6,*)    'rdiag_qc_bl',qc_bl(ii_write,jj_write,:)
         !write(6,*)    'rdiag_',rdiag(ii_write,jj_write,:,n)
         write(6,*)    ''
         write(6,*)    ';======================'
@@ -8167,7 +8171,6 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 end subroutine convert_edmf_to_am4_array
 
 !#############################
-
 
 !###################################
 !  do not copy these subroutiens
