@@ -386,6 +386,9 @@ logical :: do_writeout_column_nml = .false.   ! switch to control whether writin
 
 logical :: do_writeout_column = .false.       ! local variable
 real    :: lat_lower, lat_upper, lon_lower, lon_upper
+real    :: tdt_max     = 500. ! K/day
+logical :: do_limit_tdt = .false.
+real    :: tdt_limit =   200. ! K/day
 !--> yhc, add edmf_mynn nml
 
 
@@ -401,6 +404,7 @@ namelist / physics_driver_nml / do_radiation, do_clubb,  do_cosp, &
                                 min_diam_ice, dcs, min_diam_drop, &
                                 do_edmf_mynn, do_edmf_mynn_diagnostic, & ! yhc add
                                 do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write, & ! yhc add
+                                tdt_max, do_limit_tdt, tdt_limit, &  ! yhc add
                                 max_diam_drop, use_tau, cosp_frequency
 
 
@@ -2522,6 +2526,7 @@ real,dimension(:,:),    intent(inout)             :: gust
       real, dimension(:,:,:,:), pointer :: rdiag  ! yhc 
       real, dimension(:,:,:),   pointer :: udt    ! yhc
       real, dimension(:,:,:),   pointer :: vdt    ! yhc
+      real :: tt1
 
       t => Physics_input_block%t
       r => Physics_input_block%q
@@ -3029,6 +3034,30 @@ real,dimension(:,:),    intent(inout)             :: gust
                     'stop by yihsuan', FATAL)
   endif
 !--> yhc
+
+!<-- debug 
+  tt1 = tdt_max / 86400.  ! change unit from K/day to K/sec
+  do i=1,size(tdt,1)
+  do j=1,size(tdt,2)
+  do k=1,size(tdt,3)
+    if ( abs(tdt(i,j,k)) .ge. tt1 ) then
+      write(6,*) 'phys, >tdt_max,i,j,lat,lon,',tdt_max,i,j,lat(i,j),lon(i,j)
+
+      if (do_limit_tdt) then
+        if (tdt(i,j,k).ge.0.) then
+          tdt(i,j,k) = tdt_limit / 86400.
+        else
+          tdt(i,j,k) = -1.*tdt_limit / 86400.
+        endif
+      endif
+    endif
+  enddo
+  enddo
+  enddo
+!-->
+
+
+
 
 !-----------------------------------------------------------------------
 !    nullify all local pointers.
