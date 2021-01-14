@@ -133,8 +133,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    real    :: lat_range = 0.001
    real    :: lon_range = 0.001
-   logical :: do_writeout_column_nml = .true.
-   !logical :: do_writeout_column_nml = .false.
+   !logical :: do_writeout_column_nml = .true.
+   logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
 
@@ -6523,7 +6523,7 @@ subroutine edmf_mynn_driver ( &
 !! debug01
 !write(6,*) 'edmf_mynn, beginning'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
-!write(6,*) 'initflag,',initflag
+write(6,*) 'initflag,',initflag
 !write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
