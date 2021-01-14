@@ -132,8 +132,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    real    :: lat_range = 0.001
    real    :: lon_range = 0.001
-   !logical :: do_writeout_column_nml = .true.
-   logical :: do_writeout_column_nml = .false.
+   logical :: do_writeout_column_nml = .true.
+   !logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
 
@@ -8164,6 +8164,12 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
     qc_bl     (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
     Sh3D      (i,j,kk) = Output_edmf%Sh3D      (i,k,j)
     !!! rdiag(i,j,kk,n)      = Output_edmf%      (i,k,j)
+
+    !--- To avoid MYNN condensation issues, Kay Suselj suggested to set tdt & qdt to zeros when TKE is small (<0.02 m2/s2)
+    if (Qke(i,j,kk) .lt. 0.04) then
+      am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
+      am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
+    endif
 
   enddo  ! end loop of k
   enddo  ! end loop of j
