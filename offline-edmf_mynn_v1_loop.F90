@@ -105,7 +105,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    INTEGER :: bl_mynn_mixqt     = 2         ! will mix moist conserved variables, after mixing invokes PDF cloud scheme to convert moist variables to dry
    INTEGER :: icloud_bl         = 1         ! 1, cloud cover and liquid water from the PDF scheme will be on the cloud output
 
-   integer :: initflag = 1 
+   !integer :: initflag = 1 
+   integer :: initflag = 0 
    logical :: FLAG_QI  = .false.             ! (flags for whether cloud and ice mixing rations and number concentrations are mixed separately)
    logical :: FLAG_QNI = .false.            ! all false
    logical :: FLAG_QC  = .false.
@@ -131,8 +132,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    real    :: lat_range = 0.001
    real    :: lon_range = 0.001
-   logical :: do_writeout_column_nml = .true.
-   !logical :: do_writeout_column_nml = .false.
+   !logical :: do_writeout_column_nml = .true.
+   logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
 
@@ -6674,24 +6675,24 @@ subroutine edmf_mynn_driver ( &
 !  !--> test tendency purposes
 
 !<-- debug 
-  tt1 = tdt_max / 86400.  ! change unit from K/day to K/sec
-  do i=1,size(am4_Output_edmf%tdt_edmf,1)
-  do j=1,size(am4_Output_edmf%tdt_edmf,2)
-  do k=1,size(am4_Output_edmf%tdt_edmf,3)
-    if ( abs(am4_Output_edmf%tdt_edmf(i,j,k)) .ge. tt1 ) then
-      write(6,*) 'edmf, >tdt_max,i,j,lat,lon,',tdt_max,i,j,lat(i,j),lon(i,j)
-
-      if (do_limit_tdt) then
-        if (am4_Output_edmf%tdt_edmf(i,j,k).ge.0.) then
-          am4_Output_edmf%tdt_edmf(i,j,k) = tdt_limit / 86400.
-        else
-          am4_Output_edmf%tdt_edmf(i,j,k) = -1.*tdt_limit / 86400.
-        endif
-      endif
-    endif
-  enddo
-  enddo
-  enddo
+!  tt1 = tdt_max / 86400.  ! change unit from K/day to K/sec
+!  do i=1,size(am4_Output_edmf%tdt_edmf,1)
+!  do j=1,size(am4_Output_edmf%tdt_edmf,2)
+!  do k=1,size(am4_Output_edmf%tdt_edmf,3)
+!    if ( abs(am4_Output_edmf%tdt_edmf(i,j,k)) .ge. tt1 ) then
+!      write(6,*) 'edmf, >tdt_max,i,j,lat,lon,',tdt_max,i,j,lat(i,j),lon(i,j)
+!
+!      if (do_limit_tdt) then
+!        if (am4_Output_edmf%tdt_edmf(i,j,k).ge.0.) then
+!          am4_Output_edmf%tdt_edmf(i,j,k) = tdt_limit / 86400.
+!        else
+!          am4_Output_edmf%tdt_edmf(i,j,k) = -1.*tdt_limit / 86400.
+!        endif
+!      endif
+!    endif
+!  enddo
+!  enddo
+!  enddo
 !-->
 
   !--- updated tendencies
@@ -8424,7 +8425,8 @@ elseif (input_profile == "AMIP_i27_j01_IndOcn") then
   ql (1,1,:) = (/    0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.4486E-10  ,  0.1613E-10  ,  0.0000E+00  ,  0.1190E-07  ,  0.8196E-06  ,  0.4413E-02  ,  0.5882E-02  ,  0.2861E-02  ,  0.2010E-02  ,  0.1671E-02  ,  0.8721E-03  ,  0.7515E-04  ,  0.1745E-03  ,  0.1415E-03  ,  0.1484E-04  ,  0.7707E-05  ,  0.4014E-05  ,  0.1743E-05  ,  0.3188E-06  ,  0.8335E-08  ,  0.5524E-08  ,  0.4088E-08  ,  0.2301E-08  ,  0.9814E-08  ,  0.5044E-08  ,  0.3409E-09  ,  0.1802E-14  ,  0.2397E-30  /)
   
   ! cloud ice water mixing ratio at full levels (kg/kg)
-  qi (1,1,:) = (/    0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.2224E-01  ,  0.2240E-01  ,  0.2094E-01  ,  0.1884E-01  ,  0.1462E-01  ,  0.6536E-02  ,  0.4606E-02  ,  0.4494E-02  ,  0.4155E-02  ,  0.3521E-02  ,  0.3257E-02  ,  0.2755E-02  ,  0.9241E-03  ,  0.2604E-04  ,  0.4037E-11  ,  0.6534E-28  ,  0.3008E-56  ,  0.7458E-73  ,  0.3929-196  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.1204-213  ,  0.3481-215  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  /)
+  !qi (1,1,:) = (/    0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.2224E-01  ,  0.2240E-01  ,  0.2094E-01  ,  0.1884E-01  ,  0.1462E-01  ,  0.6536E-02  ,  0.4606E-02  ,  0.4494E-02  ,  0.4155E-02  ,  0.3521E-02  ,  0.3257E-02  ,  0.2755E-02  ,  0.9241E-03  ,  0.2604E-04  ,  0.4037E-11  ,  0.6534E-28  ,  0.3008E-56  ,  0.7458E-73  ,  0.3929-196  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.1204-213  ,  0.3481-215  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  /)
+  qi (1,1,:) = (/    0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.2224E-01  ,  0.2240E-01  ,  0.2094E-01  ,  0.1884E-01  ,  0.1462E-01  ,  0.6536E-02  ,  0.4606E-02  ,  0.4494E-02  ,  0.4155E-02  ,  0.3521E-02  ,  0.3257E-02  ,  0.2755E-02  ,  0.9241E-03  ,  0.2604E-04  ,  0.4037E-11  ,  0.6534E-28  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  /)
   
   ! total water mixing ratio (qv+ql+qi) at full levels (kg/kg)
   qt (1,1,:) = (/    0.1736E-05  ,  0.1760E-05  ,  0.1754E-05  ,  0.1473E-05  ,  0.1953E-05  ,  0.2234E-01  ,  0.2273E-01  ,  0.2158E-01  ,  0.1979E-01  ,  0.1598E-01  ,  0.1296E-01  ,  0.1303E-01  ,  0.1027E-01  ,  0.9637E-02  ,  0.9390E-02  ,  0.8625E-02  ,  0.7335E-02  ,  0.6562E-02  ,  0.7183E-02  ,  0.7978E-02  ,  0.8932E-02  ,  0.1036E-01  ,  0.1180E-01  ,  0.1299E-01  ,  0.1358E-01  ,  0.1409E-01  ,  0.1465E-01  ,  0.1534E-01  ,  0.1608E-01  ,  0.1725E-01  ,  0.1757E-01  ,  0.1782E-01  ,  0.1808E-01  /)
