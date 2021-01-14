@@ -3594,14 +3594,33 @@ Mellor-Yamada experiment; same as c96L33_am4p0_donner_my25 but vert_turb_driver_
     </input>
   </experiment>
 
-  <experiment name="b01-c96L33_am4p0_donner_mynn" inherit="a00-c96L33_am4p0_donner">
+  <experiment name="x01a-c96L33_am4p0_mynn_diag" inherit="a00-c96L33_am4p0_donner">
 <description>
 Code used
-  edmf_mynn.F90, 
-  physics_driver.F90, 
+  edmf_mynn.F90, ?? 0dbc8cd1c148fd3741fc4c42257896e0dc56fb32
+  physics_driver.F90, ?? 9b18d7b08d370d11ed12c5e94f12bdf36fd061bf
 </description>
     <input>
       <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x01b-c96L33_am4p0_mynn" inherit="x01a-c96L33_am4p0_mynn_diag">
+    <input>
       <namelist name="vert_turb_driver_nml">
  DO_SHALLOW_CONV = F,
  DO_MELLOR_YAMADA        = F,
@@ -3622,10 +3641,213 @@ Code used
  DO_STOP_RUN     = F,
       </namelist>
       <namelist name="edmf_mynn_nml">
+ OPTION_SURFACE_FLUX     = updated                ,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        4,
+ JJ_WRITE        =        4,
+ LAT_WRITE       =  0.210512289625895
+ LON_WRITE       =  2.60344627634657
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x01c-c96L33_am4p0_mynn_fakePBL_sfcfluxSTAR" inherit="x01a-c96L33_am4p0_mynn_diag">
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = T,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = T,
+ DO_SIMPLE       = F,
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
  DO_WRITEOUT_COLUMN_NML  = F,
  II_WRITE        =        0,
  JJ_WRITE        =        0,
  DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star                ,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ OPTION_SURFACE_FLUX     = star                ,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x01d-c96L33_am4p0_mynn_fakePBL_sfcfluxUPDT" inherit="x01a-c96L33_am4p0_mynn_diag">
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = T,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = T,
+ DO_SIMPLE       = F,
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ OPTION_SURFACE_FLUX     = updated                ,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x01a_debug-c96L33_am4p0_mynn_diag" inherit="x01a-c96L33_am4p0_mynn_diag">
+  </experiment>
+
+  <experiment name="x01b_debug-c96L33_am4p0_mynn" inherit="x01b-c96L33_am4p0_mynn">
+  </experiment>
+
+  <experiment name="x11a-c96L33_am4p0_mynn_diag" inherit="x01a-c96L33_am4p0_mynn_diag">
+  </experiment>
+
+  <experiment name="x11a_debug-c96L33_am4p0_mynn_diag" inherit="x01a-c96L33_am4p0_mynn_diag">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ OPTION_SURFACE_FLUX     = updated                ,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = T,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x11b-c96L33_am4p0_mynn_diag" inherit="x01a-c96L33_am4p0_mynn_diag">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ OPTION_SURFACE_FLUX     = updated                ,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        4,
+ JJ_WRITE        =        4,
+ LAT_WRITE       =  0.210512289625895
+ LON_WRITE       =  2.60344627634657
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x11d-c96L33_am4p0_mynn" inherit="x01b-c96L33_am4p0_mynn">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ TDT_MAX =   3000.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   500.000000000000     ,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ OPTION_SURFACE_FLUX     = updated                ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   150.000000000000     ,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x21d-c96L33_am4p0_mynn" inherit="x01b-c96L33_am4p0_mynn">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_STOP_RUN     = F,
+ TDT_MAX =   3000.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   500.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        27,
+ JJ_WRITE        =        1,
+ LAT_WRITE       =   -0.125989713787515 
+ LON_WRITE       =  1.01571602273607
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ OPTION_SURFACE_FLUX     = updated                ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   150.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        27,
+ JJ_WRITE        =        1,
+ LAT_WRITE       =   -0.125989713787515 
+ LON_WRITE       =  1.01571602273607
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x31d-c96L33_am4p0_mynn" inherit="x01b-c96L33_am4p0_mynn">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_STOP_RUN     = F,
+ TDT_MAX =   3000.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   500.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        27,
+ JJ_WRITE        =        1,
+ LAT_WRITE       =   -0.125989713787515 
+ LON_WRITE       =  1.01571602273607
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ OPTION_SURFACE_FLUX     = updated                ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   150.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        27,
+ JJ_WRITE        =        1,
+ LAT_WRITE       =   -0.125989713787515 
+ LON_WRITE       =  1.01571602273607
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x11e-c96L33_am4p0_mynn_diag" inherit="x01a-c96L33_am4p0_mynn_diag">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ TDT_MAX =   3000.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   500.000000000000     ,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ OPTION_SURFACE_FLUX     = updated                ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   150.000000000000     ,
       </namelist>
     </input>
   </experiment>
