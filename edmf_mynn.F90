@@ -8385,6 +8385,12 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
     Sh3D      (i,j,kk) = Output_edmf%Sh3D      (i,k,j)
     !!! rdiag(i,j,kk,n)      = Output_edmf%      (i,k,j)
 
+    !--- To avoid MYNN condensation issues, Kay Suselj suggested to set tdt & qdt to zeros when TKE is small (<0.02 m2/s2)
+    if (Qke(i,j,kk) .lt. 0.04) then
+      am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
+      am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
+    endif
+
   enddo  ! end loop of k
   enddo  ! end loop of j
   enddo  ! end loop of 1
