@@ -7813,20 +7813,20 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; pressure at half level (Pa)'
         write(6,3001) '  p_half  = (/',Physics_input_block%p_half(ii_write,jj_write,:)
         write(6,*)    ''
-        write(6,*)    '; height at half level above the surface (m)'
-        write(6,3001) ';  z_half_surf0  = (/',Physics_input_block%z_half(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
-        write(6,*)    ''
         write(6,*)    '; pressure at full level (Pa)'
         write(6,3001) '  p_full  = (/',Physics_input_block%p_full(ii_write,jj_write,:)
-        write(6,*)    ''
-        write(6,*)    '; height at full level above the surface (m)'
-        write(6,3001) ';  z_full_surf0  = (/',Physics_input_block%z_full(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
         write(6,*)    ''
         write(6,*)    '; actual height at half level (m)'
         write(6,3001) '  z_half  = (/',Physics_input_block%z_half(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; actual height at full level (m)'
         write(6,3001) '  z_full  = (/',Physics_input_block%z_full(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '; height at half level above the surface (m)'
+        write(6,3001) '  z_half_surf0  = (/',Physics_input_block%z_half(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
+        write(6,*)    ''
+        write(6,*)    '; height at full level above the surface (m)'
+        write(6,3001) '  z_full_surf0  = (/',Physics_input_block%z_full(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
         write(6,*)    ''
         write(6,*)    '; zonal wind velocity at full levels (m/s)'
         write(6,3001) '  uu  = (/'    ,Physics_input_block%u(ii_write,jj_write,:)
