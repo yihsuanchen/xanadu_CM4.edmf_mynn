@@ -15,9 +15,9 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_01"
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_02_u,vdt_NaN"
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
-  character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
+  !character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
   !character*50 :: input_profile = "AMIP_i27_j01_IndOcn"
-  !character*50 :: input_profile = "AMIP_i24_j02_GreenLand_edge"
+  character*50 :: input_profile = "AMIP_i24_j02_GreenLand_edge"
   !character*50 :: input_profile = "xxx"
 
   !logical :: do_no_ql_qi = .true.
@@ -137,10 +137,13 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    real    :: lat_range = 0.001
    real    :: lon_range = 0.001
-   !logical :: do_writeout_column_nml = .true.
-   logical :: do_writeout_column_nml = .false.
+   logical :: do_writeout_column_nml = .true.
+   !logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
+
+   !logical :: do_qdt_same_as_qtdt = .true.
+   logical :: do_qdt_same_as_qtdt = .false.
 
    real    :: tdt_max     = 500. ! K/day
    logical :: do_limit_tdt = .false.
@@ -6709,6 +6712,9 @@ write(6,*) 'initflag,',initflag
     rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
   end if
 
+print*,'tdt',tdt
+print*,'qdt',rdt(:,:,:,nsphum)
+
   !--- write out EDMF-MYNN input and output fields for debugging purpose
   call edmf_writeout_column ( &
               do_writeout_column, &
@@ -8162,6 +8168,18 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
     am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
 
+    !--- for testing purpose, “evaporate/condensate” the liquid and ice water that is produced during mixing
+    if (do_qdt_same_as_qtdt) then
+      am4_Output_edmf%qdt_edmf (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
+                                          + Output_edmf%RQCBLTEN (i,k,j)  &
+                                          + Output_edmf%RQIBLTEN (i,k,j) 
+
+      am4_Output_edmf%tdt_edmf (i,j,kk) =   Output_edmf%RTHBLTEN (i,k,j) &
+                                          - hlv/( cp_air*Input_edmf%exner(i,k,j) )*Output_edmf%RQCBLTEN (i,k,j)  &
+                                          - hls/( cp_air*Input_edmf%exner(i,k,j) )*Output_edmf%RQIBLTEN (i,k,j)
+      am4_Output_edmf%tdt_edmf (i,j,kk) = am4_Output_edmf%tdt_edmf (i,j,kk) / Input_edmf%exner (i,k,j)
+    endif
+
     !--- change rdiag
     Qke       (i,j,kk) = Output_edmf%Qke       (i,k,j)
     el_pbl    (i,j,kk) = Output_edmf%el_pbl    (i,k,j)
@@ -8175,6 +8193,7 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
       am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
       am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
     endif
+
 
   enddo  ! end loop of k
   enddo  ! end loop of j
