@@ -334,6 +334,8 @@ end type am4_edmf_output_type
   real    :: upwind = 1.                 ! upwind=1. ... use upwind approximation for mass-flux calculation
                                          ! upwind=0.5 ... use centered difference for mass-flux calculation
 
+  logical :: do_qdt_same_as_qtdt = .false.  ! = .true., for testing purposes, evaporate/condensate the liquid and ice water that is produced during mixing. 
+
   integer :: ii_write = -999                    ! i index for column written out. Set to 0 if you want to write out in SCM
   integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
   real    :: lat_write = -999.99                ! latitude  (radian) for column written out
@@ -348,7 +350,7 @@ end type am4_edmf_output_type
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
 
-namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, &
+namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, &
                             do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write
@@ -6742,7 +6744,7 @@ subroutine edmf_mynn_driver ( &
 !! debug01
 !write(6,*) 'edmf_mynn, beginning'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
-!write(6,*) 'initflag,',initflag
+write(6,*) 'initflag,',initflag
 !write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
@@ -6895,24 +6897,24 @@ subroutine edmf_mynn_driver ( &
 !  !--> test tendency purposes
 
 !<-- debug 
-  tt1 = tdt_max / 86400.  ! change unit from K/day to K/sec
-  do i=1,size(am4_Output_edmf%tdt_edmf,1)
-  do j=1,size(am4_Output_edmf%tdt_edmf,2)
-  do k=1,size(am4_Output_edmf%tdt_edmf,3)
-    if ( abs(am4_Output_edmf%tdt_edmf(i,j,k)) .ge. tt1 ) then
-      write(6,*) 'edmf, >tdt_max,i,j,lat,lon,',tdt_max,i,j,lat(i,j),lon(i,j)
-
-      if (do_limit_tdt) then
-        if (am4_Output_edmf%tdt_edmf(i,j,k).ge.0.) then
-          am4_Output_edmf%tdt_edmf(i,j,k) = tdt_limit / 86400.
-        else
-          am4_Output_edmf%tdt_edmf(i,j,k) = -1.*tdt_limit / 86400.
-        endif
-      endif
-    endif
-  enddo
-  enddo
-  enddo
+!  tt1 = tdt_max / 86400.  ! change unit from K/day to K/sec
+!  do i=1,size(am4_Output_edmf%tdt_edmf,1)
+!  do j=1,size(am4_Output_edmf%tdt_edmf,2)
+!  do k=1,size(am4_Output_edmf%tdt_edmf,3)
+!    if ( abs(am4_Output_edmf%tdt_edmf(i,j,k)) .ge. tt1 ) then
+!      write(6,*) 'edmf, >tdt_max,i,j,lat,lon,',tdt_max,i,j,lat(i,j),lon(i,j)
+!
+!      if (do_limit_tdt) then
+!        if (am4_Output_edmf%tdt_edmf(i,j,k).ge.0.) then
+!          am4_Output_edmf%tdt_edmf(i,j,k) = tdt_limit / 86400.
+!        else
+!          am4_Output_edmf%tdt_edmf(i,j,k) = -1.*tdt_limit / 86400.
+!        endif
+!      endif
+!    endif
+!  enddo
+!  enddo
+!  enddo
 !-->
 
   !--- updated tendencies
@@ -6923,6 +6925,9 @@ subroutine edmf_mynn_driver ( &
 
     rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
   end if
+
+print*,'tdt',tdt
+print*,'qdt',rdt(:,:,:,nsphum)
 
   !--- write out EDMF-MYNN input and output fields for debugging purpose
   call edmf_writeout_column ( &
@@ -8032,20 +8037,20 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; pressure at half level (Pa)'
         write(6,3001) '  p_half  = (/',Physics_input_block%p_half(ii_write,jj_write,:)
         write(6,*)    ''
-        write(6,*)    '; height at half level above the surface (m)'
-        write(6,3001) '  z_half  = (/',Physics_input_block%z_half(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
-        write(6,*)    ''
         write(6,*)    '; pressure at full level (Pa)'
         write(6,3001) '  p_full  = (/',Physics_input_block%p_full(ii_write,jj_write,:)
         write(6,*)    ''
-        write(6,*)    '; height at full level above the surface (m)'
-        write(6,3001) '  z_full  = (/',Physics_input_block%z_full(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
-        write(6,*)    ''
         write(6,*)    '; actual height at half level (m)'
-        write(6,3001) '  z_half_actual  = (/',Physics_input_block%z_half(ii_write,jj_write,:)
+        write(6,3001) '  z_half  = (/',Physics_input_block%z_half(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; actual height at full level (m)'
-        write(6,3001) '  z_full_actual  = (/',Physics_input_block%z_full(ii_write,jj_write,:)
+        write(6,3001) '  z_full  = (/',Physics_input_block%z_full(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '; height at half level above the surface (m)'
+        write(6,3001) '  z_half_surf0  = (/',Physics_input_block%z_half(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
+        write(6,*)    ''
+        write(6,*)    '; height at full level above the surface (m)'
+        write(6,3001) '  z_full_surf0  = (/',Physics_input_block%z_full(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
         write(6,*)    ''
         write(6,*)    '; zonal wind velocity at full levels (m/s)'
         write(6,3001) '  uu  = (/'    ,Physics_input_block%u(ii_write,jj_write,:)
@@ -8377,6 +8382,18 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
     am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
 
+    !--- for testing purpose, “evaporate/condensate” the liquid and ice water that is produced during mixing
+    if (do_qdt_same_as_qtdt) then
+      am4_Output_edmf%qdt_edmf (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
+                                          + Output_edmf%RQCBLTEN (i,k,j)  &
+                                          + Output_edmf%RQIBLTEN (i,k,j) 
+
+      am4_Output_edmf%tdt_edmf (i,j,kk) =   Output_edmf%RTHBLTEN (i,k,j) &
+                                          - hlv/( cp_air*Input_edmf%exner(i,k,j) )*Output_edmf%RQCBLTEN (i,k,j)  &
+                                          - hls/( cp_air*Input_edmf%exner(i,k,j) )*Output_edmf%RQIBLTEN (i,k,j)
+      am4_Output_edmf%tdt_edmf (i,j,kk) = am4_Output_edmf%tdt_edmf (i,j,kk) / Input_edmf%exner (i,k,j)
+    endif
+
     !--- change rdiag
     Qke       (i,j,kk) = Output_edmf%Qke       (i,k,j)
     el_pbl    (i,j,kk) = Output_edmf%el_pbl    (i,k,j)
@@ -8391,6 +8408,7 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
       am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
     endif
 
+
   enddo  ! end loop of k
   enddo  ! end loop of j
   enddo  ! end loop of 1
@@ -8398,5 +8416,6 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 end subroutine convert_edmf_to_am4_array
 
 !#############################
+
 
 end module edmf_mynn_mod
