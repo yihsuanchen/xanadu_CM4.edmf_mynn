@@ -6113,13 +6113,6 @@ subroutine edmf_mynn_driver ( &
     initflag = 0          ! no initialization
   endif
 
-!! debug01, check semi-prognostic variables in offline code
-!  call random_number (Output_edmf%Qke)
-!  call random_number (Output_edmf%el_pbl     )
-!  call random_number (Output_edmf%cldfra_bl  )
-!  call random_number (Output_edmf%qc_bl      )
-!  call random_number (Output_edmf%Sh3D       )
-
 !---------------------------------------------------------------------
 ! process the outputs from the EDMF-MYNN program
 !---------------------------------------------------------------------
@@ -6138,13 +6131,6 @@ subroutine edmf_mynn_driver ( &
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nSh3D)',rdiag(:,:,:,nSh3D)
-
-!  !<-- test tendency purposes
-!  am4_Output_edmf%udt_edmf = 1./dt
-!  am4_Output_edmf%vdt_edmf = 2./dt
-!  am4_Output_edmf%tdt_edmf = -1./dt
-!  am4_Output_edmf%qdt_edmf = -2./dt
-!  !--> test tendency purposes
 
 !<-- debug 
 !  tt1 = tdt_max / 86400.  ! change unit from K/day to K/sec
@@ -6592,10 +6578,7 @@ subroutine edmf_alloc ( &
   nt = size(Physics_input_block%q,4)
   kxp = kx + 1
 
-  ! 0 means unused
-  !IMS =  1  ; IME =  ix ; JMS =  1  ; JME =  jx ; KMS  = 1  ; KME = kx
-  !IDS =  0  ; IDE =   0 ; JDS =  0  ; JDE =   0 ; KDS =  0  ; KDE =  0
-  !ITS =  0  ; ITE =   0 ; JTS =  0  ; JTE =   0 ; KTS =  1  ; KTE = kx
+  !--- set indexes in mynn
   IMS =  1  ; IME =  ix  ; JMS =  1  ; JME =  jx ; KMS  = 1  ; KME = kx
   IDS =  1  ; IDE =  ix  ; JDS =  1  ; JDE =  jx ; KDS =  1  ; KDE = kx
   ITS =  1  ; ITE =  ix  ; JTS =  1  ; JTE =  jx ; KTS =  1  ; KTE = kx
@@ -6782,35 +6765,35 @@ subroutine edmf_alloc ( &
 !-------------------------------------------------------------------------
 
   !--- 0D variables
-  Input_edmf%delt = dt
+  Input_edmf%delt = dt                 
   Input_edmf%dx   = sqrt(area(1,1))
 
-  !--- 3-D variable
-  u_host     (:,:,:) = Physics_input_block%u
-  v_host     (:,:,:) = Physics_input_block%v
-  omega_host (:,:,:) = Physics_input_block%omega
-  qv_host    (:,:,:) = Physics_input_block%q(:,:,:,nsphum)
-  qc_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
-  ql_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
-  qi_host    (:,:,:) = Physics_input_block%q(:,:,:,nqi)
-  p_host     (:,:,:) = Physics_input_block%p_full
-  T3D_host   (:,:,:) = Physics_input_block%t
+  !--- 3-D variable from am4 (*_host variables)
+  u_host     (:,:,:) = Physics_input_block%u                ! zonal wind (m/s)
+  v_host     (:,:,:) = Physics_input_block%v                ! meridional wint (m/s)
+  omega_host (:,:,:) = Physics_input_block%omega            ! vertical pressure velocity (Pa/s)
+  qv_host    (:,:,:) = Physics_input_block%q(:,:,:,nsphum)  ! specifit humidity (kg/kg)
+  qc_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)     ! cloud liquid water mixing ratio (kg/kg)
+  ql_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)     ! cloud liquid water mixing ratio (kg/kg)
+  qi_host    (:,:,:) = Physics_input_block%q(:,:,:,nqi)     ! cloud ice water mixing ratio (kg/kg)
+  p_host     (:,:,:) = Physics_input_block%p_full           ! pressure at full levels (Pa)
+  T3D_host   (:,:,:) = Physics_input_block%t                ! temperature (K)
 
-  exner_host(:,:,:) = (p_host(:,:,:)*p00inv)**(kappa)
-  th_host   (:,:,:) = T3D_host(:,:,:) / exner_host(:,:,:)
-  tv_host   (:,:,:) = T3D_host(:,:,:)*(qv_host(:,:,:)*d608+1.0)
-  thv_host  (:,:,:) = tv_host(:,:,:) / exner_host(:,:,:)
-  rho_host  (:,:,:) = p_host(:,:,:) / rdgas / tv_host(:,:,:)
-  w_host    (:,:,:) = -1.*omega_host(:,:,:) / rho_host(:,:,:) / g 
+  exner_host(:,:,:) = (p_host(:,:,:)*p00inv)**(kappa)              ! Exner function
+  th_host   (:,:,:) = T3D_host(:,:,:) / exner_host(:,:,:)          ! potential temperature (K)
+  tv_host   (:,:,:) = T3D_host(:,:,:)*(qv_host(:,:,:)*d608+1.0)    ! virtual temperature (K)
+  thv_host  (:,:,:) = tv_host(:,:,:) / exner_host(:,:,:)           ! virtual potential temperature (K)
+  rho_host  (:,:,:) = p_host(:,:,:) / rdgas / tv_host(:,:,:)       ! air density (kg/m3)
+  w_host    (:,:,:) = -1.*omega_host(:,:,:) / rho_host(:,:,:) / g  ! vertical velocity (m/s)
 
-  thl_host   (:,:,:) = th_host(:,:,:) - ( hlv*ql_host(:,:,:)+hls*qi_host(:,:,:) ) / cp_air / exner_host(:,:,:)
-  qt_host    (:,:,:) = qv_host(:,:,:) + ql_host(:,:,:) + qi_host(:,:,:)
+  thl_host   (:,:,:) = th_host(:,:,:) - ( hlv*ql_host(:,:,:)+hls*qi_host(:,:,:) ) / cp_air / exner_host(:,:,:) ! ice-liquid water potential temperature (K) 
+  qt_host    (:,:,:) = qv_host(:,:,:) + ql_host(:,:,:) + qi_host(:,:,:)  ! total water mixing ratio (kg/kg)
 
   qnc_host = 0.  ! not used, set to zero
   qni_host = 0.  ! not used, set to zero
 
   do k=1,kx
-    dz_host(:,:,k) = Physics_input_block%z_half(:,:,k) - Physics_input_block%z_half(:,:,k+1)
+    dz_host(:,:,k) = Physics_input_block%z_half(:,:,k) - Physics_input_block%z_half(:,:,k+1)   ! z difference between half levels (m)
   enddo
 
   !--- 2-D variables
@@ -6852,13 +6835,13 @@ subroutine edmf_alloc ( &
 
   ! assign to Input_edmf
   if (option_surface_flux.eq."star") then
-    u_star_host           (:,:) = u_star_star         (:,:)
-    lhflx_host            (:,:) = lhflx_star          (:,:)
-    shflx_host            (:,:) = shflx_star          (:,:)
-    Obukhov_length_host   (:,:) = Obukhov_length_star (:,:)
+    u_star_host           (:,:) = u_star_star         (:,:)        ! friction velocity (m/s)
+    lhflx_host            (:,:) = lhflx_star          (:,:)        ! evaoprtaion rate (kg/m2/s)
+    shflx_host            (:,:) = shflx_star          (:,:)        ! sensible heat flux (W/m2)
+    Obukhov_length_host   (:,:) = Obukhov_length_star (:,:)        ! Monin–Obukhov length (m)
 
   elseif (option_surface_flux.eq."updated") then
-    u_star_host           (:,:) = u_star_updated         (:,:)
+    u_star_host           (:,:) = u_star_updated         (:,:)     ! same as above
     lhflx_host            (:,:) = lhflx_updated          (:,:)
     shflx_host            (:,:) = shflx_updated          (:,:)
     Obukhov_length_host   (:,:) = Obukhov_length_updated (:,:)
@@ -6883,6 +6866,7 @@ subroutine edmf_alloc ( &
   Input_edmf%vdfg  = 0.   
   Input_edmf%znt   = 0.   ! no need in JPL EDMF scheme   
 
+  !--- convert vertical indexing
   do i=1,ix    
   do j=1,jx    
   do k=1,kx 
@@ -7208,52 +7192,6 @@ subroutine edmf_writeout_column ( &
   nt = size(Physics_input_block%q,4)
 
   kxp = kx + 1
-
-!!-------------------------------------------------------------------------
-!!  determine whether writing out the selected column
-!!-------------------------------------------------------------------------
-!  do_writeout_column = .false.
-!  if (do_writeout_column_nml) then
-!
-!    !--- for global simulations
-!    if (ii_write.ne.-999 .and. jj_write.ne.-999) then
-!      do_writeout_column = .true.
-!
-!      if (lat_write.ne.-999.99 .and. lon_write.ne.-999.99) then
-!
-!        lat_lower = lat_write - lat_range
-!        lat_upper = lat_write + lat_range
-!        lon_lower = lon_write - lon_range
-!        lon_upper = lon_write + lon_range
-!
-!        if (lat_lower.gt.lat_upper) then
-!          lat_temp  = lat_upper
-!          lat_upper = lat_lower
-!          lat_lower = lat_temp
-!        endif
-!
-!        if (lon_lower.gt.lon_upper) then
-!          lon_temp  = lon_upper
-!          lon_upper = lon_lower
-!          lon_lower = lon_temp
-!        endif
-!
-!        if (lat (ii_write,jj_write).gt.lat_lower .and. lat (ii_write,jj_write).lt.lat_upper .and. &
-!            lon (ii_write,jj_write).gt.lon_lower .and. lon (ii_write,jj_write).lt.lon_upper ) then
-!          do_writeout_column = .true.
-!        else
-!          do_writeout_column = .false.
-!        endif
-!      endif
-!    endif
-!
-!    !--- SCM
-!    if (ii_write.eq.0 .and. jj_write.eq.0) then
-!      do_writeout_column = .true.
-!      ii_write = 1
-!      jj_write = 1
-!    endif
-!  endif  ! end if of do_writeout_column_nml
 
 !-------------------------------------------------------------------------
 ! writing out the selected column
@@ -7599,12 +7537,6 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 !--- local variable
   integer i,j,k,kk
 !------------------------------------------
-
-!print*,'convert, Output_edmf%Qke, ix,jx,kx',size(Output_edmf%Qke,1),size(Output_edmf%Qke,2),size(Output_edmf%Qke,3)
-  !ix = size(Output_edmf%Qke,1)
-  !jx = size(Output_edmf%Qke,3)
-  !kx = size(Output_edmf%Qke,2)
-  !print*,'convert, ix,jx,kx',ix,jx,kx
 
   do i=1,ix
   do j=1,jx
