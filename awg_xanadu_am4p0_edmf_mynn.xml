@@ -2801,6 +2801,9 @@ Experiment name = $(name)
       <regression name="basic">
           <xi:include xpointer="xpointer(//freInclude[@name='c96_216_basic']/node())"/>
       </regression>
+      <regression name="debug_30d">
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_432_debug_30d']/node())"/>
+      </regression>
       <regression name="rts">
           <xi:include xpointer="xpointer(//freInclude[@name='c96_216_rts']/node())"/>
           <xi:include xpointer="xpointer(//freInclude[@name='c96_384_rts']/node())"/>
@@ -3826,6 +3829,122 @@ Code used
  JJ_WRITE        =        1,
  LAT_WRITE       =   -0.125989713787515 
  LON_WRITE       =  1.01571602273607
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x41a-c96L33_am4p0_mynn" inherit="x01b-c96L33_am4p0_mynn">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_STOP_RUN     = F,
+ TDT_MAX =   3000.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   500.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714  
+ LON_WRITE       =   5.49627374598293 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ OPTION_SURFACE_FLUX     = updated                ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   150.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714  
+ LON_WRITE       =   5.49627374598293 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x51a-c96L33_am4p0_mynn_MODqdt" inherit="x01b-c96L33_am4p0_mynn">
+<description>
+Latest code version, 01/15/2021
+  edmf_mynn.F90, b4a7c8a46c151e875c9f6cda03c8ba0e0598420f
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057
+</description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_STOP_RUN     = F,
+ TDT_MAX =   3000.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   500.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714  
+ LON_WRITE       =   5.49627374598293 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_QDT_SAME_AS_QTDT     = T,
+ OPTION_SURFACE_FLUX     = updated                ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   150.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714  
+ LON_WRITE       =   5.49627374598293 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x61a-c96L33_am4p0_mynn" inherit="x01b-c96L33_am4p0_mynn">
+<description>
+Latest code version, 01/15/2021
+  edmf_mynn.F90, 3e635a9925b461325c50ef62ebc889bcbed631dc
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057
+</description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_STOP_RUN     = F,
+ TDT_MAX =   3000.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   500.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714  
+ LON_WRITE       =   5.49627374598293 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_QDT_SAME_AS_QTDT     = F,
+ OPTION_SURFACE_FLUX     = updated                ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   150.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714  
+ LON_WRITE       =   5.49627374598293 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x61b-c96L33_am4p0_mynn_MODqdt" inherit="x61a-c96L33_am4p0_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_QDT_SAME_AS_QTDT     = T,
+ OPTION_SURFACE_FLUX     = updated                ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   150.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714  
+ LON_WRITE       =   5.49627374598293 
       </namelist>
     </input>
   </experiment>
