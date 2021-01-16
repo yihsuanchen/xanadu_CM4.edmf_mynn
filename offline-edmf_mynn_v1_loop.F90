@@ -19,8 +19,8 @@ MODULE module_bl_mynn
   character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
   !character*50 :: input_profile = "xxx"
 
-!  integer, parameter :: loop_times = 1
-  integer, parameter :: loop_times = 100
+  integer, parameter :: loop_times = 1
+ ! integer, parameter :: loop_times = 100
  ! integer, parameter :: loop_times = 60 
 
   integer, parameter :: ni = 1
@@ -5994,7 +5994,7 @@ subroutine edmf_mynn_driver ( &
 !! debug01
 !write(6,*) 'edmf_mynn, beginning'
 !!write(6,*) 'Physics_input_block%omega',Physics_input_block%omega
-write(6,*) 'initflag,',initflag
+!write(6,*) 'initflag,',initflag
 !write(6,*) 'nQke, rdiag(:,:,:,nQke)',nQke, rdiag(:,:,:,nQke)
 !write(6,*) 'rdiag(:,:,:,nel_pbl)',rdiag(:,:,:,nel_pbl)
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
