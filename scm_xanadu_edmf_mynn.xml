@@ -6056,6 +6056,72 @@ Code used
     </input>
   </experiment>
 
+  <experiment name="b11-BOMEX-am4p0_rad_mynn" inherit="b01-BOMEX-am4p0_rad_mynn">
+<description>
+Latest code version, 01/15/2021
+  edmf_mynn.F90, b4a7c8a46c151e875c9f6cda03c8ba0e0598420f 
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057 
+</description>
+  </experiment>
+
+  <experiment name="a11-GCSS_ARM-am4p0_rad_mynn" inherit="a01-GCSS_ARM-am4p0_rad_mynn">
+<description>
+Latest code version, 01/15/2021
+  edmf_mynn.F90, b4a7c8a46c151e875c9f6cda03c8ba0e0598420f 
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057 
+</description>
+  </experiment>
+
+
+  <experiment name="b12-BOMEX-am4p0_rad_mynn_MODqdt" inherit="b01-BOMEX-am4p0_rad_mynn">
+<description>
+Latest code version, 01/15/2021
+  edmf_mynn.F90, b4a7c8a46c151e875c9f6cda03c8ba0e0598420f
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057
+</description>
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_QDT_SAME_AS_QTDT     = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a12-GCSS_ARM-am4p0_rad_mynn_MODqdt" inherit="a01-GCSS_ARM-am4p0_rad_mynn">
+<description>
+Latest code version, 01/15/2021
+  edmf_mynn.F90, b4a7c8a46c151e875c9f6cda03c8ba0e0598420f
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057
+</description>
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_QDT_SAME_AS_QTDT     = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b21-BOMEX-am4p0_rad_mynn" inherit="b01-BOMEX-am4p0_rad_mynn">
+<description>
+Latest code version, 01/15/2021
+  edmf_mynn.F90, 3e635a9925b461325c50ef62ebc889bcbed631dc
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057 
+</description>
+  </experiment>
+
+  <experiment name="a21-GCSS_ARM-am4p0_rad_mynn" inherit="a01-GCSS_ARM-am4p0_rad_mynn">
+<description>
+Latest code version, 01/15/2021
+  edmf_mynn.F90, 3e635a9925b461325c50ef62ebc889bcbed631dc
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057 
+</description>
+  </experiment>
 
 <!--
 ##########################
@@ -6067,6 +6133,25 @@ Code used
   <experiment name="x01-b01-BOMEX-am4p0_rad_mynn" inherit="b01-BOMEX-am4p0_rad_mynn">
   </experiment>
 
+  <experiment name="x02-b01-BOMEX-am4p0_rad_mynn_diag" inherit="b00-BOMEX-am4p0_rad">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="w01a-BOMEX-am4p0_rad_edmf_diag" inherit="b00-BOMEX-am4p0_rad">
     <description>
        edmf_mynn.F90.xanadu.v2.0 
@@ -6076,6 +6161,7 @@ Code used
       <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
       <namelist name="physics_driver_nml">
  DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
       </namelist>
       <namelist name="edmf_mynn_nml">
  do_edmf_mynn_diagnostic = .true.
