@@ -2953,10 +2953,15 @@ END SUBROUTINE mym_condensation
 
  IF(expmf) THEN
 
-   DO k=kts+1,kte
+
+   DO k=kts+1,kte-1
     upcont(k)=onoff*(s_awu(k)-s_aw(k)*(u(k+1)*upwind+u(k)*(1.-upwind)))
     dncont(k)=onoff*(sd_awu(k)-sd_aw(k)*(u(k+1)*upwind+u(k)*(1.-upwind)))
    ENDDO
+! no flux at the top of the atmosphere
+    upcont(kte)=0. 
+    dncont(kte)=0.  
+! upcont(1) and dncont(1) are not used so they don't need to be set
 
     k=kts
     a(1)=0.
@@ -3021,11 +3026,12 @@ END SUBROUTINE mym_condensation
 
  IF(expmf) THEN
 
-   DO k=kts+1,kte
+   DO k=kts+1,kte-1
     upcont(k)=onoff*(s_awv(k)-s_aw(k)*(v(k+1)*upwind+v(k)*(1.-upwind)))
     dncont(k)=onoff*(sd_awv(k)-sd_aw(k)*(v(k+1)*upwind+v(k)*(1.-upwind)))
    ENDDO
-
+    upcont(kte)=0. 
+    dncont(kte)=0.
 
     k=kts
     a(1)=0.
@@ -3088,11 +3094,13 @@ END SUBROUTINE mym_condensation
  
   IF(expmf) THEN
   
-   DO k=kts+1,kte
+   DO k=kts+1,kte-1
    upcont(k)=s_awthl(k)-s_aw(k)*(thl(k+1)*upwind+thl(k)*(1.-upwind))
    dncont(k)=sd_awthl(k)-sd_aw(k)*(thl(k+1)*upwind+thl(k)*(1.-upwind))
    ENDDO
- 
+   upcont(kte)=0. 
+   dncont(kte)=0.
+
     k=kts
 
     a(k)=0.
@@ -3149,10 +3157,12 @@ END SUBROUTINE mym_condensation
  !============================================
 
  IF(expmf) THEN
-   DO k=kts+1,kte
+   DO k=kts+1,kte-1
      upcont(k)=s_awqt(k)-s_aw(k)*(sqw(k+1)*upwind+sqw(k)*(1.-upwind))
      dncont(k)=sd_awqt(k)-sd_aw(k)*(sqw(k+1)*upwind+sqw(k)*(1.-upwind))
    ENDDO
+    upcont(kte)=0. 
+    dncont(kte)=0.
 
     k=kts
     a(k)=0.
