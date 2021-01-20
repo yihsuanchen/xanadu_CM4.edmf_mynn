@@ -333,6 +333,8 @@ end type am4_edmf_output_type
   logical :: expmf = .true.              ! .true.  ... explicit mass-flux, .false. .... implicit mass-flux
   real    :: upwind = 1.                 ! upwind=1. ... use upwind approximation for mass-flux calculation
                                          ! upwind=0.5 ... use centered difference for mass-flux calculation
+  real    :: L0  = 100.                  ! entrainemnt rate parameter
+  integer :: NUP = 100                   ! the number of updrafts
 
   logical :: do_qdt_same_as_qtdt = .false.  ! = .true., for testing purposes, evaporate/condensate the liquid and ice water that is produced during mixing. 
 
@@ -351,6 +353,7 @@ end type am4_edmf_output_type
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, &
+                            L0, NUP, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, &
                             do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write
@@ -5158,7 +5161,8 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         REAL,DIMENSION(KTS:KTE+1) :: s_aw, s_awthl, s_awqt, s_awu, s_awv, s_awqc, s_awqv, s_awqke, s_aw2
         REAL,DIMENSION(KTS:KTE), INTENT(IN) :: qc_bl1d, cldfra_bl1d
 
-        INTEGER, PARAMETER :: NUP=100, debug_mf=0 !fixing number of plumes to 10
+        !INTEGER, PARAMETER :: NUP=100, debug_mf=0 !fixing number of plumes to 10
+        INTEGER, PARAMETER :: debug_mf=0 !fixing number of plumes to 10, yhc - move NUP to namelist parameter
 
     ! updraft properties
         REAL,DIMENSION(KTS:KTE+1,1:NUP) :: UPW,UPTHL,UPQT,UPQC,UPA,UPU,UPV,UPTHV
@@ -5189,7 +5193,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
 
     ! entrainment parameters
         REAL,PARAMETER :: &
-        & L0=100.,&
+        !& L0=100.,&    yhc move L0 to namelist paramter 
         & ENT0=0.2
 
 ! stability parameter for massflux
@@ -5363,7 +5367,7 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
    IF ( QTsrfF .gt. wqt)  THEN
    ! change surface QT so that the fluxes from the mass flux equal prescribed values
        DO I=1,NUP
-        UPQT(kts-1,I)=(UPQT(kts-1,I)-QT(1))*wthv/QTsrfF+QT(1)
+        UPQT(kts-1,I)=(UPQT(kts-1,I)-QT(1))*wqt/QTsrfF+QT(1)
   !      print *,'adjusting surface QT for a factor',wthv/QTsrfF
         ENDDO
     ENDIF     
