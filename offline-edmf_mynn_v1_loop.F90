@@ -48,7 +48,7 @@ MODULE module_bl_mynn
   integer, parameter :: nqa = 4
 
   real, parameter :: dt = 1800.
-  !real, parameter :: dt = 300.
+!  real, parameter :: dt = 300.
   integer :: FATAL
   logical :: do_stop_run = .false.
   character*20 :: option_surface_flux = "star"
@@ -3987,7 +3987,7 @@ END SUBROUTINE mym_condensation
                &FLAG_QI,FLAG_QC,                  & 
                &Psig_shcu(i,j),                   &
                &ktop_shallow(i,j),ztop_shallow,   &
-               KPBL(i,j)&
+               KPBL(i,j)                          &
             )
 
           ENDIF
@@ -4490,422 +4490,150 @@ end subroutine ComputeLiquidFrac
 
   END SUBROUTINE GET_PBLH
   
-!=================================================================
-subroutine Poisson(istart,iend,jstart,jend,mu,POI)
+  
+subroutine Poisson(istart,iend,jstart,jend,mu,POI,seed)
+implicit none
+integer, intent(in) :: istart,iend,jstart,jend
+real,dimension(istart:iend,jstart:jend),intent(in) :: MU
+integer, dimension(istart:iend,jstart:jend), intent(out) :: POI
+integer,dimension(2),intent(in) :: seed
+integer :: seed_len,i,j
+integer,allocatable:: the_seed(:)
 
-  integer, intent(in) :: istart,iend,jstart,jend 
-  real,dimension(istart:iend,jstart:jend),intent(in) :: MU
-  integer, dimension(istart:iend,jstart:jend), intent(out) :: POI
-  integer :: i,j
-  !
-  ! do this only once
-  ! call init_random_seed
+!if (seed .le. 0) then seed=max(-seed,1)
 
-  do i=istart,iend
-    do j=jstart,jend
-       !print *, "Poisson mu: ", mu(i,j) 
-      call   random_Poisson(mu(i,j),.true.,POI(i,j))
-       !print *, "POI: ", POI(i,j)
-    enddo
-  enddo
+
+call random_seed(SIZE=seed_len)
+allocate(the_seed(seed_len))
+the_seed(1:2)=seed
+! Gfortran uses longer seeds, so fill the rest with zero
+if (seed_len > 2) the_seed(3:) = seed(2)
+ 
+ 
+call random_seed(put=the_seed)
+
+
+do i=istart,iend
+ do j=jstart,jend
+    poi(i,j)=poidev(mu(i,j))
+    
+enddo
+ enddo
 
 end subroutine Poisson
-!=================================================================  
-subroutine init_random_seed()
-   !JOE: PGI had problem! use iso_fortran_env, only: int64
-   !JOE: PGI had problem! use ifport, only: getpid 
-   implicit none
-   integer, allocatable :: seed(:)
-   integer :: i, n, un, istat, dt(8), pid
-   !JOE: PGI had problem! integer(int64) :: t
-   integer :: t
 
-   call random_seed(size = n)
-   allocate(seed(n))
-
-   ! First try if the OS provides a random number generator
-   !JOE: PGI had problem! open(newunit=un, file="/dev/urandom", access="stream", &
-   un=191
-   open(unit=un, file="/dev/urandom", access="stream", &
-   form="unformatted", action="read", status="old", iostat=istat)
-
-   if (istat == 0) then
-      read(un) seed
-      close(un)
-   else
-      ! Fallback to XOR:ing the current time and pid. The PID is
-      ! useful in case one launches multiple instances of the same
-      ! program in parallel.
-      call system_clock(t)
-      if (t == 0) then
-         call date_and_time(values=dt)
-         !t = (dt(1) - 1970) * 365_int64 * 24 * 60 * 60 * 1000 &
-         !   + dt(2) * 31_int64 * 24 * 60 * 60 * 1000 &
-         !   + dt(3) * 24_int64 * 60 * 60 * 1000 &
-         !   + dt(5) * 60 * 60 * 1000 &
-         !   + dt(6) * 60 * 1000 + dt(7) * 1000 &
-         !   + dt(8)
-         t = dt(6) * 60 &  ! only return seconds for smaller t
-           + dt(7)
-      end if
-
-      !JOE: PGI had problem!pid = getpid()
-      ! for distributed memory jobs we need to fix this
-      !pid=1
-      pid = 666 + MOD(t,10)  !JOE: doesnt work for PG compilers: getpid()
- 
-      t = ieor(t, int(pid, kind(t)))
-      do i = 1, n
-         seed(i) = lcg(t)
-      end do
-   end if
-   call random_seed(put=seed)
-
-  contains
-
-  ! Pseudo-random number generator (PRNG) 
-  ! This simple PRNG might not be good enough for real work, but is
-  ! sufficient for seeding a better PRNG.
-  function lcg(s)
-
-   integer :: lcg
-   !JOE: PGI had problem! integer(int64) :: s
-   integer :: s
-
-   if (s == 0) then
-      !s = 104729
-      s = 1047
-   else
-      !s = mod(s, 4294967296_int64)
-      s = mod(s, 71)
-   end if
-   !s = mod(s * 279470273_int64, 4294967291_int64)
-   s = mod(s * 23, 17)
-   !lcg = int(mod(s, int(huge(0), int64)), kind(0))
-   lcg = int(mod(s, int(s/3.5)))
-
-  end function lcg
-
-  end subroutine init_random_seed
-
-  SUBROUTINE init_random_seed_1()
-    INTEGER :: i, n, clock
-    INTEGER, DIMENSION(:), ALLOCATABLE :: seed
+FUNCTION poidev(xm)
+!USE nrtype
+!USE nr, ONLY : gammln,ran1
+IMPLICIT NONE
+INTEGER, PARAMETER :: SP = KIND(1.0)
+REAL(SP), INTENT(IN) :: xm
+REAL(SP) :: poidev
+REAL(SP), PARAMETER :: PI=3.141592653589793238462643383279502884197_sp
+!Returns as a floating-point number an integer value that is a random deviate drawn from a
+!Poisson distribution of mean xm, using ran1 as a source of uniform random deviates.
+REAL(SP) :: em,harvest,t,y
+REAL(SP), SAVE :: alxm,g,oldm=-1.0_sp,sq
+!oldm is a flag for whether xm has changed since last call.
+if (xm < 12.0) then !Use direct method.
+if (xm /= oldm) then
+oldm=xm
+g=exp(-xm) !If xm is new, compute the exponential.
+end if
+em=-1
+t=1.0
+do
+em=em+1.0_sp     !Instead of adding exponential deviates it is
+                 !equivalent to multiply uniform deviates.
+                 !We never actually have to take the log;
+                 !merely compare to the pre-computed exponential.
+call random_number(harvest)
+t=t*harvest
+if (t <= g) exit
+end do
+else      !    Use rejection method.
+if (xm /= oldm) then  !If xm has changed since the last call, then precompute
+                       !some functions that occur below.
+oldm=xm
+sq=sqrt(2.0_sp*xm)
+alxm=log(xm)
+g=xm*alxm-gammln_s(xm+1.0_sp) ! The function gammln is the natural log of the
+end if                      ! gamma function, as given in §6.1.
+do
+do
+call random_number(harvest)  !y is a deviate from a Lorentzian comparison
+y=tan(PI*harvest)   !function.
+em=sq*y+xm          !em is y, shifted and scaled.
+if (em >= 0.0) exit !Reject if in regime of zero probability.
+end do
+em=int(em)          ! The trick for integer-valued distributions.
+t=0.9_sp*(1.0_sp+y**2)*exp(em*alxm-gammln_s(em+1.0_sp)-g)
+!The ratio of the desired distribution to the comparison function; we accept or reject
+!by comparing it to another uniform deviate. The factor 0.9 is chosen so that t never
+!exceeds 1.
+call random_number(harvest)
+if (harvest <= t) exit
+end do
+end if
+poidev=em
+END FUNCTION poidev
+        
+FUNCTION arth_d(first,increment,n)
+implicit none
+INTEGER, PARAMETER :: SP = KIND(1.0)
+INTEGER, PARAMETER :: DP = KIND(1.0D0)
+INTEGER, PARAMETER :: I4B = SELECTED_INT_KIND(9)
+REAL(DP), INTENT(IN) :: first,increment
+INTEGER(I4B), PARAMETER :: NPAR_ARTH=16,NPAR2_ARTH=8
+INTEGER(I4B), INTENT(IN) :: n
+REAL(DP), DIMENSION(n) :: arth_d
+INTEGER(I4B) :: k,k2
+REAL(DP) :: temp
+if (n > 0) arth_d(1)=first
+if (n <= NPAR_ARTH) then
+do k=2,n
+arth_d(k)=arth_d(k-1)+increment
+end do
+else
+do k=2,NPAR2_ARTH
+arth_d(k)=arth_d(k-1)+increment
+end do
+temp=increment*NPAR2_ARTH
+k=NPAR2_ARTH
+do
+if (k >= n) exit
+k2=k+k
+arth_d(k+1:min(k2,n))=temp+arth_d(1:min(k,n-k))
+temp=temp+temp
+k=k2
+end do
+end if
+END FUNCTION arth_d
+      
+FUNCTION gammln_s(xx)
+IMPLICIT NONE
+INTEGER, PARAMETER :: SP = KIND(1.0)
+INTEGER, PARAMETER :: DP = KIND(1.0D0)
+REAL(SP), INTENT(IN) :: xx
+REAL(SP) :: gammln_s
+!Returns the value ln[Γ(xx)] for xx > 0.
+REAL(DP) :: tmp,x
+!Internal arithmetic will be done in double precision, a nicety that you can omit if five-figure
+!accuracy is good enough.
+REAL(DP) :: stp = 2.5066282746310005_dp
+REAL(DP), DIMENSION(6) :: coef = (/76.18009172947146_dp,&
+-86.50532032941677_dp,24.01409824083091_dp,&
+-1.231739572450155_dp,0.1208650973866179e-2_dp,&
+-0.5395239384953e-5_dp/)
+!call assert(xx > 0.0, ’gammln_s arg’)
+if (xx .le. 0.) print *,'gammaln fails'
+x=xx
+tmp=x+5.5_dp
+tmp=(x+0.5_dp)*log(tmp)-tmp
+gammln_s=tmp+log(stp*(1.000000000190015_dp+&
+sum(coef(:)/arth_d(x+1.0_dp,1.0_dp,size(coef))))/x)
+END FUNCTION gammln_s
   
-    CALL RANDOM_SEED(size = n)
-    ALLOCATE(seed(n))
-  
-    CALL SYSTEM_CLOCK(COUNT=clock)
-  
-    seed = clock + 37 * (/ (i - 1, i = 1, n) /)
-    CALL RANDOM_SEED(PUT = seed)
-  
-    DEALLOCATE(seed)
-  END SUBROUTINE init_random_seed_1
-
-subroutine random_Poisson(mu,first,ival) 
-!**********************************************************************
-!     Translated to Fortran 90 by Alan Miller from:  RANLIB
-!
-!     Library of Fortran Routines for Random Number Generation
-!
-!                    Compiled and Written by:
-!
-!                         Barry W. Brown
-!                          James Lovato
-!
-!             Department of Biomathematics, Box 237
-!             The University of Texas, M.D. Anderson Cancer Center
-!             1515 Holcombe Boulevard
-!             Houston, TX      77030
-!
-! Generates a single random deviate from a Poisson distribution with mean mu.
-! Scalar Arguments:
-    REAL, INTENT(IN)    :: mu  !The mean of the Poisson distribution from which
-                                   !a random deviate is to be generated.
-    LOGICAL, INTENT(IN) :: first
-        INTEGER             :: ival
-
-!     TABLES: COEFFICIENTS A0-A7 FOR STEP F. FACTORIALS FACT
-!     COEFFICIENTS A(K) - FOR PX = FK*V*V*SUM(A(K)*V**K)-DEL
-!     SEPARATION OF CASES A AND B
-!
-!     .. Local Scalars ..
-!JOE: since many of these scalars conflict with globally declared closure constants (above),
-!     need to change XX to XX_s
-!   REAL          :: b1, b2, c, c0, c1, c2, c3, del, difmuk, e, fk, fx, fy, g,  &
-!                    omega, px, py, t, u, v, x, xx
-    REAL          :: b1_s, b2_s, c, c0, c1_s, c2_s, c3_s, del, difmuk, e, fk, fx, fy, g_s,  &
-                    omega, px, py, t, u, v, x, xx
-    REAL, SAVE    :: s, d, p, q, p0
-        INTEGER       :: j, k, kflag
-    LOGICAL, SAVE :: full_init
-        INTEGER, SAVE :: l, m
-!     ..
-!     .. Local Arrays ..
-    REAL, SAVE    :: pp(35)
-!     ..
-!     .. Data statements ..
-!JOE: since many of these scalars conflict with globally declared closure constants (above),
-!     need to change XX to XX_s
-!   REAL, PARAMETER :: a0 = -.5, a1 = .3333333, a2 = -.2500068, a3 = .2000118,  &
-    REAL, PARAMETER :: a0 = -.5, a1_s = .3333333, a2_s = -.2500068, a3 = .2000118,  &
-                           a4 = -.1661269, a5 = .1421878, a6 = -0.1384794,  &
-                           a7 = .1250060
-
-    REAL, PARAMETER :: fact(10) = (/ 1., 1., 2., 6., 24., 120., 720., 5040.,  &
-                 40320., 362880. /)
-
-!JOE: difmuk,fk,u errors - undefined
-   difmuk = 0.
-   fk = 1.0
-   u = 0.
-
-!     ..
-!     .. Executable Statements ..
-   IF (mu > 10.0) THEN
-!     C A S E  A. (RECALCULATION OF S, D, L IF MU HAS CHANGED)
-
-      IF (first) THEN
-         s = SQRT(mu)
-         d = 6.0*mu*mu
-
-!             THE POISSON PROBABILITIES PK EXCEED THE DISCRETE NORMAL
-!             PROBABILITIES FK WHENEVER K >= M(MU). L=IFIX(MU-1.1484)
-!             IS AN UPPER BOUND TO M(MU) FOR ALL MU >= 10 .
-
-         l = mu - 1.1484
-         full_init = .false.
-      END IF
-
-!     STEP N. NORMAL SAMPLE - random_normal() FOR STANDARD NORMAL DEVIATE
-      g_s = mu + s*random_normal()
-      IF (g_s > 0.0) THEN
-         ival = g_s
-
-     !     STEP I. IMMEDIATE ACCEPTANCE IF ival IS LARGE ENOUGH
-         IF (ival>=l) RETURN
-
-     !     STEP S. SQUEEZE ACCEPTANCE - SAMPLE U
-        fk = ival
-        difmuk = mu - fk
-        CALL RANDOM_NUMBER(u)
-        IF (d*u >= difmuk*difmuk*difmuk) RETURN
-      END IF
-
-      !     STEP P. PREPARATIONS FOR STEPS Q AND H.
-      !             (RECALCULATIONS OF PARAMETERS IF NECESSARY)
-      !             .3989423=(2*PI)**(-.5)  .416667E-1=1./24.  .1428571=1./7.
-      !             THE QUANTITIES B1_S, B2_S, C3_S, C2_S, C1_S, C0 ARE FOR THE HERMITE
-      !             APPROXIMATIONS TO THE DISCRETE NORMAL PROBABILITIES FK.
-      !             C=.1069/MU GUARANTEES MAJORIZATION BY THE 'HAT'-FUNCTION.
-
-      IF (.NOT. full_init) THEN
-         omega = .3989423/s
-        b1_s = .4166667E-1/mu
-        b2_s = .3*b1_s*b1_s
-        c3_s = .1428571*b1_s*b2_s
-        c2_s = b2_s - 15.*c3_s
-        c1_s = b1_s - 6.*b2_s + 45.*c3_s
-        c0 = 1. - b1_s + 3.*b2_s - 15.*c3_s
-        c = .1069/mu
-        full_init = .true.
-      END IF
-
-      IF (g_s < 0.0) GO TO 50
-
-    !             'SUBROUTINE' F IS CALLED (KFLAG=0 FOR CORRECT RETURN)
-
-      kflag = 0
-      GO TO 70
-
-    !     STEP Q. QUOTIENT ACCEPTANCE (RARE CASE)
-
-      40 IF (fy-u*fy <= py*EXP(px-fx)) RETURN
-
-    !     STEP E. EXPONENTIAL SAMPLE - random_exponential() FOR STANDARD EXPONENTIAL
-    !             DEVIATE E AND SAMPLE T FROM THE LAPLACE 'HAT'
-    !             (IF T <= -.6744 THEN PK < FK FOR ALL MU >= 10.)
-
-      50 e = random_exponential()
-      CALL RANDOM_NUMBER(u)
-      u = u + u - one
-      t = 1.8 + SIGN(e, u)
-      IF (t <= (-.6744)) GO TO 50
-      ival = mu + s*t
-      fk = ival
-      difmuk = mu - fk
-
-    !             'SUBROUTINE' F IS CALLED (KFLAG=1 FOR CORRECT RETURN)
-
-      kflag = 1
-      GO TO 70
-
-    !     STEP H. HAT ACCEPTANCE (E IS REPEATED ON REJECTION)
-
-      60 IF (c*ABS(u) > py*EXP(px+e) - fy*EXP(fx+e)) GO TO 50
-      RETURN
-
-    !     STEP F. 'SUBROUTINE' F. CALCULATION OF PX, PY, FX, FY.
-    !             CASE ival < 10 USES FACTORIALS FROM TABLE FACT
-
-      70 IF (ival>=10) GO TO 80
-      px = -mu
-!JOE: had error " Subscript #1 of FACT has value -858993459"; shouldn't be < 1.
-         !py = mu**ival/fact(ival+1)
-      py = mu**ival/fact(MAX(ival+1,1))
-      GO TO 110
-
-    !             CASE ival >= 10 USES POLYNOMIAL APPROXIMATION
-    !             A0-A7 FOR ACCURACY WHEN ADVISABLE
-    !             .8333333E-1=1./12.  .3989423=(2*PI)**(-.5)
-
-      80 del = .8333333E-1/fk
-      del = del - 4.8*del*del*del
-      v = difmuk/fk
-      IF (ABS(v)>0.25) THEN
-        px = fk*LOG(one + v) - difmuk - del
-      ELSE
-        px = fk*v*v* (((((((a7*v+a6)*v+a5)*v+a4)*v+a3)*v+a2_s)*v+a1_s)*v+a0) - del
-      END IF
-      py = .3989423/SQRT(fk)
-      110 x = (half - difmuk)/s
-      xx = x*x
-      fx = -half*xx
-      fy = omega* (((c3_s*xx + c2_s)*xx + c1_s)*xx + c0)
-      IF (kflag <= 0) GO TO 40
-      GO TO 60
-
-    !---------------------------------------------------------------------------
-    !     C A S E  B.    mu < 10
-    !     START NEW TABLE AND CALCULATE P0 IF NECESSARY
-      ELSE
-
-      IF (first) THEN
-        m = MAX(1, INT(mu))
-        l = 0
-                !print*,"mu=",mu
-                !print*," mu=",mu," p=",EXP(-mu)
-        p = EXP(-mu)
-        q = p
-        p0 = p
-      END IF
-
-    !     STEP U. UNIFORM SAMPLE FOR INVERSION METHOD
-
-      DO
-        CALL RANDOM_NUMBER(u)
-        ival = 0
-        IF (u <= p0) RETURN
-
-    !     STEP T. TABLE COMPARISON UNTIL THE END PP(L) OF THE
-    !             PP-TABLE OF CUMULATIVE POISSON PROBABILITIES
-    !             (0.458=PP(9) FOR MU=10)
-
-        IF (l == 0) GO TO 150
-        j = 1
-        IF (u > 0.458) j = MIN(l, m)
-        DO k = j, l
-          IF (u <= pp(k)) GO TO 180
-        END DO
-        IF (l == 35) CYCLE
-
-    !     STEP C. CREATION OF NEW POISSON PROBABILITIES P
-    !             AND THEIR CUMULATIVES Q=PP(K)
-
-        150 l = l + 1
-        DO k = l, 35
-          p = p*mu / k
-          q = q + p
-          pp(k) = q
-          IF (u <= q) GO TO 170
-        END DO
-        l = 35
-      END DO
-
-      170 l = k
-      180 ival = k
-      RETURN
-    END IF
-
-    RETURN
-    END subroutine random_Poisson
-
-!==================================================================
-
-    FUNCTION random_normal() RESULT(fn_val)
-
-    ! Adapted from the following Fortran 77 code
-    !      ALGORITHM 712, COLLECTED ALGORITHMS FROM ACM.
-    !      THIS WORK PUBLISHED IN TRANSACTIONS ON MATHEMATICAL SOFTWARE,
-    !      VOL. 18, NO. 4, DECEMBER, 1992, PP. 434-435.
-
-    !  The function random_normal() returns a normally distributed pseudo-random
-    !  number with zero mean and unit variance.
-
-    !  The algorithm uses the ratio of uniforms method of A.J. Kinderman
-    !  and J.F. Monahan augmented with quadratic bounding curves.
-
-    REAL :: fn_val
-
-    !     Local variables
-    REAL     :: s = 0.449871, t = -0.386595, a = 0.19600, b = 0.25472,           &
-                r1 = 0.27597, r2 = 0.27846, u, v, x, y, q
-
-    !     Generate P = (u,v) uniform in rectangle enclosing acceptance region
-
-    DO
-      CALL RANDOM_NUMBER(u)
-      CALL RANDOM_NUMBER(v)
-      v = 1.7156 * (v - half)
-
-    !     Evaluate the quadratic form
-      x = u - s
-      y = ABS(v) - t
-      q = x**2 + y*(a*y - b*x)
-
-    !     Accept P if inside inner ellipse
-      IF (q < r1) EXIT
-    !     Reject P if outside outer ellipse
-      IF (q > r2) CYCLE
-    !     Reject P if outside acceptance region
-      IF (v**2 < -4.0*LOG(u)*u**2) EXIT
-    END DO
-
-    !     Return ratio of P coordinates as the normal deviate
-    fn_val = v/u
-    RETURN
-
-    END FUNCTION random_normal
-
-!===============================================================
-
-    FUNCTION random_exponential() RESULT(fn_val)
-
-    ! Adapted from Fortran 77 code from the book:
-    !     Dagpunar, J. 'Principles of random variate generation'
-    !     Clarendon Press, Oxford, 1988.   ISBN 0-19-852202-9
-
-    ! FUNCTION GENERATES A RANDOM VARIATE IN [0,INFINITY) FROM
-    ! A NEGATIVE EXPONENTIAL DlSTRIBUTION WlTH DENSITY PROPORTIONAL
-    ! TO EXP(-random_exponential), USING INVERSION.
-
-    REAL  :: fn_val
-
-    !     Local variable
-    REAL  :: r
-
-    DO
-      CALL RANDOM_NUMBER(r)
-      IF (r > zero) EXIT
-    END DO
-
-    fn_val = -LOG(r)
-    RETURN
-
-    END FUNCTION random_exponential
-
-!===============================================================
 
 subroutine condensation_edmf(QT,THL,P,zagl,THV,QC)
 !
@@ -5232,6 +4960,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         REAL :: sigq,xl,tlk,qsat_tl,rsl,cpm,a,qmq,mf_cf,diffqt,&
                Fng,qww,alpha,beta,bb,f,pt,t,q2p,b9,satvp,rhgrid
 
+        REAL :: THVsrfF,QTsrfF,maxS,stabF  
+
+        INTEGER, DIMENSION(2) :: seedmf
     ! w parameters
         REAL,PARAMETER :: &
             &Wa=1., &
@@ -5242,7 +4973,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         & L0=100.,&
         & ENT0=0.2
 
-
+! stability parameter for massflux
+! (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
+       REAL,PARAMETER :: UPSTAB=1.
 
 !Initialize values:
 ktop = 0
@@ -5349,8 +5082,14 @@ IF ( wthv >= 0.0 ) then
          enddo
     enddo
 
+
+! create seed for Poisson
+! create seed from last digits of temperature   
+seedmf(1) = 1000000 * ( 100*thl(1) - INT(100*thl(1)))
+seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2))) 
+
 ! get Poisson P(dz/L0)
-    call Poisson(1,Nup,kts+1,kte,ENTf,ENTi)
+    call Poisson(1,Nup,kts+1,kte,ENTf,ENTi,seedmf)
 
 
  ! entrainent: Ent=Ent0/dz*P(dz/L0)
@@ -5367,17 +5106,52 @@ IF ( wthv >= 0.0 ) then
         wlv=wmin+(wmax-wmin)/NUP*(i-1)
         wtv=wmin+(wmax-wmin)/NUP*i
 
-        UPW(1,I)=0.5*(wlv+wtv)
+        UPW(1,I)=min(0.5*(wlv+wtv),2.)
         UPA(1,I)=0.5*ERF(wtv/(sqrt(2.)*sigmaW))-0.5*ERF(wlv/(sqrt(2.)*sigmaW))
 
         UPU(1,I)=U(1)
         UPV(1,I)=V(1)
 
         UPQC(1,I)=0
-        UPQT(1,I)=QT(1)+0.58*UPW(1,I)*sigmaQT/sigmaW ! was 0.32
+        UPQT(1,I)=QT(1)+0.32*UPW(1,I)*sigmaQT/sigmaW ! was 0.32
         UPTHV(1,I)=THV(1)+0.58*UPW(1,I)*sigmaTH/sigmaW
         UPTHL(1,I)=UPTHV(1,I)/(1+svp1*UPQT(1,I))
     ENDDO
+
+
+
+!
+! make sure that the surface flux of THL and QT does not exceed given flux
+!
+
+
+   QTsrfF=0.
+   THVsrfF=0.
+   
+   DO I=1,NUP
+     QTsrfF=QTsrfF+UPW(1,I)*UPA(1,I)*(UPQT(1,I)-QT(1))
+     THVsrfF=THVsrfF+UPW(1,I)*UPA(1,I)*(UPTHV(1,I)-THV(1))   
+   ENDDO
+  
+   
+   IF (THVsrfF .gt. wthv) THEN
+   ! change surface THV so that the fluxes from the mass flux equal prescribed values
+       DO I=1,NUP
+        UPTHV(1,I)=(UPTHV(1,I)-THV(1))*wthv/THVsrfF+THV(1)
+       ENDDO
+  ENDIF     
+      
+   IF ( QTsrfF .gt. wqt)  THEN
+   ! change surface QT so that the fluxes from the mass flux equal prescribed values
+       DO I=1,NUP
+        UPQT(kts-1,I)=(UPQT(kts-1,I)-QT(1))*wthv/QTsrfF+QT(1)
+  !      print *,'adjusting surface QT for a factor',wthv/QTsrfF
+        ENDDO
+    ENDIF     
+
+
+
+
 
 
   ! do integration  updraft
@@ -5542,6 +5316,34 @@ DO k=KTS,KTE+1
     s_awqv(k) = s_awqt(k)  - s_awqc(k)
 ENDDO
 
+!
+! make sure that the mass-flux does not exceed CFL criteria, and if it does scale it back
+! (see Beljaars et al., 2018)
+!
+
+maxS=0.
+DO k=KTS,KTE
+  maxS=max(maxS,0.5*(s_aw(k)+s_aw(k+1))*dt/(zw(k+1)-zw(k)))
+ENDDO
+
+
+IF (maxS .gt. upstab) THEN
+! if stability exceeded, scale the fluxes
+! (note: the updraft properties are not modified)
+  stabF=upstab/maxS
+!  print *,'maxS',maxS
+  DO k=kts,KTE
+        s_aw(k)=s_aw(k)*stabF
+        s_awthl(k)=s_awthl(k)*stabF
+        s_awqt(k)=s_awqt(k)*stabF
+        s_awqc(k)=s_awqc(k)*stabF
+        s_awu(k)=s_awu(k)*stabF
+        s_awv(k)=s_awv(k)*stabF
+        s_awqv(k)=s_awqv(k)*stabF
+  ENDDO
+ENDIF
+
+
 
 END SUBROUTINE edmf_JPL
 
@@ -5608,6 +5410,8 @@ SUBROUTINE DDMF_JPL(kts,kte,dt,zw,p,                 &
         REAL :: sigq,xl,tlk,qsat_tl,rsl,cpm,a,qmq,mf_cf,diffqt,&
                Fng,qww,alpha,beta,bb,f,pt,t,q2p,b9,satvp,rhgrid
 
+        INTEGER, DIMENSION(2) :: seedmf
+
     ! w parameters
         REAL,PARAMETER :: &
             &Wa=1., &
@@ -5673,7 +5477,7 @@ SUBROUTINE DDMF_JPL(kts,kte,dt,zw,p,                 &
         enddo
         qlBase = (qlTop+qlBase)/2 ! changed base to half way through the cloud
 
-        call init_random_seed_1()
+!        call init_random_seed_1()
         call RANDOM_NUMBER(randNum)
         do i=1,NDOWN
             ! downdraft starts somewhere between cloud base to cloud top
@@ -5699,8 +5503,15 @@ SUBROUTINE DDMF_JPL(kts,kte,dt,zw,p,                 &
                  enddo
             enddo
 
+
+! create seed for Poisson
+! create seed from last digits of temperature   
+seedmf(1) = 1000000 * ( 100*thl(1) - INT(100*thl(1)))
+seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2))) 
+
+
             ! get Poisson P(dz/L0)
-            call Poisson(1,NDOWN,kts+1,kte,ENTf,ENTi)
+            call Poisson(1,NDOWN,kts+1,kte,ENTf,ENTi,seedmf)
 
 
             ! entrainent: Ent=Ent0/dz*P(dz/L0)
