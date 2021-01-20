@@ -21,7 +21,7 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "xxx"
 
  ! integer, parameter :: loop_times = 1
-  integer, parameter :: loop_times = 5 
+  integer, parameter :: loop_times = 24 
  ! integer, parameter :: loop_times = 100
  ! integer, parameter :: loop_times = 60 
 
@@ -118,6 +118,9 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
   logical :: expmf = .true.              ! .true.  ... explicit mass-flux, .false. .... implicit mass-flux
   real    :: upwind = 1.                 ! upwind=1. ... use upwind approximation for mass-flux calculation
                                          ! upwind=0.5 ... use centered difference for mass-flux calculation
+  real :: L0 = 100.                      ! entrainemnt rate parameter
+  integer :: NUP=100                     ! the number of updrafts
+ 
 !############################
 !############################
 
@@ -4939,7 +4942,8 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         REAL,DIMENSION(KTS:KTE+1) :: s_aw, s_awthl, s_awqt, s_awu, s_awv, s_awqc, s_awqv, s_awqke, s_aw2
         REAL,DIMENSION(KTS:KTE), INTENT(IN) :: qc_bl1d, cldfra_bl1d
 
-        INTEGER, PARAMETER :: NUP=100, debug_mf=0 !fixing number of plumes to 10
+        !INTEGER, PARAMETER :: NUP=100, debug_mf=0 !fixing number of plumes to 10
+        INTEGER, PARAMETER :: debug_mf=0 !fixing number of plumes to 10, yhc - move NUP to namelist parameter
 
     ! updraft properties
         REAL,DIMENSION(KTS:KTE+1,1:NUP) :: UPW,UPTHL,UPQT,UPQC,UPA,UPU,UPV,UPTHV
@@ -4970,7 +4974,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
 
     ! entrainment parameters
         REAL,PARAMETER :: &
-        & L0=100.,&
+        !& L0=100.,&    yhc move L0 to namelist paramter 
         & ENT0=0.2
 
 ! stability parameter for massflux
@@ -5144,7 +5148,7 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
    IF ( QTsrfF .gt. wqt)  THEN
    ! change surface QT so that the fluxes from the mass flux equal prescribed values
        DO I=1,NUP
-        UPQT(kts-1,I)=(UPQT(kts-1,I)-QT(1))*wthv/QTsrfF+QT(1)
+        UPQT(kts-1,I)=(UPQT(kts-1,I)-QT(1))*wqt/QTsrfF+QT(1)
   !      print *,'adjusting surface QT for a factor',wthv/QTsrfF
         ENDDO
     ENDIF     
