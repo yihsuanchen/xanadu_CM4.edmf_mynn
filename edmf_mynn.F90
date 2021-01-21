@@ -6219,6 +6219,8 @@ subroutine edmf_mynn_driver ( &
     tdt(:,:,:) = tdt(:,:,:) + am4_Output_edmf%tdt_edmf(:,:,:)
 
     rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
+    rdt(:,:,:,nql)    = rdt(:,:,:,nql)    + am4_Output_edmf%qcdt_edmf(:,:,:)
+    rdt(:,:,:,nqi)    = rdt(:,:,:,nqi)    + am4_Output_edmf%qidt_edmf(:,:,:)
   end if
 
   !--- write out EDMF-MYNN input and output fields for debugging purpose
