@@ -5832,6 +5832,7 @@ Code used
  II_WRITE        =        0,
  JJ_WRITE        =        0,
  DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
       </namelist>
     </input>
   </experiment>
@@ -5887,6 +5888,52 @@ Code used
     </input>
   </experiment>
 
+  <experiment name="d21-DCBL_C1-am4p0_mynn" inherit="d11-DCBL_C1-am4p0_mynn">
+<description>
+Code used
+  edmf_mynn.F90,04cb7bbd332bf729e1dc64211f87d7136d077aed 
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057
+</description>
+  </experiment>
+
+  <experiment name="d22-DCBL_C1-am4p0_mynn_expmf" inherit="d11-DCBL_C1-am4p0_mynn">
+<description>
+Code used
+  edmf_mynn.F90,04cb7bbd332bf729e1dc64211f87d7136d077aed 
+  physics_driver.F90, bde53762d77415579ed0ec1194e09b8e5103345c
+</description>
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ expmf = T
+ OPTION_SURFACE_FLUX     = star
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="d23-DCBL_C1-am4p0_mynn_impmf" inherit="d11-DCBL_C1-am4p0_mynn">
+<description>
+Code used
+  edmf_mynn.F90,04cb7bbd332bf729e1dc64211f87d7136d077aed 
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057
+</description>
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ expmf = F
+ OPTION_SURFACE_FLUX     = star
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="d01-DCBL_C1-am4p0_mynn" inherit="c00-DCBL_C1-am4p0">
 <description>
 Code used
@@ -5908,42 +5955,7 @@ Code used
  II_WRITE        =        0,
  JJ_WRITE        =        0,
  DO_STOP_RUN     = F,
-      </namelist>
-    </input>
-  </experiment>
-
-  <experiment name="a01-GCSS_ARM-am4p0_rad_mynn" inherit="a00-GCSS_ARM-am4p0_rad">
-<description>
-Code used
-  edmf_mynn.F90, 87439d66438801c5bd1538e2fd97bfc6039fa266
-  physics_driver.F90, 111e8f4339f2010beec07dec8b568703e9788686
-</description>
-    <input>
-      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
-      <namelist name="vert_turb_driver_nml">
- DO_SHALLOW_CONV = F,
- DO_MELLOR_YAMADA        = F,
- DO_TKE_TURB     = F,
- DO_MOLECULAR_DIFFUSION  = F,
- DO_STABLE_BL    = F,
- DO_DIFFUSIVITY  = F,
- DO_EDT  = F,
- DO_ENTRAIN      = F,
- DO_SIMPLE       = F,
-      </namelist>
-      <namelist name="physics_driver_nml">
- DO_EDMF_MYNN    = T,
- DO_EDMF_MYNN_DIAGNOSTIC    = F,
- DO_WRITEOUT_COLUMN_NML  = T,
- II_WRITE        =        0,
- JJ_WRITE        =        0,
- DO_STOP_RUN     = F,
-      </namelist>
-      <namelist name="edmf_mynn_nml">
- DO_WRITEOUT_COLUMN_NML  = T,
- II_WRITE        =        0,
- JJ_WRITE        =        0,
- DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
       </namelist>
     </input>
   </experiment>
@@ -5983,6 +5995,43 @@ Code used
       </namelist>
     </input>
   </experiment>
+  
+  <experiment name="a01-GCSS_ARM-am4p0_rad_mynn" inherit="a00-GCSS_ARM-am4p0_rad">
+<description>
+Code used
+  edmf_mynn.F90, 87439d66438801c5bd1538e2fd97bfc6039fa266
+  physics_driver.F90, 111e8f4339f2010beec07dec8b568703e9788686
+</description>
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ DO_SIMPLE       = F,
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+      </namelist>
+    </input>
+  </experiment>
 
   <experiment name="b01-BOMEX-am4p0_rad_mynn" inherit="b00-BOMEX-am4p0_rad">
 <description>
@@ -6016,6 +6065,7 @@ Code used
  II_WRITE        =        0,
  JJ_WRITE        =        0,
  DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
       </namelist>
     </input>
   </experiment>
@@ -6110,7 +6160,7 @@ Latest code version, 01/15/2021
   <experiment name="b21-BOMEX-am4p0_rad_mynn" inherit="b01-BOMEX-am4p0_rad_mynn">
 <description>
 Latest code version, 01/15/2021
-  edmf_mynn.F90, 3e635a9925b461325c50ef62ebc889bcbed631dc
+  edmf_mynn.F90, bde53762d77415579ed0ec1194e09b8e5103345c
   physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057 
 </description>
   </experiment>
@@ -6118,10 +6168,348 @@ Latest code version, 01/15/2021
   <experiment name="a21-GCSS_ARM-am4p0_rad_mynn" inherit="a01-GCSS_ARM-am4p0_rad_mynn">
 <description>
 Latest code version, 01/15/2021
-  edmf_mynn.F90, 3e635a9925b461325c50ef62ebc889bcbed631dc
+  edmf_mynn.F90, bde53762d77415579ed0ec1194e09b8e5103345c
   physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057 
 </description>
   </experiment>
+
+  <experiment name="b22-BOMEX-am4p0_rad_mynn_expmf" inherit="b01-BOMEX-am4p0_rad_mynn">
+<description>
+Latest code version, 01/20/2021
+  edmf_mynn.F90, bde53762d77415579ed0ec1194e09b8e5103345c
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057 
+
+return t,q,u,v,ql,qi tendencies
+</description>
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ expmf = T
+ OPTION_SURFACE_FLUX     = updated
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a22-GCSS_ARM-am4p0_rad_mynn_expmf" inherit="a01-GCSS_ARM-am4p0_rad_mynn">
+<description>
+Latest code version, 01/20/2021
+  edmf_mynn.F90, bde53762d77415579ed0ec1194e09b8e5103345c
+  physics_driver.F90, 619d3058e1b523b2be31bf42134927a83ac82057 
+
+return t,q,u,v,ql,qi tendencies
+</description>
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ expmf = T
+ OPTION_SURFACE_FLUX     = updated
+      </namelist>
+    </input>
+  </experiment>
+
+<!--
+############################
+############################
+############################
+
+a3*, b3*, and d3*
+code version
+  edmf_mynn.F90, 485782c776855be25b92dcd1a0bacbc93076fb8f
+  physics_driver.F90, 0ea083b3b4f58b087699d508eaeb5e5806a7d1cd  
+
+############################
+############################
+-->
+  <experiment name="d31-DCBL_C1-am4p0_mynn" inherit="c00-DCBL_C1-am4p0">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ DO_SIMPLE       = F,
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="d32-DCBL_C1-am4p0_mynn_expmf" inherit="d31-DCBL_C1-am4p0_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 3
+ expmf = T 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="d33-DCBL_C1-am4p0_mynn_impmf" inherit="d31-DCBL_C1-am4p0_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 3
+ expmf = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a30-GCSS_ARM-am4p0_rad_mynn_diag" inherit="a00-GCSS_ARM-am4p0_rad">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a31-GCSS_ARM-am4p0_rad_mynn_expmf_diag" inherit="a30-GCSS_ARM-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = T
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a32-GCSS_ARM-am4p0_rad_mynn_impmf_diag" inherit="a30-GCSS_ARM-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a33-GCSS_ARM-am4p0_rad_mynn" inherit="a30-GCSS_ARM-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ DO_SIMPLE       = F,
+ GUST_SCHEME     = beljaars 
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ expmf = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a34-GCSS_ARM-am4p0_rad_mynn_expmf" inherit="a33-GCSS_ARM-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = T 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a35-GCSS_ARM-am4p0_rad_mynn_impmf" inherit="a33-GCSS_ARM-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b30-BOMEX-am4p0_rad_mynn_diag" inherit="b00-BOMEX-am4p0_rad">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b31-BOMEX-am4p0_rad_mynn_expmf_diag" inherit="b30-BOMEX-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = T
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b32-BOMEX-am4p0_rad_mynn_impmf_diag" inherit="b30-BOMEX-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b33-BOMEX-am4p0_rad_mynn" inherit="b30-BOMEX-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ DO_SIMPLE       = F,
+ GUST_SCHEME     = beljaars 
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ expmf = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b34-BOMEX-am4p0_rad_mynn_expmf" inherit="b33-BOMEX-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = T 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b35-BOMEX-am4p0_rad_mynn_impmf" inherit="b33-BOMEX-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = F
+      </namelist>
+    </input>
+  </experiment>
+
 
 <!--
 ##########################
