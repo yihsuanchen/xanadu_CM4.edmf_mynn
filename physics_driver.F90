@@ -2550,6 +2550,8 @@ real,dimension(:,:),    intent(inout)             :: gust
     write(6,*) 'data vdt_physics_up_begin/'    ,vdt(ii_write,jj_write,:)
     write(6,*) 'data tdt_physics_up_begin/'    ,tdt(ii_write,jj_write,:)
     write(6,*) 'data qdt_physics_up_begin/'    ,rdt(ii_write,jj_write,:,1)
+    write(6,*) 'data qldt_physics_up_begin/'    ,rdt(ii_write,jj_write,:,2)
+    write(6,*) 'data qidt_physics_up_begin/'    ,rdt(ii_write,jj_write,:,3)
   endif
 !--> yhc
 
@@ -2656,6 +2658,8 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data vdt_diff_up/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_diff_up/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_diff_up/'    ,rdt(ii_write,jj_write,:,1)
+        write(6,*) 'data qldt_diff_up/'    ,rdt(ii_write,jj_write,:,2)
+        write(6,*) 'data qidt_diff_up/'    ,rdt(ii_write,jj_write,:,3)
   endif
 !--> yhc
 
@@ -2721,6 +2725,8 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data vdt_edmf_mynn/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_edmf_mynn/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,1)
+        write(6,*) 'data qldt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,2)
+        write(6,*) 'data qidt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,3)
   endif
 !--> yhc
 
@@ -2812,6 +2818,8 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data q_moist_up/'    ,r(ii_write,jj_write,:,1)
         write(6,*) 'data tdt_moist_up/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_moist_up/'    ,rdt(ii_write,jj_write,:,1)
+        write(6,*) 'data qldt_moist_up/'    ,rdt(ii_write,jj_write,:,2)
+        write(6,*) 'data qidt_moist_up/'    ,rdt(ii_write,jj_write,:,3)
   endif
 !--> yhc
 
