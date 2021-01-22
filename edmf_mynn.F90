@@ -136,6 +136,7 @@ type am4_edmf_output_type
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
     thl_edmf, qt_edmf,  & ! diagnostic purpose
     tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qcdt_edmf, &  ! outputs from EDMF-MYNN scheme
+    cldfra_bl, qc_bl, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
 end type am4_edmf_output_type
@@ -369,7 +370,7 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni  ! tracer indices for stratiform clo
 integer :: nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl ! tracer index for EDMF-MYNN tracers
 integer :: ntp          ! number of prognostic tracers
 
-integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qcdt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf
+integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qcdt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl
 
 !---------------------------------------------------------------------
 
@@ -585,6 +586,14 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_qt_edmf = register_diag_field (mod_name, 'qt_edmf', axes(full), Time, &
                  'grid-scale qt in edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_cldfra_bl = register_diag_field (mod_name, 'cldfra_bl', axes(full), Time, &
+                 'cloud fraction in edmf_mynn', 'fraction' , &
+                 missing_value=missing_value )
+
+  id_qc_bl = register_diag_field (mod_name, 'qc_bl', axes(full), Time, &
+                 'liquid water mixing ratio in edmf_mynn', 'mynn' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -6370,6 +6379,16 @@ subroutine edmf_mynn_driver ( &
         used = send_data (id_qt_edmf, am4_Output_edmf%qt_edmf, Time_next, is, js, 1 )
       endif
 
+!------- cloud fraction in edmf_mynn (units: fraction) at full level -------
+      if ( id_cldfra_bl > 0) then
+        used = send_data (id_cldfra_bl, am4_Output_edmf%cldfra_bl, Time_next, is, js, 1 )
+      endif
+
+!------- liquid water mixing ratio in edmf_mynn (units: mynn) at full level -------
+      if ( id_qc_bl > 0) then
+        used = send_data (id_qc_bl, am4_Output_edmf%qc_bl, Time_next, is, js, 1 )
+      endif
+
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
 !---------------------------------------------------------------------
@@ -6821,6 +6840,8 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%edmf_qc     (ix,jx,kx))  ; am4_Output_edmf%edmf_qc     = 0.
   allocate (am4_Output_edmf%thl_edmf    (ix,jx,kx))  ; am4_Output_edmf%thl_edmf    = 0.
   allocate (am4_Output_edmf%qt_edmf     (ix,jx,kx))  ; am4_Output_edmf%qt_edmf     = 0.
+  allocate (am4_Output_edmf%cldfra_bl   (ix,jx,kx))  ; am4_Output_edmf%cldfra_bl   = 0.
+  allocate (am4_Output_edmf%qc_bl       (ix,jx,kx))  ; am4_Output_edmf%qc_bl       = 0.
 
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
@@ -7189,6 +7210,8 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%edmf_qc     )
   deallocate (am4_Output_edmf%thl_edmf    )
   deallocate (am4_Output_edmf%qt_edmf     )
+  deallocate (am4_Output_edmf%cldfra_bl   )
+  deallocate (am4_Output_edmf%qc_bl       )
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -7481,6 +7504,12 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ' '
         write(6,*)    '; qc tendency from edmf_mynn (kg/kg/s)'
         write(6,3002) ' qcdt_edmf = (/'    ,am4_Output_edmf%qcdt_edmf (ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; cloud fraction in edmf_mynn'
+        write(6,3002) ' cldfra_bl = (/'    ,am4_Output_edmf%cldfra_bl (ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; liquid water mixing ratio in edmf_mynn'
+        write(6,3002) ' qc_bl = (/'    ,am4_Output_edmf%qc_bl (ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    ';=============='
         write(6,*)    ';=============='
@@ -7674,6 +7703,8 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
     am4_Output_edmf%edmf_thl    (i,j,kk) = Output_edmf%edmf_thl (i,k,j)
     am4_Output_edmf%edmf_ent    (i,j,kk) = Output_edmf%edmf_ent (i,k,j)
     am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
+    am4_Output_edmf%cldfra_bl   (i,j,kk) = Output_edmf%cldfra_bl(i,k,j)
+    am4_Output_edmf%qc_bl       (i,j,kk) = Output_edmf%qc_bl    (i,k,j)
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
 
     !--- for testing purpose, “evaporate/condensate” the liquid and ice water that is produced during mixing
@@ -7698,8 +7729,12 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 
     !--- To avoid MYNN condensation issues, Kay Suselj suggested to set tdt & qdt to zeros when TKE is small (<0.02 m2/s2)
     if (Qke(i,j,kk) .lt. 0.04) then
+      am4_Output_edmf%udt_edmf    (i,j,kk) = 0.
+      am4_Output_edmf%vdt_edmf    (i,j,kk) = 0.
       am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
       am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
+      am4_Output_edmf%qidt_edmf   (i,j,kk) = 0.
+      am4_Output_edmf%qcdt_edmf   (i,j,kk) = 0.
     endif
 
 
