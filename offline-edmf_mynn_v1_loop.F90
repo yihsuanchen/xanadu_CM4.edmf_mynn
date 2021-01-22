@@ -3978,7 +3978,7 @@ END SUBROUTINE mym_condensation
                &kts,kte,delt,zw,p1,                   &
                &u1,v1,th1,thl,thetav,tk1,sqw,sqv,sqc, &
                &ex1,                              &
-               &ust(i,j),flt,flq,PBLH(i,j),       &
+               &ust(i,j),ps(i,j),flt,flq,PBLH(i,j),       &
                & liquid_frac,                     &
                & edmf_a1,edmf_w1,edmf_qt1,        &
                & edmf_thl1,edmf_ent1,edmf_qc1,    &
@@ -4681,6 +4681,46 @@ real :: diff,exn,t,th,qs,qcold,xlvv
 
 end subroutine condensation_edmf
 
+
+
+subroutine condensation_edmfA(THV,QT,P,LF,THL,QC)
+!
+! zero or one condensation for edmf: calculates QC and THL from THV and QT
+!
+
+
+real,intent(in) :: THV,QT,P,LF
+real,intent(out):: THL,QC
+
+
+integer :: niter,i
+real :: exn,t,qs,qcold,xlvv
+ 
+! max number of iterations (we dont need that many because th~thv)
+niter=2
+! minimum difference
+!diff=2.e-5
+
+EXN=(P/p1000mb)**rcp
+QC=0. 
+
+
+do i=1,NITER
+   T=EXN*THV/(1.+QT*(rvovrd-1.)-rvovrd*QC)
+   QS=qsatLF_blend(T,P,lf)
+   QCOLD=QC
+   QC=max(0.5*QC+0.5*(QT-QS),0.)
+!if (abs(QC-QCOLD)<Diff) exit
+enddo
+
+ xlvv=xlLF_blend(THL*EXN,lf)
+
+ THL=(T-xlvv/cp*QC)/EXN
+ 
+
+end subroutine condensation_edmfA
+
+
 !===============================================================
 
 ! subroutine condensation_edmf_r(QT,THL,P,zagl,THV,QC)
@@ -4897,7 +4937,7 @@ end subroutine condensation_edmf
 SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               &u,v,th,thl,thv,tk,qt,qv,qc,   &
               &exner,                        &
-              &ust,wthl,wqt,pblh,            &
+              &ust,ps,wthl,wqt,pblh,            &
               & liquid_frac,                 &
             ! outputs - updraft properties : new implementation
               & edmf_a,edmf_w, edmf_qt,      &
@@ -4920,7 +4960,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         REAL,DIMENSION(KTS:KTE), INTENT(IN) :: THV,P,exner,liquid_frac
         ! zw .. heights of the updraft levels (edges of boxes)
         REAL,DIMENSION(KTS:KTE+1), INTENT(IN) :: ZW
-        REAL, INTENT(IN) :: DT,UST,WTHL,WQT,PBLH
+        REAL, INTENT(IN) :: DT,UST,PS,WTHL,WQT,PBLH
 
 
    !     LOGICAL :: cloudflg
@@ -4948,9 +4988,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         REAL,DIMENSION(KTS:KTE+1,1:NUP) :: UPW,UPTHL,UPQT,UPQC,UPA,UPU,UPV,UPTHV
 
     ! entrainment variables
-        REAl,DIMENSION(KTS+1:KTE+1,1:NUP) :: ENT,ENTf
-        REAL,DIMENSION(KTS+1:KTE+1) :: L0s
-        INTEGER,DIMENSION(KTS+1:KTE+1,1:NUP) :: ENTi
+        REAl,DIMENSION(KTS:KTE,1:NUP) :: ENT,ENTf
+        REAL,DIMENSION(KTS:KTE) :: L0s
+        INTEGER,DIMENSION(KTS:KTE,1:NUP) :: ENTi
 
     ! internal variables
         INTEGER :: K,I, qlTop
@@ -4976,6 +5016,8 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         REAL,PARAMETER :: &
         !& L0=100.,&    yhc move L0 to namelist paramter 
         & ENT0=0.2
+       ! maximum wind speed in updraft
+       REAL,PARAMETER :: MAXW=2.  
 
 ! stability parameter for massflux
 ! (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
@@ -5042,9 +5084,7 @@ IF ( wthv >= 0.0 ) then
 ! get the pressure and liquid_fraction on updraft levels
 
   lfH(KTS)=liquid_frac(KTS)
-  pH(KTS)=p(KTS) ! should get the surface pressure
-
- 
+  pH(KTS)=ps 
   DO K=KTS+1,KTE
    lfH(K)=0.5*(liquid_frac(K)+liquid_frac(K-1))
     ph(K)=0.5*(p(K)+p(K-1)) 
@@ -5058,7 +5098,7 @@ IF ( wthv >= 0.0 ) then
     pwmin=1.
     pwmax=3.
 
-    wstar=max(0.,(g/thv(1)*wthv*pblh)**(1./3.))
+    wstar=max(0.,(g/thv(KTS)*wthv*pblh)**(1./3.))
     qstar=wqt/wstar
     thstar=wthl/wstar
     sigmaW=1.34*wstar*(z0/pblh)**(1./3.)*(1-0.8*z0/pblh)
@@ -5089,8 +5129,8 @@ IF ( wthv >= 0.0 ) then
 
 ! get dz/L0
     do i=1,Nup
-        do k=kts+1,kte
-           ENTf(k,i)=(ZW(k)-ZW(k-1))/L0! s(k)
+        do k=kts,kte
+           ENTf(k,i)=(ZW(k+1)-ZW(k))/L0! s(k)
 ! Elynn's modification of entrainment rate
 !          if (ZW(k) < Z_i) then
 !            ENTf(k,i) = (ZW(k)-ZW(k-1)) * (3.5 * exp((-(Z_i-ZW(k)))/70.) + 1./L0)
@@ -5107,70 +5147,70 @@ seedmf(1) = 1000000 * ( 100*thl(1) - INT(100*thl(1)))
 seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2))) 
 
 ! get Poisson P(dz/L0)
-    call Poisson(1,Nup,kts+1,kte,ENTf,ENTi,seedmf)
+    call Poisson(kts,kte,1,Nup,ENTf,ENTi,seedmf)
 
 
  ! entrainent: Ent=Ent0/dz*P(dz/L0)
     do i=1,Nup
-        do k=kts+1,kte
-          ENT(k,i)=real(ENTi(k,i))*Ent0/(ZW(k)-ZW(k-1))
+        do k=kts,kte
+          ENT(k,i)=real(ENTi(k,i))*Ent0/(ZW(k+1)-ZW(k))
         enddo
     enddo
 
 
-
-!
-! now we are assuming plumes are dry at the surface 
-!
     DO I=1,NUP
         wlv=wmin+(wmax-wmin)/NUP*(i-1)
         wtv=wmin+(wmax-wmin)/NUP*i
 
-        UPW(1,I)=min(0.5*(wlv+wtv),2.)
-        UPA(1,I)=0.5*ERF(wtv/(sqrt(2.)*sigmaW))-0.5*ERF(wlv/(sqrt(2.)*sigmaW))
+        UPW(KTS,I)=min(0.5*(wlv+wtv),maxw)
+        UPA(KTS,I)=0.5*ERF(wtv/(sqrt(2.)*sigmaW))-0.5*ERF(wlv/(sqrt(2.)*sigmaW))
 
-        UPU(1,I)=U(1)
-        UPV(1,I)=V(1)
+        UPU(KTS,I)=U(KTS)
+        UPV(KTS,I)=V(KTS)
 
-        UPQC(1,I)=0
-        UPQT(1,I)=QT(1)+0.32*UPW(1,I)*sigmaQT/sigmaW ! was 0.32
-        UPTHV(1,I)=THV(1)+0.58*UPW(1,I)*sigmaTH/sigmaW
-        UPTHL(1,I)=UPTHV(1,I)/(1+svp1*UPQT(1,I))
+       ! UPQC(KTS,I)=0 ! computed with condensation routine
+        UPQT(KTS,I)=QT(KTS)+0.32*UPW(KTS,I)*sigmaQT/sigmaW 
+        UPTHV(KTS,I)=THV(KTS)+0.58*UPW(KTS,I)*sigmaTH/sigmaW
+       ! UPTHL(KTS,I)=UPTHV(KTS,I)/(1.+svp1*UPQT(KTS,I)) ! with condensation routine
     ENDDO
 
 
 
 !
-! make sure that the surface flux of THL and QT does not exceed given flux
+! make sure that the surface flux of THV and QT does not exceed given flux
 !
-
 
    QTsrfF=0.
    THVsrfF=0.
    
    DO I=1,NUP
-     QTsrfF=QTsrfF+UPW(1,I)*UPA(1,I)*(UPQT(1,I)-QT(1))
-     THVsrfF=THVsrfF+UPW(1,I)*UPA(1,I)*(UPTHV(1,I)-THV(1))   
+     QTsrfF=QTsrfF+UPW(KTS,I)*UPA(KTS,I)*(UPQT(KTS,I)-QT(KTS))
+     THVsrfF=THVsrfF+UPW(KTS,I)*UPA(KTS,I)*(UPTHV(KTS,I)-THV(KTS))   
    ENDDO
   
    
    IF (THVsrfF .gt. wthv) THEN
    ! change surface THV so that the fluxes from the mass flux equal prescribed values
        DO I=1,NUP
-        UPTHV(1,I)=(UPTHV(1,I)-THV(1))*wthv/THVsrfF+THV(1)
+        UPTHV(KTS,I)=(UPTHV(KTS,I)-THV(KTS))*wthv/THVsrfF+THV(KTS)
        ENDDO
   ENDIF     
       
    IF ( QTsrfF .gt. wqt)  THEN
    ! change surface QT so that the fluxes from the mass flux equal prescribed values
        DO I=1,NUP
-        UPQT(kts-1,I)=(UPQT(kts-1,I)-QT(1))*wqt/QTsrfF+QT(1)
-  !      print *,'adjusting surface QT for a factor',wthv/QTsrfF
+        UPQT(KTS,I)=(UPQT(KTS,I)-QT(KTS))*wqt/QTsrfF+QT(KTS)
         ENDDO
     ENDIF     
 
 
-
+! surface condensation (compute THL and QC)
+  DO I=1,NUP  
+        call condensation_edmfA(UPTHV(KTS,I),UPQT(KTS,I),ph(KTS),lfh(KTS),UPTHL(KTS,I),UPQC(KTS,i))
+ ENDDO
+   
+   
+   
 
 
 
@@ -5178,8 +5218,8 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
     DO I=1,NUP
         DO k=KTS+1,KTE
             deltaZ = ZW(k)-ZW(k-1)
-            EntExp=exp(-ENT(K,I)*deltaZ)
-            EntExp_M=exp(-ENT(K,I)/3.*deltaZ)
+            EntExp=exp(-ENT(K-1,I)*deltaZ)
+            EntExp_M=exp(-ENT(K-1,I)/3.*deltaZ)
 
             QTn=QT(K-1)*(1-EntExp)+UPQT(K-1,I)*EntExp
             THLn=THL(K-1)*(1-EntExp)+UPTHL(K-1,I)*EntExp
@@ -5194,9 +5234,10 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
  !           ELSE
  !               Beta_un = Wb*ENT(K,I) + 0.5/deltaZ * (1. - exp(deltaZ/Z00-1.))
  !           END IF
-            Beta_un=wb*ENT(K,I)   
-           EntW = exp(-2.*Beta_un*deltaZ) ! exp(-2.*(Wb*ENT(K,I))*deltaZ)
+            Beta_un=wb*ENT(K-1,I)   
+          
             IF (Beta_un>0) THEN
+                EntW = exp(-2.*Wb*ENT(K,I)*deltaZ)
                 Wn2=UPW(K-1,I)**2*EntW+(1.-EntW)*Wa*B/Beta_un
             ELSE
                 Wn2=UPW(K-1,I)**2+2*Wa*B*deltaZ
