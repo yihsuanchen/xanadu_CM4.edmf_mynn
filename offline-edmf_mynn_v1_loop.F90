@@ -120,7 +120,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
                                          ! upwind=0.5 ... use centered difference for mass-flux calculation
   real :: L0 = 100.                      ! entrainemnt rate parameter
   integer :: NUP=100                     ! the number of updrafts
- 
+  REAL :: UPSTAB=1.            ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
+
 !############################
 !############################
 
@@ -5023,7 +5024,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
 
 ! stability parameter for massflux
 ! (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
-       REAL,PARAMETER :: UPSTAB=1.
+!       REAL,PARAMETER :: UPSTAB=1.   ! yhc - move UPSTAB to namelist parameter
 
 !Initialize values:
 ktop = 0
