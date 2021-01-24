@@ -1862,6 +1862,10 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                        size(Physics_tendency_block%u_dt,2), &
                        size(Physics_tendency_block%u_dt,3)  )  :: &
         udt_before_vdiff_down, vdt_before_vdiff_down
+
+      real, dimension( size(Physics_tendency_block%u_dt,1), &
+                       size(Physics_tendency_block%u_dt,2)) :: &
+        tau_x_before_vdiff_down, tau_y_before_vdiff_down
 !--> yhc
 
 !---------------------------------------------------------------------
@@ -2185,6 +2189,8 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         diff_t = 0.
         udt_before_vdiff_down(:,:,:) = udt(:,:,:)
         vdt_before_vdiff_down(:,:,:) = vdt(:,:,:)
+        tau_x_before_vdiff_down(:,:) = tau_x(:,:)
+        tau_y_before_vdiff_down(:,:) = tau_y(:,:)
 
         call vert_diff_driver_down (is, js, Time_next, dt, p_half,   &
                                     p_full, z_full,   &
@@ -2195,8 +2201,24 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                                     udt, vdt, tdt, rdt(:,:,:,1), rdt,        &
                                     Surf_diff)
 
+  if (do_writeout_column) then
+        write(6,*) '-------------- i,j,',ii_write,jj_write
+        write(6,*) 'lat',lat (ii_write,jj_write)
+        write(6,*) 'lon',lon (ii_write,jj_write)
+        write(6,*) 'tau_x_before_vdiff_down',tau_x_before_vdiff_down(ii_write,jj_write)
+        write(6,*) 'tau_x_after_vdiff_down ',tau_x(ii_write,jj_write)
+        write(6,*) 'tau_y_before_vdiff_down',tau_y_before_vdiff_down(ii_write,jj_write)
+        write(6,*) 'tau_y_after_vdiff_down',tau_y(ii_write,jj_write)
+        write(6,*) 'surf_diff%delta_u, after vdiff_down',surf_diff%delta_u(ii_write,jj_write)
+        write(6,*) 'surf_diff%delta_v, after vdiff_down',surf_diff%delta_v(ii_write,jj_write)
+  endif
+
         udt(:,:,:) = udt_before_vdiff_down(:,:,:)  ! yhc, even diff_m=0., udt and vdt at the lowest atm loevel are still changed.
         vdt(:,:,:) = vdt_before_vdiff_down(:,:,:)  !      make sure udt and vdt are reset to the values before vdiff_down
+        tau_x(:,:) = tau_x_before_vdiff_down(:,:)  !      reset tau_x, tau_y, surf_diff%delta_u, and surf_diff%delta_v
+        tau_y(:,:) = tau_y_before_vdiff_down(:,:) 
+        surf_diff%delta_u(:,:) = 0.
+        surf_diff%delta_v(:,:) = 0.
       !<-- yhc
 
       else
