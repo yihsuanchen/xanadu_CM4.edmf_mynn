@@ -6222,7 +6222,13 @@ return t,q,u,v,ql,qi tendencies
 
 a3*, b3*, and d3*
 code version
+
+  *** -u, a ***
   edmf_mynn.F90, 485782c776855be25b92dcd1a0bacbc93076fb8f
+  physics_driver.F90, 0ea083b3b4f58b087699d508eaeb5e5806a7d1cd  
+
+  *** -u, a1 ***
+  edmf_mynn.F90, ee57e96bc6095c9cfe35a697a1cde37d82dddbee 
   physics_driver.F90, 0ea083b3b4f58b087699d508eaeb5e5806a7d1cd  
 
 ############################
@@ -6526,6 +6532,28 @@ code version
       <namelist name="physics_driver_nml">
  DO_EDMF_MYNN    = T,
  DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x01-a01-GCSS_ARM-am4p0_rad_mynn" inherit="a01-GCSS_ARM-am4p0_rad_mynn">
+  </experiment>
+
+  <experiment name="x02-a01-GCSS_ARM-am4p0_rad_mynn" inherit="a00-GCSS_ARM-am4p0_rad">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
  DO_WRITEOUT_COLUMN_NML  = T,
  II_WRITE        =        0,
  JJ_WRITE        =        0,
