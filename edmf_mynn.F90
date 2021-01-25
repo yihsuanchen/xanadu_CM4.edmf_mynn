@@ -371,7 +371,7 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni  ! tracer indices for stratiform clo
 integer :: nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl ! tracer index for EDMF-MYNN tracers
 integer :: ntp          ! number of prognostic tracers
 
-integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl
+integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl
 
 !---------------------------------------------------------------------
 
@@ -521,8 +521,8 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  'Obukhov length from updated fluxes', 'm' , &
                  missing_value=missing_value )
 
-  id_tke = register_diag_field (mod_name, 'tke_edmf', axes(full), Time, &
-                 'turbulent kinetic energy', 'm2/s2' , &
+  id_tke_edmf = register_diag_field (mod_name, 'tke_edmf', axes(full), Time, &
+                 'turbulent kinetic energy in edmf_mynn', 'm2/s2' , &
                  missing_value=missing_value )
 
   id_Tsq = register_diag_field (mod_name, 'Tsq', axes(full), Time, &
@@ -6353,8 +6353,8 @@ subroutine edmf_mynn_driver ( &
       endif
 
 !------- turbulent kinetic energy (units: m2/s2) at full level -------
-      if ( id_tke > 0) then
-        used = send_data (id_tke, am4_Output_edmf%tke, Time_next, is, js, 1 )
+      if ( id_tke_edmf > 0) then
+        used = send_data (id_tke_edmf, am4_Output_edmf%tke, Time_next, is, js, 1 )
       endif
 
 !------- variance of theta_l (units: K^2) at full level -------
