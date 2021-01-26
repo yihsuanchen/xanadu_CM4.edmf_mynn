@@ -2734,13 +2734,14 @@ real,dimension(:,:),    intent(inout)             :: gust
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                do_edmf_mynn_diagnostic, &
-               udt, vdt, tdt, rdt, rdiag)
+               pbltop, udt, vdt, tdt, rdt, rdiag)
   endif
 
  if (do_writeout_column) then
         write(6,*) '-------------- i,j,',ii_write,jj_write
         write(6,*) 'lat',lat (ii_write,jj_write)
         write(6,*) 'lon',lon (ii_write,jj_write)
+        write(6,*) 'pbltop',pbltop (ii_write,jj_write)
         write(6,*) 'data t_edmf_mynn/'    ,t(ii_write,jj_write,:)
         write(6,*) 'data q_edmf_mynn/'    ,r(ii_write,jj_write,:,1)
         write(6,*) 'data udt_edmf_mynn/'    ,udt(ii_write,jj_write,:)
