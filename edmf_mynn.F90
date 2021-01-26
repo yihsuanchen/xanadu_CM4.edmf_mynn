@@ -334,6 +334,8 @@ end type am4_edmf_output_type
   logical :: expmf = .true.              ! .true.  ... explicit mass-flux, .false. .... implicit mass-flux
   real    :: upwind = 1.                 ! upwind=1. ... use upwind approximation for mass-flux calculation
                                          ! upwind=0.5 ... use centered difference for mass-flux calculation
+                                         ! explicit mass-flux can use either upwind or centered-difference
+                                         ! implicit mass-flux must uses the centered differencing method.  
   real    :: L0  = 100.                  ! entrainemnt rate parameter
   integer :: NUP = 100                   ! the number of updrafts
   real    :: UPSTAB = 1.                 ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
@@ -434,6 +436,12 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                      ' option_surface_flux must be "star" or "updated" in the edmf_mynn_nml',&
                      FATAL )
   end if
+
+  if (.not.expmf .and. upwind.ne.0.5) then
+    call error_mesg( ' edmf_mynn',     &
+                     ' when expmf=.false., upwind must be 0.5 (implicit MF with centered-diff)',&
+                     FATAL )
+  endif
 
 !  if ( trim(option_solver) /= 'explicit' .and. &
 !       trim(option_solver) /= 'implicit' )       then 
