@@ -5930,6 +5930,7 @@ Code used
  bl_mynn_edmf = 3
  expmf = F
  OPTION_SURFACE_FLUX     = star
+ upwind = 0.5
       </namelist>
     </input>
   </experiment>
@@ -6227,13 +6228,23 @@ code version
   edmf_mynn.F90, 485782c776855be25b92dcd1a0bacbc93076fb8f
   physics_driver.F90, 0ea083b3b4f58b087699d508eaeb5e5806a7d1cd  
 
-  *** -u, a1 ***
+  *** -u, a1,a2 ***
   edmf_mynn.F90, ee57e96bc6095c9cfe35a697a1cde37d82dddbee 
   physics_driver.F90, 0ea083b3b4f58b087699d508eaeb5e5806a7d1cd  
+
+  *** -u, a3 ***
+  edmf_mynn.F90, b1e73695c26c4baf194111f1cbfd56408a87730a
+  physics_driver.F90, 44318e42f403401bcfd15207b08dffe614aefdc1
 
 ############################
 ############################
 -->
+  <experiment name="d30-DCBL_C1-am4p0" inherit="c00-DCBL_C1-am4p0">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+    </input>
+  </experiment>
+
   <experiment name="d31-DCBL_C1-am4p0_mynn" inherit="c00-DCBL_C1-am4p0">
     <input>
       <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
@@ -6290,6 +6301,7 @@ code version
  OPTION_SURFACE_FLUX     = star
  bl_mynn_edmf = 3
  expmf = F
+ upwind = 0.5
       </namelist>
     </input>
   </experiment>
@@ -6339,6 +6351,7 @@ code version
  OPTION_SURFACE_FLUX     = updated
  bl_mynn_edmf = 3
  expmf = F
+ upwind = 0.5
       </namelist>
     </input>
   </experiment>
@@ -6372,7 +6385,6 @@ code version
  DO_STOP_RUN     = F,
  OPTION_SURFACE_FLUX     = updated
  bl_mynn_edmf = 0
- expmf = F
       </namelist>
     </input>
   </experiment>
@@ -6401,6 +6413,116 @@ code version
  OPTION_SURFACE_FLUX     = updated
  bl_mynn_edmf = 3
  expmf = F
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a36-GCSS_ARM-am4p0_rad_mynn_expmf_shOFF" inherit="a33-GCSS_ARM-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ expmf = T
+ upwind = 1.
+      </namelist>
+      <namelist name="uw_conv_nml">
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   -100000.     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000     ,
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a37-GCSS_ARM-am4p0_rad_mynn_impmf_shOFF" inherit="a36-GCSS_ARM-am4p0_rad_mynn_expmf_shOFF">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ expmf = F
+ upwind = 0.5
       </namelist>
     </input>
   </experiment>
@@ -6450,6 +6572,7 @@ code version
  OPTION_SURFACE_FLUX     = updated
  bl_mynn_edmf = 3
  expmf = F
+ upwind = 0.5
       </namelist>
     </input>
   </experiment>
@@ -6483,7 +6606,6 @@ code version
  DO_STOP_RUN     = F,
  OPTION_SURFACE_FLUX     = updated
  bl_mynn_edmf = 0
- expmf = F
       </namelist>
     </input>
   </experiment>
@@ -6512,10 +6634,119 @@ code version
  OPTION_SURFACE_FLUX     = updated
  bl_mynn_edmf = 3
  expmf = F
+ upwind = 0.5
       </namelist>
     </input>
   </experiment>
 
+  <experiment name="b36-BOMEX-am4p0_rad_mynn_expmf_shOFF" inherit="b33-BOMEX-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ expmf = T
+ upwind = 1.
+      </namelist>
+      <namelist name="uw_conv_nml">
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   -100000.     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000     ,
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b37-BOMEX-am4p0_rad_mynn_impmf_shOFF" inherit="b36-BOMEX-am4p0_rad_mynn_expmf_shOFF">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ expmf = F
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
 
 <!--
 ##########################
@@ -6542,6 +6773,115 @@ code version
  II_WRITE        =        0,
  JJ_WRITE        =        0,
  DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x03-b01-BOMEX-am4p0_rad_mynn_mf" inherit="b01-BOMEX-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = T,
+ expmf = F
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x04-b01-BOMEX-am4p0_rad_mynn_mf_shOFF" inherit="b01-BOMEX-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = T,
+ expmf = F
+ upwind = 0.5
+      </namelist>
+      <namelist name="uw_conv_nml">
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   -100000.     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000     ,
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
       </namelist>
     </input>
   </experiment>
