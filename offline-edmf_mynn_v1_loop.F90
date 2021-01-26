@@ -204,6 +204,9 @@ type am4_edmf_output_type
     cldfra_bl, qc_bl, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                        
 
+  real, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
+    pbltop
+
 end type am4_edmf_output_type
 
 !############################
@@ -5829,7 +5832,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              udt, vdt, tdt, rdt, rdiag)
+              pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
 ! Arguments (Intent in)  
@@ -5856,6 +5859,8 @@ subroutine edmf_mynn_driver ( &
 !                            [ unit / unit / sec ]
 !          5) rdiag          multiple 3d diagnostic tracer fields 
 !                            [ unit / unit ]
+!
+!      pbltop - PBL height (m)
 !---------------------------------------------------------------------
   real, intent(inout), dimension(:,:,:) :: &
     udt, vdt, tdt
@@ -5864,6 +5869,8 @@ subroutine edmf_mynn_driver ( &
   !real, intent(inout), dimension(:,:,:,:) :: &
   real, intent(inout), dimension(:,:,:,ntp+1:) :: &
     rdiag
+  real, intent(inout), dimension(:,:) :: &
+    pbltop
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -6014,7 +6021,7 @@ subroutine edmf_mynn_driver ( &
 
   !--- convert Output_edmf to am4_Output_edmf
   call convert_edmf_to_am4_array (size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
+                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag, Physics_input_block%z_full, &
                                   rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D) )
 
 !! debug01
@@ -6064,6 +6071,8 @@ subroutine edmf_mynn_driver ( &
     rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
     rdt(:,:,:,nql)    = rdt(:,:,:,nql)    + am4_Output_edmf%qcdt_edmf(:,:,:)
     rdt(:,:,:,nqi)    = rdt(:,:,:,nqi)    + am4_Output_edmf%qidt_edmf(:,:,:)
+
+    pbltop (:,:) = am4_Output_edmf%pbltop(:,:)
   end if
 
   !--- write out EDMF-MYNN input and output fields for debugging purpose
@@ -6676,6 +6685,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qt_edmf     (ix,jx,kx))  ; am4_Output_edmf%qt_edmf     = 0.
   allocate (am4_Output_edmf%cldfra_bl   (ix,jx,kx))  ; am4_Output_edmf%cldfra_bl   = 0.
   allocate (am4_Output_edmf%qc_bl       (ix,jx,kx))  ; am4_Output_edmf%qc_bl       = 0.
+  allocate (am4_Output_edmf%pbltop      (ix,jx))     ; am4_Output_edmf%pbltop      = 0.
 
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
@@ -7046,6 +7056,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qt_edmf     )
   deallocate (am4_Output_edmf%cldfra_bl   )
   deallocate (am4_Output_edmf%qc_bl       )
+  deallocate (am4_Output_edmf%pbltop      )  
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -7492,13 +7503,14 @@ end subroutine edmf_writeout_column
 !########################
 
 subroutine convert_edmf_to_am4_array (ix, jx, kx, &
-                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
+                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag, z_full, &
                                       Qke, el_pbl, cldfra_bl, qc_bl, Sh3D )
 
 !--- input arguments
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   type(edmf_output_type)    , intent(in)  :: Output_edmf
   integer                   , intent(in)  :: ix, jx, kx
+  real, dimension (:,:,:)   , intent(in)  :: z_full 
 
 !--- output arguments
   type(am4_edmf_output_type), intent(inout) :: am4_Output_edmf
@@ -7515,6 +7527,10 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
   !jx = size(Output_edmf%Qke,3)
   !kx = size(Output_edmf%Qke,2)
   !print*,'convert, ix,jx,kx',ix,jx,kx
+
+!---------------
+! 3D variables
+!---------------
 
   do i=1,ix
   do j=1,jx
@@ -7576,6 +7592,18 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
   enddo  ! end loop of j
   enddo  ! end loop of 1
 
+!---------------
+! 2D variables
+!---------------
+  do i=1,ix
+  do j=1,jx
+    kk=kx-Output_edmf%kpbl (i,j)+1 
+    am4_Output_edmf%pbltop(i,j) = z_full(i,j,kk)
+    !print*,'kpbl',Output_edmf%kpbl (i,j)
+    !print*,'z_pbl',z_full(i,j,kk)   
+  enddo  ! end loop of j
+  enddo  ! end loop of 1
+
 end subroutine convert_edmf_to_am4_array
 
 !#############################
@@ -7616,7 +7644,7 @@ program test111
   real,    dimension(ni,nj,nfull) :: diff_t, diff_m
   real,    dimension(ni,nj,nfull) :: udt_mf, vdt_mf, tdt_mf, qdt_mf, thvdt_mf, qtdt_mf, thlidt_mf
   !real,    dimension(ni,nj)   :: cov_w_thv, cov_w_qt
-  real,    dimension(ni,nj)   :: z_pbl
+  real,    dimension(ni,nj)   :: z_pbl, pbltop
   real,    dimension(ni,nj)   :: lat, lon, u_star, b_star, q_star, shflx, lhflx, frac_land, area, t_ref, q_ref, u_flux, v_flux
   real,    dimension(ni,nj)   :: buoy_flux, w1_thv1_surf, w1_qt1_surf
 
@@ -8177,7 +8205,7 @@ print*,'tt',Physics_input_block%t
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, & 
               do_edmf_mynn_diagnostic, &
-              udt, vdt, tdt, rdt, rdiag(:,:,:,ntp+1:))
+              pbltop, udt, vdt, tdt, rdt, rdiag(:,:,:,ntp+1:))
               !udt, vdt, tdt, rdt, rdiag)
 
     ! update fields
