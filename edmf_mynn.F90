@@ -139,6 +139,9 @@ type am4_edmf_output_type
     cldfra_bl, qc_bl, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
+  real, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
+    pbltop
+
 end type am4_edmf_output_type
 
 !---------------------------------------------------------------------
@@ -373,7 +376,7 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni  ! tracer indices for stratiform clo
 integer :: nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl ! tracer index for EDMF-MYNN tracers
 integer :: ntp          ! number of prognostic tracers
 
-integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl
+integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf
 
 !---------------------------------------------------------------------
 
@@ -603,6 +606,14 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_qc_bl = register_diag_field (mod_name, 'qc_bl', axes(full), Time, &
                  'liquid water mixing ratio in edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_z_pbl = register_diag_field (mod_name, 'z_pbl', axes(1:2), Time, &
+                 'depth of planetary boundary layer', 'm' , &
+                 missing_value=missing_value )
+
+  id_z_pbl_edmf = register_diag_field (mod_name, 'z_pbl_edmf', axes(1:2), Time, &
+                 'PBL depth from edmf_mynn', 'm' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -6061,7 +6072,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              udt, vdt, tdt, rdt, rdiag)
+              pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
 ! Arguments (Intent in)  
@@ -6088,6 +6099,8 @@ subroutine edmf_mynn_driver ( &
 !                            [ unit / unit / sec ]
 !          5) rdiag          multiple 3d diagnostic tracer fields 
 !                            [ unit / unit ]
+!
+!      pbltop - PBL height (m)
 !---------------------------------------------------------------------
   real, intent(inout), dimension(:,:,:) :: &
     udt, vdt, tdt
@@ -6096,6 +6109,8 @@ subroutine edmf_mynn_driver ( &
   !real, intent(inout), dimension(:,:,:,:) :: &
   real, intent(inout), dimension(:,:,:,ntp+1:) :: &
     rdiag
+  real, intent(inout), dimension(:,:) :: &
+    pbltop
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -6246,7 +6261,7 @@ subroutine edmf_mynn_driver ( &
 
   !--- convert Output_edmf to am4_Output_edmf
   call convert_edmf_to_am4_array (size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
+                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag, Physics_input_block%z_full, &
                                   rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D) )
 
 !! debug01
@@ -6296,6 +6311,8 @@ subroutine edmf_mynn_driver ( &
     rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
     rdt(:,:,:,nql)    = rdt(:,:,:,nql)    + am4_Output_edmf%qldt_edmf(:,:,:)
     rdt(:,:,:,nqi)    = rdt(:,:,:,nqi)    + am4_Output_edmf%qidt_edmf(:,:,:)
+
+    pbltop (:,:) = am4_Output_edmf%pbltop(:,:)
   end if
 
   !--- write out EDMF-MYNN input and output fields for debugging purpose
@@ -6453,6 +6470,16 @@ subroutine edmf_mynn_driver ( &
 !------- liquid water mixing ratio in edmf_mynn (units: mynn) at full level -------
       if ( id_qc_bl > 0) then
         used = send_data (id_qc_bl, am4_Output_edmf%qc_bl, Time_next, is, js, 1 )
+      endif
+
+!------- depth of planetary boundary layer (units: m) at one level -------
+      if ( id_z_pbl > 0) then
+        used = send_data (id_z_pbl, pbltop, Time_next, is, js )
+      endif
+
+!------- PBL depth from edmf_mynn (units: m) at one level -------
+      if ( id_z_pbl_edmf > 0) then
+        used = send_data (id_z_pbl_edmf, am4_Output_edmf%pbltop, Time_next, is, js )
       endif
 
 !---------------------------------------------------------------------
@@ -6908,6 +6935,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qt_edmf     (ix,jx,kx))  ; am4_Output_edmf%qt_edmf     = 0.
   allocate (am4_Output_edmf%cldfra_bl   (ix,jx,kx))  ; am4_Output_edmf%cldfra_bl   = 0.
   allocate (am4_Output_edmf%qc_bl       (ix,jx,kx))  ; am4_Output_edmf%qc_bl       = 0.
+  allocate (am4_Output_edmf%pbltop      (ix,jx))     ; am4_Output_edmf%pbltop      = 0.
 
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
@@ -7278,6 +7306,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qt_edmf     )
   deallocate (am4_Output_edmf%cldfra_bl   )
   deallocate (am4_Output_edmf%qc_bl       )
+  deallocate (am4_Output_edmf%pbltop      )  
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -7724,13 +7753,14 @@ end subroutine edmf_writeout_column
 !########################
 
 subroutine convert_edmf_to_am4_array (ix, jx, kx, &
-                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
+                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag, z_full, &
                                       Qke, el_pbl, cldfra_bl, qc_bl, Sh3D )
 
 !--- input arguments
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   type(edmf_output_type)    , intent(in)  :: Output_edmf
   integer                   , intent(in)  :: ix, jx, kx
+  real, dimension (:,:,:)   , intent(in)  :: z_full 
 
 !--- output arguments
   type(am4_edmf_output_type), intent(inout) :: am4_Output_edmf
@@ -7747,6 +7777,10 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
   !jx = size(Output_edmf%Qke,3)
   !kx = size(Output_edmf%Qke,2)
   !print*,'convert, ix,jx,kx',ix,jx,kx
+
+!---------------
+! 3D variables
+!---------------
 
   do i=1,ix
   do j=1,jx
@@ -7808,9 +7842,20 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
   enddo  ! end loop of j
   enddo  ! end loop of 1
 
+!---------------
+! 2D variables
+!---------------
+  do i=1,ix
+  do j=1,jx
+    kk=kx-Output_edmf%kpbl (i,j)+1 
+    am4_Output_edmf%pbltop(i,j) = z_full(i,j,kk)
+    !print*,'kpbl',Output_edmf%kpbl (i,j)
+    !print*,'z_pbl',z_full(i,j,kk)   
+  enddo  ! end loop of j
+  enddo  ! end loop of 1
+
 end subroutine convert_edmf_to_am4_array
 
 !#############################
-
 
 end module edmf_mynn_mod
