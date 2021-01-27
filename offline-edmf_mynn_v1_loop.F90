@@ -200,7 +200,7 @@ type am4_edmf_output_type
 
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
     thl_edmf, qt_edmf,  & ! diagnostic purpose
-    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qcdt_edmf, &  ! outputs from EDMF-MYNN scheme
+    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, &  ! outputs from EDMF-MYNN scheme
     cldfra_bl, qc_bl, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                        
 
@@ -6069,7 +6069,7 @@ subroutine edmf_mynn_driver ( &
     tdt(:,:,:) = tdt(:,:,:) + am4_Output_edmf%tdt_edmf(:,:,:)
 
     rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
-    rdt(:,:,:,nql)    = rdt(:,:,:,nql)    + am4_Output_edmf%qcdt_edmf(:,:,:)
+    rdt(:,:,:,nql)    = rdt(:,:,:,nql)    + am4_Output_edmf%qldt_edmf(:,:,:)
     rdt(:,:,:,nqi)    = rdt(:,:,:,nqi)    + am4_Output_edmf%qidt_edmf(:,:,:)
 
     pbltop (:,:) = am4_Output_edmf%pbltop(:,:)
@@ -6138,8 +6138,8 @@ subroutine edmf_mynn_driver ( &
 !      endif
 !
 !!------- turbulent kinetic energy (units: m2/s2) at full level -------
-!      if ( id_tke > 0) then
-!        used = send_data (id_tke, am4_Output_edmf%tke, Time_next, is, js, 1 )
+!      if ( id_tke_edmf > 0) then
+!        used = send_data (id_tke_edmf, am4_Output_edmf%tke, Time_next, is, js, 1 )
 !      endif
 !
 !!------- variance of theta_l (units: K^2) at full level -------
@@ -6178,8 +6178,8 @@ subroutine edmf_mynn_driver ( &
 !      endif
 !
 !!------- qc tendency from edmf_mynn (units: kg/kg/s) at full level -------
-!      if ( id_qcdt_edmf > 0) then
-!        used = send_data (id_qcdt_edmf, am4_Output_edmf%qcdt_edmf, Time_next, is, js, 1 )
+!      if ( id_qldt_edmf > 0) then
+!        used = send_data (id_qldt_edmf, am4_Output_edmf%qldt_edmf, Time_next, is, js, 1 )
 !      endif
 !
 !!------- updraft area (units: none) at full level -------
@@ -6230,6 +6230,16 @@ subroutine edmf_mynn_driver ( &
 !!------- liquid water mixing ratio in edmf_mynn (units: mynn) at full level -------
 !      if ( id_qc_bl > 0) then
 !        used = send_data (id_qc_bl, am4_Output_edmf%qc_bl, Time_next, is, js, 1 )
+!      endif
+!
+!!------- depth of planetary boundary layer (units: m) at one level -------
+!      if ( id_z_pbl > 0) then
+!        used = send_data (id_z_pbl, pbltop, Time_next, is, js )
+!      endif
+!
+!!------- PBL depth from edmf_mynn (units: m) at one level -------
+!      if ( id_z_pbl_edmf > 0) then
+!        used = send_data (id_z_pbl_edmf, am4_Output_edmf%pbltop, Time_next, is, js )
 !      endif
 
 !---------------------------------------------------------------------
@@ -6674,7 +6684,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%tdt_edmf    (ix,jx,kx))  ; am4_Output_edmf%tdt_edmf    = 0.
   allocate (am4_Output_edmf%qdt_edmf    (ix,jx,kx))  ; am4_Output_edmf%qdt_edmf    = 0.
   allocate (am4_Output_edmf%qidt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qidt_edmf   = 0.
-  allocate (am4_Output_edmf%qcdt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qcdt_edmf   = 0.
+  allocate (am4_Output_edmf%qldt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qldt_edmf   = 0.
   allocate (am4_Output_edmf%edmf_a      (ix,jx,kx))  ; am4_Output_edmf%edmf_a      = 0.
   allocate (am4_Output_edmf%edmf_w      (ix,jx,kx))  ; am4_Output_edmf%edmf_w      = 0.
   allocate (am4_Output_edmf%edmf_qt     (ix,jx,kx))  ; am4_Output_edmf%edmf_qt     = 0.
@@ -7045,7 +7055,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%tdt_edmf    )  
   deallocate (am4_Output_edmf%qdt_edmf    )  
   deallocate (am4_Output_edmf%qidt_edmf   )  
-  deallocate (am4_Output_edmf%qcdt_edmf   )  
+  deallocate (am4_Output_edmf%qldt_edmf   )  
   deallocate (am4_Output_edmf%edmf_a      )
   deallocate (am4_Output_edmf%edmf_w      )
   deallocate (am4_Output_edmf%edmf_qt     )
@@ -7348,7 +7358,7 @@ subroutine edmf_writeout_column ( &
         write(6,3002) ' qidt_edmf = (/'    ,am4_Output_edmf%qidt_edmf (ii_write,jj_write,:)
         write(6,*)    ' '
         write(6,*)    '; qc tendency from edmf_mynn (kg/kg/s)'
-        write(6,3002) ' qcdt_edmf = (/'    ,am4_Output_edmf%qcdt_edmf (ii_write,jj_write,:)
+        write(6,3002) ' qldt_edmf = (/'    ,am4_Output_edmf%qldt_edmf (ii_write,jj_write,:)
         write(6,*)    ' '
         write(6,*)    '; cloud fraction in edmf_mynn'
         write(6,3002) ' cldfra_bl = (/'    ,am4_Output_edmf%cldfra_bl (ii_write,jj_write,:)
@@ -7546,7 +7556,7 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
     am4_Output_edmf%tdt_edmf    (i,j,kk) = Output_edmf%RTHBLTEN (i,k,j) / Input_edmf%exner (i,k,j)
     am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN (i,k,j)
     am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN (i,k,j)
-    am4_Output_edmf%qcdt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN (i,k,j)
+    am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN (i,k,j)
     am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a   (i,k,j)
     am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w   (i,k,j)
     am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
@@ -7584,7 +7594,7 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
       am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
       am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
       am4_Output_edmf%qidt_edmf   (i,j,kk) = 0.
-      am4_Output_edmf%qcdt_edmf   (i,j,kk) = 0.
+      am4_Output_edmf%qldt_edmf   (i,j,kk) = 0.
     endif
 
 
@@ -7608,6 +7618,7 @@ end subroutine convert_edmf_to_am4_array
 
 !#############################
 
+! Mellor-Yamada
 !#############################
 
 !###################################
