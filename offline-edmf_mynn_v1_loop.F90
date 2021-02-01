@@ -12,10 +12,10 @@ MODULE module_bl_mynn
 !
 !############################
 !############################
-  character*50 :: input_profile = "SCM_am4p0_DCBL_C1_begin"
+  !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_begin"
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_01"
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_02_u,vdt_NaN"
-  !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
+  character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
   !character*50 :: input_profile = "AMIP_i27_j01_IndOcn"
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
   !character*50 :: input_profile = "xxx"
@@ -2966,8 +2966,8 @@ END SUBROUTINE mym_condensation
 
 
    DO k=kts+1,kte-1
-    upcont(k)=onoff*(s_awu(k)-s_aw(k)*(u(k+1)*upwind+u(k)*(1.-upwind)))
-    dncont(k)=onoff*(sd_awu(k)-sd_aw(k)*(u(k+1)*upwind+u(k)*(1.-upwind)))
+    upcont(k)=onoff*(s_awu(k)-s_aw(k)*(u(k)*upwind+u(k-1)*(1.-upwind)))
+    dncont(k)=onoff*(sd_awu(k)-sd_aw(k)*(u(k)*upwind+u(k-1)*(1.-upwind)))
    ENDDO
 ! no flux at the top of the atmosphere
     upcont(kte)=0. 
@@ -3038,8 +3038,8 @@ END SUBROUTINE mym_condensation
  IF(expmf) THEN
 
    DO k=kts+1,kte-1
-    upcont(k)=onoff*(s_awv(k)-s_aw(k)*(v(k+1)*upwind+v(k)*(1.-upwind)))
-    dncont(k)=onoff*(sd_awv(k)-sd_aw(k)*(v(k+1)*upwind+v(k)*(1.-upwind)))
+    upcont(k)=onoff*(s_awv(k)-s_aw(k)*(v(k)*upwind+v(k-1)*(1.-upwind)))
+    dncont(k)=onoff*(sd_awv(k)-sd_aw(k)*(v(k)*upwind+v(k-1)*(1.-upwind)))
    ENDDO
     upcont(kte)=0. 
     dncont(kte)=0.
@@ -3106,8 +3106,8 @@ END SUBROUTINE mym_condensation
   IF(expmf) THEN
   
    DO k=kts+1,kte-1
-   upcont(k)=s_awthl(k)-s_aw(k)*(thl(k+1)*upwind+thl(k)*(1.-upwind))
-   dncont(k)=sd_awthl(k)-sd_aw(k)*(thl(k+1)*upwind+thl(k)*(1.-upwind))
+   upcont(k)=s_awthl(k)-s_aw(k)*(thl(k)*upwind+thl(k-1)*(1.-upwind))
+   dncont(k)=sd_awthl(k)-sd_aw(k)*(thl(k)*upwind+thl(k-1)*(1.-upwind))
    ENDDO
    upcont(kte)=0. 
    dncont(kte)=0.
@@ -3169,8 +3169,8 @@ END SUBROUTINE mym_condensation
 
  IF(expmf) THEN
    DO k=kts+1,kte-1
-     upcont(k)=s_awqt(k)-s_aw(k)*(sqw(k+1)*upwind+sqw(k)*(1.-upwind))
-     dncont(k)=sd_awqt(k)-sd_aw(k)*(sqw(k+1)*upwind+sqw(k)*(1.-upwind))
+     upcont(k)=s_awqt(k)-s_aw(k)*(sqw(k)*upwind+sqw(k-1)*(1.-upwind))
+     dncont(k)=sd_awqt(k)-sd_aw(k)*(sqw(k)*upwind+sqw(k-1)*(1.-upwind))
    ENDDO
     upcont(kte)=0. 
     dncont(kte)=0.
@@ -8207,6 +8207,7 @@ endif ! end if of input profile
     udt = 0. ; vdt = 0. ; tdt = 0.; rdt = 0.   
 
 print*,'tt',Physics_input_block%t
+print *,'qq',qq
 
     print*,''
     print*,'----------------------'
