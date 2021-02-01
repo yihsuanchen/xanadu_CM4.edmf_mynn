@@ -115,21 +115,21 @@ properties below.
 <!--  6-year AMIP
 -->
 
-<!--
   <property name="EXP_AMIP_START" value="1979"/>
   <property name="EXP_AMIP_END"   value="1984"/>
   <property name="EXP_AMIP_LEN"   value="6"/>
   <property name="ANA_AMIP_START" value="1980"/>
   <property name="ANA_AMIP_END"   value="1984"/>
   <property name="ANA_AMIP_LEN"   value="5yr"/>
--->
 
+<!--
   <property name="EXP_AMIP_START" value="1979"/>
   <property name="EXP_AMIP_END"   value="2003"/>
   <property name="EXP_AMIP_LEN"   value="25"/>
   <property name="ANA_AMIP_START" value="1980"/>
   <property name="ANA_AMIP_END"   value="2003"/>
   <property name="ANA_AMIP_LEN"   value="24yr"/>
+-->
 
   <property name="CVDP_startyear" value="$(EXP_AMIP_START)"/>
 
@@ -3949,6 +3949,102 @@ Latest code version, 01/15/2021
     </input>
   </experiment>
 
+
+<!--
+####################
+
+  x7* series
+
+Latest code version, 01/21/2021
+  edmf_mynn.F90, 485782c776855be25b92dcd1a0bacbc93076fb8f
+  physics_driver.F90, 0ea083b3b4f58b087699d508eaeb5e5806a7d1cd  
+
+####################
+-->
+
+  <experiment name="x70a-c96L33_am4p0_mynn_diag" inherit="a00-c96L33_am4p0_donner">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_QDT_SAME_AS_QTDT     = F,
+ OPTION_SURFACE_FLUX     = updated                ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   150.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714  
+ LON_WRITE       =   5.49627374598293 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x71a-c96L33_am4p0_mynn" inherit="x61a-c96L33_am4p0_mynn">
+  </experiment>
+
+<!--
+####################
+
+@@@@@@@@@  
+  x81a & x81b 
+
+Latest code version, 01/24/2021
+  edmf_mynn.F90, b1e73695c26c4baf194111f1cbfd56408a87730a
+    cloud physics modified
+    stability limiters for MF
+    fixes in the vertical velocity equation for the plumes  
+
+  physics_driver.F90, 44318e42f403401bcfd15207b08dffe614aefdc1
+    reset tau_x, tau_y, surf_diff%delta_u, surf_diff%delta_v when MYNN is on
+
+####################
+-->
+
+  <experiment name="x81a-c96L33_am4p0_mynn" inherit="x61a-c96L33_am4p0_mynn">
+  </experiment>
+
+  <experiment name="x81b-c96L33_am4p0_mynn_MODqdt" inherit="x61b-c96L33_am4p0_mynn_MODqdt">
+  </experiment>
+
+<!--
+####################
+####################
+####################
+
+  testing experiments
+
+####################
+####################
+####################
+-->
+
+  <experiment name="x01-x61a-c96L33_am4p0_mynn" inherit="x61a-c96L33_am4p0_mynn">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_STOP_RUN     = F,
+ TDT_MAX =   3000.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   500.000000000000     ,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714  
+ LON_WRITE       =   5.49627374598293 
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="x11e-c96L33_am4p0_mynn_diag" inherit="x01a-c96L33_am4p0_mynn_diag">
     <input>
       <namelist name="physics_driver_nml">
@@ -3970,6 +4066,7 @@ Latest code version, 01/15/2021
       </namelist>
     </input>
   </experiment>
+
 
 </experimentSuite>
 
