@@ -149,6 +149,9 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    logical :: do_limit_tdt = .false.
    real    :: tdt_limit =   200. ! K/day
 
+   !logical :: do_check_consrv = .true.
+   logical :: do_check_consrv = .false.
+
 !==================
 type edmf_input_type
   integer,              allocatable ::   &
@@ -7124,6 +7127,11 @@ subroutine edmf_writeout_column ( &
 
   real, dimension(size(Physics_input_block%t,3)) ::  &
     var_temp1
+
+  real ::  &
+    tk, qtk, qtdtk, rhok, dzk, &
+    tt1, tt2, tt3
+
 !-------------------------------------------------------------------------
 !  define input array sizes.
 !-------------------------------------------------------------------------
@@ -7179,6 +7187,51 @@ subroutine edmf_writeout_column ( &
 !      jj_write = 1
 !    endif
 !  endif  ! end if of do_writeout_column_nml
+
+!-------------------------------------------------------------------------
+! check water and energy conservation 
+!-------------------------------------------------------------------------
+
+  if (do_check_consrv) then
+    tt1 = 0.
+    tt2 = 0.
+    tt3 = 0.
+
+    !i=ii_write
+    !j=jj_write
+    i=1
+    j=1
+
+    do k=1,kx
+      kk=kx-k+1
+      rhok    = Input_edmf%rho(i,kk,j)
+      tk      = Physics_input_block%t(i,j,k)
+      qtk     =   Physics_input_block%q(i,j,k,nsphum)  &
+                + Physics_input_block%q(i,j,k,nql)     &
+                + Physics_input_block%q(i,j,k,nqi)
+      qtdtk   =   am4_Output_edmf%qdt_edmf(i,j,k)     &
+                + am4_Output_edmf%qldt_edmf(i,j,k)    &
+                + am4_Output_edmf%qidt_edmf(i,j,k)
+
+      !qtk     =   Physics_input_block%q(i,j,k,nsphum)
+      dzk  = Physics_input_block%z_half(i,j,k) - Physics_input_block%z_half(i,j,k+1)
+
+      tt1 = tt1 + qtk  * rhok * dzk
+      tt2 = tt2 + qtdtk* rhok * dzk
+      tt3 = tt3 + tk   * rhok * dzk
+
+      !print*,'k,rhok,qtk,dzk',k,rhok,qtk,dzk
+      !print*,'k,qdt,qldt,qidt',k,am4_Output_edmf%qdt_edmf(i,j,k),am4_Output_edmf%qldt_edmf(i,j,k),am4_Output_edmf%qidt_edmf(i,j,k)
+      !print*,'k,rhok,tk,',k,rhok,tk
+    enddo
+
+    print*,'column-integrated total water (kg/m2) = ',tt1
+    print*,'column-integrated total water tendency (kg/m2/s) = ',tt2
+    print*,'column-integrated rho*T*dz = ',tt3
+
+  endif  ! end if of do_check_consrv
+
+
 
 !-------------------------------------------------------------------------
 ! writing out the selected column
