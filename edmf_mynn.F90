@@ -3060,7 +3060,7 @@ END SUBROUTINE mym_condensation
 
 ! ==================================================================
   SUBROUTINE mynn_tendencies(kts,kte,      &
-       &levflag,grav_settling,             &
+       &levflag,grav_settling,rho,rhoh,    &
        &delt,dz,                           &
        &u,v,th,tk,qv,qc,qi,qni,qnc,        &
        &p,exner,                           &
@@ -3069,14 +3069,13 @@ END SUBROUTINE mym_condensation
        &uoce,voce,                         &
        &tsq,qsq,cov,                       &
        &tcd,qcd,                           &
-       &dfm,dfh,dfq,                       &
+       &dfm1,dfh1,dfq,                       &
        &Du,Dv,Dthl,Dsqw,Dqni,        &!Dqnc,   &
        &vdfg1,                             &
-       &s_aw,s_awthl,s_awqt,s_awqv,s_awqc, &
-       &s_awu,s_awv,                       &
-       &sd_aw,sd_awthl,sd_awqt,sd_awqv,sd_awqc, &
-       &sd_awu,sd_awv,                       &
-       &FLAG_QI,FLAG_QNI,FLAG_QC,FLAG_QNC, &
+       &s_aw1,s_awthl1,s_awqt1, &
+       &s_awu1,s_awv1,                       &
+       &sd_aw1,sd_awthl1,sd_awqt1, &
+       &sd_awu1,sd_awv1,                       &
        &cldfra_bl1d,                       &
        &ztop_shallow,ktop_shallow,         &
        &bl_mynn_cloudmix,                  &
@@ -3095,7 +3094,7 @@ END SUBROUTINE mym_condensation
     INTEGER, INTENT(in) :: grav_settling,levflag
     INTEGER, INTENT(in) :: bl_mynn_cloudmix,bl_mynn_mixqt,&
                            bl_mynn_edmf,bl_mynn_edmf_mom,bl_mynn_edmf_dd
-    LOGICAL, INTENT(IN) :: FLAG_QI,FLAG_QNI,FLAG_QC,FLAG_QNC
+ !   LOGICAL, INTENT(IN) :: FLAG_QI,FLAG_QNI,FLAG_QC,FLAG_QNC
 
 !! grav_settling = 1 or 2 for gravitational settling of droplets
 !! grav_settling = 0 otherwise
@@ -3107,15 +3106,15 @@ END SUBROUTINE mym_condensation
 
    REAL,DIMENSION(kts:kte), INTENT(IN) :: liquid_frac
 
-    REAL,DIMENSION(kts:kte+1), INTENT(in) :: s_aw,s_awthl,s_awqt,&
-                             s_awqv,s_awqc,s_awu,s_awv,&
-                             sd_aw,sd_awthl,sd_awqt,&
-                             sd_awqv,sd_awqc,sd_awu,sd_awv
+    REAL,DIMENSION(kts:kte+1), INTENT(in) :: rhoh,s_aw1,s_awthl1,s_awqt1,&
+                             s_awu1,s_awv1,&
+                             sd_aw1,sd_awthl1,sd_awqt1,&
+                             sd_awu1,sd_awv1
     REAL, DIMENSION(kts:kte), INTENT(in) :: u,v,th,tk,qv,qc,qi,qni,qnc,&
-         &p,exner,dfq,dz,tsq,qsq,cov,tcd,qcd
+         &p,exner,dfq,dz,tsq,qsq,cov,tcd,qcd,rho
     REAL, DIMENSION(kts:kte), INTENT(inout) :: thl,sqw
     REAL,DIMENSION(kts:kte), INTENT(in) :: sqv,sqc,sqi,&
-         &dfm,dfh
+         &dfm1,dfh1
     REAL, DIMENSION(kts:kte), INTENT(inout) :: du,dv,dthl,dsqw,dqni !,dqnc
     REAL, INTENT(IN) :: delt,ust,flt,flq,flqv,flqc,wspd,uoce,voce,qcg,&
          ztop_shallow
@@ -3150,6 +3149,16 @@ END SUBROUTINE mym_condensation
 !yhc move to namelist   ! expmf =.false. .... implicit mass-flux
 !yhc move to namelist    expmf=.true. 
 
+
+    REAL,DIMENSION(kts:kte+1) :: s_aw,s_awthl,s_awqt,&
+                             s_awu,s_awv,&
+                             sd_aw,sd_awthl,sd_awqt,&
+                             sd_awu,sd_awv
+                             
+                             
+   REAL,DIMENSION(kts:kte) :: dfm,dfh 
+   REAL(kind=selected_real_kind(14)) :: tt                          
+
     nz=kte-kts+1
 
     dztop=.5*(dz(kte)+dz(kte-1))
@@ -3179,8 +3188,32 @@ END SUBROUTINE mym_condensation
 !    mindfh=min(maxKh,maxdfh*0.01)
 
 !    zw=0.
-    DO k=kts,kte
-       dtz(k)=delt/dz(k)
+
+
+!
+! we are solving equation d phi/dt=-1/rho*d/dz(rho <w'phi'>)
+! instead of the one without density
+! to do so we need to divide dtz with density and multiply K, a_i*w_i and a_i*w_i*psi_i with density 
+! and also modify d(1)'s
+   dtz(kts:kte)=delt/(dz(kts:kte)*rho(kts:kte))
+
+   s_aw=rhoh*s_aw1
+   s_awthl=rhoh*s_awthl1
+   s_awqt=rhoh*s_awqt1
+   s_awu=rhoh*s_awu1
+   s_awv=rhoh*s_awv1
+   
+   sd_aw=rhoh*sd_aw1
+   sd_awthl=rhoh*sd_awthl1
+   sd_awqt=rhoh*sd_awqt1
+   sd_awu=rhoh*sd_awu1
+   sd_awv=rhoh*sd_awv1
+
+   dfm(kts:kte)=dfm1(kts:kte)*rhoh(kts:kte)
+   dfh(kts:kte)=dfh1(kts:kte)*rhoh(kts:kte)
+
+!    DO k=kts,kte
+!       dtz(k)=delt/(dz(k)*rho(k))
        !IF (dfm(k) > dfh(k)) THEN 
        !  !in stable regime only, limit Prandtl number to < 2 within clouds
        !  IF (qc(k) > 1.e-6 .OR. &
@@ -3198,7 +3231,7 @@ END SUBROUTINE mym_condensation
 !           dfm(k)=MAX(mindfh,dfm(k))
 !       ENDIF
 !       zw=zw+dz(k)
-    ENDDO
+!    ENDDO
 
 !!============================================
 !! u
@@ -3218,9 +3251,9 @@ END SUBROUTINE mym_condensation
 
     k=kts
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) 
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp*rhoh(1)) 
     c(1)=-dtz(k)*dfm(k+1) 
-    d(1)=u(k) + dtz(k)*uoce*ust*ustovwsp -dtz(k)*(upcont(k+1)+dncont(k+1))
+    d(1)=u(k) + dtz(k)*uoce*ust*ustovwsp*rhoh(1) -dtz(k)*(upcont(k+1)+dncont(k+1))
 
     DO k=kts+1,kte-1
        a(k)=   - dtz(k)*dfm(k)          
@@ -3233,9 +3266,9 @@ END SUBROUTINE mym_condensation
    
     k=kts
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust**2/wspd) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp*rhoh(1)) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
     c(1)=-dtz(k)*dfm(k+1) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-    d(1)=u(k) + dtz(k)*uoce*ust**2/wspd - dtz(k)*s_awu(k+1)*onoff - dtz(k)*sd_awu(k+1)*onoff 
+    d(1)=u(k) + dtz(k)*uoce*ust*ustovwsp*rhoh(1) - dtz(k)*s_awu(k+1)*onoff - dtz(k)*sd_awu(k+1)*onoff 
 
     DO k=kts+1,kte-1
        a(k)=   - dtz(k)*dfm(k)            + 0.5*dtz(k)*s_aw(k)*onoff + 0.5*dtz(k)*sd_aw(k)*onoff
@@ -3288,9 +3321,9 @@ END SUBROUTINE mym_condensation
 
     k=kts
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp) 
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp*rhoh(1)) 
     c(1)=   - dtz(k)*dfm(k+1)               
-    d(1)=v(k) + dtz(k)*voce*ust*ustovwsp -dtz(k)*(upcont(k+1)+dncont(k+1))
+    d(1)=v(k) + dtz(k)*voce*ust*ustovwsp*rhoh(1) -dtz(k)*(upcont(k+1)+dncont(k+1))
 
     DO k=kts+1,kte-1
        a(k)=   - dtz(k)*dfm(k)           
@@ -3303,9 +3336,9 @@ END SUBROUTINE mym_condensation
 
     k=kts
     a(1)=0.
-    b(1)=1. + dtz(k)*(dfm(k+1)+ust**2/wspd) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
+    b(1)=1. + dtz(k)*(dfm(k+1)+ust*ustovwsp*rhoh(1)) - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
     c(1)=   - dtz(k)*dfm(k+1)               - 0.5*dtz(k)*s_aw(k+1)*onoff - 0.5*dtz(k)*sd_aw(k+1)*onoff
-    d(1)=v(k) + dtz(k)*voce*ust**2/wspd - dtz(k)*s_awv(k+1)*onoff
+    d(1)=v(k) + dtz(k)*voce*ust*ustovwsp*rhoh(1) - dtz(k)*s_awv(k+1)*onoff
 
     DO k=kts+1,kte-1
        a(k)=   - dtz(k)*dfm(k)            + 0.5*dtz(k)*s_aw(k)*onoff + 0.5*dtz(k)*sd_aw(k)*onoff 
@@ -3359,13 +3392,13 @@ END SUBROUTINE mym_condensation
     a(k)=0.
     b(k)=1.+dtz(k)*dfh(k+1) 
     c(k)=  -dtz(k)*dfh(k+1) 
-    d(k)=thl(k) + dtz(k)*flt + tcd(k)*delt -dtz(k)*(upcont(k+1)+dncont(k+1))
+    d(k)=thl(k) + dtz(k)*flt*rhoh(1) -dtz(k)*(upcont(k+1)+dncont(k+1))
 
     DO k=kts+1,kte-1
        a(k)=  -dtz(k)*dfh(k)            
        b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) 
        c(k)=  -dtz(k)*dfh(k+1)          
-       d(k)=thl(k) + tcd(k)*delt -dtz(k)*(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
+       d(k)=thl(k) -dtz(k)*(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
     ENDDO
 
  ELSE
@@ -3374,13 +3407,13 @@ END SUBROUTINE mym_condensation
     a(k)=0.
     b(k)=1.+dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
     c(k)=  -dtz(k)*dfh(k+1) - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
-    d(k)=thl(k) + dtz(k)*flt + tcd(k)*delt -dtz(k)*s_awthl(kts+1) -dtz(k)*sd_awthl(kts+1)
+    d(k)=thl(k) + dtz(k)*flt*rhoh(1) -dtz(k)*s_awthl(kts+1) -dtz(k)*sd_awthl(kts+1)
 
     DO k=kts+1,kte-1
        a(k)=  -dtz(k)*dfh(k)            + 0.5*dtz(k)*s_aw(k) + 0.5*dtz(k)*sd_aw(k)
        b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) + 0.5*dtz(k)*(s_aw(k)-s_aw(k+1)) + 0.5*dtz(k)*(sd_aw(k)-sd_aw(k+1))
        c(k)=  -dtz(k)*dfh(k+1)          - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
-       d(k)=thl(k) + tcd(k)*delt + dtz(k)*(s_awthl(k)-s_awthl(k+1)) + dtz(k)*(sd_awthl(k)-sd_awthl(k+1))
+       d(k)=thl(k) + dtz(k)*(s_awthl(k)-s_awthl(k+1)) + dtz(k)*(sd_awthl(k)-sd_awthl(k+1))
     ENDDO
  
   ENDIF
@@ -3395,6 +3428,13 @@ END SUBROUTINE mym_condensation
 
 !    CALL tridiag(nz,a,b,c,d)
     CALL tridiag2(nz,a,b,c,d,x)
+
+ !   IF(expmf) THEN
+ !   x(kts)=X(kts)-dtz(k)*upcont(k+1)
+ !   DO k=kts+1,kte-1
+ !   x(k)=x(K) -dtz(k)*(upcont(k+1)-upcont(k))
+ !   ENDDO
+ !   ENDIF
 
     DO k=kts,kte
         dthl(k)=(x(k)-thl(k))/delt
@@ -3416,19 +3456,19 @@ END SUBROUTINE mym_condensation
    ENDDO
     upcont(kte)=0. 
     dncont(kte)=0.
-
+ 
     k=kts
     a(k)=0.
     b(k)=1.+dtz(k)*dfh(k+1) 
     c(k)=  -dtz(k)*dfh(k+1)
+    d(k)=sqw(k) + dtz(k)*flq*rhoh(1) - dtz(k)*(upcont(k+1)+dncont(k+1))
 
-    d(k)=sqw(k) + dtz(k)*flq + qcd(k)*delt -dtz(k)*(upcont(k+1)+dncont(k+1))
 
     DO k=kts+1,kte-1
        a(k)=  -dtz(k)*dfh(k)           
        b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) 
        c(k)=  -dtz(k)*dfh(k+1) 
-       d(k)=sqw(k) + qcd(k)*delt  -dtz(k)*(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
+       d(k)=sqw(k) -dtz(k)*(upcont(k+1)-upcont(k)+dncont(k+1)-dncont(k))
     ENDDO
     
   ELSE  
@@ -3440,14 +3480,14 @@ END SUBROUTINE mym_condensation
 
     !rhs= qcd(k) !+ (gfluxp - gfluxm)/dz(k)& 
 
-    d(k)=sqw(k) + dtz(k)*flq + qcd(k)*delt - dtz(k)*s_awqt(k+1) - dtz(k)*sd_awqt(k+1)
+    d(k)=sqw(k) + dtz(k)*flq*rhoh(1)  - (dtz(k)*s_awqt(k+1) + dtz(k)*sd_awqt(k+1))
 
     DO k=kts+1,kte-1
        a(k)=  -dtz(k)*dfh(k)            + 0.5*dtz(k)*s_aw(k) + 0.5*dtz(k)*sd_aw(k)
        b(k)=1.+dtz(k)*(dfh(k)+dfh(k+1)) + 0.5*dtz(k)*(s_aw(k)-s_aw(k+1)) + 0.5*dtz(k)*(sd_aw(k)-sd_aw(k+1))
        c(k)=  -dtz(k)*dfh(k+1)          - 0.5*dtz(k)*s_aw(k+1) - 0.5*dtz(k)*sd_aw(k+1)
 
-       d(k)=sqw(k) + qcd(k)*delt + dtz(k)*(s_awqt(k)-s_awqt(k+1)) + dtz(k)*(sd_awqt(k)-sd_awqt(k+1))
+       d(k)=sqw(k) + dtz(k)*(s_awqt(k)-s_awqt(k+1)) + dtz(k)*(sd_awqt(k)-sd_awqt(k+1))
     ENDDO
   ENDIF   
      
@@ -3459,7 +3499,12 @@ END SUBROUTINE mym_condensation
 
 !    CALL tridiag(nz,a,b,c,d)
     CALL tridiag2(nz,a,b,c,d,x)
-
+ !   IF(expmf) THEN
+ !   x(kts)=X(kts)-dtz(k)*upcont(k+1)
+ !   DO k=kts+1,kte-1
+ !   x(k)=x(K) -dtz(k)*(upcont(k+1)-upcont(k))
+ !   ENDDO
+ !  ENDIF
 
     DO k=kts,kte
         dsqw(k)=(x(k)-sqw(k))/delt
@@ -3731,7 +3776,7 @@ END SUBROUTINE mym_condensation
                   sd_aw1,sd_awthl1,sd_awqt1,&
                   sd_awqv1,sd_awqc1,sd_awu1,sd_awv1,sd_awqke1
 
-    REAL, DIMENSION(KTS:KTE+1) :: zw
+    REAL, DIMENSION(KTS:KTE+1) :: zw,rhoh1
     REAL :: cpm,sqcg,flt,flq,flqv,flqc,pmz,phh,exnerg,zet,& 
               &afk,abk,ts_decay,th_sfc,ztop_shallow
     REAL :: dqcTT,lfTT,lvT
@@ -4303,8 +4348,15 @@ END SUBROUTINE mym_condensation
                &s_aw1, s_awqke1, sd_aw1, sd_awqke1,&
                bl_mynn_edmf_tke)
 
+
+          rhoh1(2:kte)=0.5*(rho1(1:kte-1)+rho1(2:kte))
+          !rhoh1(kte+1)=rho1(kte)
+          rhoh1(1)=ps(i,j)/(ts(i,j)*rdgas)
+          rhoh1(1)=rhoh1(2)      
+
+   
           CALL mynn_tendencies(kts,kte,          &
-               &levflag,grav_settling,           &
+               &levflag,grav_settling,rho1,rhoh1,&
                &delt, dz1,                       &
                &u1, v1, th1, tk1, qv1, qc1, qi1, &
                &qni1,qnc1,                       &
@@ -4320,10 +4372,9 @@ END SUBROUTINE mym_condensation
                &vdfg(i,j),                       & !JOE/Katata- fog deposition
                ! mass flux components
                &s_aw1,s_awthl1,s_awqt1,          &
-               &s_awqv1,s_awqc1,s_awu1,s_awv1,   &
+               &s_awu1,s_awv1,   &
                &sd_aw1,sd_awthl1,sd_awqt1,          &
-               &sd_awqv1,sd_awqc1,sd_awu1,sd_awv1,   &
-               &FLAG_QI,FLAG_QNI,FLAG_QC,FLAG_QNC,&
+               &sd_awu1,sd_awv1,   &
                &cldfra_bl1d,                     &
                &ztop_shallow,ktop_shallow(i,j),  &
                &bl_mynn_cloudmix,                &
@@ -6060,12 +6111,12 @@ END SUBROUTINE edmf_JPL
 !         ! ENDDO
 ! END SUBROUTINE DDMF_JPL
 
-
 !################################
 !################################
 !
 !  GFDL model interface, yhc
 !    Mellor-Yamada
+!
 !################################
 !################################
 
@@ -7034,7 +7085,7 @@ subroutine edmf_alloc ( &
   Input_edmf%ust   = u_star_host(:,:)
   Input_edmf%ch    = 0.   ! no need in JPL EDMF scheme 
   Input_edmf%rmol  = 1./Obukhov_length_host(:,:) 
-  Input_edmf%ts    = 0.   ! no need in JPL EDMF scheme  
+  Input_edmf%ts    = t_ref   
   Input_edmf%qsfc  = 0.   ! no need in JPL EDMF scheme   
   Input_edmf%qcg   = 0.   ! no need in JPL EDMF scheme
   Input_edmf%ps    = Physics_input_block%p_half(:,:,kx+1)
@@ -7365,6 +7416,11 @@ subroutine edmf_writeout_column ( &
 
   real, dimension(size(Physics_input_block%t,3)) ::  &
     var_temp1
+
+  real ::  &
+    tk, qtk, qtdtk, rhok, dzk, &
+    tt1, tt2, tt3
+
 !-------------------------------------------------------------------------
 !  define input array sizes.
 !-------------------------------------------------------------------------
@@ -7420,6 +7476,51 @@ subroutine edmf_writeout_column ( &
 !      jj_write = 1
 !    endif
 !  endif  ! end if of do_writeout_column_nml
+
+!-------------------------------------------------------------------------
+! check water and energy conservation 
+!-------------------------------------------------------------------------
+
+  if (do_check_consrv) then
+    tt1 = 0.
+    tt2 = 0.
+    tt3 = 0.
+
+    !i=ii_write
+    !j=jj_write
+    i=1
+    j=1
+
+    do k=1,kx
+      kk=kx-k+1
+      rhok    = Input_edmf%rho(i,kk,j)
+      tk      = Physics_input_block%t(i,j,k)
+      qtk     =   Physics_input_block%q(i,j,k,nsphum)  &
+                + Physics_input_block%q(i,j,k,nql)     &
+                + Physics_input_block%q(i,j,k,nqi)
+      qtdtk   =   am4_Output_edmf%qdt_edmf(i,j,k)     &
+                + am4_Output_edmf%qldt_edmf(i,j,k)    &
+                + am4_Output_edmf%qidt_edmf(i,j,k)
+
+      !qtk     =   Physics_input_block%q(i,j,k,nsphum)
+      dzk  = Physics_input_block%z_half(i,j,k) - Physics_input_block%z_half(i,j,k+1)
+
+      tt1 = tt1 + qtk  * rhok * dzk
+      tt2 = tt2 + qtdtk* rhok * dzk
+      tt3 = tt3 + tk   * rhok * dzk
+
+      !print*,'k,rhok,qtk,dzk',k,rhok,qtk,dzk
+      !print*,'k,qdt,qldt,qidt',k,am4_Output_edmf%qdt_edmf(i,j,k),am4_Output_edmf%qldt_edmf(i,j,k),am4_Output_edmf%qidt_edmf(i,j,k)
+      !print*,'k,rhok,tk,',k,rhok,tk
+    enddo
+
+    print*,'column-integrated total water (kg/m2) = ',tt1
+    print*,'column-integrated total water tendency (kg/m2/s) = ',tt2
+    print*,'moisture flux, qfx (kg/m2/s) = ',Input_edmf%qfx(i,j)
+    print*,'diff column-integrated total water tendency - qfx (kg/m2/s)= ',tt2 - Input_edmf%qfx(i,j)
+    print*,'column-integrated rho*T*dz = ',tt3
+
+  endif  ! end if of do_check_consrv
 
 !-------------------------------------------------------------------------
 ! writing out the selected column
@@ -7859,5 +7960,6 @@ end subroutine convert_edmf_to_am4_array
 
 !#############################
 ! Mellor-Yamada
+!#############################
 
 end module edmf_mynn_mod
