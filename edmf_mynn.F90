@@ -352,6 +352,7 @@ end type am4_edmf_output_type
   real    :: lat_range = 0.001
   real    :: lon_range = 0.001
   logical :: do_writeout_column_nml = .false.   ! switch to control whether writing out the column
+  logical :: do_check_consrv = .false.          ! switch to control whether writing out the water/heat conservation
   logical :: do_stop_run = .false.              ! whether to stop the simulation
   real    :: tdt_max     = 500. ! K/day
   logical :: do_limit_tdt = .false.
@@ -363,7 +364,7 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             L0, NUP, UPSTAB, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, &
-                            do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write
+                            do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
          
 !---------------------------------------------------------------------
 !--- Diagnostic fields       
