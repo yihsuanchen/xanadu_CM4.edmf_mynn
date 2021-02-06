@@ -4986,10 +4986,16 @@ unset occam_file
           $(SCM_SRC)/atmos_scm/SCM_include/input/tropic.dat
         </dataSource>
       </dataFile>
-      <dataFile label="diagTable" target="INPUT/"
+      <!--dataFile label="diagTable" target="INPUT/"
                 chksum="" size="" timestamp="">
         <dataSource site="$(site)">
           $(SCM_INCLUDE)/diag_table/diag_table_scm
+        </dataSource>
+      </dataFile-->
+      <dataFile label="diagTable" target="INPUT/"
+                chksum="" size="" timestamp="">
+        <dataSource site="$(site)">
+          $(SCM_INCLUDE)/diag_table/diag_table_scm_edmf_mynn  <!-- yi-hsuan -->
         </dataSource>
       </dataFile>
     </input>
@@ -6291,6 +6297,21 @@ code version
     </input>
   </experiment>
 
+  <experiment name="d32a-DCBL_C1-am4p0_mynn_expmf_cd" inherit="d31-DCBL_C1-am4p0_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 3
+ expmf = T 
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="d33-DCBL_C1-am4p0_mynn_impmf" inherit="d31-DCBL_C1-am4p0_mynn">
     <input>
       <namelist name="edmf_mynn_nml">
@@ -6403,6 +6424,21 @@ code version
     </input>
   </experiment>
 
+  <experiment name="a34a-GCSS_ARM-am4p0_rad_mynn_expmf_cd" inherit="a33-GCSS_ARM-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ upwind = 0.5
+ expmf = T 
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="a35-GCSS_ARM-am4p0_rad_mynn_impmf" inherit="a33-GCSS_ARM-am4p0_rad_mynn">
     <input>
       <namelist name="edmf_mynn_nml">
@@ -6425,6 +6461,7 @@ code version
  II_WRITE        =        0,
  JJ_WRITE        =        0,
  DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
  expmf = T
  upwind = 1.
       </namelist>
@@ -6514,6 +6551,20 @@ code version
     </input>
   </experiment>
 
+  <experiment name="a36a-GCSS_ARM-am4p0_rad_mynn_expmf_cd_shOFF" inherit="a36-GCSS_ARM-am4p0_rad_mynn_expmf_shOFF">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ expmf = T
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="a37-GCSS_ARM-am4p0_rad_mynn_impmf_shOFF" inherit="a36-GCSS_ARM-am4p0_rad_mynn_expmf_shOFF">
     <input>
       <namelist name="edmf_mynn_nml">
@@ -6521,6 +6572,7 @@ code version
  II_WRITE        =        0,
  JJ_WRITE        =        0,
  DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
  expmf = F
  upwind = 0.5
       </namelist>
@@ -6624,6 +6676,33 @@ code version
     </input>
   </experiment>
 
+  <experiment name="b34a-BOMEX-am4p0_rad_mynn_expmf_cd" inherit="b33-BOMEX-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = T 
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b34b-BOMEX-am4p0_rad_mynn_expmf" inherit="b34-BOMEX-am4p0_rad_mynn_expmf">
+    <description>
+       edmf_mynn.F90, c878e3907308727f74504a14a2c5223d207d2f22
+    </description>
+  </experiment>
+
+  <experiment name="b34c-BOMEX-am4p0_rad_mynn_expmf_cd" inherit="b34a-BOMEX-am4p0_rad_mynn_expmf_cd">
+    <description>
+       edmf_mynn.F90, c878e3907308727f74504a14a2c5223d207d2f22
+    </description>
+  </experiment>
+
   <experiment name="b35-BOMEX-am4p0_rad_mynn_impmf" inherit="b33-BOMEX-am4p0_rad_mynn">
     <input>
       <namelist name="edmf_mynn_nml">
@@ -6648,6 +6727,7 @@ code version
  DO_STOP_RUN     = F,
  expmf = T
  upwind = 1.
+ bl_mynn_edmf = 3
       </namelist>
       <namelist name="uw_conv_nml">
  ICLOSURE        =           0,
@@ -6735,6 +6815,32 @@ code version
     </input>
   </experiment>
 
+  <experiment name="b36a-BOMEX-am4p0_rad_mynn_expmf_cd_shOFF" inherit="b36-BOMEX-am4p0_rad_mynn_expmf_shOFF">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ expmf = T
+ upwind = 0.5
+ bl_mynn_edmf = 3
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b36b-BOMEX-am4p0_rad_mynn_expmf_shOFF" inherit="b36-BOMEX-am4p0_rad_mynn_expmf_shOFF">
+    <description>
+       edmf_mynn.F90, c878e3907308727f74504a14a2c5223d207d2f22
+    </description>
+  </experiment>
+
+  <experiment name="b36c-BOMEX-am4p0_rad_mynn_expmf_cd_shOFF" inherit="b36a-BOMEX-am4p0_rad_mynn_expmf_cd_shOFF">
+    <description>
+       edmf_mynn.F90, c878e3907308727f74504a14a2c5223d207d2f22
+    </description>
+  </experiment>
+
   <experiment name="b37-BOMEX-am4p0_rad_mynn_impmf_shOFF" inherit="b36-BOMEX-am4p0_rad_mynn_expmf_shOFF">
     <input>
       <namelist name="edmf_mynn_nml">
@@ -6744,8 +6850,292 @@ code version
  DO_STOP_RUN     = F,
  expmf = F
  upwind = 0.5
+ bl_mynn_edmf = 3
       </namelist>
     </input>
+  </experiment>
+
+  <experiment name="rfo30-RF01-am4p0_rad_mynn_diag" inherit="RF01_A_$(AWG_EXPERIMENT)">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo31-RF01-am4p0_rad_mynn_expmf_diag" inherit="rfo30-RF01-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = T
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo32-RF01-am4p0_rad_mynn_impmf_diag" inherit="rfo30-RF01-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = F
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo33-RF01-am4p0_rad_mynn" inherit="rfo30-RF01-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ DO_SIMPLE       = F,
+ GUST_SCHEME     = beljaars 
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo34-RF01-am4p0_rad_mynn_expmf" inherit="rfo33-RF01-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = T 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo34a-RF01-am4p0_rad_mynn_expmf_cd" inherit="rfo33-RF01-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = T 
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo35-RF01-am4p0_rad_mynn_impmf" inherit="rfo33-RF01-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ expmf = F
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo36-RF01-am4p0_rad_mynn_expmf_shOFF" inherit="rfo33-RF01-am4p0_rad_mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ expmf = T
+ upwind = 1.
+ bl_mynn_edmf = 3
+      </namelist>
+      <namelist name="uw_conv_nml">
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   -100000.     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000     ,
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo36a-RF01-am4p0_rad_mynn_expmf_cd_shOFF" inherit="rfo36-RF01-am4p0_rad_mynn_expmf_shOFF">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ expmf = T
+ upwind = 0.5
+ bl_mynn_edmf = 3
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo37-RF01-am4p0_rad_mynn_impmf_shOFF" inherit="rfo36-RF01-am4p0_rad_mynn_expmf_shOFF">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ expmf = F
+ upwind = 0.5
+ bl_mynn_edmf = 3
+      </namelist>
+    </input>
+  </experiment>
+
+
+  <experiment name="rfo40-RF01-am4p0_rad_mynn_diag" inherit="rfo30-RF01-am4p0_rad_mynn_diag">
+  </experiment>
+
+  <experiment name="rfo41-RF01-am4p0_rad_mynn_expmf_diag" inherit="rfo31-RF01-am4p0_rad_mynn_expmf_diag">
+  </experiment>
+
+  <experiment name="rfo42-RF01-am4p0_rad_mynn_impmf_diag" inherit="rfo32-RF01-am4p0_rad_mynn_impmf_diag">
+  </experiment>
+
+  <experiment name="rfo43-RF01-am4p0_rad_mynn" inherit="rfo33-RF01-am4p0_rad_mynn">
+  </experiment>
+
+  <experiment name="rfo44-RF01-am4p0_rad_mynn_expmf" inherit="rfo34-RF01-am4p0_rad_mynn_expmf">
+  </experiment>
+
+  <experiment name="rfo44a-RF01-am4p0_rad_mynn_expmf_cd" inherit="rfo34a-RF01-am4p0_rad_mynn_expmf_cd">
+  </experiment>
+
+  <experiment name="rfo45-RF01-am4p0_rad_mynn_impmf" inherit="rfo35-RF01-am4p0_rad_mynn_impmf">
+  </experiment>
+
+  <experiment name="rfo46-RF01-am4p0_rad_mynn_expmf_shOFF" inherit="rfo36-RF01-am4p0_rad_mynn_expmf_shOFF">
+  </experiment>
+
+  <experiment name="rfo46a-RF01-am4p0_rad_mynn_expmf_cd_shOFF" inherit="rfo36a-RF01-am4p0_rad_mynn_expmf_cd_shOFF">
+  </experiment>
+
+  <experiment name="rfo47-RF01-am4p0_rad_mynn_impmf_shOFF" inherit="rfo37-RF01-am4p0_rad_mynn_impmf_shOFF">
   </experiment>
 
 <!--
@@ -6755,6 +7145,9 @@ code version
 ##########################
 ##########################
 -->
+  <experiment name="x01-rfo30-RF01-am4p0_rad_mynn_diag" inherit="rfo30-RF01-am4p0_rad_mynn_diag">
+  </experiment>
+
   <experiment name="x01-b01-BOMEX-am4p0_rad_mynn" inherit="b01-BOMEX-am4p0_rad_mynn">
   </experiment>
 
