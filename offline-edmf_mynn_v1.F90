@@ -116,6 +116,9 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    logical :: do_writeout_column_nml = .true.
    !logical :: do_writeout_column_nml = .false.
 
+   logical :: do_check_consrv = .true.
+   !logical :: do_check_consrv = .false.
+
 !==================
 type edmf_input_type
   integer,              allocatable ::   &
