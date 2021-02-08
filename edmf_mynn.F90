@@ -7422,6 +7422,8 @@ subroutine edmf_writeout_column ( &
     tk, qtk, qtdtk, rhok, dzk, &
     tt1, tt2, tt3
 
+  real :: tt_temp, pp_temp, esat_edmf, qq_gfdl, esat_gfdl, liquid_frac
+
 !-------------------------------------------------------------------------
 !  define input array sizes.
 !-------------------------------------------------------------------------
@@ -7844,6 +7846,33 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; replace "/)" to "" 			: [N,$s/\/)//g]'
         write(6,*)    ''
   endif  ! end if of do_writeout_column
+
+!******************************************* 
+!  --- check saturation vapor pressure from EDMF and GFDL
+!******************************************* 
+!
+!  write(6,*) 'T(K), esat_edmf (Pa), esat_gfdl (Pa)'
+!do i=195,350
+!  tt_temp = float(i)  ! temperature in K
+!
+!  !--- EDMF formula
+!  IF (tt_temp .GE. 273.16) THEN
+!    liquid_frac=1.
+!  ELSE IF (tt_temp .LE. 253.) THEN
+!    liquid_frac=0.
+!  ELSE
+!    liquid_frac  = 1.-(273.16-tt_temp)/20.16
+!  END IF
+!  
+!  esat_edmf = esatLF_blend(tt_temp, liquid_frac)
+!
+!  !--- GFDL formula
+!  pp_temp = 1013. * 100. ! pressure in Pa
+!  call compute_qs(tt_temp, pp_temp, qq_gfdl, esat = esat_gfdl )
+!
+!  write(6,*) tt_temp, esat_edmf, esat_gfdl
+!enddo
+!**************************** end check saturation vapor pressure
 
 3000 format (A35,2X,F8.2,',')
 3001 format (A35,2X,34(F10.3,2X,','))
