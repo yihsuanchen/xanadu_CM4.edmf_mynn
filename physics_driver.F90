@@ -2743,13 +2743,13 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'lon',lon (ii_write,jj_write)
         write(6,*) 'pbltop',pbltop (ii_write,jj_write)
         write(6,*) 'data t_edmf_mynn/'    ,t(ii_write,jj_write,:)
-        write(6,*) 'data q_edmf_mynn/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data q_edmf_mynn/'    ,r(ii_write,jj_write,:,nsphum)
         write(6,*) 'data udt_edmf_mynn/'    ,udt(ii_write,jj_write,:)
         write(6,*) 'data vdt_edmf_mynn/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_edmf_mynn/'    ,tdt(ii_write,jj_write,:)
-        write(6,*) 'data qdt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,1)
-        write(6,*) 'data qldt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,2)
-        write(6,*) 'data qidt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,3)
+        write(6,*) 'data qdt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nsphum)
+        write(6,*) 'data qldt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nql)
+        write(6,*) 'data qidt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqi)
   endif
 !--> yhc
 
@@ -2840,9 +2840,10 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data t_moist_up/'    ,t(ii_write,jj_write,:)
         write(6,*) 'data q_moist_up/'    ,r(ii_write,jj_write,:,1)
         write(6,*) 'data tdt_moist_up/'    ,tdt(ii_write,jj_write,:)
-        write(6,*) 'data qdt_moist_up/'    ,rdt(ii_write,jj_write,:,1)
-        write(6,*) 'data qldt_moist_up/'    ,rdt(ii_write,jj_write,:,2)
-        write(6,*) 'data qidt_moist_up/'    ,rdt(ii_write,jj_write,:,3)
+        write(6,*) 'data qdt_moist_up/'    ,rdt(ii_write,jj_write,:,nsphum)
+        write(6,*) 'data qadt_moist_up/'    ,rdt(ii_write,jj_write,:,nqa)
+        write(6,*) 'data qldt_moist_up/'    ,rdt(ii_write,jj_write,:,nql)
+        write(6,*) 'data qidt_moist_up/'    ,rdt(ii_write,jj_write,:,nqi)
   endif
 !--> yhc
 
