@@ -543,7 +543,7 @@ integer   :: nt                       ! total no. of tracers
 integer   :: ntp                      ! total no. of prognostic tracers
 !integer   :: ncol                     ! number of stochastic columns
 integer   ::  nsphum                  ! index for specific humidity tracer
- 
+integer   :: nqa, nql, nqi            ! yhc 
 
 logical   :: step_to_call_cosp
 logical   :: doing_prog_clouds
@@ -1054,6 +1054,11 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       call mpp_clock_begin ( edmf_mynn_init_clock )
       call edmf_mynn_init  (lonb, latb, axes, Time, id, jd, kd)
       call mpp_clock_end ( edmf_mynn_init_clock )
+
+      nqa = Physics%control%nqa      
+      nql = Physics%control%nql 
+      nqi = Physics%control%nqi      
+
 !--> yhc, initialize edmf_mynn module
 
 !---------------------------------------------------------------------
@@ -1981,6 +1986,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data vdt_physics_down_begin/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_physics_down_begin/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,1)
+        write(6,*) 'data qadt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqa)
+        write(6,*) 'data qldt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nql)
+        write(6,*) 'data qidt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqi)
   endif
 !--> yhc
 
@@ -2255,6 +2263,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data vdt_physics_down_end/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_physics_down_end/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_physics_down_end/'    ,rdt(ii_write,jj_write,:,1)
+        write(6,*) 'data qadt_physics_down_end/'    ,rdt(ii_write,jj_write,:,nqa)
+        write(6,*) 'data qldt_physics_down_end/'    ,rdt(ii_write,jj_write,:,nql)
+        write(6,*) 'data qidt_physics_down_end/'    ,rdt(ii_write,jj_write,:,nqi)
   endif
 !--> yhc
 
@@ -2748,6 +2759,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data vdt_edmf_mynn/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_edmf_mynn/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nsphum)
+        write(6,*) 'data qadt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqa)
         write(6,*) 'data qldt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nql)
         write(6,*) 'data qidt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqi)
   endif
