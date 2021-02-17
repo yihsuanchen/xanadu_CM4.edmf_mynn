@@ -402,7 +402,7 @@ integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star
 
 !#######################################################################
 
-subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
+subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd, edmf2ls_mp)
 
 !-----------------------------------------------------------------------
 !  (Intent in)
@@ -414,6 +414,11 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
  integer,              intent(in) :: id, jd, kd, axes(4)
  type(time_type),      intent(in) :: time
  real, dimension(:,:), intent(in) :: lonb, latb
+
+!-----------------------------------------------------------------------
+!  (Intent out)
+!-----------------------------------------------------------------------
+  type(edmf_ls_mp_type), intent(out) :: edmf2ls_mp
 
 !-----------------------------------------------------------------------
 !  (Intent local)
@@ -637,6 +642,19 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
   id_z_pbl_edmf = register_diag_field (mod_name, 'z_pbl_edmf', axes(1:2), Time, &
                  'PBL depth from edmf_mynn', 'm' , &
                  missing_value=missing_value )
+
+!-----------------------------------------------------------------------
+!--- allocate edmf2ls_mp variables  
+!-----------------------------------------------------------------------
+  allocate(edmf2ls_mp%do_edmf2ls_mp)       ; edmf2ls_mp%do_edmf2ls_mp = .false.
+
+  allocate(edmf2ls_mp%qadt_edmf(id,jd,kd)) ; edmf2ls_mp%qadt_edmf = 0. 
+  allocate(edmf2ls_mp%qldt_edmf(id,jd,kd)) ; edmf2ls_mp%qldt_edmf = 0. 
+  allocate(edmf2ls_mp%qidt_edmf(id,jd,kd)) ; edmf2ls_mp%qidt_edmf = 0. 
+
+  allocate(edmf2ls_mp%dqa_edmf(id,jd,kd)) ; edmf2ls_mp%dqa_edmf = 0. 
+  allocate(edmf2ls_mp%dql_edmf(id,jd,kd)) ; edmf2ls_mp%dql_edmf = 0. 
+  allocate(edmf2ls_mp%dqi_edmf(id,jd,kd)) ; edmf2ls_mp%dqi_edmf = 0. 
 
 !-----------------------------------------------------------------------
 !--- Done with initialization
@@ -6406,7 +6424,7 @@ subroutine edmf_mynn_driver ( &
 
     !--- set edmf to ls_mp
     edmf2ls_mp%do_edmf2ls_mp = .true.
-    edmf2ls_mp%qadt_edmf = 0.
+    edmf2ls_mp%qadt_edmf = am4_Output_edmf%qadt_edmf(:,:,:)
     edmf2ls_mp%qldt_edmf = am4_Output_edmf%qldt_edmf(:,:,:)
     edmf2ls_mp%qidt_edmf = am4_Output_edmf%qidt_edmf(:,:,:)
     edmf2ls_mp%dqa_edmf  = edmf2ls_mp%qadt_edmf(:,:,:) * dt
