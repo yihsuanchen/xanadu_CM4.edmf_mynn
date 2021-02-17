@@ -6165,7 +6165,8 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              pbltop, udt, vdt, tdt, rdt, rdiag, edmf2ls_mp)
+              do_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
+              pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
 ! Arguments (Intent in)  
@@ -6210,7 +6211,13 @@ subroutine edmf_mynn_driver ( &
 !   search "type edmf_ls_mp_type" to see the inside variables in this program 
 !---------------------------------------------------------------------
 
-  type(edmf_ls_mp_type), intent(out) :: edmf2ls_mp
+  !type(edmf_ls_mp_type), intent(out) :: edmf2ls_mp
+  real, intent(out), dimension(:,:,:) :: &
+    qadt_edmf, qldt_edmf, qidt_edmf, &   
+    dqa_edmf,  dql_edmf, dqi_edmf
+
+  logical, intent(out) :: &
+    do_edmf2ls_mp
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -6403,13 +6410,13 @@ subroutine edmf_mynn_driver ( &
 !-->
 
   !--- initialize edmf2ls_mp
-  edmf2ls_mp%do_edmf2ls_mp = .false.
-  edmf2ls_mp%qadt_edmf = 0.
-  edmf2ls_mp%qldt_edmf = 0.
-  edmf2ls_mp%qidt_edmf = 0.
-  edmf2ls_mp%dqa_edmf  = 0.
-  edmf2ls_mp%dql_edmf  = 0.
-  edmf2ls_mp%dqi_edmf  = 0.
+  do_edmf2ls_mp = .false.
+  qadt_edmf = 0.
+  qldt_edmf = 0.
+  qidt_edmf = 0.
+  dqa_edmf  = 0.
+  dql_edmf  = 0.
+  dqi_edmf  = 0.
 
   !--- updated tendencies
   if (.not.do_edmf_mynn_diagnostic) then
@@ -6424,13 +6431,13 @@ subroutine edmf_mynn_driver ( &
     pbltop (:,:) = am4_Output_edmf%pbltop(:,:)
 
     !--- set edmf to ls_mp
-    edmf2ls_mp%do_edmf2ls_mp = .true.
-    edmf2ls_mp%qadt_edmf = am4_Output_edmf%qadt_edmf(:,:,:)
-    edmf2ls_mp%qldt_edmf = am4_Output_edmf%qldt_edmf(:,:,:)
-    edmf2ls_mp%qidt_edmf = am4_Output_edmf%qidt_edmf(:,:,:)
-    edmf2ls_mp%dqa_edmf  = edmf2ls_mp%qadt_edmf(:,:,:) * dt
-    edmf2ls_mp%dql_edmf  = edmf2ls_mp%qldt_edmf(:,:,:) * dt
-    edmf2ls_mp%dqi_edmf  = edmf2ls_mp%qidt_edmf(:,:,:) * dt
+    do_edmf2ls_mp = .true.
+    qadt_edmf     = am4_Output_edmf%qadt_edmf(:,:,:)
+    qldt_edmf     = am4_Output_edmf%qldt_edmf(:,:,:)
+    qidt_edmf     = am4_Output_edmf%qidt_edmf(:,:,:)
+    dqa_edmf      = qadt_edmf(:,:,:) * dt
+    dql_edmf      = qldt_edmf(:,:,:) * dt
+    dqi_edmf      = qidt_edmf(:,:,:) * dt
     
   end if
 
