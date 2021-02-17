@@ -2769,6 +2769,14 @@ real,dimension(:,:),    intent(inout)             :: gust
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                do_edmf_mynn_diagnostic, &
                pbltop, udt, vdt, tdt, rdt, rdiag, edmf2ls_mp)
+
+    do_edmf2ls_mp  = edmf2ls_mp%do_edmf2ls_mp             
+    qadt_edmf      = edmf2ls_mp%qadt_edmf(:,:,:)  
+    qldt_edmf      = edmf2ls_mp%qldt_edmf(:,:,:)  
+    qidt_edmf      = edmf2ls_mp%qidt_edmf(:,:,:)  
+    dqa_edmf       = edmf2ls_mp%dqa_edmf (:,:,:)   
+    dql_edmf       = edmf2ls_mp%dql_edmf (:,:,:)   
+    dqi_edmf       = edmf2ls_mp%dqi_edmf (:,:,:)   
   endif
 
  if (do_writeout_column) then
