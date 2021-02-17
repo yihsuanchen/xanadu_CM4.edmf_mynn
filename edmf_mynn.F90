@@ -68,7 +68,8 @@ private
 
 !---------------------------------------------------------------------
 
-public :: edmf_mynn_init, edmf_mynn_end, edmf_input_type, edmf_output_type, &
+public :: edmf_mynn_init, edmf_mynn_end, &
+          edmf_input_type, edmf_output_type, edmf_ls_mp_type, &
           edmf_mynn_driver
 
 !---------------------------------------------------------------------
@@ -143,6 +144,22 @@ type am4_edmf_output_type
     pbltop
 
 end type am4_edmf_output_type
+
+!==================
+type edmf_ls_mp_type
+
+  real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
+    qadt_edmf, qldt_edmf, qidt_edmf, &         ! qadt_edmf: cloud fraction tendency from EDMF (1/s)
+                                               ! qldt_edmf: cloud liquid specific humidity tendency from EDMF (kg/kg/s)
+                                               ! qidt_edmf: cloud ice    specific humidity tendency from EDMF (kg/kg/s)
+    dqa_edmf,  dql_edmf, dqi_edmf              ! incrementation changes in a time step
+                                               !   i.e. dqa_edmf = qadt_edmf * dt and so on 
+
+  logical, allocatable :: &
+    do_edmf2ls_mp
+
+end type edmf_ls_mp_type
+!==================
 
 !---------------------------------------------------------------------
 ! --- Constants
@@ -6125,7 +6142,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              pbltop, udt, vdt, tdt, rdt, rdiag)
+              pbltop, udt, vdt, tdt, rdt, rdiag, edmf2ls_mp)
 
 !---------------------------------------------------------------------
 ! Arguments (Intent in)  
@@ -6164,6 +6181,13 @@ subroutine edmf_mynn_driver ( &
     rdiag
   real, intent(inout), dimension(:,:) :: &
     pbltop
+
+!---------------------------------------------------------------------
+! Arguments (Intent out)
+!   search "type edmf_ls_mp_type" to see the inside variables in this program 
+!---------------------------------------------------------------------
+
+  type(edmf_ls_mp_type), intent(out) :: edmf2ls_mp
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -6355,6 +6379,15 @@ subroutine edmf_mynn_driver ( &
 !  enddo
 !-->
 
+  !--- initialize edmf2ls_mp
+  edmf2ls_mp%do_edmf2ls_mp = .false.
+  edmf2ls_mp%qadt_edmf = 0.
+  edmf2ls_mp%qldt_edmf = 0.
+  edmf2ls_mp%qidt_edmf = 0.
+  edmf2ls_mp%dqa_edmf  = 0.
+  edmf2ls_mp%dql_edmf  = 0.
+  edmf2ls_mp%dqi_edmf  = 0.
+
   !--- updated tendencies
   if (.not.do_edmf_mynn_diagnostic) then
     udt(:,:,:) = udt(:,:,:) + am4_Output_edmf%udt_edmf(:,:,:)
@@ -6362,10 +6395,20 @@ subroutine edmf_mynn_driver ( &
     tdt(:,:,:) = tdt(:,:,:) + am4_Output_edmf%tdt_edmf(:,:,:)
 
     rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
-    rdt(:,:,:,nql)    = rdt(:,:,:,nql)    + am4_Output_edmf%qldt_edmf(:,:,:)
-    rdt(:,:,:,nqi)    = rdt(:,:,:,nqi)    + am4_Output_edmf%qidt_edmf(:,:,:)
+    !rdt(:,:,:,nql)    = rdt(:,:,:,nql)    + am4_Output_edmf%qldt_edmf(:,:,:)  ! qldt_edmf will be handled by edmf2ls_mp
+    !rdt(:,:,:,nqi)    = rdt(:,:,:,nqi)    + am4_Output_edmf%qidt_edmf(:,:,:)  ! qidt_edmf will be handled by edmf2ls_mp
 
     pbltop (:,:) = am4_Output_edmf%pbltop(:,:)
+
+    !--- set edmf to ls_mp
+    edmf2ls_mp%do_edmf2ls_mp = .true.
+    edmf2ls_mp%qadt_edmf = 0.
+    edmf2ls_mp%qldt_edmf = am4_Output_edmf%qldt_edmf(:,:,:)
+    edmf2ls_mp%qidt_edmf = am4_Output_edmf%qidt_edmf(:,:,:)
+    edmf2ls_mp%dqa_edmf  = edmf2ls_mp%qadt_edmf(:,:,:) * dt
+    edmf2ls_mp%dql_edmf  = edmf2ls_mp%qldt_edmf(:,:,:) * dt
+    edmf2ls_mp%dqi_edmf  = edmf2ls_mp%qidt_edmf(:,:,:) * dt
+    
   end if
 
   !--- write out EDMF-MYNN input and output fields for debugging purpose
