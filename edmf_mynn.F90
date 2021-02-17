@@ -402,7 +402,8 @@ integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star
 
 !#######################################################################
 
-subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd, edmf2ls_mp)
+!subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd, edmf2ls_mp)
+subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
 !-----------------------------------------------------------------------
 !  (Intent in)
@@ -418,7 +419,7 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd, edmf2ls_mp)
 !-----------------------------------------------------------------------
 !  (Intent out)
 !-----------------------------------------------------------------------
-  type(edmf_ls_mp_type), intent(out) :: edmf2ls_mp
+!  type(edmf_ls_mp_type), intent(out) :: edmf2ls_mp
 
 !-----------------------------------------------------------------------
 !  (Intent local)
@@ -646,15 +647,15 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd, edmf2ls_mp)
 !-----------------------------------------------------------------------
 !--- allocate edmf2ls_mp variables  
 !-----------------------------------------------------------------------
-  allocate(edmf2ls_mp%do_edmf2ls_mp)       ; edmf2ls_mp%do_edmf2ls_mp = .false.
-
-  allocate(edmf2ls_mp%qadt_edmf(id,jd,kd)) ; edmf2ls_mp%qadt_edmf = 0. 
-  allocate(edmf2ls_mp%qldt_edmf(id,jd,kd)) ; edmf2ls_mp%qldt_edmf = 0. 
-  allocate(edmf2ls_mp%qidt_edmf(id,jd,kd)) ; edmf2ls_mp%qidt_edmf = 0. 
-
-  allocate(edmf2ls_mp%dqa_edmf(id,jd,kd)) ; edmf2ls_mp%dqa_edmf = 0. 
-  allocate(edmf2ls_mp%dql_edmf(id,jd,kd)) ; edmf2ls_mp%dql_edmf = 0. 
-  allocate(edmf2ls_mp%dqi_edmf(id,jd,kd)) ; edmf2ls_mp%dqi_edmf = 0. 
+!  allocate(edmf2ls_mp%do_edmf2ls_mp)       ; edmf2ls_mp%do_edmf2ls_mp = .false.
+!
+!  allocate(edmf2ls_mp%qadt_edmf(id,jd,kd)) ; edmf2ls_mp%qadt_edmf = 0. 
+!  allocate(edmf2ls_mp%qldt_edmf(id,jd,kd)) ; edmf2ls_mp%qldt_edmf = 0. 
+!  allocate(edmf2ls_mp%qidt_edmf(id,jd,kd)) ; edmf2ls_mp%qidt_edmf = 0. 
+!
+!  allocate(edmf2ls_mp%dqa_edmf(id,jd,kd)) ; edmf2ls_mp%dqa_edmf = 0. 
+!  allocate(edmf2ls_mp%dql_edmf(id,jd,kd)) ; edmf2ls_mp%dql_edmf = 0. 
+!  allocate(edmf2ls_mp%dqi_edmf(id,jd,kd)) ; edmf2ls_mp%dqi_edmf = 0. 
 
 !-----------------------------------------------------------------------
 !--- Done with initialization
