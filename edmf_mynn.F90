@@ -136,7 +136,7 @@ type am4_edmf_output_type
 
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
     thl_edmf, qt_edmf,  & ! diagnostic purpose
-    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, &  ! outputs from EDMF-MYNN scheme
+    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, qadt_edmf, &  ! outputs from EDMF-MYNN scheme
     cldfra_bl, qc_bl, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
@@ -394,7 +394,7 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni  ! tracer indices for stratiform clo
 integer :: nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl ! tracer index for EDMF-MYNN tracers
 integer :: ntp          ! number of prognostic tracers
 
-integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf
+integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf
 
 !---------------------------------------------------------------------
 
@@ -580,6 +580,10 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_qidt_edmf = register_diag_field (mod_name, 'qidt_edmf', axes(full), Time, &
                  'qi tendency from edmf_mynn', 'kg/kg/s' , &
+                 missing_value=missing_value )
+
+  id_qadt_edmf = register_diag_field (mod_name, 'qadt_edmf', axes(full), Time, &
+                 'cldfra tendency from edmf_mynn', '1/s' , &
                  missing_value=missing_value )
 
   id_qldt_edmf = register_diag_field (mod_name, 'qldt_edmf', axes(full), Time, &
@@ -6518,6 +6522,11 @@ subroutine edmf_mynn_driver ( &
         used = send_data (id_qldt_edmf, am4_Output_edmf%qldt_edmf, Time_next, is, js, 1 )
       endif
 
+!------- cldfrac tendency from edmf_mynn (units: 1/s) at full level -------
+      if ( id_qadt_edmf > 0) then
+        used = send_data (id_qadt_edmf, am4_Output_edmf%qadt_edmf, Time_next, is, js, 1 )
+      endif
+
 !------- updraft area (units: none) at full level -------
       if ( id_edmf_a > 0) then
         used = send_data (id_edmf_a, am4_Output_edmf%edmf_a, Time_next, is, js, 1 )
@@ -7021,6 +7030,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qdt_edmf    (ix,jx,kx))  ; am4_Output_edmf%qdt_edmf    = 0.
   allocate (am4_Output_edmf%qidt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qidt_edmf   = 0.
   allocate (am4_Output_edmf%qldt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qldt_edmf   = 0.
+  allocate (am4_Output_edmf%qadt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qadt_edmf   = 0.
   allocate (am4_Output_edmf%edmf_a      (ix,jx,kx))  ; am4_Output_edmf%edmf_a      = 0.
   allocate (am4_Output_edmf%edmf_w      (ix,jx,kx))  ; am4_Output_edmf%edmf_w      = 0.
   allocate (am4_Output_edmf%edmf_qt     (ix,jx,kx))  ; am4_Output_edmf%edmf_qt     = 0.
@@ -7392,6 +7402,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qdt_edmf    )  
   deallocate (am4_Output_edmf%qidt_edmf   )  
   deallocate (am4_Output_edmf%qldt_edmf   )  
+  deallocate (am4_Output_edmf%qadt_edmf   )  
   deallocate (am4_Output_edmf%edmf_a      )
   deallocate (am4_Output_edmf%edmf_w      )
   deallocate (am4_Output_edmf%edmf_qt     )
