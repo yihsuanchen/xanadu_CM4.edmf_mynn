@@ -156,7 +156,8 @@ use grey_radiation_mod,       only: grey_radiation_init, grey_radiation, &
 use monin_obukhov_mod,        only: monin_obukhov_init
 
 !<-- yhc, add edmf_mynn
-use edmf_mynn_mod,            only: edmf_mynn_init, edmf_mynn_end, edmf_input_type, edmf_output_type, &
+use edmf_mynn_mod,            only: edmf_mynn_init, edmf_mynn_end, &
+                                    edmf_input_type, edmf_output_type, edmf_ls_mp_type, &
                                     edmf_mynn_driver
 !--> yhc, add edmf_mynn
 
@@ -505,6 +506,8 @@ real,    dimension(:,:,:), allocatable,target :: pblht_prev, hlsrc_prev, &
 real,    dimension(:,:,:), allocatable,target ::  diff_t_clubb
 
 real,    dimension(:,:,:), allocatable        :: temp_last, q_last
+
+type(edmf_ls_mp_type)   , allocatable,target  :: edmf2ls_mp   ! yhc
 
 !--- for netcdf restart
 type(restart_file_type), pointer, save :: Phy_restart => NULL()
@@ -1090,6 +1093,13 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       allocate ( r_convect  (id, jd) )     ; r_convect   = 0.0
       allocate ( diff_t_clubb(id, jd, kd) ); diff_t_clubb = 0.0
 
+      allocate (  edmf2ls_mp%do_edmf2ls_mp )          ; edmf2ls_mp%do_edmf2ls_mp = .false.  ! yhc
+      allocate (  edmf2ls_mp%qadt_edmf (id, jd, kd))  ; edmf2ls_mp%qadt_edmf = 0.0  ! yhc
+      allocate (  edmf2ls_mp%qadt_edmf (id, jd, kd))  ; edmf2ls_mp%qadt_edmf = 0.0  ! yhc
+      allocate (  edmf2ls_mp%qadt_edmf (id, jd, kd))  ; edmf2ls_mp%qadt_edmf = 0.0  ! yhc
+      allocate (  edmf2ls_mp%dqa_edmf  (id, jd, kd))  ; edmf2ls_mp%dqa_edmf  = 0.0  ! yhc
+      allocate (  edmf2ls_mp%dqa_edmf  (id, jd, kd))  ; edmf2ls_mp%dqa_edmf  = 0.0  ! yhc
+      allocate (  edmf2ls_mp%dqa_edmf  (id, jd, kd))  ; edmf2ls_mp%dqa_edmf  = 0.0  ! yhc
 
       if (do_cosp) then
 !--------------------------------------------------------------------
@@ -2715,7 +2725,16 @@ real,dimension(:,:),    intent(inout)             :: gust
 !-----------------------------------------------------------------------
 !    add the temperature tendency due to vertical  diffusion to radturbten.
 !-----------------------------------------------------------------------
-      radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:)
+      !radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:)
+
+!<-- yhc
+      if (.not.do_edmf_mynn) then
+        radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:)
+      elseif (do_edmf_mynn .and. do_edmf_mynn_diagnostic) then
+        radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:)
+      endif
+!--> yhc
+
       call mpp_clock_end ( diff_up_clock )
 
 !-------------------------------------------------------------------------
@@ -2745,7 +2764,7 @@ real,dimension(:,:),    intent(inout)             :: gust
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                do_edmf_mynn_diagnostic, &
-               pbltop, udt, vdt, tdt, rdt, rdiag)
+               pbltop, udt, vdt, tdt, rdt, rdiag, edmf2ls_mp)
   endif
 
  if (do_writeout_column) then
@@ -2831,6 +2850,14 @@ real,dimension(:,:),    intent(inout)             :: gust
         Phys_mp_exch%cape_prev     => pblht_prev   (is:ie,js:je,:)
         Phys_mp_exch%cin_prev      => pblht_prev   (is:ie,js:je,:)
         Phys_mp_exch%tke_prev      => pblht_prev   (is:ie,js:je,:)
+
+        Phys_mp_exch%do_edmf2ls_mp  =>    edmf2ls_mp%do_edmf2ls_mp             ! yhc
+        Phys_mp_exch%qadt_edmf      =>    edmf2ls_mp%qadt_edmf(is:ie,js:je,:)  ! yhc
+        Phys_mp_exch%qldt_edmf      =>    edmf2ls_mp%qldt_edmf(is:ie,js:je,:)  ! yhc
+        Phys_mp_exch%qidt_edmf      =>    edmf2ls_mp%qidt_edmf(is:ie,js:je,:)  ! yhc
+        Phys_mp_exch%dqa_edmf       =>    edmf2ls_mp%dqa_edmf(is:ie,js:je,:)   ! yhc
+        Phys_mp_exch%dql_edmf       =>    edmf2ls_mp%dql_edmf(is:ie,js:je,:)   ! yhc
+        Phys_mp_exch%dqi_edmf       =>    edmf2ls_mp%dqi_edmf(is:ie,js:je,:)   ! yhc
 
 !-----------------------------------------------------------------------
 !    call moist processes to compute moist physics, including convection 
@@ -3144,6 +3171,13 @@ real,dimension(:,:),    intent(inout)             :: gust
       Phys_mp_exch%cin_prev   => null()
       Phys_mp_exch%tke_prev   => null()
 
+      Phys_mp_exch%do_edmf2ls_mp  => null()  ! yhc
+      Phys_mp_exch%qadt_edmf      => null()  ! yhc
+      Phys_mp_exch%qldt_edmf      => null()  ! yhc
+      Phys_mp_exch%qidt_edmf      => null()  ! yhc
+      Phys_mp_exch%dqa_edmf       => null()  ! yhc
+      Phys_mp_exch%dql_edmf       => null()  ! yhc
+      Phys_mp_exch%dqi_edmf       => null()  ! yhc
 !-----------------------------------------------------------------------
 
 
@@ -3323,6 +3357,8 @@ integer :: moist_processes_term_clock, damping_term_clock, turb_term_clock, &
                   hmint, cgust, tke, pblhto, rkmo, taudpo, exist_shconv, &  ! h1g, 2017-01-31
                   exist_dpconv, & 
                   pblht_prev, hlsrc_prev, qtsrc_prev, cape_prev, cin_prev, tke_prev, & !h1g, 2017-01-31
+                  edmf2ls_mp%do_edmf2ls_mp, edmf2ls_mp%qadt_edmf, edmf2ls_mp%qldt_edmf, edmf2ls_mp%qidt_edmf, &  !yhc
+                  edmf2ls_mp%dqa_edmf, edmf2ls_mp%dql_edmf, edmf2ls_mp%dqi_edmf, & ! yhc
                   convect, radturbten, r_convect)
 
       if (do_cosp) then
