@@ -2768,15 +2768,16 @@ real,dimension(:,:),    intent(inout)             :: gust
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                do_edmf_mynn_diagnostic, &
-               pbltop, udt, vdt, tdt, rdt, rdiag, edmf2ls_mp)
+               do_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), &
+               pbltop, udt, vdt, tdt, rdt, rdiag)
 
-    do_edmf2ls_mp  = edmf2ls_mp%do_edmf2ls_mp             
-    qadt_edmf      = edmf2ls_mp%qadt_edmf(:,:,:)  
-    qldt_edmf      = edmf2ls_mp%qldt_edmf(:,:,:)  
-    qidt_edmf      = edmf2ls_mp%qidt_edmf(:,:,:)  
-    dqa_edmf       = edmf2ls_mp%dqa_edmf (:,:,:)   
-    dql_edmf       = edmf2ls_mp%dql_edmf (:,:,:)   
-    dqi_edmf       = edmf2ls_mp%dqi_edmf (:,:,:)   
+!    do_edmf2ls_mp  = edmf2ls_mp%do_edmf2ls_mp             
+!    qadt_edmf  (is:ie,js:je,:)   = edmf2ls_mp%qadt_edmf(:,:,:)  
+!    qldt_edmf  (is:ie,js:je,:)   = edmf2ls_mp%qldt_edmf(:,:,:)  
+!    qidt_edmf  (is:ie,js:je,:)   = edmf2ls_mp%qidt_edmf(:,:,:)  
+!    dqa_edmf   (is:ie,js:je,:)   = edmf2ls_mp%dqa_edmf (:,:,:)   
+!    dql_edmf   (is:ie,js:je,:)   = edmf2ls_mp%dql_edmf (:,:,:)   
+!    dqi_edmf   (is:ie,js:je,:)   = edmf2ls_mp%dqi_edmf (:,:,:)   
   endif
 
  if (do_writeout_column) then
@@ -3235,6 +3236,7 @@ type(block_control_type), intent(in) :: Atm_block
 integer :: n, nb, nc, ibs, ibe, jbs, jbe
 integer :: moist_processes_term_clock, damping_term_clock, turb_term_clock, &
            diff_term_clock, aerosol_term_clock, clubb_term_clock, &
+           edmf_mynn_term_clock, & ! yhc
            grey_radiation_term_clock, tracer_term_clock, cosp_term_clock
 
 !---------------------------------------------------------------------
@@ -3263,6 +3265,10 @@ integer :: moist_processes_term_clock, damping_term_clock, turb_term_clock, &
       cosp_term_clock       =       &
         mpp_clock_id( '   Phys_driver_term: COSP: Termination', &
                        grain=CLOCK_MODULE_DRIVER )
+      edmf_mynn_term_clock       =       &
+        mpp_clock_id( '   Phys_driver_term: edmf_mynn: Termination', &
+                       grain=CLOCK_MODULE_DRIVER )  ! yhc
+
       if (do_moist_processes) &
       aerosol_term_clock       =       &
         mpp_clock_id( '   Phys_driver_term: Aerosol: Termination', &
@@ -3330,6 +3336,11 @@ integer :: moist_processes_term_clock, damping_term_clock, turb_term_clock, &
       call vert_diff_driver_end
       call mpp_clock_end ( diff_term_clock )
 
+!<-- yhc
+      call mpp_clock_begin ( edmf_mynn_term_clock )
+      call edmf_mynn_end  
+      call mpp_clock_end ( edmf_mynn_term_clock )
+!--> yhc
 
 !--------------------------------------------------------------------
 !    terminate radiation routines and data
