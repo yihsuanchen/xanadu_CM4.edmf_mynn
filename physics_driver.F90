@@ -507,7 +507,11 @@ real,    dimension(:,:,:), allocatable,target ::  diff_t_clubb
 
 real,    dimension(:,:,:), allocatable        :: temp_last, q_last
 
-type(edmf_ls_mp_type)   , allocatable,target  :: edmf2ls_mp   ! yhc
+real,    dimension(:,:,:), allocatable,target :: &  ! yhc, the description of these variables is in edmf_ls_mp_type, edmf_mynn_mod
+  qadt_edmf, qldt_edmf, qidt_edmf, &
+  dqa_edmf,  dql_edmf, dqi_edmf
+logical,                   allocatable,target :: do_edmf2ls_mp  ! yhc
+type(edmf_ls_mp_type)                         :: edmf2ls_mp
 
 !--- for netcdf restart
 type(restart_file_type), pointer, save :: Phy_restart => NULL()
@@ -1093,13 +1097,13 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       allocate ( r_convect  (id, jd) )     ; r_convect   = 0.0
       allocate ( diff_t_clubb(id, jd, kd) ); diff_t_clubb = 0.0
 
-      allocate (  edmf2ls_mp%do_edmf2ls_mp )          ; edmf2ls_mp%do_edmf2ls_mp = .false.  ! yhc
-      allocate (  edmf2ls_mp%qadt_edmf (id, jd, kd))  ; edmf2ls_mp%qadt_edmf = 0.0  ! yhc
-      allocate (  edmf2ls_mp%qadt_edmf (id, jd, kd))  ; edmf2ls_mp%qadt_edmf = 0.0  ! yhc
-      allocate (  edmf2ls_mp%qadt_edmf (id, jd, kd))  ; edmf2ls_mp%qadt_edmf = 0.0  ! yhc
-      allocate (  edmf2ls_mp%dqa_edmf  (id, jd, kd))  ; edmf2ls_mp%dqa_edmf  = 0.0  ! yhc
-      allocate (  edmf2ls_mp%dqa_edmf  (id, jd, kd))  ; edmf2ls_mp%dqa_edmf  = 0.0  ! yhc
-      allocate (  edmf2ls_mp%dqa_edmf  (id, jd, kd))  ; edmf2ls_mp%dqa_edmf  = 0.0  ! yhc
+      allocate (  do_edmf2ls_mp )          ; do_edmf2ls_mp = .false.  ! yhc
+      allocate (  qadt_edmf (id, jd, kd))  ; qadt_edmf = 0.0  ! yhc
+      allocate (  qldt_edmf (id, jd, kd))  ; qldt_edmf = 0.0  ! yhc
+      allocate (  qidt_edmf (id, jd, kd))  ; qidt_edmf = 0.0  ! yhc
+      allocate (  dqa_edmf  (id, jd, kd))  ; dqa_edmf  = 0.0  ! yhc
+      allocate (  dql_edmf  (id, jd, kd))  ; dql_edmf  = 0.0  ! yhc
+      allocate (  dqi_edmf  (id, jd, kd))  ; dqi_edmf  = 0.0  ! yhc
 
       if (do_cosp) then
 !--------------------------------------------------------------------
@@ -2851,13 +2855,13 @@ real,dimension(:,:),    intent(inout)             :: gust
         Phys_mp_exch%cin_prev      => pblht_prev   (is:ie,js:je,:)
         Phys_mp_exch%tke_prev      => pblht_prev   (is:ie,js:je,:)
 
-        Phys_mp_exch%do_edmf2ls_mp  =>    edmf2ls_mp%do_edmf2ls_mp             ! yhc
-        Phys_mp_exch%qadt_edmf      =>    edmf2ls_mp%qadt_edmf(is:ie,js:je,:)  ! yhc
-        Phys_mp_exch%qldt_edmf      =>    edmf2ls_mp%qldt_edmf(is:ie,js:je,:)  ! yhc
-        Phys_mp_exch%qidt_edmf      =>    edmf2ls_mp%qidt_edmf(is:ie,js:je,:)  ! yhc
-        Phys_mp_exch%dqa_edmf       =>    edmf2ls_mp%dqa_edmf(is:ie,js:je,:)   ! yhc
-        Phys_mp_exch%dql_edmf       =>    edmf2ls_mp%dql_edmf(is:ie,js:je,:)   ! yhc
-        Phys_mp_exch%dqi_edmf       =>    edmf2ls_mp%dqi_edmf(is:ie,js:je,:)   ! yhc
+        Phys_mp_exch%do_edmf2ls_mp  =>    do_edmf2ls_mp             ! yhc
+        Phys_mp_exch%qadt_edmf      =>    qadt_edmf(is:ie,js:je,:)  ! yhc
+        Phys_mp_exch%qldt_edmf      =>    qldt_edmf(is:ie,js:je,:)  ! yhc
+        Phys_mp_exch%qidt_edmf      =>    qidt_edmf(is:ie,js:je,:)  ! yhc
+        Phys_mp_exch%dqa_edmf       =>    dqa_edmf(is:ie,js:je,:)   ! yhc
+        Phys_mp_exch%dql_edmf       =>    dql_edmf(is:ie,js:je,:)   ! yhc
+        Phys_mp_exch%dqi_edmf       =>    dqi_edmf(is:ie,js:je,:)   ! yhc
 
 !-----------------------------------------------------------------------
 !    call moist processes to compute moist physics, including convection 
@@ -3357,8 +3361,8 @@ integer :: moist_processes_term_clock, damping_term_clock, turb_term_clock, &
                   hmint, cgust, tke, pblhto, rkmo, taudpo, exist_shconv, &  ! h1g, 2017-01-31
                   exist_dpconv, & 
                   pblht_prev, hlsrc_prev, qtsrc_prev, cape_prev, cin_prev, tke_prev, & !h1g, 2017-01-31
-                  edmf2ls_mp%do_edmf2ls_mp, edmf2ls_mp%qadt_edmf, edmf2ls_mp%qldt_edmf, edmf2ls_mp%qidt_edmf, &  !yhc
-                  edmf2ls_mp%dqa_edmf, edmf2ls_mp%dql_edmf, edmf2ls_mp%dqi_edmf, & ! yhc
+                  do_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, &  !yhc
+                  dqa_edmf, dql_edmf, dqi_edmf, & ! yhc
                   convect, radturbten, r_convect)
 
       if (do_cosp) then
