@@ -1055,6 +1055,19 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
             else
               Cloud_processes%D_eros(i,j,k) = 0.
             endif
+!<-- yhc111
+            !--- if EDMF cloud tendencies are non-zero, deactivate the cloud erosion term in Tiedtke
+            !    assuming this term is handled by EDMF
+            if (C2ls_mp%do_edmf2ls_mp) then
+              if (      C2ls_mp%qadt_edmf(i,j,k) .gt. 0.   &
+                   .or. C2ls_mp%qldt_edmf(i,j,k) .gt. 0.   &
+                   .or. C2ls_mp%qidt_edmf(i,j,k) .gt. 0.   &
+                 ) then
+                 Cloud_processes%D_eros(i,j,k) = 0.
+              endif
+            endif  ! end if of C2ls_mp%do_edmf2ls_mp
+!--> yhc111
+
           END DO    
         END DO    
       END DO    
@@ -1183,6 +1196,21 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
 !    limit cloud area to be no more than that which is not being
 !    taken by convective clouds.
 !------------------------------------------------------------------------
+
+!<--- yhc111
+      !--- qa1 is qa(t+dtcloud) from Tiedtke. The qa_EDMF(t+dtcloud) from EDMF is qa0+qadt_edmf*dtcloud
+      !    assuming qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa1, qa_EDMF)
+      if (C2ls_mp%do_edmf2ls_mp) then
+        do k=1,kdim
+        do j=1,jdim
+        do i=1,idim
+          qa1(i,j,k) = max(qa1(i,j,k), qa0(i,j,k)+C2ls_mp%qadt_edmf(i,j,k)*dtcloud)
+        enddo         
+        enddo         
+        enddo         
+      endif
+!---> yhc111
+
       if (limit_conv_cloud_frac) then
         qa1 = MIN(qa1, 1.0 -C2ls_mp%convective_humidity_area)
       endif
