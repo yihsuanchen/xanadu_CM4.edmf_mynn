@@ -550,6 +550,14 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
       Cloud_processes%dcond_ls_ice = ice_frac*Cloud_processes%dcond_ls
       Cloud_processes%dcond_ls     = liq_frac*Cloud_processes%dcond_ls   
 
+!<--- yhc111
+      !--- add EDMF ql and qi incremental changes to large-scale condensate
+      if (C2ls_mp%do_edmf2ls_mp) then
+        Cloud_processes%dcond_ls_ice = Cloud_processes%dcond_ls_ice + C2ls_mp%qidt_edmf * dtcloud
+        Cloud_processes%dcond_ls     = Cloud_processes%dcond_ls_ice + C2ls_mp%qldt_edmf * dtcloud
+      endif      
+!---> yhc111
+
 !------------------------------------------------------------------------
 !    output debug diagnostics, if desired.
 !------------------------------------------------------------------------
@@ -1254,6 +1262,8 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
 
 !-----------------------------------------------------------------------
 
+write(6,*) 'yhc, use_qabar',use_qabar
+write(6,*) 'yhc, dtcloud',dtcloud
 
 end subroutine tiedtke_macro_nopdf_nosuper 
 
