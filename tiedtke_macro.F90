@@ -554,7 +554,7 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
       !--- add EDMF ql and qi incremental changes to large-scale condensate
       if (C2ls_mp%do_edmf2ls_mp) then
         Cloud_processes%dcond_ls_ice = Cloud_processes%dcond_ls_ice + C2ls_mp%qidt_edmf * dtcloud
-        Cloud_processes%dcond_ls     = Cloud_processes%dcond_ls_ice + C2ls_mp%qldt_edmf * dtcloud
+        Cloud_processes%dcond_ls     = Cloud_processes%dcond_ls     + C2ls_mp%qldt_edmf * dtcloud
       endif      
 !---> yhc111
 
@@ -1212,7 +1212,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
         do k=1,kdim
         do j=1,jdim
         do i=1,idim
-          qa1(i,j,k) = max(qa1(i,j,k), qa0(i,j,k)+C2ls_mp%qadt_edmf(i,j,k)*dtcloud)
+          qa1(i,j,k) = min(1., max(qa1(i,j,k), qa0(i,j,k)+C2ls_mp%qadt_edmf(i,j,k)*dtcloud) )
         enddo         
         enddo         
         enddo         
@@ -1264,6 +1264,8 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
 
 write(6,*) 'yhc, use_qabar',use_qabar
 write(6,*) 'yhc, dtcloud',dtcloud
+write(6,*) 'yhc, Cloud_processes%D_eros',Cloud_processes%D_eros
+write(6,*) 'yhc, qa1',qa1
 
 end subroutine tiedtke_macro_nopdf_nosuper 
 
