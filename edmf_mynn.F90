@@ -96,7 +96,7 @@ type edmf_input_type
     xland, ust, ch, rmol, ts, qsfc, qcg, ps, hfx, qfx, wspd, uoce, voce, vdfg, znt
 
   real, dimension(:,:,:), allocatable :: &   ! INPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
-    dz, u, v, w, th, qv, p, exner, rho, T3D, qc, ql, qi, qnc, qni
+    dz, u, v, w, th, qv, p, exner, rho, T3D, qa, qc, ql, qi, qnc, qni
 
   real, dimension(:,:), allocatable   :: &   ! DIMENSION(IMS:IME,JMS:JME), diagnostic purpose
     u_star_star, shflx_star, lhflx_star, w1_thv1_surf_star, w1_th1_surf_star, w1_q1_surf_star, Obukhov_length_star,  &
@@ -6860,7 +6860,7 @@ subroutine edmf_alloc ( &
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2), &
                    size(Physics_input_block%t,3)) :: &
-    dz_host, u_host, v_host, w_host, th_host, qv_host, p_host, exner_host, rho_host, T3D_host, qc_host, ql_host, qi_host, qnc_host, qni_host, &
+    dz_host, u_host, v_host, w_host, th_host, qv_host, p_host, exner_host, rho_host, T3D_host, qa_host, qc_host, ql_host, qi_host, qnc_host, qni_host, &
     thl_host, qt_host, &
     tv_host, thv_host, omega_host
 
@@ -6975,6 +6975,7 @@ subroutine edmf_alloc ( &
   allocate (Input_edmf%qc    (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%qc    = 0.
   allocate (Input_edmf%ql    (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%ql    = 0.
   allocate (Input_edmf%qi    (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%qi    = 0.
+  allocate (Input_edmf%qa    (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%qa    = 0.
   allocate (Input_edmf%qnc   (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%qnc   = 0.
   allocate (Input_edmf%qni   (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%qni   = 0.
   !allocate (Input_edmf%(IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf% = 0.
@@ -7087,6 +7088,7 @@ subroutine edmf_alloc ( &
   qc_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
   ql_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
   qi_host    (:,:,:) = Physics_input_block%q(:,:,:,nqi)
+  qa_host    (:,:,:) = Physics_input_block%q(:,:,:,nqa)
   p_host     (:,:,:) = Physics_input_block%p_full
   T3D_host   (:,:,:) = Physics_input_block%t
 
@@ -7194,6 +7196,7 @@ subroutine edmf_alloc ( &
     Input_edmf%qc    (i,kk,j) = qc_host    (i,j,k)
     Input_edmf%ql    (i,kk,j) = ql_host    (i,j,k)
     Input_edmf%qi    (i,kk,j) = qi_host    (i,j,k)
+    Input_edmf%qa    (i,kk,j) = qa_host    (i,j,k)
     Input_edmf%qnc   (i,kk,j) = qnc_host   (i,j,k)
     Input_edmf%qni   (i,kk,j) = qni_host   (i,j,k)
   enddo  ! end loop of k
@@ -7348,6 +7351,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Input_edmf%qc    )  
   deallocate (Input_edmf%ql    )  
   deallocate (Input_edmf%qi    )  
+  deallocate (Input_edmf%qa    )  
   deallocate (Input_edmf%qnc   )  
   deallocate (Input_edmf%qni   )  
   !deallocate (Input_edmf%)  
@@ -7673,6 +7677,9 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ''
         write(6,*)    '; specific humidity at full levels (kg/kg)'
         write(6,3002) '  qq  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nsphum)
+        write(6,*)    ''
+        write(6,*)    '; cloud fraction (none)'
+        write(6,3002) '  qa  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nqa)
         write(6,*)    ''
         write(6,*)    '; cloud liquid water mixing ratio at full levels (kg/kg)'
         write(6,3002) '  ql  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nql)
@@ -8071,5 +8078,6 @@ end subroutine convert_edmf_to_am4_array
 !#############################
 ! Mellor-Yamada
 !#############################
+
 
 end module edmf_mynn_mod
