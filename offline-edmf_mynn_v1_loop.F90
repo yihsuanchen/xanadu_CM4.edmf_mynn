@@ -144,6 +144,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
+   logical :: do_edmf2ls_mp = .true.
    logical :: do_qdt_same_as_qtdt = .false.
 
    real    :: tdt_max     = 500. ! K/day
@@ -204,14 +205,15 @@ type am4_edmf_output_type
 
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
     thl_edmf, qt_edmf,  & ! diagnostic purpose
-    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, &  ! outputs from EDMF-MYNN scheme
+    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, qadt_edmf, &  ! outputs from EDMF-MYNN scheme
     cldfra_bl, qc_bl, &
-    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                        
+    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
   real, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
     pbltop
 
 end type am4_edmf_output_type
+
 
 !############################
 !############################
@@ -5886,6 +5888,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
+              do_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
@@ -5925,6 +5928,19 @@ subroutine edmf_mynn_driver ( &
     rdiag
   real, intent(inout), dimension(:,:) :: &
     pbltop
+
+!---------------------------------------------------------------------
+! Arguments (Intent out)
+!   search "type edmf_ls_mp_type" to see the inside variables in this program 
+!---------------------------------------------------------------------
+
+  !type(edmf_ls_mp_type), intent(out) :: edmf2ls_mp
+  real, intent(out), dimension(:,:,:) :: &
+    qadt_edmf, qldt_edmf, qidt_edmf, &   
+    dqa_edmf,  dql_edmf, dqi_edmf
+
+  logical, intent(out) :: &
+    do_edmf2ls_mp
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -6116,6 +6132,15 @@ subroutine edmf_mynn_driver ( &
 !  enddo
 !-->
 
+  !--- initialize edmf2ls_mp
+  do_edmf2ls_mp = .false.
+  qadt_edmf = 0.
+  qldt_edmf = 0.
+  qidt_edmf = 0.
+  dqa_edmf  = 0.
+  dql_edmf  = 0.
+  dqi_edmf  = 0.
+
   !--- updated tendencies
   if (.not.do_edmf_mynn_diagnostic) then
     udt(:,:,:) = udt(:,:,:) + am4_Output_edmf%udt_edmf(:,:,:)
@@ -6123,10 +6148,20 @@ subroutine edmf_mynn_driver ( &
     tdt(:,:,:) = tdt(:,:,:) + am4_Output_edmf%tdt_edmf(:,:,:)
 
     rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
-    rdt(:,:,:,nql)    = rdt(:,:,:,nql)    + am4_Output_edmf%qldt_edmf(:,:,:)
-    rdt(:,:,:,nqi)    = rdt(:,:,:,nqi)    + am4_Output_edmf%qidt_edmf(:,:,:)
+    !rdt(:,:,:,nql)    = rdt(:,:,:,nql)    + am4_Output_edmf%qldt_edmf(:,:,:)  ! qldt_edmf will be handled by edmf2ls_mp
+    !rdt(:,:,:,nqi)    = rdt(:,:,:,nqi)    + am4_Output_edmf%qidt_edmf(:,:,:)  ! qidt_edmf will be handled by edmf2ls_mp
 
     pbltop (:,:) = am4_Output_edmf%pbltop(:,:)
+
+    !--- set edmf to ls_mp
+    do_edmf2ls_mp = .true.
+    qadt_edmf     = am4_Output_edmf%qadt_edmf(:,:,:)
+    qldt_edmf     = am4_Output_edmf%qldt_edmf(:,:,:)
+    qidt_edmf     = am4_Output_edmf%qidt_edmf(:,:,:)
+    dqa_edmf      = qadt_edmf(:,:,:) * dt
+    dql_edmf      = qldt_edmf(:,:,:) * dt
+    dqi_edmf      = qidt_edmf(:,:,:) * dt
+    
   end if
 
   !--- write out EDMF-MYNN input and output fields for debugging purpose
@@ -6142,10 +6177,10 @@ subroutine edmf_mynn_driver ( &
 !  write(6,*) 'rdiag(:,:,:,nQke), out',rdiag(ii_write,jj_write,:,nQke)
 !endif
 
-!!---------------------------------------------------------------------
-!! write out fields to history files
-!!---------------------------------------------------------------------
-!
+!---------------------------------------------------------------------
+! write out fields to history files
+!---------------------------------------------------------------------
+
 !!------- zonal wind stress (units: kg/m/s2) at one level -------
 !      if ( id_u_flux > 0) then
 !        used = send_data (id_u_flux, u_flux, Time_next, is, js )
@@ -6234,6 +6269,11 @@ subroutine edmf_mynn_driver ( &
 !!------- qc tendency from edmf_mynn (units: kg/kg/s) at full level -------
 !      if ( id_qldt_edmf > 0) then
 !        used = send_data (id_qldt_edmf, am4_Output_edmf%qldt_edmf, Time_next, is, js, 1 )
+!      endif
+!
+!!------- cldfrac tendency from edmf_mynn (units: 1/s) at full level -------
+!      if ( id_qadt_edmf > 0) then
+!        used = send_data (id_qadt_edmf, am4_Output_edmf%qadt_edmf, Time_next, is, js, 1 )
 !      endif
 !
 !!------- updraft area (units: none) at full level -------
@@ -6739,6 +6779,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qdt_edmf    (ix,jx,kx))  ; am4_Output_edmf%qdt_edmf    = 0.
   allocate (am4_Output_edmf%qidt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qidt_edmf   = 0.
   allocate (am4_Output_edmf%qldt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qldt_edmf   = 0.
+  allocate (am4_Output_edmf%qadt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qadt_edmf   = 0.
   allocate (am4_Output_edmf%edmf_a      (ix,jx,kx))  ; am4_Output_edmf%edmf_a      = 0.
   allocate (am4_Output_edmf%edmf_w      (ix,jx,kx))  ; am4_Output_edmf%edmf_w      = 0.
   allocate (am4_Output_edmf%edmf_qt     (ix,jx,kx))  ; am4_Output_edmf%edmf_qt     = 0.
@@ -7110,6 +7151,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qdt_edmf    )  
   deallocate (am4_Output_edmf%qidt_edmf   )  
   deallocate (am4_Output_edmf%qldt_edmf   )  
+  deallocate (am4_Output_edmf%qadt_edmf   )  
   deallocate (am4_Output_edmf%edmf_a      )
   deallocate (am4_Output_edmf%edmf_w      )
   deallocate (am4_Output_edmf%edmf_qt     )
@@ -7182,6 +7224,8 @@ subroutine edmf_writeout_column ( &
   real ::  &
     tk, qtk, qtdtk, rhok, dzk, &
     tt1, tt2, tt3
+
+  real :: tt_temp, pp_temp, esat_edmf, qq_gfdl, esat_gfdl, liquid_frac
 
 !-------------------------------------------------------------------------
 !  define input array sizes.
@@ -7606,6 +7650,33 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ''
   endif  ! end if of do_writeout_column
 
+!******************************************* 
+!  --- check saturation vapor pressure from EDMF and GFDL
+!******************************************* 
+!
+!  write(6,*) 'T(K), esat_edmf (Pa), esat_gfdl (Pa)'
+!do i=195,350
+!  tt_temp = float(i)  ! temperature in K
+!
+!  !--- EDMF formula
+!  IF (tt_temp .GE. 273.16) THEN
+!    liquid_frac=1.
+!  ELSE IF (tt_temp .LE. 253.) THEN
+!    liquid_frac=0.
+!  ELSE
+!    liquid_frac  = 1.-(273.16-tt_temp)/20.16
+!  END IF
+!  
+!  esat_edmf = esatLF_blend(tt_temp, liquid_frac)
+!
+!  !--- GFDL formula
+!  pp_temp = 1013. * 100. ! pressure in Pa
+!  call compute_qs(tt_temp, pp_temp, qq_gfdl, esat = esat_gfdl )
+!
+!  write(6,*) tt_temp, esat_edmf, esat_gfdl
+!enddo
+!**************************** end check saturation vapor pressure
+
 3000 format (A35,2X,F8.2,',')
 3001 format (A35,2X,34(F10.3,2X,','))
 3002 format (A35,2X,34(E12.4,2X,','))
@@ -7721,6 +7792,11 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 end subroutine convert_edmf_to_am4_array
 
 !#############################
+! Mellor-Yamada
+!#############################
+
+
+!#############################
 
 ! Mellor-Yamada
 !#############################
@@ -7758,6 +7834,8 @@ program test111
   !real,    dimension(nfull) :: p_full, z_full, z_full_actual, uu, vv, tt, qq, thv, ww, ql, qi
   real,    dimension(ni,nj,nfull) :: diff_t, diff_m
   real,    dimension(ni,nj,nfull) :: udt_mf, vdt_mf, tdt_mf, qdt_mf, thvdt_mf, qtdt_mf, thlidt_mf
+  real,    dimension(ni,nj,nfull) :: qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf
+
   !real,    dimension(ni,nj)   :: cov_w_thv, cov_w_qt
   real,    dimension(ni,nj)   :: z_pbl, pbltop
   real,    dimension(ni,nj)   :: lat, lon, u_star, b_star, q_star, shflx, lhflx, frac_land, area, t_ref, q_ref, u_flux, v_flux
@@ -8411,6 +8489,7 @@ endif ! end if of input profile
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, & 
               do_edmf_mynn_diagnostic, &
+              do_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag(:,:,:,ntp+1:))
               !udt, vdt, tdt, rdt, rdiag)
 
