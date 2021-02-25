@@ -126,7 +126,7 @@ type mp_conv2ls_type
     real, dimension(:,:,:),   allocatable   ::    &
                             convective_humidity_ratio_clubb
 
-   logical,                   pointer :: do_edmf2ls_mp => null() ! yhc
+   integer,                   pointer :: option_edmf2ls_mp => null() ! yhc
       real, dimension(:,:,:), pointer :: qadt_edmf   => null()   ! yhc, the description of these variables is in edmf_ls_mp_type, edmf_mynn program 
       real, dimension(:,:,:), pointer :: qldt_edmf   => null()   ! yhc
       real, dimension(:,:,:), pointer :: qidt_edmf   => null()   ! yhc

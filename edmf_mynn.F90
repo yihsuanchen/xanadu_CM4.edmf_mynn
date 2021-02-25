@@ -155,8 +155,8 @@ type edmf_ls_mp_type
     dqa_edmf,  dql_edmf, dqi_edmf              ! incrementation changes in a time step
                                                !   i.e. dqa_edmf = qadt_edmf * dt and so on 
 
-  logical, allocatable :: &
-    do_edmf2ls_mp
+  integer, allocatable :: &
+    option_edmf2ls_mp
 
 end type edmf_ls_mp_type
 !==================
@@ -374,6 +374,10 @@ end type edmf_ls_mp_type
   real    :: tdt_max     = 500. ! K/day
   logical :: do_limit_tdt = .false.
   real    :: tdt_limit =   200. ! K/day
+  integer :: do_option_edmf2ls_mp = 0           ! option to include EDMF cloud tendencies terms into Tiedtke
+                                                ! =0, not include EDMF terms into Tiedtke
+                                                ! =1, add EDMF term and keep Tiedtke terms except turbulence heating
+                                                ! =2, add EDMF term and remove large-scale and coud erosion terms
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
 
@@ -381,6 +385,7 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             L0, NUP, UPSTAB, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, &
+                            do_option_edmf2ls_mp, &
                             do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
          
 !---------------------------------------------------------------------
@@ -467,6 +472,15 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
   if (.not.expmf .and. upwind.ne.0.5) then
     call error_mesg( ' edmf_mynn',     &
                      ' when expmf=.false., upwind must be 0.5 (implicit MF with centered-diff)',&
+                     FATAL )
+  endif
+
+  if (    do_option_edmf2ls_mp.ne.0    &
+     .or. do_option_edmf2ls_mp.ne.1    &
+     .or. do_option_edmf2ls_mp.ne.2    &
+     ) then
+    call error_mesg( ' edmf_mynn',     &
+                     ' do_option_edmf2ls_mp must be 0,1,or 2',&
                      FATAL )
   endif
 
@@ -647,7 +661,7 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 !-----------------------------------------------------------------------
 !--- allocate edmf2ls_mp variables  
 !-----------------------------------------------------------------------
-!  allocate(edmf2ls_mp%do_edmf2ls_mp)       ; edmf2ls_mp%do_edmf2ls_mp = .false.
+!  allocate(edmf2ls_mp%option_edmf2ls_mp)       ; edmf2ls_mp%option_edmf2ls_mp = .false.
 !
 !  allocate(edmf2ls_mp%qadt_edmf(id,jd,kd)) ; edmf2ls_mp%qadt_edmf = 0. 
 !  allocate(edmf2ls_mp%qldt_edmf(id,jd,kd)) ; edmf2ls_mp%qldt_edmf = 0. 
@@ -6165,7 +6179,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              do_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
+              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
@@ -6216,8 +6230,8 @@ subroutine edmf_mynn_driver ( &
     qadt_edmf, qldt_edmf, qidt_edmf, &   
     dqa_edmf,  dql_edmf, dqi_edmf
 
-  logical, intent(out) :: &
-    do_edmf2ls_mp
+  integer, intent(out) :: &
+    option_edmf2ls_mp
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -6410,7 +6424,7 @@ subroutine edmf_mynn_driver ( &
 !-->
 
   !--- initialize edmf2ls_mp
-  do_edmf2ls_mp = .false.
+  option_edmf2ls_mp = 0
   qadt_edmf = 0.
   qldt_edmf = 0.
   qidt_edmf = 0.
@@ -6431,7 +6445,7 @@ subroutine edmf_mynn_driver ( &
     pbltop (:,:) = am4_Output_edmf%pbltop(:,:)
 
     !--- set edmf to ls_mp
-    do_edmf2ls_mp = .true.
+    option_edmf2ls_mp = do_option_edmf2ls_mp
     qadt_edmf     = am4_Output_edmf%qadt_edmf(:,:,:)
     qldt_edmf     = am4_Output_edmf%qldt_edmf(:,:,:)
     qidt_edmf     = am4_Output_edmf%qidt_edmf(:,:,:)

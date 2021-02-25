@@ -696,6 +696,14 @@ type(aerosol_type),intent(in), optional :: Aerosol
                      bstar, qstar, Input_mp, Tend_mp, C2ls_mp, Output_mp,&
                      Removal_mp)
 
+write(6,*) 'yhc, C2ls_mp%option_edmf2ls_mp',      C2ls_mp%option_edmf2ls_mp  
+write(6,*) 'yhc, C2ls_mp%qadt_edmf',      C2ls_mp%qadt_edmf      
+write(6,*) 'yhc, C2ls_mp%qldt_edmf',      C2ls_mp%qldt_edmf      
+write(6,*) 'yhc, C2ls_mp%qidt_edmf',      C2ls_mp%qidt_edmf      
+write(6,*) 'yhc, C2ls_mp%dqa_edmf',      C2ls_mp%dqa_edmf       
+write(6,*) 'yhc, C2ls_mp%dql_edmf',      C2ls_mp%dql_edmf       
+write(6,*) 'yhc, C2ls_mp%dqi_edmf',      C2ls_mp%dqi_edmf       
+
 !----------------------------------------------------------------------
 !    call routines to process the model clouds. If a unified cloud scheme
 !    exists, call its driver; otherwise call separate drivers for the
@@ -1947,13 +1955,13 @@ type(MP_removal_type),    intent(inout) :: Removal_mp
       allocate (C2ls_mp%mc_full (ix,jx,kx))   ; C2ls_mp%mc_full    = 0.
       allocate (C2ls_mp%mc_half(ix,jx,kx+1))   ; C2ls_mp%mc_half    = 0.
 
-      C2ls_mp%do_edmf2ls_mp  =>    Phys_mp_exch%do_edmf2ls_mp   ! yhc
-      C2ls_mp%qadt_edmf      =>    Phys_mp_exch%qadt_edmf       ! yhc
-      C2ls_mp%qldt_edmf      =>    Phys_mp_exch%qldt_edmf       ! yhc
-      C2ls_mp%qidt_edmf      =>    Phys_mp_exch%qidt_edmf       ! yhc
-      C2ls_mp%dqa_edmf       =>    Phys_mp_exch%dqa_edmf        ! yhc
-      C2ls_mp%dql_edmf       =>    Phys_mp_exch%dql_edmf        ! yhc
-      C2ls_mp%dqi_edmf       =>    Phys_mp_exch%dqi_edmf        ! yhc
+      C2ls_mp%option_edmf2ls_mp  =>    Phys_mp_exch%option_edmf2ls_mp   ! yhc
+      C2ls_mp%qadt_edmf          =>    Phys_mp_exch%qadt_edmf       ! yhc
+      C2ls_mp%qldt_edmf          =>    Phys_mp_exch%qldt_edmf       ! yhc
+      C2ls_mp%qidt_edmf          =>    Phys_mp_exch%qidt_edmf       ! yhc
+      C2ls_mp%dqa_edmf           =>    Phys_mp_exch%dqa_edmf        ! yhc
+      C2ls_mp%dql_edmf           =>    Phys_mp_exch%dql_edmf        ! yhc
+      C2ls_mp%dqi_edmf           =>    Phys_mp_exch%dqi_edmf        ! yhc
 
 !------------------------------------------------------------------------
 !    allocate and initialize an Mp_output_type variable which will
@@ -2149,13 +2157,13 @@ type(MP_removal_type),  intent(inout) :: Removal_mp
       Output_mp%diff_t_clubb => null()
       Output_mp%diff_cu_mo    => null()
 
-      C2ls_mp%do_edmf2ls_mp  => null()  ! yhc
-      C2ls_mp%qadt_edmf      => null()  ! yhc
-      C2ls_mp%qldt_edmf      => null()  ! yhc
-      C2ls_mp%qidt_edmf      => null()  ! yhc
-      C2ls_mp%dqa_edmf       => null()  ! yhc
-      C2ls_mp%dql_edmf       => null()  ! yhc
-      C2ls_mp%dqi_edmf       => null()  ! yhc
+      C2ls_mp%option_edmf2ls_mp  => null()  ! yhc
+      C2ls_mp%qadt_edmf          => null()  ! yhc
+      C2ls_mp%qldt_edmf          => null()  ! yhc
+      C2ls_mp%qidt_edmf          => null()  ! yhc
+      C2ls_mp%dqa_edmf           => null()  ! yhc
+      C2ls_mp%dql_edmf           => null()  ! yhc
+      C2ls_mp%dqi_edmf           => null()  ! yhc
 !--------------------------------------------------------------------
 
 end subroutine MP_dealloc
