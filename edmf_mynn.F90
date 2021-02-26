@@ -374,6 +374,8 @@ end type edmf_ls_mp_type
   real    :: tdt_max     = 500. ! K/day
   logical :: do_limit_tdt = .false.
   real    :: tdt_limit =   200. ! K/day
+  real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
+                                                ! 1.E-10 is same as qmin in lscloud_driver
   integer :: do_option_edmf2ls_mp = 0           ! option to include EDMF cloud tendencies terms into Tiedtke
                                                 ! =0, not include EDMF terms into Tiedtke
                                                 ! =1, add EDMF term and keep Tiedtke terms except turbulence heating
@@ -7216,6 +7218,26 @@ subroutine edmf_alloc ( &
   enddo  ! end loop of k
   enddo  ! end loop of j
   enddo  ! end loop of i
+
+  ! make sure qc,ql,qi,qa,qnc,qni value is not smaller than tracer_min
+  where (Input_edmf%qc.lt.tracer_min)
+    Input_edmf%qc = 0.
+  endwhere
+  where (Input_edmf%ql.lt.tracer_min)
+    Input_edmf%ql = 0.
+  endwhere
+  where (Input_edmf%qi.lt.tracer_min)
+    Input_edmf%qi = 0.
+  endwhere
+  where (Input_edmf%qa.lt.tracer_min)
+    Input_edmf%qa = 0.
+  endwhere
+  where (Input_edmf%qnc.lt.tracer_min)
+    Input_edmf%qnc = 0.
+  endwhere
+  where (Input_edmf%qni.lt.tracer_min)
+    Input_edmf%qni = 0.
+  endwhere
 
   ! diagnostic purpose
   Input_edmf%u_star_star = u_star_star (:,:)
