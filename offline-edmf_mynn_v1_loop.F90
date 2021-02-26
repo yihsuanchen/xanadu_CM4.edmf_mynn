@@ -218,7 +218,7 @@ type am4_edmf_output_type
     thl_edmf, qt_edmf,  & ! diagnostic purpose
     tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, qadt_edmf, &  ! outputs from EDMF-MYNN scheme
     qtdt_edmf, thldt_edmf, &
-    diff_t, diff_m, &
+    diff_t_edmf, diff_m_edmf, &
     cldfra_bl, qc_bl, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
@@ -6560,6 +6560,8 @@ subroutine edmf_alloc ( &
 !           * kx
 !         --------- kxp=kx+1, surface
 !
+!    3. Note that diff_t and diff_m are no half levels, but GFDL physics_driver use diff_t(nlay) instead of nlay+1.
+!       So, although diff_t_edmf and diff_m_edmf vertical dimension is "nlay", but they are located on half levels. 
 !---------------------------------------------------------------------
   integer, intent(in)                   :: is, ie, js, je, npz
   type(time_type), intent(in)           :: Time_next
@@ -6944,6 +6946,8 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%cldfra_bl   (ix,jx,kx))  ; am4_Output_edmf%cldfra_bl   = 0.
   allocate (am4_Output_edmf%qc_bl       (ix,jx,kx))  ; am4_Output_edmf%qc_bl       = 0.
   allocate (am4_Output_edmf%pbltop      (ix,jx))     ; am4_Output_edmf%pbltop      = 0.
+  allocate (am4_Output_edmf%diff_t_edmf (ix,jx,kx))  ; am4_Output_edmf%diff_t_edmf = 0.
+  allocate (am4_Output_edmf%diff_m_edmf (ix,jx,kx))  ; am4_Output_edmf%diff_m_edmf = 0.
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
@@ -7343,6 +7347,8 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%cldfra_bl   )
   deallocate (am4_Output_edmf%qc_bl       )
   deallocate (am4_Output_edmf%pbltop      )  
+  deallocate (am4_Output_edmf%diff_t_edmf )  
+  deallocate (am4_Output_edmf%diff_m_edmf )  
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -7936,6 +7942,8 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
     am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
     am4_Output_edmf%cldfra_bl   (i,j,kk) = Output_edmf%cldfra_bl (i,k,j)
     am4_Output_edmf%qc_bl       (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
+    am4_Output_edmf%diff_t_edmf (i,j,kk) = Output_edmf%exch_h    (i,k,j)
+    am4_Output_edmf%diff_m_edmf (i,j,kk) = Output_edmf%exch_m    (i,k,j)
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
 
     !--- for testing purpose, “evaporate/condensate” the liquid and ice water that is produced during mixing
