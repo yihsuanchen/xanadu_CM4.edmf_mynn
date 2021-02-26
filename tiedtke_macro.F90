@@ -551,10 +551,15 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
       Cloud_processes%dcond_ls     = liq_frac*Cloud_processes%dcond_ls   
 
 !<--- yhc111
-      !--- add EDMF ql and qi incremental changes to large-scale condensate
-      if (C2ls_mp%do_edmf2ls_mp) then
+      !--- include EDMF ql and qi incremental changes to large-scale condensate
+      if (C2ls_mp%option_edmf2ls_mp.eq.1) then      ! EDMF terms are added to Tiedtke
         Cloud_processes%dcond_ls_ice = Cloud_processes%dcond_ls_ice + C2ls_mp%qidt_edmf * dtcloud
         Cloud_processes%dcond_ls     = Cloud_processes%dcond_ls     + C2ls_mp%qldt_edmf * dtcloud
+
+      elseif (C2ls_mp%option_edmf2ls_mp.eq.2) then  ! EDMF terms replace Tiedtke 
+        Cloud_processes%dcond_ls_ice = C2ls_mp%qidt_edmf * dtcloud
+        Cloud_processes%dcond_ls     = C2ls_mp%qldt_edmf * dtcloud
+      
       endif      
 !---> yhc111
 
@@ -1066,14 +1071,14 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
 !<-- yhc111
             !--- if EDMF cloud tendencies are non-zero, deactivate the cloud erosion term in Tiedtke
             !    assuming this term is handled by EDMF
-            if (C2ls_mp%do_edmf2ls_mp) then
+            if (C2ls_mp%option_edmf2ls_mp.eq.2) then      ! remove Tiedtke erosion when EDMF are present
               if (      C2ls_mp%qadt_edmf(i,j,k) .gt. 0.   &
                    .or. C2ls_mp%qldt_edmf(i,j,k) .gt. 0.   &
                    .or. C2ls_mp%qidt_edmf(i,j,k) .gt. 0.   &
                  ) then
                  Cloud_processes%D_eros(i,j,k) = 0.
               endif
-            endif  ! end if of C2ls_mp%do_edmf2ls_mp
+            endif  ! end if of C2ls_mp%option_edmf2ls_mp
 !--> yhc111
 
           END DO    
@@ -1208,7 +1213,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
 !<--- yhc111
       !--- qa1 is qa(t+dtcloud) from Tiedtke. The qa_EDMF(t+dtcloud) from EDMF is qa0+qadt_edmf*dtcloud
       !    assuming qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa1, qa_EDMF)
-      if (C2ls_mp%do_edmf2ls_mp) then
+      if (C2ls_mp%option_edmf2ls_mp.eq.1 .or. C2ls_mp%option_edmf2ls_mp.eq.2) then
         do k=1,kdim
         do j=1,jdim
         do i=1,idim
