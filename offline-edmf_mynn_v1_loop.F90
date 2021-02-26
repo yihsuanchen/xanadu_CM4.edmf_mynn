@@ -18,8 +18,8 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
   !character*50 :: input_profile = "AMIP_i27_j01_IndOcn"
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
-  character*50 :: input_profile = "SCM_am4p0_RF01_01"
-  ! character*50 :: input_profile = "SCM_am4p0_RF01_02"
+  !character*50 :: input_profile = "SCM_am4p0_RF01_01"
+   character*50 :: input_profile = "SCM_am4p0_RF01_02"
   !character*50 :: input_profile = "xxx"
 
  ! integer, parameter :: loop_times = 1
@@ -161,6 +161,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
                                                 ! =0, not include EDMF terms into Tiedtke
                                                 ! =1, add EDMF term and keep Tiedtke terms except turbulence heating
                                                 ! =2, add EDMF term and remove large-scale and coud erosion terms
+  integer :: edmf_type=1                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
+                                                ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
 
 !==================
 type edmf_input_type
@@ -195,6 +197,7 @@ type edmf_output_type
   real, dimension(:,:,:), allocatable :: &   ! INPUT/OUTPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
     Qke, Tsq, Qsq, Cov,         &
     RUBLTEN, RVBLTEN, RTHBLTEN, RQVBLTEN, RQCBLTEN, RQIBLTEN, RQNIBLTEN, RTHRATEN, &
+    RCCBLTEN, RTHLBLTEN, RQTBLTEN,   &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc, edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd, &
     edmf_debug1,edmf_debug2,edmf_debug3,edmf_debug4, &
     mynn_ql, qc_bl, cldfra_bl, el_pbl, Sh3D
@@ -3517,6 +3520,7 @@ END SUBROUTINE mym_condensation
        &RUBLTEN,RVBLTEN,RTHBLTEN,       &
        &RQVBLTEN,RQCBLTEN,RQIBLTEN,     &
        &RQNIBLTEN,                      &
+       &RCCBLTEN, RTHLBLTEN, RQTBLTEN,  & ! yhc added
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -3630,7 +3634,7 @@ END SUBROUTINE mym_condensation
                              qc_bl1Da,cldfra_bl1Da
     REAl, DIMENSION(KTS:KTE) :: liquid_frac                        
   
-    REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME):: RCCBLTEN,RTHLBLTEN,RQTBLTEN
+    REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: RCCBLTEN,RTHLBLTEN,RQTBLTEN
   
 !local vars
 !  INTEGER :: ITF,JTF,KTF, IMD,JMD
@@ -3661,7 +3665,6 @@ END SUBROUTINE mym_condensation
     REAL :: dqcTT,lfTT,lvT
 
 
- integer,parameter :: edmf_type=1
 ! 0 ... default thing 
 ! 1 ... new solver
 
@@ -6187,6 +6190,7 @@ subroutine edmf_mynn_driver ( &
        &RUBLTEN=Output_edmf%RUBLTEN,RVBLTEN=Output_edmf%RVBLTEN,RTHBLTEN=Output_edmf%RTHBLTEN,       &
        &RQVBLTEN=Output_edmf%RQVBLTEN,RQCBLTEN=Output_edmf%RQCBLTEN,RQIBLTEN=Output_edmf%RQIBLTEN,     &
        &RQNIBLTEN=Output_edmf%RQNIBLTEN,                      &
+       &RCCBLTEN=Output_edmf%RCCBLTEN, RTHLBLTEN=Output_edmf%RTHLBLTEN, RQTBLTEN=Output_edmf%RQTBLTEN, &
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
@@ -6877,6 +6881,9 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%RQIBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQIBLTEN    = 0.
   allocate (Output_edmf%RQNIBLTEN   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQNIBLTEN   = 0.
   allocate (Output_edmf%RTHRATEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RTHRATEN    = 0.
+  allocate (Output_edmf%RCCBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RCCBLTEN    = 0.
+  allocate (Output_edmf%RTHLBLTEN   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RTHLBLTEN   = 0.
+  allocate (Output_edmf%RQTBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQTBLTEN    = 0.
   allocate (Output_edmf%edmf_a      (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_a      = 0.
   allocate (Output_edmf%edmf_w      (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_w      = 0.
   allocate (Output_edmf%edmf_qt     (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_qt     = 0.
@@ -7272,6 +7279,9 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%RQIBLTEN    )  
   deallocate (Output_edmf%RQNIBLTEN   )  
   deallocate (Output_edmf%RTHRATEN    )  
+  deallocate (Output_edmf%RCCBLTEN    )
+  deallocate (Output_edmf%RTHLBLTEN   )
+  deallocate (Output_edmf%RQTBLTEN    )
   deallocate (Output_edmf%edmf_a      )  
   deallocate (Output_edmf%edmf_w      )  
   deallocate (Output_edmf%edmf_qt     )  
@@ -8752,12 +8762,12 @@ endif ! end if of input profile
 !              pbltop, udt, vdt, tdt, rdt, rdiag(:,:,:,ntp+1:))
 !              !udt, vdt, tdt, rdt, rdiag)
 
-   call edmf_mynn_driver ( &
-              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-              do_edmf_mynn_diagnostic, &
-              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
-              pbltop, udt, vdt, tdt, rdt, rdiag)
+!   call edmf_mynn_driver ( &
+!              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
+!              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+!              do_edmf_mynn_diagnostic, &
+!              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
+!              pbltop, udt, vdt, tdt, rdt, rdiag)
 
     ! update fields
     Physics_input_block%u = Physics_input_block%u + udt(:,:,:)*dt
