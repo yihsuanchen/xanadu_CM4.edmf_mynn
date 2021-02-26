@@ -510,7 +510,7 @@ real,    dimension(:,:,:), allocatable        :: temp_last, q_last
 real,    dimension(:,:,:), allocatable,target :: &  ! yhc, the description of these variables is in edmf_ls_mp_type, edmf_mynn_mod
   qadt_edmf, qldt_edmf, qidt_edmf, &
   dqa_edmf,  dql_edmf, dqi_edmf
-logical,                   allocatable,target :: do_edmf2ls_mp  ! yhc
+integer,                   allocatable,target :: option_edmf2ls_mp  ! yhc
 type(edmf_ls_mp_type)                         :: edmf2ls_mp
 
 !--- for netcdf restart
@@ -1097,7 +1097,7 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       allocate ( r_convect  (id, jd) )     ; r_convect   = 0.0
       allocate ( diff_t_clubb(id, jd, kd) ); diff_t_clubb = 0.0
 
-      allocate (  do_edmf2ls_mp )          ; do_edmf2ls_mp = .false.  ! yhc
+      allocate (  option_edmf2ls_mp )          ; option_edmf2ls_mp = 0  ! yhc
       allocate (  qadt_edmf (id, jd, kd))  ; qadt_edmf = 0.0  ! yhc
       allocate (  qldt_edmf (id, jd, kd))  ; qldt_edmf = 0.0  ! yhc
       allocate (  qidt_edmf (id, jd, kd))  ; qidt_edmf = 0.0  ! yhc
@@ -2768,17 +2768,17 @@ real,dimension(:,:),    intent(inout)             :: gust
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                do_edmf_mynn_diagnostic, &
-               do_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), &
+               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), &
                pbltop, udt, vdt, tdt, rdt, rdiag)
 
-!    do_edmf2ls_mp  = edmf2ls_mp%do_edmf2ls_mp             
-!    qadt_edmf  (is:ie,js:je,:)   = edmf2ls_mp%qadt_edmf(:,:,:)  
-!    qldt_edmf  (is:ie,js:je,:)   = edmf2ls_mp%qldt_edmf(:,:,:)  
-!    qidt_edmf  (is:ie,js:je,:)   = edmf2ls_mp%qidt_edmf(:,:,:)  
-!    dqa_edmf   (is:ie,js:je,:)   = edmf2ls_mp%dqa_edmf (:,:,:)   
-!    dql_edmf   (is:ie,js:je,:)   = edmf2ls_mp%dql_edmf (:,:,:)   
-!    dqi_edmf   (is:ie,js:je,:)   = edmf2ls_mp%dqi_edmf (:,:,:)   
-  endif
+! set temp values
+    qadt_edmf  (is:ie,js:je,24:29)   = 0.8/dt
+    qldt_edmf  (is:ie,js:je,24:29)   = 0. !1.e-3/dt 
+    qidt_edmf  (is:ie,js:je,24:29)   = 1.e-3/dt
+    dqa_edmf   (is:ie,js:je,:)   = qadt_edmf(is:ie,js:je,:) * dt
+    dql_edmf   (is:ie,js:je,:)   = qldt_edmf(is:ie,js:je,:) * dt
+    dqi_edmf   (is:ie,js:je,:)   = qidt_edmf(is:ie,js:je,:) * dt
+  endif  ! end if of do_edmf_mynn
 
  if (do_writeout_column) then
         write(6,*) '-------------- i,j,',ii_write,jj_write
@@ -2864,7 +2864,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         Phys_mp_exch%cin_prev      => pblht_prev   (is:ie,js:je,:)
         Phys_mp_exch%tke_prev      => pblht_prev   (is:ie,js:je,:)
 
-        Phys_mp_exch%do_edmf2ls_mp  =>    do_edmf2ls_mp             ! yhc
+        Phys_mp_exch%option_edmf2ls_mp  =>    option_edmf2ls_mp             ! yhc
         Phys_mp_exch%qadt_edmf      =>    qadt_edmf(is:ie,js:je,:)  ! yhc
         Phys_mp_exch%qldt_edmf      =>    qldt_edmf(is:ie,js:je,:)  ! yhc
         Phys_mp_exch%qidt_edmf      =>    qidt_edmf(is:ie,js:je,:)  ! yhc
@@ -3184,7 +3184,7 @@ real,dimension(:,:),    intent(inout)             :: gust
       Phys_mp_exch%cin_prev   => null()
       Phys_mp_exch%tke_prev   => null()
 
-      Phys_mp_exch%do_edmf2ls_mp  => null()  ! yhc
+      Phys_mp_exch%option_edmf2ls_mp  => null()  ! yhc
       Phys_mp_exch%qadt_edmf      => null()  ! yhc
       Phys_mp_exch%qldt_edmf      => null()  ! yhc
       Phys_mp_exch%qidt_edmf      => null()  ! yhc
@@ -3380,7 +3380,7 @@ integer :: moist_processes_term_clock, damping_term_clock, turb_term_clock, &
                   hmint, cgust, tke, pblhto, rkmo, taudpo, exist_shconv, &  ! h1g, 2017-01-31
                   exist_dpconv, & 
                   pblht_prev, hlsrc_prev, qtsrc_prev, cape_prev, cin_prev, tke_prev, & !h1g, 2017-01-31
-                  do_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, &  !yhc
+                  option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, &  !yhc
                   dqa_edmf, dql_edmf, dqi_edmf, & ! yhc
                   convect, radturbten, r_convect)
 

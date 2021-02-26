@@ -6938,6 +6938,7 @@ code version
     </input>
   </experiment>
 
+
   <experiment name="rfo34-RF01-am4p0_rad_mynn_expmf" inherit="rfo33-RF01-am4p0_rad_mynn">
     <input>
       <namelist name="edmf_mynn_nml">
@@ -7120,6 +7121,40 @@ code version
   <experiment name="rfo43-RF01-am4p0_rad_mynn" inherit="rfo33-RF01-am4p0_rad_mynn">
   </experiment>
 
+  <experiment name="rfo43a-RF01-am4p0_rad_mynn_doNcF" inherit="rfo30-RF01-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ DO_SIMPLE       = F,
+ GUST_SCHEME     = beljaars 
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ DO_LIQ_NUM      = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="rfo44-RF01-am4p0_rad_mynn_expmf" inherit="rfo34-RF01-am4p0_rad_mynn_expmf">
   </experiment>
 
@@ -7146,6 +7181,29 @@ code version
 ##########################
 -->
   <experiment name="x01-rfo30-RF01-am4p0_rad_mynn_diag" inherit="rfo30-RF01-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x01-rfo33-RF01-am4p0_rad_mynn" inherit="rfo33-RF01-am4p0_rad_mynn">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = T,
+      </namelist>
+    </input>
   </experiment>
 
   <experiment name="x01-b01-BOMEX-am4p0_rad_mynn" inherit="b01-BOMEX-am4p0_rad_mynn">
@@ -7159,7 +7217,7 @@ code version
  DO_WRITEOUT_COLUMN_NML  = T,
  II_WRITE        =        0,
  JJ_WRITE        =        0,
- DO_STOP_RUN     = F,
+ DO_STOP_RUN     = T,
       </namelist>
       <namelist name="edmf_mynn_nml">
  DO_WRITEOUT_COLUMN_NML  = T,
