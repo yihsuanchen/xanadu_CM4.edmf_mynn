@@ -6179,7 +6179,7 @@ subroutine edmf_mynn_driver ( &
        &initflag=initflag,grav_settling=grav_settling,         &
        &delt=Input_edmf%delt,dz=Input_edmf%dz,dx=Input_edmf%dx,znt=Input_edmf%znt,                 &
        &u=Input_edmf%u,v=Input_edmf%v,w=Input_edmf%w,th=Input_edmf%th,qv=Input_edmf%qv,             &
-       &qc=Input_edmf%qc,qi=Input_edmf%qi,qni=Input_edmf%qni,qnc=Input_edmf%qnc,                    &
+       &qc=Input_edmf%qc,qi=Input_edmf%qi,cc=Input_edmf%qa,qni=Input_edmf%qni,qnc=Input_edmf%qnc,                    &
        &p=Input_edmf%p,exner=Input_edmf%exner,rho=Input_edmf%rho,T3D=Input_edmf%T3D,                &
        &xland=Input_edmf%xland,ts=Input_edmf%ts,qsfc=Input_edmf%qsfc,qcg=Input_edmf%qcg,ps=Input_edmf%ps,           &
        &ust=Input_edmf%ust,ch=Input_edmf%ch,hfx=Input_edmf%hfx,qfx=Input_edmf%qfx,rmol=Input_edmf%rmol,wspd=Input_edmf%wspd,       &
