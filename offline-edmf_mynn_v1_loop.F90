@@ -22,8 +22,8 @@ MODULE module_bl_mynn
    character*50 :: input_profile = "SCM_am4p0_RF01_02"
   !character*50 :: input_profile = "xxx"
 
- ! integer, parameter :: loop_times = 1
-  integer, parameter :: loop_times = 24 
+  integer, parameter :: loop_times = 1
+ ! integer, parameter :: loop_times = 24 
  ! integer, parameter :: loop_times = 100
  ! integer, parameter :: loop_times = 60 
 
@@ -217,6 +217,8 @@ type am4_edmf_output_type
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
     thl_edmf, qt_edmf,  & ! diagnostic purpose
     tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, qadt_edmf, &  ! outputs from EDMF-MYNN scheme
+    qtdt_edmf, thldt_edmf, &
+    diff_t, diff_m, &
     cldfra_bl, qc_bl, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
@@ -6929,6 +6931,8 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qidt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qidt_edmf   = 0.
   allocate (am4_Output_edmf%qldt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qldt_edmf   = 0.
   allocate (am4_Output_edmf%qadt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qadt_edmf   = 0.
+  allocate (am4_Output_edmf%qtdt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qtdt_edmf   = 0.
+  allocate (am4_Output_edmf%thldt_edmf  (ix,jx,kx))  ; am4_Output_edmf%thldt_edmf  = 0.
   allocate (am4_Output_edmf%edmf_a      (ix,jx,kx))  ; am4_Output_edmf%edmf_a      = 0.
   allocate (am4_Output_edmf%edmf_w      (ix,jx,kx))  ; am4_Output_edmf%edmf_w      = 0.
   allocate (am4_Output_edmf%edmf_qt     (ix,jx,kx))  ; am4_Output_edmf%edmf_qt     = 0.
@@ -6940,7 +6944,6 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%cldfra_bl   (ix,jx,kx))  ; am4_Output_edmf%cldfra_bl   = 0.
   allocate (am4_Output_edmf%qc_bl       (ix,jx,kx))  ; am4_Output_edmf%qc_bl       = 0.
   allocate (am4_Output_edmf%pbltop      (ix,jx))     ; am4_Output_edmf%pbltop      = 0.
-
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
@@ -7327,6 +7330,8 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qidt_edmf   )  
   deallocate (am4_Output_edmf%qldt_edmf   )  
   deallocate (am4_Output_edmf%qadt_edmf   )  
+  deallocate (am4_Output_edmf%qtdt_edmf   )  
+  deallocate (am4_Output_edmf%thldt_edmf  )  
   deallocate (am4_Output_edmf%edmf_a      )
   deallocate (am4_Output_edmf%edmf_w      )
   deallocate (am4_Output_edmf%edmf_qt     )
@@ -7686,6 +7691,15 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; qc tendency from edmf_mynn (kg/kg/s)'
         write(6,3002) ' qldt_edmf = (/'    ,am4_Output_edmf%qldt_edmf (ii_write,jj_write,:)
         write(6,*)    ' '
+        write(6,*)    '; qt tendency from edmf_mynn (kg/kg/s)'
+        write(6,3002) ' qtdt_edmf = (/'    ,am4_Output_edmf%qtdt_edmf (ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; qa tendency from edmf_mynn (1/s)'
+        write(6,3002) ' qadt_edmf = (/'    ,am4_Output_edmf%qadt_edmf (ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; thl tendency from edmf_mynn (K/s)'
+        write(6,3002) ' thldt_edmf = (/'    ,am4_Output_edmf%thldt_edmf (ii_write,jj_write,:)
+        write(6,*)    ' '
         write(6,*)    '; cloud fraction in edmf_mynn'
         write(6,3002) ' cldfra_bl = (/'    ,am4_Output_edmf%cldfra_bl (ii_write,jj_write,:)
         write(6,*)    ' '
@@ -7740,6 +7754,7 @@ subroutine edmf_writeout_column ( &
         write(6,*)    'Input_edmf%T3D',Input_edmf%T3D (ii_write,:,jj_write)
         write(6,*)    'Input_edmf%qc',Input_edmf%qc(ii_write,:,jj_write)
         write(6,*)    'Input_edmf%qi',Input_edmf%qi(ii_write,:,jj_write)
+        write(6,*)    'Input_edmf%qa',Input_edmf%qa(ii_write,:,jj_write)
         write(6,*)    ''
         write(6,*)    ';======================'
         write(6,*)    ';======================'
@@ -7902,22 +7917,25 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 
     !--- set am4_Output_edmf
     am4_Output_edmf%tke         (i,j,kk) = 0.5 * Output_edmf%Qke (i,k,j)
-    am4_Output_edmf%Tsq         (i,j,kk) = Output_edmf%Tsq (i,k,j)
-    am4_Output_edmf%Cov_thl_qt  (i,j,kk) = Output_edmf%Cov (i,k,j)
-    am4_Output_edmf%udt_edmf    (i,j,kk) = Output_edmf%RUBLTEN (i,k,j) 
-    am4_Output_edmf%vdt_edmf    (i,j,kk) = Output_edmf%RVBLTEN (i,k,j)
-    am4_Output_edmf%tdt_edmf    (i,j,kk) = Output_edmf%RTHBLTEN (i,k,j) / Input_edmf%exner (i,k,j)
-    am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN (i,k,j)
-    am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN (i,k,j)
-    am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN (i,k,j)
-    am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a   (i,k,j)
-    am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w   (i,k,j)
-    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
-    am4_Output_edmf%edmf_thl    (i,j,kk) = Output_edmf%edmf_thl (i,k,j)
-    am4_Output_edmf%edmf_ent    (i,j,kk) = Output_edmf%edmf_ent (i,k,j)
-    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
-    am4_Output_edmf%cldfra_bl   (i,j,kk) = Output_edmf%cldfra_bl(i,k,j)
-    am4_Output_edmf%qc_bl       (i,j,kk) = Output_edmf%qc_bl    (i,k,j)
+    am4_Output_edmf%Tsq         (i,j,kk) = Output_edmf%Tsq       (i,k,j)
+    am4_Output_edmf%Cov_thl_qt  (i,j,kk) = Output_edmf%Cov       (i,k,j)
+    am4_Output_edmf%udt_edmf    (i,j,kk) = Output_edmf%RUBLTEN   (i,k,j) 
+    am4_Output_edmf%vdt_edmf    (i,j,kk) = Output_edmf%RVBLTEN   (i,k,j)
+    am4_Output_edmf%tdt_edmf    (i,j,kk) = Output_edmf%RTHBLTEN  (i,k,j) / Input_edmf%exner (i,k,j)
+    am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN  (i,k,j)
+    am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN  (i,k,j)
+    am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN  (i,k,j)
+    am4_Output_edmf%qadt_edmf   (i,j,kk) = Output_edmf%RCCBLTEN  (i,k,j)
+    am4_Output_edmf%qtdt_edmf   (i,j,kk) = Output_edmf%RQTBLTEN  (i,k,j)
+    am4_Output_edmf%thldt_edmf  (i,j,kk) = Output_edmf%RTHLBLTEN (i,k,j)
+    am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a    (i,k,j)
+    am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w    (i,k,j)
+    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
+    am4_Output_edmf%edmf_thl    (i,j,kk) = Output_edmf%edmf_thl  (i,k,j)
+    am4_Output_edmf%edmf_ent    (i,j,kk) = Output_edmf%edmf_ent  (i,k,j)
+    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
+    am4_Output_edmf%cldfra_bl   (i,j,kk) = Output_edmf%cldfra_bl (i,k,j)
+    am4_Output_edmf%qc_bl       (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
 
     !--- for testing purpose, “evaporate/condensate” the liquid and ice water that is produced during mixing
@@ -7948,6 +7966,9 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
       am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
       am4_Output_edmf%qidt_edmf   (i,j,kk) = 0.
       am4_Output_edmf%qldt_edmf   (i,j,kk) = 0.
+      am4_Output_edmf%qadt_edmf   (i,j,kk) = 0.
+      am4_Output_edmf%qtdt_edmf   (i,j,kk) = 0.
+      am4_Output_edmf%thldt_edmf  (i,j,kk) = 0.
     endif
 
 
@@ -8762,12 +8783,12 @@ endif ! end if of input profile
 !              pbltop, udt, vdt, tdt, rdt, rdiag(:,:,:,ntp+1:))
 !              !udt, vdt, tdt, rdt, rdiag)
 
-!   call edmf_mynn_driver ( &
-!              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-!              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-!              do_edmf_mynn_diagnostic, &
-!              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
-!              pbltop, udt, vdt, tdt, rdt, rdiag)
+   call edmf_mynn_driver ( &
+              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              do_edmf_mynn_diagnostic, &
+              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
+              pbltop, udt, vdt, tdt, rdt, rdiag)
 
     ! update fields
     Physics_input_block%u = Physics_input_block%u + udt(:,:,:)*dt
