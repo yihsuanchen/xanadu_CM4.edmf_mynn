@@ -155,6 +155,13 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    logical :: do_check_consrv = .true.
    !logical :: do_check_consrv = .false.
 
+  real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
+                                                ! 1.E-10 is same as qmin in lscloud_driver
+  integer :: do_option_edmf2ls_mp = 0           ! option to include EDMF cloud tendencies terms into Tiedtke
+                                                ! =0, not include EDMF terms into Tiedtke
+                                                ! =1, add EDMF term and keep Tiedtke terms except turbulence heating
+                                                ! =2, add EDMF term and remove large-scale and coud erosion terms
+
 !==================
 type edmf_input_type
   integer,              allocatable ::   &
@@ -6022,7 +6029,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              do_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
+              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
@@ -6073,8 +6080,8 @@ subroutine edmf_mynn_driver ( &
     qadt_edmf, qldt_edmf, qidt_edmf, &   
     dqa_edmf,  dql_edmf, dqi_edmf
 
-  logical, intent(out) :: &
-    do_edmf2ls_mp
+  integer, intent(out) :: &
+    option_edmf2ls_mp
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -6169,7 +6176,7 @@ subroutine edmf_mynn_driver ( &
        &initflag=initflag,grav_settling=grav_settling,         &
        &delt=Input_edmf%delt,dz=Input_edmf%dz,dx=Input_edmf%dx,znt=Input_edmf%znt,                 &
        &u=Input_edmf%u,v=Input_edmf%v,w=Input_edmf%w,th=Input_edmf%th,qv=Input_edmf%qv,             &
-       &qc=Input_edmf%qc,qi=Input_edmf%qi,cc=Input_edmf%qa,qni=Input_edmf%qni,qnc=Input_edmf%qnc,                    &
+       &qc=Input_edmf%qc,qi=Input_edmf%qi,qni=Input_edmf%qni,qnc=Input_edmf%qnc,                    &
        &p=Input_edmf%p,exner=Input_edmf%exner,rho=Input_edmf%rho,T3D=Input_edmf%T3D,                &
        &xland=Input_edmf%xland,ts=Input_edmf%ts,qsfc=Input_edmf%qsfc,qcg=Input_edmf%qcg,ps=Input_edmf%ps,           &
        &ust=Input_edmf%ust,ch=Input_edmf%ch,hfx=Input_edmf%hfx,qfx=Input_edmf%qfx,rmol=Input_edmf%rmol,wspd=Input_edmf%wspd,       &
@@ -6267,7 +6274,7 @@ subroutine edmf_mynn_driver ( &
 !-->
 
   !--- initialize edmf2ls_mp
-  do_edmf2ls_mp = .false.
+  option_edmf2ls_mp = 0
   qadt_edmf = 0.
   qldt_edmf = 0.
   qidt_edmf = 0.
@@ -6288,7 +6295,7 @@ subroutine edmf_mynn_driver ( &
     pbltop (:,:) = am4_Output_edmf%pbltop(:,:)
 
     !--- set edmf to ls_mp
-    do_edmf2ls_mp = .true.
+    option_edmf2ls_mp = do_option_edmf2ls_mp
     qadt_edmf     = am4_Output_edmf%qadt_edmf(:,:,:)
     qldt_edmf     = am4_Output_edmf%qldt_edmf(:,:,:)
     qidt_edmf     = am4_Output_edmf%qidt_edmf(:,:,:)
@@ -7059,6 +7066,26 @@ subroutine edmf_alloc ( &
   enddo  ! end loop of k
   enddo  ! end loop of j
   enddo  ! end loop of i
+
+  ! make sure qc,ql,qi,qa,qnc,qni value is not smaller than tracer_min
+  where (Input_edmf%qc.lt.tracer_min)
+    Input_edmf%qc = 0.
+  endwhere
+  where (Input_edmf%ql.lt.tracer_min)
+    Input_edmf%ql = 0.
+  endwhere
+  where (Input_edmf%qi.lt.tracer_min)
+    Input_edmf%qi = 0.
+  endwhere
+  where (Input_edmf%qa.lt.tracer_min)
+    Input_edmf%qa = 0.
+  endwhere
+  where (Input_edmf%qnc.lt.tracer_min)
+    Input_edmf%qnc = 0.
+  endwhere
+  where (Input_edmf%qni.lt.tracer_min)
+    Input_edmf%qni = 0.
+  endwhere
 
   ! diagnostic purpose
   Input_edmf%u_star_star = u_star_star (:,:)
@@ -7932,6 +7959,7 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 
 end subroutine convert_edmf_to_am4_array
 
+
 !#############################
 ! Mellor-Yamada
 !#############################
@@ -7981,6 +8009,8 @@ program test111
   real,    dimension(ni,nj,nfull,tr) :: rdt 
   
   integer mm
+
+  integer option_edmf2ls_mp
 
 !==============================
 !==============================
@@ -8714,13 +8744,20 @@ endif ! end if of input profile
     print*,'----------------------'
     print*, 'loop times=',mm
     print*,'----------------------'
-    call edmf_mynn_driver ( &
+!    call edmf_mynn_driver ( &
+!              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
+!              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, & 
+!              do_edmf_mynn_diagnostic, &
+!              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
+!              pbltop, udt, vdt, tdt, rdt, rdiag(:,:,:,ntp+1:))
+!              !udt, vdt, tdt, rdt, rdiag)
+
+   call edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, & 
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              do_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
-              pbltop, udt, vdt, tdt, rdt, rdiag(:,:,:,ntp+1:))
-              !udt, vdt, tdt, rdt, rdiag)
+              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
+              pbltop, udt, vdt, tdt, rdt, rdiag)
 
     ! update fields
     Physics_input_block%u = Physics_input_block%u + udt(:,:,:)*dt
