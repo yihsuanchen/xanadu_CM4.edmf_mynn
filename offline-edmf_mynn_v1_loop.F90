@@ -6034,7 +6034,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
+              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
@@ -6083,10 +6083,12 @@ subroutine edmf_mynn_driver ( &
   !type(edmf_ls_mp_type), intent(out) :: edmf2ls_mp
   real, intent(out), dimension(:,:,:) :: &
     qadt_edmf, qldt_edmf, qidt_edmf, &   
-    dqa_edmf,  dql_edmf, dqi_edmf
+    dqa_edmf,  dql_edmf, dqi_edmf,  &
+    diff_t_edmf
 
   integer, intent(out) :: &
     option_edmf2ls_mp
+
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -6279,14 +6281,15 @@ subroutine edmf_mynn_driver ( &
 !  enddo
 !-->
 
-  !--- initialize edmf2ls_mp
+  !--- initialize return variables 
   option_edmf2ls_mp = 0
-  qadt_edmf = 0.
-  qldt_edmf = 0.
-  qidt_edmf = 0.
-  dqa_edmf  = 0.
-  dql_edmf  = 0.
-  dqi_edmf  = 0.
+  qadt_edmf   = 0.
+  qldt_edmf   = 0.
+  qidt_edmf   = 0.
+  dqa_edmf    = 0.
+  dql_edmf    = 0.
+  dqi_edmf    = 0.
+  diff_t_edmf = 0.
 
   !--- updated tendencies
   if (.not.do_edmf_mynn_diagnostic) then
@@ -6302,13 +6305,15 @@ subroutine edmf_mynn_driver ( &
 
     !--- set edmf to ls_mp
     option_edmf2ls_mp = do_option_edmf2ls_mp
-    qadt_edmf     = am4_Output_edmf%qadt_edmf(:,:,:)
-    qldt_edmf     = am4_Output_edmf%qldt_edmf(:,:,:)
-    qidt_edmf     = am4_Output_edmf%qidt_edmf(:,:,:)
-    dqa_edmf      = qadt_edmf(:,:,:) * dt
-    dql_edmf      = qldt_edmf(:,:,:) * dt
-    dqi_edmf      = qidt_edmf(:,:,:) * dt
+
+    qadt_edmf     (:,:,:) = am4_Output_edmf%qadt_edmf(:,:,:)
+    qldt_edmf     (:,:,:) = am4_Output_edmf%qldt_edmf(:,:,:)
+    qidt_edmf     (:,:,:) = am4_Output_edmf%qidt_edmf(:,:,:)
+    dqa_edmf      (:,:,:) = qadt_edmf(:,:,:) * dt
+    dql_edmf      (:,:,:) = qldt_edmf(:,:,:) * dt
+    dqi_edmf      (:,:,:) = qidt_edmf(:,:,:) * dt
     
+    diff_t_edmf   (:,:,:) = am4_Output_edmf%diff_t_edmf(:,:,:)
   end if
 
   !--- write out EDMF-MYNN input and output fields for debugging purpose
@@ -8034,7 +8039,7 @@ program test111
   real,    dimension(ni,nj,nfull) :: p_full, z_full, z_full_actual, z_full_surf0, uu, vv, tt, qq, qa, ql, qi, thv, ww, omega, th, thl, qt
   !real,    dimension(nhalf) :: p_half, z_half, z_half_actual
   !real,    dimension(nfull) :: p_full, z_full, z_full_actual, uu, vv, tt, qq, thv, ww, ql, qi
-  real,    dimension(ni,nj,nfull) :: diff_t, diff_m
+  real,    dimension(ni,nj,nfull) :: diff_t, diff_m, diff_t_edmf
   real,    dimension(ni,nj,nfull) :: udt_mf, vdt_mf, tdt_mf, qdt_mf, thvdt_mf, qtdt_mf, thlidt_mf
   real,    dimension(ni,nj,nfull) :: qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf
 
@@ -8795,7 +8800,7 @@ endif ! end if of input profile
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
+              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
     ! update fields
