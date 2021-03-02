@@ -1068,22 +1068,31 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
             else
               Cloud_processes%D_eros(i,j,k) = 0.
             endif
-!<-- yhc111
-            !--- if EDMF cloud tendencies are non-zero, deactivate the cloud erosion term in Tiedtke
-            !    assuming this term is handled by EDMF
-            if (C2ls_mp%option_edmf2ls_mp.eq.2) then      ! remove Tiedtke erosion when EDMF are present
-              if (      C2ls_mp%qadt_edmf(i,j,k) .gt. 0.   &
-                   .or. C2ls_mp%qldt_edmf(i,j,k) .gt. 0.   &
-                   .or. C2ls_mp%qidt_edmf(i,j,k) .gt. 0.   &
-                 ) then
-                 Cloud_processes%D_eros(i,j,k) = 0.
-              endif
-            endif  ! end if of C2ls_mp%option_edmf2ls_mp
-!--> yhc111
 
           END DO    
         END DO    
       END DO    
+
+!<-- yhc111
+      if (C2ls_mp%option_edmf2ls_mp.eq.2) then      ! remove Tiedtke large-scale and erosion terms when EDMF are present
+        do k=1,kdim
+        do j=1,jdim
+        do i=1,idim
+          !--- if EDMF cloud tendencies are non-zero, deactivate the cloud erosion term in Tiedtke
+          !    assuming these terms are handled by EDMF
+            if (      C2ls_mp%qadt_edmf(i,j,k) .ne. 0.   &
+                 .or. C2ls_mp%qldt_edmf(i,j,k) .ne. 0.   &
+                 .or. C2ls_mp%qidt_edmf(i,j,k) .ne. 0.   &
+               ) then
+               Cloud_processes%da_ls  (i,j,k) = 0.
+               Cloud_processes%D_eros (i,j,k) = 0.
+            endif
+        enddo
+        enddo
+        enddo
+     endif  ! end if of C2ls_mp%option_edmf2ls_mp
+!--> yhc111
+  
 
 !------------------------------------------------------------------------
 !       The next step is to analytically integrate the saturated volume
@@ -1205,24 +1214,41 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
         diag_4d(:,:,:,diag_pt%qadt_ahuco) = qa1(:,:,:)
       end if
 
+!<--- yhc111
+!------------------------------------------------------------------------
+!  modify cloud fraction when EDMF is active
+!    qa0 is qa(t) including the contribution from convection
+!    qa1 is qa(t+dtcloud) = qa0 + qa_Tiedtke. qa_EDMF(t+dtcloud) = qa0+qadt_edmf*dtcloud
+!------------------------------------------------------------------------
+        do k=1,kdim
+        do j=1,jdim
+        do i=1,idim
+          if (      C2ls_mp%qadt_edmf(i,j,k) .ne. 0.   &
+               .or. C2ls_mp%qldt_edmf(i,j,k) .ne. 0.   &
+               .or. C2ls_mp%qidt_edmf(i,j,k) .ne. 0.   &
+             ) then
+
+             ! assuming that all Tiedtke terms are kept and that qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa1, qa_EDMF)
+             if (C2ls_mp%option_edmf2ls_mp.eq.1) then      ! EDMF terms are added to Tiedtke
+               qa1   (i,j,k) = min(1., max( qa1(i,j,k), qa0(i,j,k)+C2ls_mp%qadt_edmf(i,j,k)*dtcloud ) )
+               qabar (i,j,k) = qa1(i,j,k)
+
+             ! assuming that only convection term is kept and that qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa0, qa_EDMF)
+             elseif (C2ls_mp%option_edmf2ls_mp.eq.2) then  ! EDMF terms replace Tiedtke 
+               qa1   (i,j,k) = min(1., max( qa0(i,j,k), qa0(i,j,k)+C2ls_mp%qadt_edmf(i,j,k)*dtcloud ) )
+               qabar (i,j,k) = qa1(i,j,k)
+
+             endif
+          endif   ! end if of C2ls_mp%option_edmf2ls_mp
+        enddo         
+        enddo         
+        enddo         
+!---> yhc111
+
 !------------------------------------------------------------------------
 !    limit cloud area to be no more than that which is not being
 !    taken by convective clouds.
 !------------------------------------------------------------------------
-
-!<--- yhc111
-      !--- qa1 is qa(t+dtcloud) from Tiedtke. The qa_EDMF(t+dtcloud) from EDMF is qa0+qadt_edmf*dtcloud
-      !    assuming qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa1, qa_EDMF)
-      if (C2ls_mp%option_edmf2ls_mp.eq.1 .or. C2ls_mp%option_edmf2ls_mp.eq.2) then
-        do k=1,kdim
-        do j=1,jdim
-        do i=1,idim
-          qa1(i,j,k) = min(1., max(qa1(i,j,k), qa0(i,j,k)+C2ls_mp%qadt_edmf(i,j,k)*dtcloud) )
-        enddo         
-        enddo         
-        enddo         
-      endif
-!---> yhc111
 
       if (limit_conv_cloud_frac) then
         qa1 = MIN(qa1, 1.0 -C2ls_mp%convective_humidity_area)
