@@ -109,17 +109,17 @@ end type edmf_input_type
 !==================
 type edmf_output_type
   real, dimension(:,:),   allocatable :: &   ! INPUT/OUTPUT, DIMENSION(IMS:IME,JMS:JME)
-    pblh,wstar,delta,tke_pbl
+    pblh,wstar,delta
 
   integer, dimension(:,:),   allocatable :: &   ! INPUT/OUTPUT, DIMENSION(IMS:IME,JMS:JME)
     KPBL, nupdraft, ktop_shallow
 
   real, dimension(:,:,:), allocatable :: &   ! INPUT/OUTPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
-    Qke, Tsq, Qsq, Cov, Qke_adv,         &
+    Qke, Tsq, Qsq, Cov,         &
     RUBLTEN, RVBLTEN, RTHBLTEN, RQVBLTEN, RQCBLTEN, RQIBLTEN, RQNIBLTEN, RTHRATEN, &
+    RCCBLTEN, RTHLBLTEN, RQTBLTEN,   &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc, edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd, &
     edmf_debug1,edmf_debug2,edmf_debug3,edmf_debug4, &
-    pattern_spp_pbl, &
     mynn_ql, qc_bl, cldfra_bl, el_pbl, Sh3D
 
   real, dimension(:,:),   allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,JMS:JME)
@@ -137,6 +137,8 @@ type am4_edmf_output_type
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
     thl_edmf, qt_edmf,  & ! diagnostic purpose
     tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, qadt_edmf, &  ! outputs from EDMF-MYNN scheme
+    qtdt_edmf, thldt_edmf, &
+    diff_t_edmf, diff_m_edmf, &
     cldfra_bl, qc_bl, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
@@ -360,6 +362,9 @@ end type edmf_ls_mp_type
   integer :: NUP = 100                   ! the number of updrafts
   real    :: UPSTAB = 1.                 ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
 
+  integer :: edmf_type=1                 ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
+                                         ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
+
   logical :: do_qdt_same_as_qtdt = .false.  ! = .true., for testing purposes, evaporate/condensate the liquid and ice water that is produced during mixing. 
 
   integer :: ii_write = -999                    ! i index for column written out. Set to 0 if you want to write out in SCM
@@ -368,8 +373,9 @@ end type edmf_ls_mp_type
   real    :: lon_write = -999.99                ! longitude (radian) for column written out
   real    :: lat_range = 0.001
   real    :: lon_range = 0.001
-  logical :: do_writeout_column_nml = .false.   ! switch to control whether writing out the column
-  logical :: do_check_consrv = .false.          ! switch to control whether writing out the water/heat conservation
+  logical :: do_writeout_column_nml = .false.   ! control whether writing out the column
+  logical :: do_check_consrv = .false.          ! control whether writing out the water/heat conservation
+  logical :: do_check_realizability = .false.   ! control whether writing out current and update cloud properties (qa,ql)
   logical :: do_stop_run = .false.              ! whether to stop the simulation
   real    :: tdt_max     = 500. ! K/day
   logical :: do_limit_tdt = .false.
@@ -383,8 +389,9 @@ end type edmf_ls_mp_type
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
 
+
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, &
-                            L0, NUP, UPSTAB, &
+                            L0, NUP, UPSTAB, edmf_type, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, &
                             do_option_edmf2ls_mp, &
@@ -2962,6 +2969,90 @@ end subroutine edmf_mynn_end
 
   END SUBROUTINE mym_predict
   
+  
+  ! computes vt and vq for MYNN buoyancy equation from ql and cc
+
+  SUBROUTINE  mym_vtvq (kts,kte,        &
+    &            th,ql,thl,qw,cld,       &
+    &            p,exner,liquid_frac,   &
+    &            Vt, Vq)
+
+!-------------------------------------------------------------------
+
+    INTEGER, INTENT(IN)   :: kts,kte
+
+    REAL, DIMENSION(kts:kte), INTENT(IN) :: p,exner, thl, qw, &
+         & th,liquid_frac,ql,cld
+
+
+    REAL, DIMENSION(kts:kte), INTENT(INOUT) :: vt,vq
+
+    REAL :: qt,alp,bet,rac,cctq1,sgm,t,esat,lhb,qsl,dqsl,q2p,eq1,cct,q1
+    INTEGER :: k
+
+ 
+DO k = kts,kte
+      qt   = 1.0 +p608*qw(k) -(1.+p608)*ql(k) ! Eq. B8, first three terms
+   
+
+    IF (cld(k) .eq. 0.) THEN
+    ! simplest case  
+      bet=0.
+      rac=0.
+   ELSE
+  
+    ! cc=1 is not compatible with the PDF approach
+     cct=min(cld(k),0.98)
+  
+     ! compute q1 and sigma from CC and ql
+      ! erfi is not fortran intrinsic function (we define it below) 
+     q1=erfi(2.*cct-1.)/rr2
+     sgm=0.5*ql(k)/(cct*q1+rrp*exp(-0.5*q1**2))
+!    print *,'q1,sgm',q1,sgm
+     sgm = max(min(sgm,1.0e-3),1.0e-6) 
+   
+   
+     t  = th(k)*exner(k)
+    !SATURATED VAPOR PRESSURE
+    esat = esatLF_blend(t,liquid_frac(k))
+    lhb=xlLF_blend(t,liquid_frac(k))
+    !SATURATED SPECIFIC HUMIDITY
+    qsl=ep_2*esat/(p(k)-ep_3*esat)
+    !dqw/dT: Clausius-Clapeyron
+    dqsl = qsl*ep_2*ev/( rd*t**2 )
+
+    alp = 1.0/( 1.0+dqsl*lhb/cp ) ! a; Eq. B5
+    bet = dqsl*exner(k)           ! b; Eq. B5
+
+   q2p=lhb/(cp*exner(k))
+
+    eq1  = rrp*EXP( -0.5*q1**2)  ! rrp=1/(2*pi)
+    rac=(cld(k)-0.5*ql(k)/sgm*eq1)*alp*( q2p*qt-(1.+p608)*th(k) ) ! ~R*a*c
+  
+  endif
+  
+  vt(k) =   qt-1.0 -rac*bet ! beta_theta-1: Eq. B8
+  vq(k) = p608*th(k)-tv0 +rac ! Eq. beta_qt-tv; Eq. B9
+
+
+!  print *,'cc,vt,vq',cld(k),vt(k)+1,vq(k)+tv0
+  
+ENDDO  
+  
+  
+
+END SUBROUTINE mym_vtvq
+
+ real function erfi(x)
+    real, intent(in) :: x
+! Taylor expansion   
+  erfi=0.8862*(x+0.2618*x**3+0.1439*x**5)
+! higher order expnsion  
+! erfi=0.8862*(x+0.2618*x**3+0.1439*x**5+0.0977*x**7+0.0733*x**9)  
+ end function erfi
+
+
+
 ! ==================================================================
 !     SUBROUTINE  mym_condensation:
 !
@@ -2991,6 +3082,9 @@ end subroutine edmf_mynn_end
 !       Set these values to those adopted by you.
 !
 !-------------------------------------------------------------------
+
+
+
   SUBROUTINE  mym_condensation (kts,kte,  &
     &            dx, dz,                  &
     &            thl, qw,                 &
@@ -3010,36 +3104,39 @@ end subroutine edmf_mynn_end
     REAL, DIMENSION(kts:kte), INTENT(IN) :: dz
     REAL, DIMENSION(kts:kte), INTENT(IN) :: p,exner, thl, qw, &
          &tsq, qsq, cov, th,liquid_frac
+    REAL, DIMENSION(kts:kte), INTENT(IN) :: Sh,el
+    REAL, DIMENSION(kts:kte), INTENT(OUT) :: ql,cld
 
     REAL, DIMENSION(kts:kte), INTENT(INOUT) :: vt,vq,sgm
 
-    REAL, DIMENSION(kts:kte) :: qmq,alp,a,bet,b,q1
-    REAL, DIMENSION(kts:kte), INTENT(OUT) :: ql,cld
-    DOUBLE PRECISION :: t3sq, r3sq, c3sq
+!    REAL, DIMENSION(kts:kte) :: qmq,a,b
+!    DOUBLE PRECISION :: t3sq, r3sq, c3sq
+    REAL :: alp,bet,qi,lhb,q1
+
 
     REAL :: qsl,esat,qsat,tlk,qsat_tl,dqsl,eq1,qll,&
          &q2p,pt,rac,qt,t,xl,rsl,cpm,cdhdz,Fng,qww,alpha,beta,bb,ls_min,ls,wt
     INTEGER :: i,j,k
 
-    REAL :: erf,lhb
+    ! REAL :: erf,lhb
 
     !JOE: NEW VARIABLES FOR ALTERNATE SIGMA
     REAL::dth,dtl,dqw,dzk
-    REAL, DIMENSION(kts:kte), INTENT(IN) :: Sh,el
+
 
     !JOE: variables for BL clouds
-    REAL::zagl,cld9,damp,edown,RHcrit,RHmean,RHsum,RHnum,Hshcu,PBLH2,ql_limit
-    REAL, PARAMETER :: Hfac = 3.0     !cloud depth factor for HFX (m^3/W)
-    REAL, PARAMETER :: HFXmin = 50.0  !min W/m^2 for BL clouds
-    REAL            :: RH_00L, RH_00O, phi_dz, lfac
-    REAL, PARAMETER :: cdz = 2.0
-    REAL, PARAMETER :: mdz = 1.5
+   ! REAL::zagl,cld9,damp,edown,RHcrit,RHmean,RHsum,RHnum,Hshcu,PBLH2,ql_limit
+   ! REAL, PARAMETER :: Hfac = 3.0     !cloud depth factor for HFX (m^3/W)
+   ! REAL, PARAMETER :: HFXmin = 50.0  !min W/m^2 for BL clouds
+   ! REAL            :: RH_00L, RH_00O, phi_dz, lfac
+   ! REAL, PARAMETER :: cdz = 2.0
+   ! REAL, PARAMETER :: mdz = 1.5
 
 ! ORIGINAL MYNN PARTIAL-CONDENSATION SCHEME
 ! OR KUWANO ET AL.
 
 
-    zagl = 0.
+!    zagl = 0.
 
 
 DO k = kts,kte-1
@@ -3054,9 +3151,11 @@ DO k = kts,kte-1
    !RH (0 to 1.0)
    !RH(k)=MAX(MIN(1.0,qw(k)/MAX(1.E-8,qsl)),0.001)
 
-   alp(k) = 1.0/( 1.0+dqsl*lhb/cp )
-   bet(k) = dqsl*exner(k)
+   alp = 1.0/( 1.0+dqsl*lhb/cp ) ! a; Eq. B5
+   bet = dqsl*exner(k)           ! b; Eq. B5
 
+
+! sigma_s: EQ. B6
    if (k .eq. kts) then 
 	 dzk = 0.5*dz(k)
    else
@@ -3064,31 +3163,39 @@ DO k = kts,kte-1
    end if
    dth = 0.5*(thl(k+1)+thl(k)) - 0.5*(thl(k)+thl(MAX(k-1,kts)))
    dqw = 0.5*(qw(k+1) + qw(k)) - 0.5*(qw(k) + qw(MAX(k-1,kts)))
-   sgm(k) = SQRT( MAX( (alp(k)**2 * MAX(el(k)**2,0.1) * &
+   sgm(k) = SQRT( MAX( (alp**2 * MAX(el(k)**2,0.1) * &
 					 b2 * MAX(Sh(k),0.03))/4. * &
-			  (dqw/dzk - bet(k)*(dth/dzk ))**2 , 1.0e-8) ) ! set the limit smaller
-   sgm(k) = min(sgm(k),1.0e-4) ! set upper limit of sigma
-   qmq(k) = qw(k) -qsl
-   q1(k)   = qmq(k) / sgm(k)
-   cld(k) = 0.5*( 1.0+erf( q1(k)*rr2 ) )
+			  (dqw/dzk - bet*(dth/dzk ))**2 , 1.0e-12) ) 
+   sgm(k) = min(sgm(k),1.0e-3) 
    
-   eq1  = rrp*EXP( -0.5*q1(k)*q1(k))
-   qll  = MAX( cld(k)*q1(k) + eq1, 0.0 )
-   !ESTIMATED LIQUID/ICE WATER CONTENT (UNNORMALIZED)
-   ql (k) = alp(k)*sgm(k)*qll
+   
+   
+   
+   
+   q1   = alp*(qw(k)-qsl) / (2.*sgm(k)) ! Q1; Eq. B4
+   
+   cld(k) = 0.5*( 1.0+erf( q1*rr2 ) ) ! Eq. B2
+   
+   eq1  = rrp*EXP( -0.5*q1**2)  ! rrp=1/(2*pi)
+   ql (k) = 2.*sgm(k)*MAX( cld(k)*q1 + eq1, 0.0 ) ! Eq. B1
  
-   q2p = lhb/(cp*exner(k))
+ ! qll=MAX( cld(k)*q1 + eq1, 0.0 )
+ 
+   q2p = lhb/(cp*exner(k)) ! L/(cp*Pi)
    pt = thl(k) +q2p*ql(k) ! potential temp
 
    !qt is a THETA-V CONVERSION FOR TOTAL WATER (i.e., THETA-V = qt*THETA)
-   qt   = 1.0 +p608*qw(k) -(1.+p608)*ql(k)
-   rac  = alp(k)*( cld(k)-qll*eq1 )*( q2p*qt-(1.+p608)*pt )
+   qt   = 1.0 +p608*qw(k) -(1.+p608)*ql(k) ! Eq. B8, first three terms
 
+   rac=(cld(k)-0.5*ql(k)/sgm(k)*eq1)*alp*( q2p*qt-(1.+p608)*pt ) ! ~R*a*c
+  ! print *,'qt,pt,r,a,c',qt,pt,(cld(k)-0.5*ql(k)/sgm(k)*eq1),alp,( q2p*qt-(1.+p608)*pt )
+  ! print *,'a',alp
+  ! print *,'c',( q2p*qt-(1.+p608)*pt )
    !BUOYANCY FACTORS: wherever vt and vq are used, there is a
    !"+1" and "+tv0", respectively, so these are subtracted out here.
    !vt is unitless and vq has units of K.
-   vt(k) =      qt-1.0 -rac*bet(k)
-   vq(k) = p608*pt-tv0 +rac
+   vt(k) =      qt-1.0 -rac*bet ! beta_theta-1: Eq. B8
+   vq(k) = p608*pt-tv0 +rac ! Eq. beta_qt-tv; Eq. B9
 
   ! sanity checks
   
@@ -3113,6 +3220,12 @@ END DO
     vt(kte) = vt(kte-1)
     vq(kte) = vq(kte-1)
 
+!  print *,'beta_theta',vt+1.
+!  print *,'beta_qt',vq+tv0
+!  print *,'cld',cld
+!  print *,'ql',ql
+!  print *,'rac',rac
+
 END SUBROUTINE mym_condensation
 
 ! ==================================================================
@@ -3133,7 +3246,6 @@ END SUBROUTINE mym_condensation
        &s_awu1,s_awv1,                       &
        &sd_aw1,sd_awthl1,sd_awqt1, &
        &sd_awu1,sd_awv1,                       &
-       &cldfra_bl1d,                       &
        &ztop_shallow,ktop_shallow,         &
        &bl_mynn_cloudmix,                  &
        &bl_mynn_mixqt,                     &
@@ -3141,7 +3253,7 @@ END SUBROUTINE mym_condensation
        &bl_mynn_edmf_dd,                   &
        &bl_mynn_edmf_mom,                  &
        &liquid_frac,                       &
-       &dx,PBLH,HFX,qc_bl1D,Sh,el,Vt,Vq,sgm)
+       &dx,PBLH,HFX,Sh,el,Vt,Vq)
 
 !-------------------------------------------------------------------
     INTEGER, INTENT(in) :: kts,kte
@@ -3193,7 +3305,7 @@ END SUBROUTINE mym_condensation
     REAL :: t,esat,qsl,onoff,ustovwsp
     INTEGER :: k,kk,nz,itr
     REAL, INTENT(IN)      :: dx,PBLH,HFX
-    REAL, DIMENSION(kts:kte), INTENT(INOUT) :: qc_bl1D,cldfra_bl1d,sgm
+!    REAL, DIMENSION(kts:kte), INTENT(INOUT) :: qc_bl1D,cldfra_bl1d,sgm
     REAL, DIMENSION(kts:kte), INTENT(IN) :: Sh,el
 !yhc move to namelist    REAL upwind 
 !yhc move to namelist    LOGICAl expmf 
@@ -3686,7 +3798,7 @@ END SUBROUTINE mym_condensation
   SUBROUTINE mynn_bl_driver(            &
        &initflag,grav_settling,         &
        &delt,dz,dx,znt,                 &
-       &u,v,w,th,qv,qc,qi,qni,qnc,      &
+       &u,v,w,th,qv,qc,qi,cc,qni,qnc,      &
        &p,exner,rho,T3D,                &
        &xland,ts,qsfc,qcg,ps,           &
        &ust,ch,hfx,qfx,rmol,wspd,       &
@@ -3697,6 +3809,7 @@ END SUBROUTINE mym_condensation
        &RUBLTEN,RVBLTEN,RTHBLTEN,       &
        &RQVBLTEN,RQCBLTEN,RQIBLTEN,     &
        &RQNIBLTEN,                      &
+       &RCCBLTEN, RTHLBLTEN, RQTBLTEN,  & ! yhc added
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -3760,7 +3873,7 @@ END SUBROUTINE mym_condensation
     
     REAL, INTENT(in) :: delt,dx
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(in) :: dz,&
-         &u,v,w,th,qv,p,exner,rho,T3D
+         &u,v,w,th,qv,cc,p,exner,rho,T3D
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), OPTIONAL, INTENT(in)::&
          &qc,qi,qni,qnc
     REAL, DIMENSION(IMS:IME,JMS:JME), INTENT(in) :: xland,ust,&
@@ -3809,7 +3922,9 @@ END SUBROUTINE mym_condensation
                             qc_bl1D_old,cldfra_bl1D_old, &
                              qc_bl1Da,cldfra_bl1Da
     REAl, DIMENSION(KTS:KTE) :: liquid_frac                        
-
+  
+    REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: RCCBLTEN,RTHLBLTEN,RQTBLTEN
+  
 !local vars
 !  INTEGER :: ITF,JTF,KTF, IMD,JMD
     INTEGER :: i,j,k
@@ -3819,7 +3934,7 @@ END SUBROUTINE mym_condensation
 
     REAL, DIMENSION(KTS:KTE) :: thetav,sh,u1,v1,w1,p1,ex1,dz1,th1,tk1,rho1,&
            & qke1,tsq1,qsq1,cov1,qv1,qi1,qc1,du1,dv1,dth1,dqv1,dsqw1,dqi1,dql1,dthl1, &
-           & k_m1,k_h1,k_q1,qni1,dqni1,qnc1 !,dqnc1
+           & k_m1,k_h1,k_q1,qni1,dqni1,qnc1,cc1,dcc1 !,dqnc1
 
 !JOE: mass-flux variables
     REAL, DIMENSION(KTS:KTE) :: dth1mf,dqv1mf,dqc1mf,du1mf,dv1mf
@@ -3837,6 +3952,10 @@ END SUBROUTINE mym_condensation
     REAL :: cpm,sqcg,flt,flq,flqv,flqc,pmz,phh,exnerg,zet,& 
               &afk,abk,ts_decay,th_sfc,ztop_shallow
     REAL :: dqcTT,lfTT,lvT
+
+
+! 0 ... default thing 
+! 1 ... new solver
 
 
 !JOE-add GRIMS parameters & variables
@@ -3930,6 +4049,7 @@ END SUBROUTINE mym_condensation
                 u1(k) = u(i,k,j)
                 v1(k) = v(i,k,j)
                 w1(k) = w(i,k,j)
+                cc1(k)=cc(i,k,j)
                 th1(k)=th(i,k,j)
                 tk1(k)=T3D(i,k,j)
                 rho1(k)=rho(i,k,j)
@@ -4053,7 +4173,7 @@ END SUBROUTINE mym_condensation
              rho1(k)=rho(i,k,j)
              qv1(k)= qv(i,k,j)
              qc1(k)= qc(i,k,j)
-             
+             cc1(k)=cc(i,k,j)
              sqv(k)= qv(i,k,j)/(1.+qv(i,k,j))
              sqc(k)= qc(i,k,j)/(1.+qc(i,k,j))
             
@@ -4223,6 +4343,8 @@ END SUBROUTINE mym_condensation
 !
 ! condensation uses sh and el from the previous time step 
 ! 
+
+     if (edmf_type .eq. 0) then
           CALL  mym_condensation ( kts,kte,      &
                &dx,dz1,thl,sqw,p1,ex1,           &
                &tsq1, qsq1, cov1,                &
@@ -4230,6 +4352,22 @@ END SUBROUTINE mym_condensation
                &qc_bl1D,cldfra_bl1D,             &
                &PBLH(i,j),HFX(i,j),              &
                &Vt, Vq, th1, sgm )
+     elseif (edmf_type .eq. 1) then
+           qc_bl1D=qc1
+           cldfra_bl1D=cc1
+        ! compute vt and vq   
+         call  mym_vtvq (kts,kte,  &
+          &th1,qc1,thl,sqw,cc1,    &
+          &p1,ex1,liquid_frac,     &
+          &Vt, Vq)
+    else
+    print *,'Error ... wrong edmf_type!!!'    
+    endif
+        
+     
+     
+     
+               
                
                             
 !          !ADD TKE source driven by cloud top cooling
@@ -4432,7 +4570,6 @@ END SUBROUTINE mym_condensation
                &s_awu1,s_awv1,   &
                &sd_aw1,sd_awthl1,sd_awqt1,          &
                &sd_awu1,sd_awv1,   &
-               &cldfra_bl1d,                     &
                &ztop_shallow,ktop_shallow(i,j),  &
                &bl_mynn_cloudmix,                &
                &bl_mynn_mixqt,                   &
@@ -4440,7 +4577,7 @@ END SUBROUTINE mym_condensation
                &bl_mynn_edmf_dd,                 &
                &bl_mynn_edmf_mom,                &
                &liquid_frac,                     &
-               &dx,PBLH(i,j),HFX(i,j),qc_bl1D,Sh,el,Vt,Vq,sgm)
+               &dx,PBLH(i,j),HFX(i,j),Sh,el,Vt,Vq)
 
 
 ! run cloud scheme to compute cloudiness after mixing
@@ -4470,7 +4607,7 @@ END SUBROUTINE mym_condensation
            dql1(k)=dqcTT*lfTT
            dqi1(k)=(1.-lfTT)*dqcTT
            dth1(k)=dthl1(k)+lvT/(ex1(k)*cp)*dqcTT
-         
+           dcc1(k)=(cldfra_bl1Da(k)-cldfra_bl1D(k))/delt 
          ENDDO
          
  
@@ -4490,6 +4627,9 @@ END SUBROUTINE mym_condensation
              RQVBLTEN(i,k,j)=dqv1(k)
              RQCBLTEN(i,k,j)=dql1(k)
              RQIBLTEN(i,k,j)=dqi1(k)
+             RCCBLTEN(i,k,j)=dcc1(k)
+             RTHLBLTEN(i,k,j)=dthl1(k)
+             RQTBLTEN(i,k,j)=dsqw1(k)/(1.-sqw(k))
              IF (PRESENT(qni) .AND. FLAG_QNI) RQNIBLTEN(i,k,j)=dqni1(k)
              qc_bl(i,k,j)=qc_bl1Da(k)
              cldfra_bl(i,k,j)=cldfra_bl1Da(k) 
@@ -6181,7 +6321,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, &
+              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
@@ -6230,10 +6370,12 @@ subroutine edmf_mynn_driver ( &
   !type(edmf_ls_mp_type), intent(out) :: edmf2ls_mp
   real, intent(out), dimension(:,:,:) :: &
     qadt_edmf, qldt_edmf, qidt_edmf, &   
-    dqa_edmf,  dql_edmf, dqi_edmf
+    dqa_edmf,  dql_edmf, dqi_edmf,  &
+    diff_t_edmf
 
   integer, intent(out) :: &
     option_edmf2ls_mp
+
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -6328,7 +6470,7 @@ subroutine edmf_mynn_driver ( &
        &initflag=initflag,grav_settling=grav_settling,         &
        &delt=Input_edmf%delt,dz=Input_edmf%dz,dx=Input_edmf%dx,znt=Input_edmf%znt,                 &
        &u=Input_edmf%u,v=Input_edmf%v,w=Input_edmf%w,th=Input_edmf%th,qv=Input_edmf%qv,             &
-       &qc=Input_edmf%qc,qi=Input_edmf%qi,qni=Input_edmf%qni,qnc=Input_edmf%qnc,                    &
+       &qc=Input_edmf%qc,qi=Input_edmf%qi,cc=Input_edmf%qa,qni=Input_edmf%qni,qnc=Input_edmf%qnc,                    &
        &p=Input_edmf%p,exner=Input_edmf%exner,rho=Input_edmf%rho,T3D=Input_edmf%T3D,                &
        &xland=Input_edmf%xland,ts=Input_edmf%ts,qsfc=Input_edmf%qsfc,qcg=Input_edmf%qcg,ps=Input_edmf%ps,           &
        &ust=Input_edmf%ust,ch=Input_edmf%ch,hfx=Input_edmf%hfx,qfx=Input_edmf%qfx,rmol=Input_edmf%rmol,wspd=Input_edmf%wspd,       &
@@ -6339,6 +6481,7 @@ subroutine edmf_mynn_driver ( &
        &RUBLTEN=Output_edmf%RUBLTEN,RVBLTEN=Output_edmf%RVBLTEN,RTHBLTEN=Output_edmf%RTHBLTEN,       &
        &RQVBLTEN=Output_edmf%RQVBLTEN,RQCBLTEN=Output_edmf%RQCBLTEN,RQIBLTEN=Output_edmf%RQIBLTEN,     &
        &RQNIBLTEN=Output_edmf%RQNIBLTEN,                      &
+       &RCCBLTEN=Output_edmf%RCCBLTEN, RTHLBLTEN=Output_edmf%RTHLBLTEN, RQTBLTEN=Output_edmf%RQTBLTEN, &
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
@@ -6371,6 +6514,14 @@ subroutine edmf_mynn_driver ( &
     initflag = 0          ! no initialization
   endif
 
+!print*,'Input_edmf%qa',Input_edmf%qa
+!print*,'Output_edmf%cldfra_bl',Output_edmf%cldfra_bl
+!print*,'new qa, Input_edmf%qa + Output_edmf%RCCBLTEN * dt',Input_edmf%qa + Output_edmf%RCCBLTEN * dt
+
+!print*,'Input_edmf%qc',Input_edmf%qc
+!print*,'Output_edmf%qc_bl',Output_edmf%qc_bl
+!print*,'new qc, Input_edmf%qc+ Output_edmf%RQCBLTEN * dt',Input_edmf%qc + Output_edmf%RQCBLTEN * dt
+
 !! debug01, check semi-prognostic variables in offline code
 !  call random_number (Output_edmf%Qke)
 !  call random_number (Output_edmf%el_pbl     )
@@ -6383,7 +6534,7 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 
   !--- convert Output_edmf to am4_Output_edmf
-  call convert_edmf_to_am4_array (size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
+  call convert_edmf_to_am4_array (Physics_input_block, size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
                                   Input_edmf, Output_edmf, am4_Output_edmf, rdiag, Physics_input_block%z_full, &
                                   rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D) )
 
@@ -6425,14 +6576,15 @@ subroutine edmf_mynn_driver ( &
 !  enddo
 !-->
 
-  !--- initialize edmf2ls_mp
+  !--- initialize return variables 
   option_edmf2ls_mp = 0
-  qadt_edmf = 0.
-  qldt_edmf = 0.
-  qidt_edmf = 0.
-  dqa_edmf  = 0.
-  dql_edmf  = 0.
-  dqi_edmf  = 0.
+  qadt_edmf   = 0.
+  qldt_edmf   = 0.
+  qidt_edmf   = 0.
+  dqa_edmf    = 0.
+  dql_edmf    = 0.
+  dqi_edmf    = 0.
+  diff_t_edmf = 0.
 
   !--- updated tendencies
   if (.not.do_edmf_mynn_diagnostic) then
@@ -6448,13 +6600,15 @@ subroutine edmf_mynn_driver ( &
 
     !--- set edmf to ls_mp
     option_edmf2ls_mp = do_option_edmf2ls_mp
-    qadt_edmf     = am4_Output_edmf%qadt_edmf(:,:,:)
-    qldt_edmf     = am4_Output_edmf%qldt_edmf(:,:,:)
-    qidt_edmf     = am4_Output_edmf%qidt_edmf(:,:,:)
-    dqa_edmf      = qadt_edmf(:,:,:) * dt
-    dql_edmf      = qldt_edmf(:,:,:) * dt
-    dqi_edmf      = qidt_edmf(:,:,:) * dt
+
+    qadt_edmf     (:,:,:) = am4_Output_edmf%qadt_edmf(:,:,:)
+    qldt_edmf     (:,:,:) = am4_Output_edmf%qldt_edmf(:,:,:)
+    qidt_edmf     (:,:,:) = am4_Output_edmf%qidt_edmf(:,:,:)
+    dqa_edmf      (:,:,:) = qadt_edmf(:,:,:) * dt
+    dql_edmf      (:,:,:) = qldt_edmf(:,:,:) * dt
+    dqi_edmf      (:,:,:) = qidt_edmf(:,:,:) * dt
     
+    diff_t_edmf   (:,:,:) = am4_Output_edmf%diff_t_edmf(:,:,:)
   end if
 
   !--- write out EDMF-MYNN input and output fields for debugging purpose
@@ -6706,6 +6860,8 @@ subroutine edmf_alloc ( &
 !           * kx
 !         --------- kxp=kx+1, surface
 !
+!    3. Note that diff_t and diff_m are no half levels, but GFDL physics_driver use diff_t(nlay) instead of nlay+1.
+!       So, although diff_t_edmf and diff_m_edmf vertical dimension is "nlay", but they are located on half levels. 
 !---------------------------------------------------------------------
   integer, intent(in)                   :: is, ie, js, je, npz
   type(time_type), intent(in)           :: Time_next
@@ -7029,6 +7185,9 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%RQIBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQIBLTEN    = 0.
   allocate (Output_edmf%RQNIBLTEN   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQNIBLTEN   = 0.
   allocate (Output_edmf%RTHRATEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RTHRATEN    = 0.
+  allocate (Output_edmf%RCCBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RCCBLTEN    = 0.
+  allocate (Output_edmf%RTHLBLTEN   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RTHLBLTEN   = 0.
+  allocate (Output_edmf%RQTBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQTBLTEN    = 0.
   allocate (Output_edmf%edmf_a      (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_a      = 0.
   allocate (Output_edmf%edmf_w      (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_w      = 0.
   allocate (Output_edmf%edmf_qt     (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_qt     = 0.
@@ -7074,6 +7233,8 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qidt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qidt_edmf   = 0.
   allocate (am4_Output_edmf%qldt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qldt_edmf   = 0.
   allocate (am4_Output_edmf%qadt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qadt_edmf   = 0.
+  allocate (am4_Output_edmf%qtdt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qtdt_edmf   = 0.
+  allocate (am4_Output_edmf%thldt_edmf  (ix,jx,kx))  ; am4_Output_edmf%thldt_edmf  = 0.
   allocate (am4_Output_edmf%edmf_a      (ix,jx,kx))  ; am4_Output_edmf%edmf_a      = 0.
   allocate (am4_Output_edmf%edmf_w      (ix,jx,kx))  ; am4_Output_edmf%edmf_w      = 0.
   allocate (am4_Output_edmf%edmf_qt     (ix,jx,kx))  ; am4_Output_edmf%edmf_qt     = 0.
@@ -7085,7 +7246,8 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%cldfra_bl   (ix,jx,kx))  ; am4_Output_edmf%cldfra_bl   = 0.
   allocate (am4_Output_edmf%qc_bl       (ix,jx,kx))  ; am4_Output_edmf%qc_bl       = 0.
   allocate (am4_Output_edmf%pbltop      (ix,jx))     ; am4_Output_edmf%pbltop      = 0.
-
+  allocate (am4_Output_edmf%diff_t_edmf (ix,jx,kx))  ; am4_Output_edmf%diff_t_edmf = 0.
+  allocate (am4_Output_edmf%diff_m_edmf (ix,jx,kx))  ; am4_Output_edmf%diff_m_edmf = 0.
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
@@ -7424,6 +7586,9 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%RQIBLTEN    )  
   deallocate (Output_edmf%RQNIBLTEN   )  
   deallocate (Output_edmf%RTHRATEN    )  
+  deallocate (Output_edmf%RCCBLTEN    )
+  deallocate (Output_edmf%RTHLBLTEN   )
+  deallocate (Output_edmf%RQTBLTEN    )
   deallocate (Output_edmf%edmf_a      )  
   deallocate (Output_edmf%edmf_w      )  
   deallocate (Output_edmf%edmf_qt     )  
@@ -7469,6 +7634,8 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qidt_edmf   )  
   deallocate (am4_Output_edmf%qldt_edmf   )  
   deallocate (am4_Output_edmf%qadt_edmf   )  
+  deallocate (am4_Output_edmf%qtdt_edmf   )  
+  deallocate (am4_Output_edmf%thldt_edmf  )  
   deallocate (am4_Output_edmf%edmf_a      )
   deallocate (am4_Output_edmf%edmf_w      )
   deallocate (am4_Output_edmf%edmf_qt     )
@@ -7480,6 +7647,8 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%cldfra_bl   )
   deallocate (am4_Output_edmf%qc_bl       )
   deallocate (am4_Output_edmf%pbltop      )  
+  deallocate (am4_Output_edmf%diff_t_edmf )  
+  deallocate (am4_Output_edmf%diff_m_edmf )  
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -7599,6 +7768,40 @@ subroutine edmf_writeout_column ( &
 !      jj_write = 1
 !    endif
 !  endif  ! end if of do_writeout_column_nml
+
+!-------------------------------------------------------------------------
+! check tracer concentration 
+!   if needed, enabling codes in convert_edmf_to_am4_array to modify cloud tendencies to prevent negative tendencies
+!
+!   03-01-2022 Note: In the offline program with SCM_am4p0_RF01_02, the updated cloud fraction become negative (-1.e-8)
+!                    Although I set am4_Output_edmf%qadt_edmf = -1*Physics_input_block%q(i,j,k,nqa)/dt, the problem is still
+!                    I thought there is some numeric problems in the offline program.
+!-------------------------------------------------------------------------
+  if (do_check_realizability) then
+    i=1
+    j=1
+
+    !--- qa
+    do k=1,kx
+      kk=kx-k+1
+      tt1 = Physics_input_block%q(i,j,k,nqa)
+      tt2 = Physics_input_block%q(i,j,k,nqa) + am4_Output_edmf%qadt_edmf(i,j,k) * dt
+      tt3 = Output_edmf%cldfra_bl(i,kk,j)
+      print*,'k,qa_new,qa_bl,qa_old',k,tt2,tt3,tt1
+    enddo
+
+    !--- ql
+    write(6,*) ''
+    do k=1,kx
+      kk=kx-k+1
+      tt1 = Physics_input_block%q(i,j,k,nql)
+      tt2 = Physics_input_block%q(i,j,k,nql) + am4_Output_edmf%qldt_edmf(i,j,k) * dt
+      tt3 = Output_edmf%qc_bl(i,kk,j)
+      print*,'k,ql_new,qc_bl,ql_old',k,tt2,tt3,tt1
+    enddo
+
+    write(6,*) ''
+  endif
 
 !-------------------------------------------------------------------------
 ! check water and energy conservation 
@@ -7828,6 +8031,15 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; qc tendency from edmf_mynn (kg/kg/s)'
         write(6,3002) ' qldt_edmf = (/'    ,am4_Output_edmf%qldt_edmf (ii_write,jj_write,:)
         write(6,*)    ' '
+        write(6,*)    '; qt tendency from edmf_mynn (kg/kg/s)'
+        write(6,3002) ' qtdt_edmf = (/'    ,am4_Output_edmf%qtdt_edmf (ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; qa tendency from edmf_mynn (1/s)'
+        write(6,3002) ' qadt_edmf = (/'    ,am4_Output_edmf%qadt_edmf (ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; thl tendency from edmf_mynn (K/s)'
+        write(6,3002) ' thldt_edmf = (/'    ,am4_Output_edmf%thldt_edmf (ii_write,jj_write,:)
+        write(6,*)    ' '
         write(6,*)    '; cloud fraction in edmf_mynn'
         write(6,3002) ' cldfra_bl = (/'    ,am4_Output_edmf%cldfra_bl (ii_write,jj_write,:)
         write(6,*)    ' '
@@ -7882,6 +8094,7 @@ subroutine edmf_writeout_column ( &
         write(6,*)    'Input_edmf%T3D',Input_edmf%T3D (ii_write,:,jj_write)
         write(6,*)    'Input_edmf%qc',Input_edmf%qc(ii_write,:,jj_write)
         write(6,*)    'Input_edmf%qi',Input_edmf%qi(ii_write,:,jj_write)
+        write(6,*)    'Input_edmf%qa',Input_edmf%qa(ii_write,:,jj_write)
         write(6,*)    ''
         write(6,*)    ';======================'
         write(6,*)    ';======================'
@@ -8007,11 +8220,12 @@ end subroutine edmf_writeout_column
 
 !########################
 
-subroutine convert_edmf_to_am4_array (ix, jx, kx, &
+subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
                                       Input_edmf, Output_edmf, am4_Output_edmf, rdiag, z_full, &
                                       Qke, el_pbl, cldfra_bl, qc_bl, Sh3D )
 
 !--- input arguments
+  type(physics_input_block_type), intent(in)  :: Physics_input_block 
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   type(edmf_output_type)    , intent(in)  :: Output_edmf
   integer                   , intent(in)  :: ix, jx, kx
@@ -8025,6 +8239,8 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 
 !--- local variable
   integer i,j,k,kk
+  real :: &
+    qa1, qc1, qi1, qt1
 !------------------------------------------
 
 !print*,'convert, Output_edmf%Qke, ix,jx,kx',size(Output_edmf%Qke,1),size(Output_edmf%Qke,2),size(Output_edmf%Qke,3)
@@ -8044,23 +8260,36 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 
     !--- set am4_Output_edmf
     am4_Output_edmf%tke         (i,j,kk) = 0.5 * Output_edmf%Qke (i,k,j)
-    am4_Output_edmf%Tsq         (i,j,kk) = Output_edmf%Tsq (i,k,j)
-    am4_Output_edmf%Cov_thl_qt  (i,j,kk) = Output_edmf%Cov (i,k,j)
-    am4_Output_edmf%udt_edmf    (i,j,kk) = Output_edmf%RUBLTEN (i,k,j) 
-    am4_Output_edmf%vdt_edmf    (i,j,kk) = Output_edmf%RVBLTEN (i,k,j)
-    am4_Output_edmf%tdt_edmf    (i,j,kk) = Output_edmf%RTHBLTEN (i,k,j) / Input_edmf%exner (i,k,j)
-    am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN (i,k,j)
-    am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN (i,k,j)
-    am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN (i,k,j)
-    am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a   (i,k,j)
-    am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w   (i,k,j)
-    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
-    am4_Output_edmf%edmf_thl    (i,j,kk) = Output_edmf%edmf_thl (i,k,j)
-    am4_Output_edmf%edmf_ent    (i,j,kk) = Output_edmf%edmf_ent (i,k,j)
-    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt  (i,k,j)
-    am4_Output_edmf%cldfra_bl   (i,j,kk) = Output_edmf%cldfra_bl(i,k,j)
-    am4_Output_edmf%qc_bl       (i,j,kk) = Output_edmf%qc_bl    (i,k,j)
+    am4_Output_edmf%Tsq         (i,j,kk) = Output_edmf%Tsq       (i,k,j)
+    am4_Output_edmf%Cov_thl_qt  (i,j,kk) = Output_edmf%Cov       (i,k,j)
+    am4_Output_edmf%udt_edmf    (i,j,kk) = Output_edmf%RUBLTEN   (i,k,j) 
+    am4_Output_edmf%vdt_edmf    (i,j,kk) = Output_edmf%RVBLTEN   (i,k,j)
+    am4_Output_edmf%tdt_edmf    (i,j,kk) = Output_edmf%RTHBLTEN  (i,k,j) / Input_edmf%exner (i,k,j)
+    am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN  (i,k,j)
+    am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN  (i,k,j)
+    am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN  (i,k,j)
+    am4_Output_edmf%qadt_edmf   (i,j,kk) = Output_edmf%RCCBLTEN  (i,k,j)
+    am4_Output_edmf%qtdt_edmf   (i,j,kk) = Output_edmf%RQTBLTEN  (i,k,j)
+    am4_Output_edmf%thldt_edmf  (i,j,kk) = Output_edmf%RTHLBLTEN (i,k,j)
+    am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a    (i,k,j)
+    am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w    (i,k,j)
+    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
+    am4_Output_edmf%edmf_thl    (i,j,kk) = Output_edmf%edmf_thl  (i,k,j)
+    am4_Output_edmf%edmf_ent    (i,j,kk) = Output_edmf%edmf_ent  (i,k,j)
+    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
+    am4_Output_edmf%cldfra_bl   (i,j,kk) = Output_edmf%cldfra_bl (i,k,j)
+    am4_Output_edmf%qc_bl       (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
+    am4_Output_edmf%diff_t_edmf (i,j,kk) = Output_edmf%exch_h    (i,k,j)
+    am4_Output_edmf%diff_m_edmf (i,j,kk) = Output_edmf%exch_m    (i,k,j)
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
+
+    !--- if needed, modify am4_Output_edmf tendencies to make sure the updated qa, ql, qc, qi, qnd qt are larger than zero
+    !qa1 = Physics_input_block%q(i,j,kk,nqa) + am4_Output_edmf%qadt_edmf(i,j,kk) * dt
+    !if (qa1 .lt. 0.) then
+    !  am4_Output_edmf%qadt_edmf(i,j,kk) = -1.*Physics_input_block%q(i,j,kk,nqa) / dt
+    !  print*,'no,k,am4,mynn',kk,am4_Output_edmf%qadt_edmf(i,j,kk),Output_edmf%RCCBLTEN  (i,k,j), &
+    !                           am4_Output_edmf%qadt_edmf(i,j,kk)-Output_edmf%RCCBLTEN  (i,k,j)
+    !endif
 
     !--- for testing purpose, “evaporate/condensate” the liquid and ice water that is produced during mixing
     if (do_qdt_same_as_qtdt) then
@@ -8090,8 +8319,10 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
       am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
       am4_Output_edmf%qidt_edmf   (i,j,kk) = 0.
       am4_Output_edmf%qldt_edmf   (i,j,kk) = 0.
+      am4_Output_edmf%qadt_edmf   (i,j,kk) = 0.
+      am4_Output_edmf%qtdt_edmf   (i,j,kk) = 0.
+      am4_Output_edmf%thldt_edmf  (i,j,kk) = 0.
     endif
-
 
   enddo  ! end loop of k
   enddo  ! end loop of j
@@ -8111,9 +8342,9 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 
 end subroutine convert_edmf_to_am4_array
 
+
 !#############################
 ! Mellor-Yamada
 !#############################
-
 
 end module edmf_mynn_mod
