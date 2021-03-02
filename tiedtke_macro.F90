@@ -551,16 +551,29 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
       Cloud_processes%dcond_ls     = liq_frac*Cloud_processes%dcond_ls   
 
 !<--- yhc111
-      !--- include EDMF ql and qi incremental changes to large-scale condensate
-      if (C2ls_mp%option_edmf2ls_mp.eq.1) then      ! EDMF terms are added to Tiedtke
-        Cloud_processes%dcond_ls_ice = Cloud_processes%dcond_ls_ice + C2ls_mp%qidt_edmf * dtcloud
-        Cloud_processes%dcond_ls     = Cloud_processes%dcond_ls     + C2ls_mp%qldt_edmf * dtcloud
+      do k=1,kdim
+      do j=1,jdim
+      do i=1,idim
+        if (      C2ls_mp%qadt_edmf(i,j,k) .ne. 0.   &
+             .or. C2ls_mp%qldt_edmf(i,j,k) .ne. 0.   &
+             .or. C2ls_mp%qidt_edmf(i,j,k) .ne. 0.   &
+           ) then
 
-      elseif (C2ls_mp%option_edmf2ls_mp.eq.2) then  ! EDMF terms replace Tiedtke 
-        Cloud_processes%dcond_ls_ice = C2ls_mp%qidt_edmf * dtcloud
-        Cloud_processes%dcond_ls     = C2ls_mp%qldt_edmf * dtcloud
-      
-      endif      
+           ! assuming that all Tiedtke terms are kept and that qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa1, qa_EDMF)
+           if (C2ls_mp%option_edmf2ls_mp.eq.1) then      ! EDMF terms are added to Tiedtke
+             Cloud_processes%dcond_ls_ice (i,j,k) = Cloud_processes%dcond_ls_ice(i,j,k) + C2ls_mp%qidt_edmf(i,j,k) * dtcloud
+             Cloud_processes%dcond_ls     (i,j,k) = Cloud_processes%dcond_ls    (i,j,k) + C2ls_mp%qldt_edmf(i,j,k) * dtcloud
+
+           ! assuming that only convection term is kept and that qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa0, qa_EDMF)
+           elseif (C2ls_mp%option_edmf2ls_mp.eq.2) then  ! EDMF terms replace Tiedtke 
+             Cloud_processes%dcond_ls_ice (i,j,k) = C2ls_mp%qidt_edmf(i,j,k) * dtcloud
+             Cloud_processes%dcond_ls     (i,j,k) = C2ls_mp%qldt_edmf(i,j,k) * dtcloud
+
+           endif
+        endif   ! end if of C2ls_mp%option_edmf2ls_mp
+      enddo
+      enddo
+      enddo
 !---> yhc111
 
 !------------------------------------------------------------------------
@@ -1086,6 +1099,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
                ) then
                Cloud_processes%da_ls  (i,j,k) = 0.
                Cloud_processes%D_eros (i,j,k) = 0.
+               dqs_ls                 (i,j,k) = 0.
             endif
         enddo
         enddo
