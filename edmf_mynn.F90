@@ -408,7 +408,7 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni  ! tracer indices for stratiform clo
 integer :: nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl ! tracer index for EDMF-MYNN tracers
 integer :: ntp          ! number of prognostic tracers
 
-integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf
+integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf, id_qtdt_edmf, id_thldt_edmf, id_diff_t_edmf
 
 !---------------------------------------------------------------------
 
@@ -665,6 +665,18 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_z_pbl_edmf = register_diag_field (mod_name, 'z_pbl_edmf', axes(1:2), Time, &
                  'PBL depth from edmf_mynn', 'm' , &
+                 missing_value=missing_value )
+
+  id_qtdt_edmf = register_diag_field (mod_name, 'qtdt_edmf', axes(full), Time, &
+                 'qt tendency from edmf_mynn', 'kg/kg/s' , &
+                 missing_value=missing_value )
+
+  id_thldt_edmf = register_diag_field (mod_name, 'thldt_edmf', axes(full), Time, &
+                 'thl tendency from edmf_mynn', 'K/s' , &
+                 missing_value=missing_value )
+
+  id_diff_t_edmf = register_diag_field (mod_name, 'diff_t_edmf', axes(full), Time, &
+                 'heat diff coeffs from edmf_mynn', 'K/m/s' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -6783,6 +6795,21 @@ subroutine edmf_mynn_driver ( &
         used = send_data (id_z_pbl_edmf, am4_Output_edmf%pbltop, Time_next, is, js )
       endif
 
+!------- qt tendency from edmf_mynn (units: kg/kg/s) at full level -------
+      if ( id_qtdt_edmf > 0) then
+        used = send_data (id_qtdt_edmf, am4_Output_edmf%qtdt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- thl tendency from edmf_mynn (units: K/s) at full level -------
+      if ( id_thldt_edmf > 0) then
+        used = send_data (id_thldt_edmf, am4_Output_edmf%thldt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- heat diff coeffs from edmf_mynn (units: K/m/s) at full level -------
+      if ( id_diff_t_edmf > 0) then
+        used = send_data (id_diff_t_edmf, am4_Output_edmf%diff_t_edmf, Time_next, is, js, 1 )
+      endif
+
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
 !---------------------------------------------------------------------
@@ -7787,7 +7814,9 @@ subroutine edmf_writeout_column ( &
       tt1 = Physics_input_block%q(i,j,k,nqa)
       tt2 = Physics_input_block%q(i,j,k,nqa) + am4_Output_edmf%qadt_edmf(i,j,k) * dt
       tt3 = Output_edmf%cldfra_bl(i,kk,j)
-      print*,'k,qa_new,qa_bl,qa_old',k,tt2,tt3,tt1
+      if (tt2.ne.tt3) then
+        print*,'k,qa_new,qa_bl,qa_old',k,tt2,tt3,tt1
+      endif
     enddo
 
     !--- ql
@@ -7797,7 +7826,9 @@ subroutine edmf_writeout_column ( &
       tt1 = Physics_input_block%q(i,j,k,nql)
       tt2 = Physics_input_block%q(i,j,k,nql) + am4_Output_edmf%qldt_edmf(i,j,k) * dt
       tt3 = Output_edmf%qc_bl(i,kk,j)
-      print*,'k,ql_new,qc_bl,ql_old',k,tt2,tt3,tt1
+      if (tt2.ne.tt3) then
+        print*,'k,ql_new,qc_bl,ql_old',k,tt2,tt3,tt1
+      endif
     enddo
 
     write(6,*) ''
@@ -8012,6 +8043,9 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ' '
         write(6,*)    '; covariance of theta_l and q_t (none)'
         write(6,3002) ' Cov_thl_qt = (/'    ,am4_Output_edmf%Cov_thl_qt (ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; EDMF diffusion coefficients for heat (K m/s)'
+        write(6,3002) ' diff_t_edmf = (/'    ,am4_Output_edmf%diff_t_edmf (ii_write,jj_write,:)
         write(6,*)    ' '
         write(6,*)    '; u tendency from edmf_mynn (m/s2)'
         write(6,3002) ' udt_edmf = (/'    ,am4_Output_edmf%udt_edmf (ii_write,jj_write,:)
