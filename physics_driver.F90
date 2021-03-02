@@ -2776,12 +2776,12 @@ real,dimension(:,:),    intent(inout)             :: gust
                pbltop, udt, vdt, tdt, rdt, rdiag)
 
 ! set temp values
-    qadt_edmf  (is:ie,js:je,24:29)   = 0.8/dt
-    qldt_edmf  (is:ie,js:je,24:29)   = 0. !1.e-3/dt 
-    qidt_edmf  (is:ie,js:je,24:29)   = 1.e-3/dt
-    dqa_edmf   (is:ie,js:je,:)   = qadt_edmf(is:ie,js:je,:) * dt
-    dql_edmf   (is:ie,js:je,:)   = qldt_edmf(is:ie,js:je,:) * dt
-    dqi_edmf   (is:ie,js:je,:)   = qidt_edmf(is:ie,js:je,:) * dt
+!    qadt_edmf  (is:ie,js:je,24:29)   = 0.8/dt
+!    qldt_edmf  (is:ie,js:je,24:29)   = 0. !1.e-3/dt 
+!    qidt_edmf  (is:ie,js:je,24:29)   = 1.e-3/dt
+!    dqa_edmf   (is:ie,js:je,:)   = qadt_edmf(is:ie,js:je,:) * dt
+!    dql_edmf   (is:ie,js:je,:)   = qldt_edmf(is:ie,js:je,:) * dt
+!    dqi_edmf   (is:ie,js:je,:)   = qidt_edmf(is:ie,js:je,:) * dt
   endif  ! end if of do_edmf_mynn
 
  if (do_writeout_column) then
@@ -2798,6 +2798,8 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data qadt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqa)
         write(6,*) 'data qldt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nql)
         write(6,*) 'data qidt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqi)
+        write(6,*) 'data diff_t/'    ,diff_t(ii_write,jj_write,:)
+        write(6,*) 'data diff_t_edmf/'    ,diff_t_edmf(ii_write,jj_write,:)
   endif
 !--> yhc
 
