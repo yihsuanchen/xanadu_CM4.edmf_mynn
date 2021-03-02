@@ -155,6 +155,9 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    logical :: do_check_consrv = .true.
    !logical :: do_check_consrv = .false.
 
+   !logical :: do_check_realizability = .true.
+   logical :: do_check_realizability = .false.
+
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
                                                 ! 1.E-10 is same as qmin in lscloud_driver
   integer :: do_option_edmf2ls_mp = 0           ! option to include EDMF cloud tendencies terms into Tiedtke
@@ -6227,6 +6230,14 @@ subroutine edmf_mynn_driver ( &
     initflag = 0          ! no initialization
   endif
 
+!print*,'Input_edmf%qa',Input_edmf%qa
+!print*,'Output_edmf%cldfra_bl',Output_edmf%cldfra_bl
+!print*,'new qa, Input_edmf%qa + Output_edmf%RCCBLTEN * dt',Input_edmf%qa + Output_edmf%RCCBLTEN * dt
+
+!print*,'Input_edmf%qc',Input_edmf%qc
+!print*,'Output_edmf%qc_bl',Output_edmf%qc_bl
+!print*,'new qc, Input_edmf%qc+ Output_edmf%RQCBLTEN * dt',Input_edmf%qc + Output_edmf%RQCBLTEN * dt
+
 !! debug01, check semi-prognostic variables in offline code
 !  call random_number (Output_edmf%Qke)
 !  call random_number (Output_edmf%el_pbl     )
@@ -6239,7 +6250,7 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 
   !--- convert Output_edmf to am4_Output_edmf
-  call convert_edmf_to_am4_array (size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
+  call convert_edmf_to_am4_array (Physics_input_block, size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
                                   Input_edmf, Output_edmf, am4_Output_edmf, rdiag, Physics_input_block%z_full, &
                                   rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D) )
 
@@ -7475,6 +7486,35 @@ subroutine edmf_writeout_column ( &
 !  endif  ! end if of do_writeout_column_nml
 
 !-------------------------------------------------------------------------
+! check tracer concentration 
+!-------------------------------------------------------------------------
+  if (do_check_realizability) then
+    i=1
+    j=1
+
+    !--- qa
+    do k=1,kx
+      kk=kx-k+1
+      tt1 = Physics_input_block%q(i,j,k,nqa)
+      tt2 = Physics_input_block%q(i,j,k,nqa) + am4_Output_edmf%qadt_edmf(i,j,k) * dt
+      tt3 = Output_edmf%cldfra_bl(i,kk,j)
+      print*,'k,qa_new,qa_bl,qa_old',k,tt2,tt3,tt1
+    enddo
+
+    !--- ql
+    write(6,*) ''
+    do k=1,kx
+      kk=kx-k+1
+      tt1 = Physics_input_block%q(i,j,k,nql)
+      tt2 = Physics_input_block%q(i,j,k,nql) + am4_Output_edmf%qldt_edmf(i,j,k) * dt
+      tt3 = Output_edmf%qc_bl(i,kk,j)
+      print*,'k,ql_new,qc_bl,ql_old',k,tt2,tt3,tt1
+    enddo
+
+    write(6,*) ''
+  endif
+
+!-------------------------------------------------------------------------
 ! check water and energy conservation 
 !-------------------------------------------------------------------------
 
@@ -7891,11 +7931,12 @@ end subroutine edmf_writeout_column
 
 !########################
 
-subroutine convert_edmf_to_am4_array (ix, jx, kx, &
+subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
                                       Input_edmf, Output_edmf, am4_Output_edmf, rdiag, z_full, &
                                       Qke, el_pbl, cldfra_bl, qc_bl, Sh3D )
 
 !--- input arguments
+  type(physics_input_block_type), intent(in)  :: Physics_input_block 
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   type(edmf_output_type)    , intent(in)  :: Output_edmf
   integer                   , intent(in)  :: ix, jx, kx
@@ -7909,6 +7950,8 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
 
 !--- local variable
   integer i,j,k,kk
+  real :: &
+    qa1, qc1, qi1, qt1
 !------------------------------------------
 
 !print*,'convert, Output_edmf%Qke, ix,jx,kx',size(Output_edmf%Qke,1),size(Output_edmf%Qke,2),size(Output_edmf%Qke,3)
@@ -7951,6 +7994,15 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
     am4_Output_edmf%diff_m_edmf (i,j,kk) = Output_edmf%exch_m    (i,k,j)
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
 
+    !--- if needed, make sure the updated qa, ql, qc, qi, qnd qt are larger than zero
+    !    if not, modify am4_Output_edmf tendencies
+    !qa1 = Physics_input_block%q(i,j,kk,nqa) + am4_Output_edmf%qadt_edmf(i,j,kk) * dt
+    !if (qa1 .lt. 0.) then
+    !  am4_Output_edmf%qadt_edmf(i,j,kk) = -1.*Physics_input_block%q(i,j,kk,nqa) / dt
+    !  print*,'no,k,am4,mynn',kk,am4_Output_edmf%qadt_edmf(i,j,kk),Output_edmf%RCCBLTEN  (i,k,j), &
+    !                           am4_Output_edmf%qadt_edmf(i,j,kk)-Output_edmf%RCCBLTEN  (i,k,j)
+    !endif
+
     !--- for testing purpose, “evaporate/condensate” the liquid and ice water that is produced during mixing
     if (do_qdt_same_as_qtdt) then
       am4_Output_edmf%qdt_edmf (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
@@ -7983,7 +8035,6 @@ subroutine convert_edmf_to_am4_array (ix, jx, kx, &
       am4_Output_edmf%qtdt_edmf   (i,j,kk) = 0.
       am4_Output_edmf%thldt_edmf  (i,j,kk) = 0.
     endif
-
 
   enddo  ! end loop of k
   enddo  ! end loop of j
