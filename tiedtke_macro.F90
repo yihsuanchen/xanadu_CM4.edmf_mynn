@@ -1231,7 +1231,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
 !<--- yhc111
 !------------------------------------------------------------------------
 !  modify cloud fraction when EDMF is active
-!    qa0 is qa(t) including the contribution from convection
+!    qa0 is qa(t) including the contribution from convection and clipping unrealistic values in impose_realizability
 !    qa1 is qa(t+dtcloud) = qa0 + qa_Tiedtke. qa_EDMF(t+dtcloud) = qa0+qadt_edmf*dtcloud
 !------------------------------------------------------------------------
         do k=1,kdim
