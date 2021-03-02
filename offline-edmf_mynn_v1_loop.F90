@@ -7487,6 +7487,11 @@ subroutine edmf_writeout_column ( &
 
 !-------------------------------------------------------------------------
 ! check tracer concentration 
+!   if needed, enabling codes in convert_edmf_to_am4_array to modify cloud tendencies to prevent negative tendencies
+!
+!   03-01-2022 Note: In the offline program with SCM_am4p0_RF01_02, the updated cloud fraction become negative (-1.e-8)
+!                    Although I set am4_Output_edmf%qadt_edmf = -1*Physics_input_block%q(i,j,k,nqa)/dt, the problem is still
+!                    I thought there is some numeric problems in the offline program.
 !-------------------------------------------------------------------------
   if (do_check_realizability) then
     i=1
@@ -7994,8 +7999,7 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
     am4_Output_edmf%diff_m_edmf (i,j,kk) = Output_edmf%exch_m    (i,k,j)
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
 
-    !--- if needed, make sure the updated qa, ql, qc, qi, qnd qt are larger than zero
-    !    if not, modify am4_Output_edmf tendencies
+    !--- if needed, modify am4_Output_edmf tendencies to make sure the updated qa, ql, qc, qi, qnd qt are larger than zero
     !qa1 = Physics_input_block%q(i,j,kk,nqa) + am4_Output_edmf%qadt_edmf(i,j,kk) * dt
     !if (qa1 .lt. 0.) then
     !  am4_Output_edmf%qadt_edmf(i,j,kk) = -1.*Physics_input_block%q(i,j,kk,nqa) / dt
