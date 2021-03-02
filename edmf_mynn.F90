@@ -484,9 +484,9 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                      FATAL )
   endif
 
-  if (    do_option_edmf2ls_mp.ne.0    &
-     .or. do_option_edmf2ls_mp.ne.1    &
-     .or. do_option_edmf2ls_mp.ne.2    &
+  if (     do_option_edmf2ls_mp.ne.0    &
+     .and. do_option_edmf2ls_mp.ne.1    &
+     .and. do_option_edmf2ls_mp.ne.2    &
      ) then
     call error_mesg( ' edmf_mynn',     &
                      ' do_option_edmf2ls_mp must be 0,1,or 2',&
