@@ -6553,7 +6553,7 @@ subroutine edmf_mynn_driver ( &
 
   !--- convert Output_edmf to am4_Output_edmf
   call convert_edmf_to_am4_array (Physics_input_block, size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag, Physics_input_block%z_full, &
+                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
                                   rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D) )
 
 !! debug01
@@ -8264,7 +8264,7 @@ end subroutine edmf_writeout_column
 !########################
 
 subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
-                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag, z_full, &
+                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
                                       Qke, el_pbl, cldfra_bl, qc_bl, Sh3D )
 
 !--- input arguments
@@ -8272,7 +8272,6 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   type(edmf_output_type)    , intent(in)  :: Output_edmf
   integer                   , intent(in)  :: ix, jx, kx
-  real, dimension (:,:,:)   , intent(in)  :: z_full 
 
 !--- output arguments
   type(am4_edmf_output_type), intent(inout) :: am4_Output_edmf
@@ -8378,7 +8377,7 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   do j=1,jx
     kk=kx-Output_edmf%kpbl (i,j)+1 
 
-    am4_Output_edmf%pbltop   (i,j) = z_full(i,j,kk)
+    am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
     am4_Output_edmf%kpbl_edmf(i,j) = kk
     !print*,'kpbl',Output_edmf%kpbl (i,j)
     !print*,'z_pbl',z_full(i,j,kk)   
