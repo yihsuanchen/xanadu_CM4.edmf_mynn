@@ -6336,7 +6336,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, &
+              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, kpbl_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
@@ -6376,6 +6376,9 @@ subroutine edmf_mynn_driver ( &
     rdiag
   real, intent(inout), dimension(:,:) :: &
     pbltop
+
+  integer, intent(inout), dimension(:,:) :: &
+    kpbl_edmf
 
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
@@ -6611,7 +6614,8 @@ subroutine edmf_mynn_driver ( &
     !rdt(:,:,:,nql)    = rdt(:,:,:,nql)    + am4_Output_edmf%qldt_edmf(:,:,:)  ! qldt_edmf will be handled by edmf2ls_mp
     !rdt(:,:,:,nqi)    = rdt(:,:,:,nqi)    + am4_Output_edmf%qidt_edmf(:,:,:)  ! qidt_edmf will be handled by edmf2ls_mp
 
-    pbltop (:,:) = am4_Output_edmf%pbltop(:,:)
+    pbltop    (:,:) = am4_Output_edmf%pbltop(:,:)
+    kpbl_edmf (:,:) = am4_Output_edmf%kpbl_edmf(:,:)
 
     !--- set edmf to ls_mp
     option_edmf2ls_mp = do_option_edmf2ls_mp
