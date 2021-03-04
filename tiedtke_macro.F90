@@ -1247,9 +1247,9 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
                qa1   (i,j,k) = min(1., max( qa1(i,j,k), qa0(i,j,k)+C2ls_mp%qadt_edmf(i,j,k)*dtcloud ) )
                qabar (i,j,k) = qa1(i,j,k)
 
-             ! assuming that only convection term is kept and that qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa0, qa_EDMF)
+             ! assuming that only convection, realizability clipping, and EDMF term are kept, no Tiedtke terms
              elseif (C2ls_mp%option_edmf2ls_mp.eq.2) then  ! EDMF terms replace Tiedtke 
-               qa1   (i,j,k) = min(1., max( qa0(i,j,k), qa0(i,j,k)+C2ls_mp%qadt_edmf(i,j,k)*dtcloud ) )
+               qa1   (i,j,k) = min(1., max( 0., qa0(i,j,k)+C2ls_mp%qadt_edmf(i,j,k)*dtcloud ) )
                qabar (i,j,k) = qa1(i,j,k)
 
              endif
