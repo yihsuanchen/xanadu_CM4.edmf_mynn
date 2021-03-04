@@ -507,13 +507,17 @@ real,    dimension(:,:,:), allocatable,target ::  diff_t_clubb
 
 real,    dimension(:,:,:), allocatable        :: temp_last, q_last
 
+!<-- yhc
 real,    dimension(:,:,:), allocatable,target :: &  ! yhc, the description of these variables is in edmf_ls_mp_type, edmf_mynn_mod
   qadt_edmf, qldt_edmf, qidt_edmf, &
   diff_t_edmf, &
   dqa_edmf,  dql_edmf, dqi_edmf
 
+integer, dimension(:,:), allocatable,target :: kpbl_edmf  
+
 integer,                   allocatable,target :: option_edmf2ls_mp  ! yhc
-type(edmf_ls_mp_type)                         :: edmf2ls_mp
+!type(edmf_ls_mp_type)                         :: edmf2ls_mp
+!--> yhc
 
 !--- for netcdf restart
 type(restart_file_type), pointer, save :: Phy_restart => NULL()
@@ -1107,6 +1111,7 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       allocate (  dql_edmf  (id, jd, kd))  ; dql_edmf  = 0.0  ! yhc
       allocate (  dqi_edmf  (id, jd, kd))  ; dqi_edmf  = 0.0  ! yhc
       allocate (  diff_t_edmf(id, jd, kd)) ; diff_t_edmf = 0.0  ! yhc
+      allocate (  kpbl_edmf  (id, jd))  ;  ; kpbl_edmf= 0     ! yhc
       !allocate (  (id, jd, kd))  ;  = 0.0  ! yhc
 
       if (do_cosp) then
@@ -2772,7 +2777,7 @@ real,dimension(:,:),    intent(inout)             :: gust
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                do_edmf_mynn_diagnostic, &
-               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, &
+               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, kpbl_edmf, &
                pbltop, udt, vdt, tdt, rdt, rdiag)
 
 ! set temp values
@@ -2878,6 +2883,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         Phys_mp_exch%dqa_edmf       =>    dqa_edmf(is:ie,js:je,:)   ! yhc
         Phys_mp_exch%dql_edmf       =>    dql_edmf(is:ie,js:je,:)   ! yhc
         Phys_mp_exch%dqi_edmf       =>    dqi_edmf(is:ie,js:je,:)   ! yhc
+        Phys_mp_exch%kpbl_edmf      =>    kpbl_edmf(is:ie,js:je)   ! yhc
 
         if (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
           Phys_mp_exch%diff_t => diff_t_edmf(is:ie,js:je,:)
@@ -3203,6 +3209,7 @@ real,dimension(:,:),    intent(inout)             :: gust
       Phys_mp_exch%dqa_edmf       => null()  ! yhc
       Phys_mp_exch%dql_edmf       => null()  ! yhc
       Phys_mp_exch%dqi_edmf       => null()  ! yhc
+      Phys_mp_exch%kpbl_edmf      => null()  ! yhc
 !-----------------------------------------------------------------------
 
 
@@ -3392,7 +3399,7 @@ integer :: moist_processes_term_clock, damping_term_clock, turb_term_clock, &
                   hmint, cgust, tke, pblhto, rkmo, taudpo, exist_shconv, &  ! h1g, 2017-01-31
                   exist_dpconv, & 
                   pblht_prev, hlsrc_prev, qtsrc_prev, cape_prev, cin_prev, tke_prev, & !h1g, 2017-01-31
-                  option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, diff_t_edmf, &  !yhc
+                  option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, diff_t_edmf, kpbl_edmf, &  !yhc
                   dqa_edmf, dql_edmf, dqi_edmf, & ! yhc
                   convect, radturbten, r_convect)
 

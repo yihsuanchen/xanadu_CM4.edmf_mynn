@@ -108,6 +108,7 @@ use tracer_manager_mod, only: get_tracer_index, get_number_tracers
       real, dimension(:,:,:), pointer :: dqa_edmf    => null()   ! yhc
       real, dimension(:,:,:), pointer :: dql_edmf    => null()   ! yhc
       real, dimension(:,:,:), pointer :: dqi_edmf    => null()   ! yhc
+      integer, dimension(:,:), pointer :: kpbl_edmf   => null()   ! yhc
  end type phys_mp_exch_type
 
 public Phys2cosp_type

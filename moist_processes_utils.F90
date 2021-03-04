@@ -133,6 +133,7 @@ type mp_conv2ls_type
       real, dimension(:,:,:), pointer :: dqa_edmf    => null()   ! yhc
       real, dimension(:,:,:), pointer :: dql_edmf    => null()   ! yhc
       real, dimension(:,:,:), pointer :: dqi_edmf    => null()   ! yhc
+      integer, dimension(:,:), pointer :: kpbl_edmf    => null()   ! yhc
 end type mp_conv2ls_type
 
 type mp_nml_type
