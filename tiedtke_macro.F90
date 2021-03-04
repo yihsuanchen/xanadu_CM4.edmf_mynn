@@ -554,10 +554,9 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
       do k=1,kdim
       do j=1,jdim
       do i=1,idim
-        if (      C2ls_mp%qadt_edmf(i,j,k) .ne. 0.   &
-             .or. C2ls_mp%qldt_edmf(i,j,k) .ne. 0.   &
-             .or. C2ls_mp%qidt_edmf(i,j,k) .ne. 0.   &
-           ) then
+
+        !--- add EDMF terms to Tiedtke only inside PBL, i.e. k <= kpbl_edmf
+        if ( C2ls_mp%kpbl_edmf(i,j).gt.0 .and. k.le.C2ls_mp%kpbl_edmf(i,j) ) then
 
            ! assuming that all Tiedtke terms are kept and that qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa1, qa_EDMF)
            if (C2ls_mp%option_edmf2ls_mp.eq.1) then      ! EDMF terms are added to Tiedtke
@@ -569,8 +568,9 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
              Cloud_processes%dcond_ls_ice (i,j,k) = C2ls_mp%qidt_edmf(i,j,k) * dtcloud
              Cloud_processes%dcond_ls     (i,j,k) = C2ls_mp%qldt_edmf(i,j,k) * dtcloud
 
-           endif
-        endif   ! end if of C2ls_mp%option_edmf2ls_mp
+           endif  ! end if of C2ls_mp%option_edmf2ls_mp
+        endif     ! end if C2ls_mp%kpbl_edmf
+
       enddo
       enddo
       enddo
@@ -1091,16 +1091,13 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
         do k=1,kdim
         do j=1,jdim
         do i=1,idim
-          !--- if EDMF cloud tendencies are non-zero, deactivate the cloud erosion term in Tiedtke
+          !--- in the PBL, deactivate the cloud erosion term in Tiedtke
           !    assuming these terms are handled by EDMF
-            if (      C2ls_mp%qadt_edmf(i,j,k) .ne. 0.   &
-                 .or. C2ls_mp%qldt_edmf(i,j,k) .ne. 0.   &
-                 .or. C2ls_mp%qidt_edmf(i,j,k) .ne. 0.   &
-               ) then
+          if ( C2ls_mp%kpbl_edmf(i,j).gt.0 .and. k.le.C2ls_mp%kpbl_edmf(i,j) ) then
                Cloud_processes%da_ls  (i,j,k) = 0.
                Cloud_processes%D_eros (i,j,k) = 0.
                dqs_ls                 (i,j,k) = 0.
-            endif
+           endif
         enddo
         enddo
         enddo
@@ -1237,10 +1234,9 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
         do k=1,kdim
         do j=1,jdim
         do i=1,idim
-          if (      C2ls_mp%qadt_edmf(i,j,k) .ne. 0.   &
-               .or. C2ls_mp%qldt_edmf(i,j,k) .ne. 0.   &
-               .or. C2ls_mp%qidt_edmf(i,j,k) .ne. 0.   &
-             ) then
+
+          !--- add EDMF terms to Tiedtke only inside PBL, i.e. k <= kpbl_edmf
+          if ( C2ls_mp%kpbl_edmf(i,j).gt.0 .and. k.le.C2ls_mp%kpbl_edmf(i,j) ) then
 
              ! assuming that all Tiedtke terms are kept and that qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa1, qa_EDMF)
              if (C2ls_mp%option_edmf2ls_mp.eq.1) then      ! EDMF terms are added to Tiedtke
@@ -1252,8 +1248,8 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
                qa1   (i,j,k) = min(1., max( 0., qa0(i,j,k)+C2ls_mp%qadt_edmf(i,j,k)*dtcloud ) )
                qabar (i,j,k) = qa1(i,j,k)
 
-             endif
-          endif   ! end if of C2ls_mp%option_edmf2ls_mp
+            endif   ! end if of C2ls_mp%option_edmf2ls_mp
+          endif     ! end if of C2ls_mp%kpbl_edmf
         enddo         
         enddo         
         enddo         
