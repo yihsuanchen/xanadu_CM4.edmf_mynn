@@ -380,21 +380,23 @@ end type edmf_ls_mp_type
   logical :: do_check_consrv = .false.          ! control whether writing out the water/heat conservation
   logical :: do_check_realizability = .false.   ! control whether writing out current and update cloud properties (qa,ql)
   logical :: do_stop_run = .false.              ! whether to stop the simulation
-  real    :: tdt_max     = 500. ! K/day
-  logical :: do_limit_tdt = .false.
-  real    :: tdt_limit =   200. ! K/day
+  real    :: qke_min = 0.04                     ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
                                                 ! 1.E-10 is same as qmin in lscloud_driver
   integer :: do_option_edmf2ls_mp = 0           ! option to include EDMF cloud tendencies terms into Tiedtke
-                                                ! =0, not include EDMF terms into Tiedtke
-                                                ! =1, add EDMF term and keep Tiedtke terms except turbulence heating
-                                                ! =2, add EDMF term and remove large-scale and coud erosion terms
+                                                ! =0, add EDMF terms to accumulated ql and qi tendnecies
+                                                ! =1, add EDMF terms to Tiedtke and keep Tiedtke terms except turbulence heating
+                                                ! =2, add EDMF terms to Tiedtke and remove large-scale and coud erosion terms
+                                                ! =3, evaporate ql and qi and put these water back to vapor and change temperature accordingly
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
+  real    :: tdt_max     = 500. ! K/day
+  logical :: do_limit_tdt = .false.
+  real    :: tdt_limit =   200. ! K/day
 
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, &
-                            L0, NUP, UPSTAB, edmf_type, &
+                            L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, &
                             do_option_edmf2ls_mp, &
@@ -490,6 +492,7 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
   if (     do_option_edmf2ls_mp.ne.0    &
      .and. do_option_edmf2ls_mp.ne.1    &
      .and. do_option_edmf2ls_mp.ne.2    &
+     .and. do_option_edmf2ls_mp.ne.3    &
      ) then
     call error_mesg( ' edmf_mynn',     &
                      ' do_option_edmf2ls_mp must be 0,1,or 2',&
@@ -6394,7 +6397,6 @@ subroutine edmf_mynn_driver ( &
   integer, intent(out) :: &
     option_edmf2ls_mp
 
-
 !---------------------------------------------------------------------
 ! local variables  
 !---------------------------------------------------------------------
@@ -8354,7 +8356,7 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
     !!! rdiag(i,j,kk,n)      = Output_edmf%      (i,k,j)
 
     !--- To avoid MYNN condensation issues, Kay Suselj suggested to set tdt & qdt to zeros when TKE is small (<0.02 m2/s2)
-    if (Qke(i,j,kk) .lt. 0.04) then
+    if (Qke(i,j,kk) .lt. qke_min) then
       am4_Output_edmf%udt_edmf    (i,j,kk) = 0.
       am4_Output_edmf%vdt_edmf    (i,j,kk) = 0.
       am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
