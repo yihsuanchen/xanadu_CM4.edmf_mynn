@@ -145,6 +145,9 @@ type am4_edmf_output_type
   real, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
     pbltop
 
+  integer, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
+    kpbl_edmf
+
 end type am4_edmf_output_type
 
 !==================
@@ -7275,6 +7278,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%pbltop      (ix,jx))     ; am4_Output_edmf%pbltop      = 0.
   allocate (am4_Output_edmf%diff_t_edmf (ix,jx,kx))  ; am4_Output_edmf%diff_t_edmf = 0.
   allocate (am4_Output_edmf%diff_m_edmf (ix,jx,kx))  ; am4_Output_edmf%diff_m_edmf = 0.
+  allocate (am4_Output_edmf%kpbl_edmf   (ix,jx))     ; am4_Output_edmf%kpbl_edmf   = 0
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
@@ -7676,6 +7680,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%pbltop      )  
   deallocate (am4_Output_edmf%diff_t_edmf )  
   deallocate (am4_Output_edmf%diff_m_edmf )  
+  deallocate (am4_Output_edmf%kpbl_edmf   )  
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -8368,7 +8373,9 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   do i=1,ix
   do j=1,jx
     kk=kx-Output_edmf%kpbl (i,j)+1 
-    am4_Output_edmf%pbltop(i,j) = z_full(i,j,kk)
+
+    am4_Output_edmf%pbltop   (i,j) = z_full(i,j,kk)
+    am4_Output_edmf%kpbl_edmf(i,j) = kk
     !print*,'kpbl',Output_edmf%kpbl (i,j)
     !print*,'z_pbl',z_full(i,j,kk)   
   enddo  ! end loop of j
