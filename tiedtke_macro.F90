@@ -556,7 +556,7 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
       do i=1,idim
 
         !--- add EDMF terms to Tiedtke only inside PBL, i.e. k <= kpbl_edmf
-        if ( C2ls_mp%kpbl_edmf(i,j).gt.0 .and. k.le.C2ls_mp%kpbl_edmf(i,j) ) then
+        if ( C2ls_mp%kpbl_edmf(i,j).gt.0 .and. k.ge.C2ls_mp%kpbl_edmf(i,j) ) then
 
            ! assuming that all Tiedtke terms are kept and that qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa1, qa_EDMF)
            if (C2ls_mp%option_edmf2ls_mp.eq.1) then      ! EDMF terms are added to Tiedtke
@@ -1093,7 +1093,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
         do i=1,idim
           !--- in the PBL, deactivate the cloud erosion term in Tiedtke
           !    assuming these terms are handled by EDMF
-          if ( C2ls_mp%kpbl_edmf(i,j).gt.0 .and. k.le.C2ls_mp%kpbl_edmf(i,j) ) then
+          if ( C2ls_mp%kpbl_edmf(i,j).gt.0 .and. k.ge.C2ls_mp%kpbl_edmf(i,j) ) then
                Cloud_processes%da_ls  (i,j,k) = 0.
                Cloud_processes%D_eros (i,j,k) = 0.
                dqs_ls                 (i,j,k) = 0.
@@ -1236,7 +1236,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
         do i=1,idim
 
           !--- add EDMF terms to Tiedtke only inside PBL, i.e. k <= kpbl_edmf
-          if ( C2ls_mp%kpbl_edmf(i,j).gt.0 .and. k.le.C2ls_mp%kpbl_edmf(i,j) ) then
+          if ( C2ls_mp%kpbl_edmf(i,j).gt.0 .and. k.ge.C2ls_mp%kpbl_edmf(i,j) ) then
 
              ! assuming that all Tiedtke terms are kept and that qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa1, qa_EDMF)
              if (C2ls_mp%option_edmf2ls_mp.eq.1) then      ! EDMF terms are added to Tiedtke
@@ -1302,11 +1302,6 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
       END IF      
 
 !-----------------------------------------------------------------------
-
-write(6,*) 'yhc, use_qabar',use_qabar
-write(6,*) 'yhc, dtcloud',dtcloud
-write(6,*) 'yhc, Cloud_processes%D_eros',Cloud_processes%D_eros
-write(6,*) 'yhc, qa1',qa1
 
 end subroutine tiedtke_macro_nopdf_nosuper 
 
