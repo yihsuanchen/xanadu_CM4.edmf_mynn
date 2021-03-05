@@ -158,14 +158,16 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    !logical :: do_check_realizability = .true.
    logical :: do_check_realizability = .false.
 
+  integer :: edmf_type=1                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
+                                                ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
+  real    :: qke_min = 0.04                     ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
                                                 ! 1.E-10 is same as qmin in lscloud_driver
   integer :: do_option_edmf2ls_mp = 0           ! option to include EDMF cloud tendencies terms into Tiedtke
-                                                ! =0, not include EDMF terms into Tiedtke
-                                                ! =1, add EDMF term and keep Tiedtke terms except turbulence heating
-                                                ! =2, add EDMF term and remove large-scale and coud erosion terms
-  integer :: edmf_type=1                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
-                                                ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
+                                                ! =0, add EDMF terms to accumulated ql and qi tendnecies
+                                                ! =1, add EDMF terms to Tiedtke and keep Tiedtke terms except turbulence heating
+                                                ! =2, add EDMF terms to Tiedtke and remove large-scale and coud erosion terms
+                                                ! =3, evaporate ql and qi and put these water back to vapor and change temperature accordingly
 
 !==================
 type edmf_input_type
@@ -227,6 +229,9 @@ type am4_edmf_output_type
 
   real, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
     pbltop
+
+  integer, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
+    kpbl_edmf
 
 end type am4_edmf_output_type
 
@@ -6037,7 +6042,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, &
+              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, kpbl_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
@@ -6078,6 +6083,9 @@ subroutine edmf_mynn_driver ( &
   real, intent(inout), dimension(:,:) :: &
     pbltop
 
+  integer, intent(inout), dimension(:,:) :: &
+    kpbl_edmf
+
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
 !   search "type edmf_ls_mp_type" to see the inside variables in this program 
@@ -6092,7 +6100,6 @@ subroutine edmf_mynn_driver ( &
   integer, intent(out) :: &
     option_edmf2ls_mp
 
-
 !---------------------------------------------------------------------
 ! local variables  
 !---------------------------------------------------------------------
@@ -6105,7 +6112,14 @@ subroutine edmf_mynn_driver ( &
   real    :: lat_lower, lat_upper, lon_lower, lon_upper, lat_temp, lon_temp
   real    :: tt1
   integer :: i,j,k
+  !integer :: ix, jx, kx, nt, kxp
 !-------------------------
+
+  !ix = size(Physics_input_block%t,1)
+  !jx = size(Physics_input_block%t,2)
+  !kx = size(Physics_input_block%t,3)
+  !nt = size(Physics_input_block%q,4)
+  !kxp = kx + 1
 
 !! debug01
 !write(6,*) 'edmf_mynn, beginning'
@@ -6251,7 +6265,7 @@ subroutine edmf_mynn_driver ( &
 
   !--- convert Output_edmf to am4_Output_edmf
   call convert_edmf_to_am4_array (Physics_input_block, size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag, Physics_input_block%z_full, &
+                                  Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
                                   rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D) )
 
 !! debug01
@@ -6292,6 +6306,10 @@ subroutine edmf_mynn_driver ( &
 !  enddo
 !-->
 
+!---------------------------------------------------------------------
+! return EDMF-MYNN terms to the host model
+!---------------------------------------------------------------------
+
   !--- initialize return variables 
   option_edmf2ls_mp = 0
   qadt_edmf   = 0.
@@ -6302,30 +6320,45 @@ subroutine edmf_mynn_driver ( &
   dqi_edmf    = 0.
   diff_t_edmf = 0.
 
-  !--- updated tendencies
   if (.not.do_edmf_mynn_diagnostic) then
+
+    !--- updated tendencies
     udt(:,:,:) = udt(:,:,:) + am4_Output_edmf%udt_edmf(:,:,:)
     vdt(:,:,:) = vdt(:,:,:) + am4_Output_edmf%vdt_edmf(:,:,:)
     tdt(:,:,:) = tdt(:,:,:) + am4_Output_edmf%tdt_edmf(:,:,:)
 
     rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
-    !rdt(:,:,:,nql)    = rdt(:,:,:,nql)    + am4_Output_edmf%qldt_edmf(:,:,:)  ! qldt_edmf will be handled by edmf2ls_mp
-    !rdt(:,:,:,nqi)    = rdt(:,:,:,nqi)    + am4_Output_edmf%qidt_edmf(:,:,:)  ! qidt_edmf will be handled by edmf2ls_mp
 
-    pbltop (:,:) = am4_Output_edmf%pbltop(:,:)
+    !--- return PBL depth, index of PBL top, and diffusion coefficient for heat
+    pbltop      (:,:)   = am4_Output_edmf%pbltop      (:,:)        ! PBL depth (m)
+    kpbl_edmf   (:,:)   = am4_Output_edmf%kpbl_edmf   (:,:)        ! index of PBL top (none)
+    diff_t_edmf (:,:,:) = am4_Output_edmf%diff_t_edmf (:,:,:)      ! diffusion coefficient for heat (K m/s)
 
     !--- set edmf to ls_mp
     option_edmf2ls_mp = do_option_edmf2ls_mp
 
-    qadt_edmf     (:,:,:) = am4_Output_edmf%qadt_edmf(:,:,:)
-    qldt_edmf     (:,:,:) = am4_Output_edmf%qldt_edmf(:,:,:)
-    qidt_edmf     (:,:,:) = am4_Output_edmf%qidt_edmf(:,:,:)
+    if (option_edmf2ls_mp.eq.0) then
+      rdt(:,:,:,nqa)  = rdt(:,:,:,nqa) + am4_Output_edmf%qadt_edmf(:,:,:)  
+      rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
+      rdt(:,:,:,nqi)  = rdt(:,:,:,nqi) + am4_Output_edmf%qidt_edmf(:,:,:)
+
+    elseif (option_edmf2ls_mp.eq.1 .or. option_edmf2ls_mp.eq.2) then
+      qadt_edmf     (:,:,:) = am4_Output_edmf%qadt_edmf(:,:,:)
+      qldt_edmf     (:,:,:) = am4_Output_edmf%qldt_edmf(:,:,:)
+      qidt_edmf     (:,:,:) = am4_Output_edmf%qidt_edmf(:,:,:)
+
+    elseif (option_edmf2ls_mp.eq.3) then   ! the changes of qdt_edmf is handled in convert_edmf_to_am4_array
+      qadt_edmf   = 0.
+      qldt_edmf   = 0.
+      qidt_edmf   = 0.
+    
+    endif  ! end if of option_edmf2ls_mp
+
     dqa_edmf      (:,:,:) = qadt_edmf(:,:,:) * dt
     dql_edmf      (:,:,:) = qldt_edmf(:,:,:) * dt
     dqi_edmf      (:,:,:) = qidt_edmf(:,:,:) * dt
     
-    diff_t_edmf   (:,:,:) = am4_Output_edmf%diff_t_edmf(:,:,:)
-  end if
+  end if  ! end if of do_edmf_mynn_diagnostic
 
   !--- write out EDMF-MYNN input and output fields for debugging purpose
   call edmf_writeout_column ( &
@@ -6497,6 +6530,21 @@ subroutine edmf_mynn_driver ( &
 !!------- PBL depth from edmf_mynn (units: m) at one level -------
 !      if ( id_z_pbl_edmf > 0) then
 !        used = send_data (id_z_pbl_edmf, am4_Output_edmf%pbltop, Time_next, is, js )
+!      endif
+!
+!!------- qt tendency from edmf_mynn (units: kg/kg/s) at full level -------
+!      if ( id_qtdt_edmf > 0) then
+!        used = send_data (id_qtdt_edmf, am4_Output_edmf%qtdt_edmf, Time_next, is, js, 1 )
+!      endif
+!
+!!------- thl tendency from edmf_mynn (units: K/s) at full level -------
+!      if ( id_thldt_edmf > 0) then
+!        used = send_data (id_thldt_edmf, am4_Output_edmf%thldt_edmf, Time_next, is, js, 1 )
+!      endif
+!
+!!------- heat diff coeffs from edmf_mynn (units: K/m/s) at full level -------
+!      if ( id_diff_t_edmf > 0) then
+!        used = send_data (id_diff_t_edmf, am4_Output_edmf%diff_t_edmf, Time_next, is, js, 1 )
 !      endif
 
 !---------------------------------------------------------------------
@@ -6964,6 +7012,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%pbltop      (ix,jx))     ; am4_Output_edmf%pbltop      = 0.
   allocate (am4_Output_edmf%diff_t_edmf (ix,jx,kx))  ; am4_Output_edmf%diff_t_edmf = 0.
   allocate (am4_Output_edmf%diff_m_edmf (ix,jx,kx))  ; am4_Output_edmf%diff_m_edmf = 0.
+  allocate (am4_Output_edmf%kpbl_edmf   (ix,jx))     ; am4_Output_edmf%kpbl_edmf   = 0
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
@@ -7365,6 +7414,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%pbltop      )  
   deallocate (am4_Output_edmf%diff_t_edmf )  
   deallocate (am4_Output_edmf%diff_m_edmf )  
+  deallocate (am4_Output_edmf%kpbl_edmf   )  
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -7503,7 +7553,9 @@ subroutine edmf_writeout_column ( &
       tt1 = Physics_input_block%q(i,j,k,nqa)
       tt2 = Physics_input_block%q(i,j,k,nqa) + am4_Output_edmf%qadt_edmf(i,j,k) * dt
       tt3 = Output_edmf%cldfra_bl(i,kk,j)
-      print*,'k,qa_new,qa_bl,qa_old',k,tt2,tt3,tt1
+      if (tt2.ne.tt3) then
+        print*,'k,qa_new,qa_bl,qa_old',k,tt2,tt3,tt1
+      endif
     enddo
 
     !--- ql
@@ -7513,7 +7565,9 @@ subroutine edmf_writeout_column ( &
       tt1 = Physics_input_block%q(i,j,k,nql)
       tt2 = Physics_input_block%q(i,j,k,nql) + am4_Output_edmf%qldt_edmf(i,j,k) * dt
       tt3 = Output_edmf%qc_bl(i,kk,j)
-      print*,'k,ql_new,qc_bl,ql_old',k,tt2,tt3,tt1
+      if (tt2.ne.tt3) then
+        print*,'k,ql_new,qc_bl,ql_old',k,tt2,tt3,tt1
+      endif
     enddo
 
     write(6,*) ''
@@ -7729,6 +7783,9 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; covariance of theta_l and q_t (none)'
         write(6,3002) ' Cov_thl_qt = (/'    ,am4_Output_edmf%Cov_thl_qt (ii_write,jj_write,:)
         write(6,*)    ' '
+        write(6,*)    '; EDMF diffusion coefficients for heat (K m/s)'
+        write(6,3002) ' diff_t_edmf = (/'    ,am4_Output_edmf%diff_t_edmf (ii_write,jj_write,:)
+        write(6,*)    ' '
         write(6,*)    '; u tendency from edmf_mynn (m/s2)'
         write(6,3002) ' udt_edmf = (/'    ,am4_Output_edmf%udt_edmf (ii_write,jj_write,:)
         write(6,*)    ' '
@@ -7937,7 +7994,7 @@ end subroutine edmf_writeout_column
 !########################
 
 subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
-                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag, z_full, &
+                                      Input_edmf, Output_edmf, am4_Output_edmf, rdiag, &
                                       Qke, el_pbl, cldfra_bl, qc_bl, Sh3D )
 
 !--- input arguments
@@ -7945,7 +8002,6 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   type(edmf_output_type)    , intent(in)  :: Output_edmf
   integer                   , intent(in)  :: ix, jx, kx
-  real, dimension (:,:,:)   , intent(in)  :: z_full 
 
 !--- output arguments
   type(am4_edmf_output_type), intent(inout) :: am4_Output_edmf
@@ -7956,7 +8012,7 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
 !--- local variable
   integer i,j,k,kk
   real :: &
-    qa1, qc1, qi1, qt1
+    dum, qa1, qc1, qi1, qt1
 !------------------------------------------
 
 !print*,'convert, Output_edmf%Qke, ix,jx,kx',size(Output_edmf%Qke,1),size(Output_edmf%Qke,2),size(Output_edmf%Qke,3)
@@ -8007,16 +8063,19 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
     !                           am4_Output_edmf%qadt_edmf(i,j,kk)-Output_edmf%RCCBLTEN  (i,k,j)
     !endif
 
-    !--- for testing purpose, “evaporate/condensate” the liquid and ice water that is produced during mixing
-    if (do_qdt_same_as_qtdt) then
-      am4_Output_edmf%qdt_edmf (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
-                                          + Output_edmf%RQCBLTEN (i,k,j)  &
-                                          + Output_edmf%RQIBLTEN (i,k,j) 
+    !--- do_option_edmf2ls_mp=3, “evaporate/condensate” the liquid and ice water that is produced during mixing
+    if (do_option_edmf2ls_mp.eq.3) then
+      am4_Output_edmf%qdt_edmf  (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
+                                           + Output_edmf%RQCBLTEN (i,k,j)  &
+                                           + Output_edmf%RQIBLTEN (i,k,j) 
+      am4_Output_edmf%qidt_edmf (i,j,kk) = 0. 
+      am4_Output_edmf%qldt_edmf (i,j,kk) = 0. 
+      am4_Output_edmf%qadt_edmf (i,j,kk) = 0. 
 
-      am4_Output_edmf%tdt_edmf (i,j,kk) =   Output_edmf%RTHBLTEN (i,k,j) &
-                                          - hlv/( cp_air*Input_edmf%exner(i,k,j) )*Output_edmf%RQCBLTEN (i,k,j)  &
-                                          - hls/( cp_air*Input_edmf%exner(i,k,j) )*Output_edmf%RQIBLTEN (i,k,j)
-      am4_Output_edmf%tdt_edmf (i,j,kk) = am4_Output_edmf%tdt_edmf (i,j,kk) / Input_edmf%exner (i,k,j)
+      dum                                =   Output_edmf%RTHBLTEN (i,k,j) &
+                                           - hlv/( cp_air*Input_edmf%exner(i,k,j) )*Output_edmf%RQCBLTEN (i,k,j)  &
+                                           - hls/( cp_air*Input_edmf%exner(i,k,j) )*Output_edmf%RQIBLTEN (i,k,j)
+      am4_Output_edmf%tdt_edmf  (i,j,kk) = dum / Input_edmf%exner (i,k,j)
     endif
 
     !--- change rdiag
@@ -8028,7 +8087,7 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
     !!! rdiag(i,j,kk,n)      = Output_edmf%      (i,k,j)
 
     !--- To avoid MYNN condensation issues, Kay Suselj suggested to set tdt & qdt to zeros when TKE is small (<0.02 m2/s2)
-    if (Qke(i,j,kk) .lt. 0.04) then
+    if (Qke(i,j,kk) .lt. qke_min) then
       am4_Output_edmf%udt_edmf    (i,j,kk) = 0.
       am4_Output_edmf%vdt_edmf    (i,j,kk) = 0.
       am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
@@ -8050,7 +8109,9 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   do i=1,ix
   do j=1,jx
     kk=kx-Output_edmf%kpbl (i,j)+1 
-    am4_Output_edmf%pbltop(i,j) = z_full(i,j,kk)
+
+    am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
+    am4_Output_edmf%kpbl_edmf(i,j) = kk
     !print*,'kpbl',Output_edmf%kpbl (i,j)
     !print*,'z_pbl',z_full(i,j,kk)   
   enddo  ! end loop of j
@@ -8062,6 +8123,7 @@ end subroutine convert_edmf_to_am4_array
 !#############################
 ! Mellor-Yamada
 !#############################
+
 
 !###################################
 !  do not copy these subroutiens
@@ -8100,6 +8162,7 @@ program test111
 
   !real,    dimension(ni,nj)   :: cov_w_thv, cov_w_qt
   real,    dimension(ni,nj)   :: z_pbl, pbltop
+  integer, dimension(ni,nj)   :: kpbl_edmf
   real,    dimension(ni,nj)   :: lat, lon, u_star, b_star, q_star, shflx, lhflx, frac_land, area, t_ref, q_ref, u_flux, v_flux
   real,    dimension(ni,nj)   :: buoy_flux, w1_thv1_surf, w1_qt1_surf
 
@@ -8851,12 +8914,13 @@ endif ! end if of input profile
 !              pbltop, udt, vdt, tdt, rdt, rdiag(:,:,:,ntp+1:))
 !              !udt, vdt, tdt, rdt, rdiag)
 
-   call edmf_mynn_driver ( &
+   call  edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, &
+              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, kpbl_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
+
 
     ! update fields
     Physics_input_block%u = Physics_input_block%u + udt(:,:,:)*dt
