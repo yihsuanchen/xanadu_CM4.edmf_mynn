@@ -1962,6 +1962,7 @@ type(MP_removal_type),    intent(inout) :: Removal_mp
       C2ls_mp%dqa_edmf           =>    Phys_mp_exch%dqa_edmf        ! yhc
       C2ls_mp%dql_edmf           =>    Phys_mp_exch%dql_edmf        ! yhc
       C2ls_mp%dqi_edmf           =>    Phys_mp_exch%dqi_edmf        ! yhc
+      C2ls_mp%kpbl_edmf          =>    Phys_mp_exch%kpbl_edmf        ! yhc
 
 !------------------------------------------------------------------------
 !    allocate and initialize an Mp_output_type variable which will
@@ -2164,6 +2165,7 @@ type(MP_removal_type),  intent(inout) :: Removal_mp
       C2ls_mp%dqa_edmf           => null()  ! yhc
       C2ls_mp%dql_edmf           => null()  ! yhc
       C2ls_mp%dqi_edmf           => null()  ! yhc
+      C2ls_mp%kpbl_edmf          => null()  ! yhc
 !--------------------------------------------------------------------
 
 end subroutine MP_dealloc
