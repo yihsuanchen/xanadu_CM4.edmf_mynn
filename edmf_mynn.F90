@@ -8230,6 +8230,18 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
 !------------------------------------------
 
 !---------------
+! 2D variables
+!---------------
+  do i=1,ix
+  do j=1,jx
+    kk=kx-Output_edmf%kpbl (i,j)+1 
+
+    am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
+    am4_Output_edmf%kpbl_edmf(i,j) = kk
+  enddo  ! end loop of j
+  enddo  ! end loop of 1
+
+!---------------
 ! 3D variables
 !---------------
 
@@ -8271,8 +8283,11 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
     !                           am4_Output_edmf%qadt_edmf(i,j,kk)-Output_edmf%RCCBLTEN  (i,k,j)
     !endif
 
-    !--- do_option_edmf2ls_mp=3, “evaporate/condensate” the liquid and ice water that is produced during mixing
-    if (do_option_edmf2ls_mp.eq.3) then
+    !--- “evaporate/condensate” the liquid and ice water that is produced during mixing when 
+    !       do_option_edmf2ls_mp=3, 
+    !       or above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
+    if (     do_option_edmf2ls_mp.eq.3     &
+        .or. kk.lt.am4_Output_edmf%kpbl_edmf(i,j) ) then
       am4_Output_edmf%qdt_edmf  (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
                                            + Output_edmf%RQCBLTEN (i,k,j)  &
                                            + Output_edmf%RQIBLTEN (i,k,j) 
@@ -8309,18 +8324,6 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
     endif
 
   enddo  ! end loop of k
-  enddo  ! end loop of j
-  enddo  ! end loop of 1
-
-!---------------
-! 2D variables
-!---------------
-  do i=1,ix
-  do j=1,jx
-    kk=kx-Output_edmf%kpbl (i,j)+1 
-
-    am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
-    am4_Output_edmf%kpbl_edmf(i,j) = kk
   enddo  ! end loop of j
   enddo  ! end loop of 1
 
