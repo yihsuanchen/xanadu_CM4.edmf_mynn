@@ -8256,7 +8256,7 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
     am4_Output_edmf%Cov_thl_qt  (i,j,kk) = Output_edmf%Cov       (i,k,j)
     am4_Output_edmf%udt_edmf    (i,j,kk) = Output_edmf%RUBLTEN   (i,k,j) 
     am4_Output_edmf%vdt_edmf    (i,j,kk) = Output_edmf%RVBLTEN   (i,k,j)
-    am4_Output_edmf%tdt_edmf    (i,j,kk) = Output_edmf%RTHBLTEN  (i,k,j) / Input_edmf%exner (i,k,j)
+    am4_Output_edmf%tdt_edmf    (i,j,kk) = Output_edmf%RTHBLTEN  (i,k,j) * Input_edmf%exner (i,k,j)
     am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN  (i,k,j)
     am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN  (i,k,j)
     am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN  (i,k,j)
@@ -8295,10 +8295,9 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       am4_Output_edmf%qldt_edmf (i,j,kk) = 0. 
       am4_Output_edmf%qadt_edmf (i,j,kk) = 0. 
 
-      dum                                =   Output_edmf%RTHBLTEN (i,k,j) &
-                                           - hlv/( cp_air*Input_edmf%exner(i,k,j) )*Output_edmf%RQCBLTEN (i,k,j)  &
-                                           - hls/( cp_air*Input_edmf%exner(i,k,j) )*Output_edmf%RQIBLTEN (i,k,j)
-      am4_Output_edmf%tdt_edmf  (i,j,kk) = dum / Input_edmf%exner (i,k,j)
+      am4_Output_edmf%tdt_edmf  (i,j,kk) =   Input_edmf%exner (i,k,j) * Output_edmf%RTHBLTEN (i,k,j) &
+                                           - hlv/cp_air * Output_edmf%RQCBLTEN (i,k,j)  &
+                                           - hls/cp_air * Output_edmf%RQIBLTEN (i,k,j)
     endif
 
     !--- change rdiag
