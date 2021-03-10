@@ -7181,8 +7181,8 @@ code version
 a5*, b5*, rfo5* series
 
 Major code version
-  edmf_mynn.F90, 
-	1d9318217a2fa3c9b2ed69f36ce9582d814fb2f0
+  edmf_mynn.F90,
+	4d0a9632682c0f68bd4950d5ddb20f1a0d63bcdb 
   physics_driver.F90, 
 	1d4a4b00c585d646191f951aae569bc7240006c3
   tiedtke_macro.F90
@@ -7245,6 +7245,146 @@ Major code version
   </experiment>
 
   <experiment name="rfo53c-RF01-mynn_modQDT" inherit="rfo53-RF01-mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 3
+      </namelist>
+    </input>
+  </experiment>
+
+<!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  -->
+<!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  -->
+<!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  -->
+
+  <experiment name="a50-GCSS_ARM-am4p0_rad_mynn_diag" inherit="a30-GCSS_ARM-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a53-GCSS_ARM-mynn" inherit="a33-GCSS_ARM-am4p0_rad_mynn">
+  </experiment>
+
+  <experiment name="a53a-GCSS_ARM-mynn_tiedtkeADD" inherit="a53-GCSS_ARM-mynn">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a53b-GCSS_ARM-mynn_tiedtkeREP" inherit="a53-GCSS_ARM-mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 2
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="a53c-GCSS_ARM-mynn_modQDT" inherit="a53-GCSS_ARM-mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 3
+      </namelist>
+    </input>
+  </experiment>
+
+<!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  -->
+<!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  -->
+<!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  -->
+
+  <experiment name="b50-BOMEX-am4p0_rad_mynn_diag" inherit="b30-BOMEX-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b53-BOMEX-mynn" inherit="b33-BOMEX-am4p0_rad_mynn">
+  </experiment>
+
+  <experiment name="b53a-BOMEX-mynn_tiedtkeADD" inherit="b53-BOMEX-mynn">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b53b-BOMEX-mynn_tiedtkeREP" inherit="b53-BOMEX-mynn">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 2
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b53c-BOMEX-mynn_modQDT" inherit="b53-BOMEX-mynn">
     <input>
       <namelist name="edmf_mynn_nml">
  DO_WRITEOUT_COLUMN_NML  = T,
