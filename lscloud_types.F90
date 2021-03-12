@@ -34,6 +34,7 @@ TYPE diag_id_type
   integer :: aall, aliq, aice, cf_liq_init, cf_ice_init, aauto
   integer :: SA3d, qadt_lsform, qadt_lsdiss, qadt_rhred, qadt_eros,  &
              qadt_fill, qadt_super, qadt_destr, qadt_limits, qadt_ahuco, &
+             qadt_edmf_ls, & ! yhc111
              SA_imb
   integer :: SA2d, qa_lsform_col, qa_lsdiss_col, qa_rhred_col,  &
              qa_eros_col, qa_fill_col, qa_super_col, qa_destr_col,     &
@@ -161,6 +162,7 @@ TYPE diag_pt_type
   integer :: aall, aliq, aice, cf_liq_init, cf_ice_init, aauto
   integer :: SA3d, qadt_lsform, qadt_lsdiss, qadt_rhred, qadt_eros,  &
              qadt_fill, qadt_super, qadt_destr, qadt_limits, qadt_ahuco, &
+             qadt_edmf_ls, & ! yhc111
              SA_imb
 
 !  cloud liquid variables
