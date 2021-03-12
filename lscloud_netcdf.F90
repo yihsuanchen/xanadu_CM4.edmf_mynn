@@ -566,6 +566,12 @@ integer,                         intent(in) :: is, js, kdim
               (diag_id%qadt_ahuco, diag_4d(:,:,:,diag_pt%qadt_ahuco), &
                Time, is, js, 1)
 
+      !<--- yhc111
+      used = send_data   &
+              (diag_id%qadt_edmf_ls, diag_4d(:,:,:,diag_pt%qadt_edmf_ls), &
+               Time, is, js, 1)
+      !---> yhc111
+
 !------------------------------------------------------------------------
 !   16)  variables added by h1g with ncar M-G microphysics
 !------------------------------------------------------------------------
@@ -1179,6 +1185,8 @@ integer,            intent(out)   :: n_diag_4d, n_diag_4d_kp1
 !-----------------------------------------------------------------------
 !---local variables--------------------------------------------------
       integer, dimension(3) :: half = (/1,2,4/)
+
+      integer id_qadt_edmf_ls  ! yhc111
 
 !-------------------------------------------------------------------------
 !    register the available netcdf fields if they have been requested.
@@ -1806,6 +1814,16 @@ integer,            intent(out)   :: n_diag_4d, n_diag_4d_kp1
              'qadt_ahuco', axes(1:3), Time, &
              'cloud fraction tendency from convective area restriction', &
              '1/sec', missing_value=missing_value)
+
+      !<--- yhc111
+      !diag_id%qadt_edmf_ls = register_diag_field (mod_name, &    ! this diag_id%qadt_edmf_ls doesn't work (return -1). Don't know why.
+      id_qadt_edmf_ls = register_diag_field (mod_name, &
+             'qadt_edmf_ls', axes(1:3), Time, &
+             'cloud fraction tendency from edmf_to_ls', '1/sec',   &
+             missing_value=missing_value)
+
+      diag_id%qadt_edmf_ls = id_qadt_edmf_ls
+      !---> yhc111
 
   !------------------------------------------------------------------------
   !   16)  variables added by h1g with ncar M-G microphysics
@@ -3223,6 +3241,16 @@ integer,            intent(out)   :: n_diag_4d, n_diag_4d_kp1
         n_diag_4d = n_diag_4d + 1 
       end if
 
+      !<--- yhc111
+      if (diag_id%qadt_edmf_ls > 0) then
+        diag_pt%qadt_edmf_ls = n_diag_4d
+        n_diag_4d = n_diag_4d + 1 
+      end if
+
+write(6,*) 'diag_id%qadt_edmf_ls',diag_id%qadt_edmf_ls
+      !---> yhc111
+
+
 !REV#9
 !------------------------------------------------------------------------
 !   16)  variables added by h1g with ncar M-G microphysics
@@ -3417,6 +3445,7 @@ integer,            intent(out)   :: n_diag_4d, n_diag_4d_kp1
         diag_pt%cld_ice_imb      = n_diag_4d
         n_diag_4d = n_diag_4d + 1 
       end if
+
 
 !----------------------------------------------------------------------
 
