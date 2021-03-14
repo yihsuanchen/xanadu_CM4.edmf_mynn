@@ -1078,11 +1078,28 @@ type(aerosol_type),          intent(in), optional :: Aerosol
 !    the nml specification provided.
 !---------------------------------------------------------------------
           call mpp_clock_begin (ls_macrophysics_clock)
+
+!write(6,*) 'yhc, ls_cloud_macrophysics before'
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqa)',Tend_mp%q_tnd(:,:,:,nqa)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nql)',Tend_mp%q_tnd(:,:,:,nql)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqi)',Tend_mp%q_tnd(:,:,:,nqi)
+!write(6,*) 'Cloud_state%SA_out',Cloud_state%SA_out
+!write(6,*) 'Cloud_state%SL_out',Cloud_state%SL_out
+!write(6,*) 'Cloud_state%SI_out',Cloud_state%SI_out
+
           call ls_cloud_macrophysics (    &
                    is, ie, js, je, Time, dt, rdiag, Input_mp, Output_mp, &
                    Tend_mp, C2ls_mp, Lsdiag_mp_control, Lsdiag_mp, &
                    Atmos_state, Cloud_state, &
                    Particles, Precip_state, Cloud_processes, Aerosol)    
+
+!write(6,*) 'yhc, ls_cloud_macrophysics after'
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqa)',Tend_mp%q_tnd(:,:,:,nqa)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nql)',Tend_mp%q_tnd(:,:,:,nql)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqi)',Tend_mp%q_tnd(:,:,:,nqi)
+!write(6,*) 'Cloud_state%SA_out',Cloud_state%SA_out
+!write(6,*) 'Cloud_state%SL_out',Cloud_state%SL_out
+!write(6,*) 'Cloud_state%SI_out',Cloud_state%SI_out
 
 !---------------------------------------------------------------------
 !    end the timing of the ls cloud macrophysics code section.
@@ -1143,12 +1160,29 @@ type(aerosol_type),          intent(in), optional :: Aerosol
 !    begin the timing of the ls cloud microphysics code section.
 !---------------------------------------------------------------------
             call mpp_clock_begin (ls_microphysics_clock)
+
+!write(6,*) 'yhc, ls_cloud_microphysics before'
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqa)',Tend_mp%q_tnd(:,:,:,nqa)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nql)',Tend_mp%q_tnd(:,:,:,nql)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqi)',Tend_mp%q_tnd(:,:,:,nqi)
+!write(6,*) 'Cloud_state%SA_out',Cloud_state%SA_out
+!write(6,*) 'Cloud_state%SL_out',Cloud_state%SL_out
+!write(6,*) 'Cloud_state%SI_out',Cloud_state%SI_out
+
             call ls_cloud_microphysics    &
                 (is, ie, js, je, Time, dt,  &
                  Input_mp, Output_mp, C2ls_mp, Tend_mp, Lsdiag_mp, &
                  Lsdiag_mp_control, &
                  Atmos_state, Cloud_state, Particles, Precip_state,  &
                                      Cloud_processes, Removal_mp, Aerosol)
+
+!write(6,*) 'yhc, ls_cloud_microphysics after'
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqa)',Tend_mp%q_tnd(:,:,:,nqa)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nql)',Tend_mp%q_tnd(:,:,:,nql)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqi)',Tend_mp%q_tnd(:,:,:,nqi)
+!write(6,*) 'Cloud_state%SA_out',Cloud_state%SA_out
+!write(6,*) 'Cloud_state%SL_out',Cloud_state%SL_out
+!write(6,*) 'Cloud_state%SI_out',Cloud_state%SI_out
 
 !---------------------------------------------------------------------
 !    end the timing of the ls cloud microphysics code section.
@@ -1164,6 +1198,15 @@ type(aerosol_type),          intent(in), optional :: Aerosol
 !-----------------------------------------------------------------------
           if (Constants_lsc%tiedtke_macrophysics .or. do_clubb > 0) then
             call mpp_clock_begin (detail_diag_clock)
+
+!write(6,*) 'yhc, detailed_diagnostics before'
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqa)',Tend_mp%q_tnd(:,:,:,nqa)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nql)',Tend_mp%q_tnd(:,:,:,nql)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqi)',Tend_mp%q_tnd(:,:,:,nqi)
+!write(6,*) 'Cloud_state%SA_out',Cloud_state%SA_out
+!write(6,*) 'Cloud_state%SL_out',Cloud_state%SL_out
+!write(6,*) 'Cloud_state%SI_out',Cloud_state%SI_out
+
             call detailed_diagnostics (      &
                 is, ie, js, je, Time, Lsdiag_mp_control%n_diag_4d,      &
                 Lsdiag_mp%diag_4d, Lsdiag_mp%diag_4d_kp1,&
@@ -1171,6 +1214,15 @@ type(aerosol_type),          intent(in), optional :: Aerosol
                 Lsdiag_mp_control%diag_id, &
                 C2ls_mp, Input_mp, Atmos_state, Cloud_state, Particles, &
                 Precip_state, Cloud_processes, Tend_mp, Removal_mp) 
+
+!write(6,*) 'yhc, detailed_diagnostics after'
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqa)',Tend_mp%q_tnd(:,:,:,nqa)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nql)',Tend_mp%q_tnd(:,:,:,nql)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqi)',Tend_mp%q_tnd(:,:,:,nqi)
+!write(6,*) 'Cloud_state%SA_out',Cloud_state%SA_out
+!write(6,*) 'Cloud_state%SL_out',Cloud_state%SL_out
+!write(6,*) 'Cloud_state%SI_out',Cloud_state%SI_out
+
             call mpp_clock_end (detail_diag_clock)
           endif
 
@@ -1202,9 +1254,27 @@ type(aerosol_type),          intent(in), optional :: Aerosol
 !    call update_fields_and_tendencies to apply computed cloud tendencies.
 !------------------------------------------------------------------------
       call mpp_clock_begin (update_fields_clock)
+
+!write(6,*) 'yhc, update_fields_and_tendencies before'
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqa)',Tend_mp%q_tnd(:,:,:,nqa)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nql)',Tend_mp%q_tnd(:,:,:,nql)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqi)',Tend_mp%q_tnd(:,:,:,nqi)
+!write(6,*) 'Cloud_state%SA_out',Cloud_state%SA_out
+!write(6,*) 'Cloud_state%SL_out',Cloud_state%SL_out
+!write(6,*) 'Cloud_state%SI_out',Cloud_state%SI_out
+
       call update_fields_and_tendencies    &
                 (is, ie, js, je, Time, 1.0/dt, Input_mp, Cld_props,  &
                                        Precip_state, Tend_mp, Output_mp)
+
+!write(6,*) 'yhc, update_fields_and_tendencies after'
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqa)',Tend_mp%q_tnd(:,:,:,nqa)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nql)',Tend_mp%q_tnd(:,:,:,nql)
+!write(6,*) 'Tend_mp%q_tnd(:,:,:,nqi)',Tend_mp%q_tnd(:,:,:,nqi)
+!write(6,*) 'Cloud_state%SA_out',Cloud_state%SA_out
+!write(6,*) 'Cloud_state%SL_out',Cloud_state%SL_out
+!write(6,*) 'Cloud_state%SI_out',Cloud_state%SI_out
+
       call mpp_clock_end (update_fields_clock)
 
 !------------------------------------------------------------------------
@@ -2484,6 +2554,9 @@ type(cloud_processes_type), intent(inout) :: Cloud_processes
              +  diag_4d(:,:,:,diag_pt%qadt_destr)    &
              +  diag_4d(:,:,:,diag_pt%qadt_limits)   &
              +  diag_4d(:,:,:,diag_pt%qadt_ahuco)    &
+             +  diag_4d(:,:,:,diag_pt%qadt_edmf_ls)  &       ! yhc111
+                                                             !   qadt_edmf_ls is an additional term to SA3d. 
+                                                             !   qldt_edmf (qidt_edmf) is already included SL3d (SI3d), so they are not added.
                                                           )
       endif
       if (diag_id%SL_imb + diag_id%SL_imb_col > 0) then
