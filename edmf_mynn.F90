@@ -139,7 +139,7 @@ type am4_edmf_output_type
     tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, qadt_edmf, &  ! outputs from EDMF-MYNN scheme
     qtdt_edmf, thldt_edmf, &
     diff_t_edmf, diff_m_edmf, &
-    cldfra_bl, qc_bl, &
+    cldfra_bl, qc_bl, el_edmf, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
   real, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
@@ -413,7 +413,7 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni  ! tracer indices for stratiform clo
 integer :: nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl ! tracer index for EDMF-MYNN tracers
 integer :: ntp          ! number of prognostic tracers
 
-integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf, id_qtdt_edmf, id_thldt_edmf, id_diff_t_edmf
+integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf, id_qtdt_edmf, id_thldt_edmf, id_diff_t_edmf, id_el_edmf
 
 !---------------------------------------------------------------------
 
@@ -683,6 +683,10 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_diff_t_edmf = register_diag_field (mod_name, 'diff_t_edmf', axes(full), Time, &
                  'heat diff coeffs from edmf_mynn', 'K/m/s' , &
+                 missing_value=missing_value )
+
+  id_el_edmf = register_diag_field (mod_name, 'el_edmf', axes(full), Time, &
+                 'mixing length in edmf_mynn', 'm' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -6805,6 +6809,11 @@ subroutine edmf_mynn_driver ( &
         used = send_data (id_diff_t_edmf, am4_Output_edmf%diff_t_edmf, Time_next, is, js, 1 )
       endif
 
+!------- mixing length in edmf_mynn (units: m) at full level -------
+      if ( id_el_edmf > 0) then
+        used = send_data (id_el_edmf, am4_Output_edmf%el_edmf, Time_next, is, js, 1 )
+      endif
+
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
 !---------------------------------------------------------------------
@@ -7273,6 +7282,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%diff_t_edmf (ix,jx,kx))  ; am4_Output_edmf%diff_t_edmf = 0.
   allocate (am4_Output_edmf%diff_m_edmf (ix,jx,kx))  ; am4_Output_edmf%diff_m_edmf = 0.
   allocate (am4_Output_edmf%kpbl_edmf   (ix,jx))     ; am4_Output_edmf%kpbl_edmf   = 0
+  allocate (am4_Output_edmf%el_edmf     (ix,jx,kx))  ; am4_Output_edmf%el_edmf     = 0.
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
@@ -7675,6 +7685,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%diff_t_edmf )  
   deallocate (am4_Output_edmf%diff_m_edmf )  
   deallocate (am4_Output_edmf%kpbl_edmf   )  
+  deallocate (am4_Output_edmf%el_edmf     )  
   !deallocate (am4_Output_edmf%         )  
 
 !--------------------
@@ -8273,6 +8284,7 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
     am4_Output_edmf%qc_bl       (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
     am4_Output_edmf%diff_t_edmf (i,j,kk) = Output_edmf%exch_h    (i,k,j)
     am4_Output_edmf%diff_m_edmf (i,j,kk) = Output_edmf%exch_m    (i,k,j)
+    am4_Output_edmf%el_edmf     (i,j,kk) = Output_edmf%el_pbl    (i,k,j)
     !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
 
     !--- if needed, modify am4_Output_edmf tendencies to make sure the updated qa, ql, qc, qi, qnd qt are larger than zero
