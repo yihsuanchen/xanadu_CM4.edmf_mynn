@@ -558,8 +558,8 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
         !--- add EDMF terms to Tiedtke only inside PBL, i.e. k <= kpbl_edmf
         if ( C2ls_mp%kpbl_edmf(i,j).gt.0 .and. k.ge.C2ls_mp%kpbl_edmf(i,j) ) then
 
-write(6,*) 'yhc, k, Cloud_processes%dcond_ls_ice(i,j,k), C2ls_mp%qidt_edmf(i,j,k)',k, Cloud_processes%dcond_ls_ice(i,j,k), C2ls_mp%qidt_edmf(i,j,k)
-write(6,*) 'yhc, k, Cloud_processes%dcond_ls(i,j,k), C2ls_mp%qldt_edmf(i,j,k)',k, Cloud_processes%dcond_ls(i,j,k), C2ls_mp%qldt_edmf(i,j,k)
+!write(6,*) 'yhc, k, Cloud_processes%dcond_ls_ice(i,j,k), C2ls_mp%qidt_edmf(i,j,k)',k, Cloud_processes%dcond_ls_ice(i,j,k), C2ls_mp%qidt_edmf(i,j,k)
+!write(6,*) 'yhc, k, Cloud_processes%dcond_ls(i,j,k), C2ls_mp%qldt_edmf(i,j,k)',k, Cloud_processes%dcond_ls(i,j,k), C2ls_mp%qldt_edmf(i,j,k)
 
            ! assuming that all Tiedtke terms are kept and that qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa1, qa_EDMF)
            if (C2ls_mp%option_edmf2ls_mp.eq.1) then      ! EDMF terms are added to Tiedtke
@@ -567,14 +567,14 @@ write(6,*) 'yhc, k, Cloud_processes%dcond_ls(i,j,k), C2ls_mp%qldt_edmf(i,j,k)',k
              Cloud_processes%dcond_ls_ice (i,j,k) = Cloud_processes%dcond_ls_ice(i,j,k) + C2ls_mp%qidt_edmf(i,j,k) * dtcloud
              Cloud_processes%dcond_ls     (i,j,k) = Cloud_processes%dcond_ls    (i,j,k) + C2ls_mp%qldt_edmf(i,j,k) * dtcloud
 
-write(6,*) 'yhc, op1, k, Cloud_processes%dcond_ls_ice (i,j,k), Cloud_processes%dcond_ls     (i,j,k)',k, Cloud_processes%dcond_ls_ice (i,j,k), Cloud_processes%dcond_ls     (i,j,k)
+!write(6,*) 'yhc, op1, k, Cloud_processes%dcond_ls_ice (i,j,k), Cloud_processes%dcond_ls     (i,j,k)',k, Cloud_processes%dcond_ls_ice (i,j,k), Cloud_processes%dcond_ls     (i,j,k)
 
            ! assuming that only convection term is kept and that qa1 and qa_EDMF is maximum overlap, qa(t+dtcloud) = max(qa0, qa_EDMF)
            elseif (C2ls_mp%option_edmf2ls_mp.eq.2) then  ! EDMF terms replace Tiedtke 
              Cloud_processes%dcond_ls_ice (i,j,k) = C2ls_mp%qidt_edmf(i,j,k) * dtcloud
              Cloud_processes%dcond_ls     (i,j,k) = C2ls_mp%qldt_edmf(i,j,k) * dtcloud
 
-write(6,*) 'yhc, op2, k, Cloud_processes%dcond_ls_ice (i,j,k), Cloud_processes%dcond_ls     (i,j,k)',k, Cloud_processes%dcond_ls_ice (i,j,k), Cloud_processes%dcond_ls     (i,j,k)
+!write(6,*) 'yhc, op2, k, Cloud_processes%dcond_ls_ice (i,j,k), Cloud_processes%dcond_ls     (i,j,k)',k, Cloud_processes%dcond_ls_ice (i,j,k), Cloud_processes%dcond_ls     (i,j,k)
 
            endif  ! end if of C2ls_mp%option_edmf2ls_mp
 
@@ -762,9 +762,9 @@ write(6,*) 'yhc, op2, k, Cloud_processes%dcond_ls_ice (i,j,k), Cloud_processes%d
         end do
       endif  ! do_rk
 
-write(6,*) 'yhc, tiedtke_macro, Cloud_processes%dcond_ls_ice',Cloud_processes%dcond_ls_ice
-write(6,*) 'yhc, tiedtke_macro, Cloud_processes%dcond_ls',Cloud_processes%dcond_ls
-write(6,*) 'yhc, tiedtke_macro, Cloud_state%qa_upd,',Cloud_state%qa_upd
+!write(6,*) 'yhc, tiedtke_macro, Cloud_processes%dcond_ls_ice',Cloud_processes%dcond_ls_ice
+!write(6,*) 'yhc, tiedtke_macro, Cloud_processes%dcond_ls',Cloud_processes%dcond_ls
+!write(6,*) 'yhc, tiedtke_macro, Cloud_state%qa_upd,',Cloud_state%qa_upd
 !write(6,*) 'yhc, tiedtke_macro, ',
 
 !----------------------------------------------------------------------!
@@ -1241,11 +1241,11 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
 !    qa1 is qa(t+dtcloud) = qa0 + qa_Tiedtke. qa_EDMF(t+dtcloud) = qa0+qadt_edmf*dtcloud
 !------------------------------------------------------------------------
 
-write(6,*) 'yhc, idim,jdim,kdim,',idim,jdim,kdim
-write(6,*) 'yhc, qa1',qa1
-write(6,*) 'yhc, qa0',qa0
-write(6,*) 'yhc, dtcloud',dtcloud
-write(6,*) 'yhc, C2ls_mp%kpbl_edmf',C2ls_mp%kpbl_edmf
+!write(6,*) 'yhc, idim,jdim,kdim,',idim,jdim,kdim
+!write(6,*) 'yhc, qa1',qa1
+!write(6,*) 'yhc, qa0',qa0
+!write(6,*) 'yhc, dtcloud',dtcloud
+!write(6,*) 'yhc, C2ls_mp%kpbl_edmf',C2ls_mp%kpbl_edmf
 
         diag_4d(:,:,:,diag_pt%qadt_edmf_ls) = 0.
 
@@ -1264,9 +1264,8 @@ write(6,*) 'yhc, C2ls_mp%kpbl_edmf',C2ls_mp%kpbl_edmf
                qabar (i,j,k) = qa1(i,j,k)
 
                diag_4d(i,j,k,diag_pt%qadt_edmf_ls) = ( qa1(i,j,k)-qa_temp(i,j,k) )*inv_dtcloud   ! save for diagnostic purpose
-write(6,*) 'yhc, k, old and new qa1',qa_temp(i,j,k),qa1(i,j,k)
-write(6,*) 'yhc, k, qadt_edmf and ls, diff',k, C2ls_mp%qadt_edmf(i,j,k), diag_4d(i,j,k,diag_pt%qadt_edmf_ls), &
-                  C2ls_mp%qadt_edmf(i,j,k) - diag_4d(i,j,k,diag_pt%qadt_edmf_ls)
+!write(6,*) 'yhc, k, old and new qa1',qa_temp(i,j,k),qa1(i,j,k)
+!write(6,*) 'yhc, k, qadt_edmf and ls, diff',k, C2ls_mp%qadt_edmf(i,j,k), diag_4d(i,j,k,diag_pt%qadt_edmf_ls), C2ls_mp%qadt_edmf(i,j,k) - diag_4d(i,j,k,diag_pt%qadt_edmf_ls)
 
              ! assuming that only convection, realizability clipping, and EDMF term are kept, no Tiedtke terms
              elseif (C2ls_mp%option_edmf2ls_mp.eq.2) then  ! EDMF terms replace Tiedtke 
@@ -1276,9 +1275,8 @@ write(6,*) 'yhc, k, qadt_edmf and ls, diff',k, C2ls_mp%qadt_edmf(i,j,k), diag_4d
                qabar (i,j,k) = qa1(i,j,k)
                diag_4d(i,j,k,diag_pt%qadt_edmf_ls) = ( qa1(i,j,k)-qa_temp(i,j,k) )*inv_dtcloud   ! save for diagnostic purpose
 
-write(6,*) 'yhc, k, old and new qa1',qa_temp(i,j,k),qa1(i,j,k)
-write(6,*) 'yhc, k, qadt_edmf and ls, diff',k, C2ls_mp%qadt_edmf(i,j,k), diag_4d(i,j,k,diag_pt%qadt_edmf_ls), &
-                  C2ls_mp%qadt_edmf(i,j,k) - diag_4d(i,j,k,diag_pt%qadt_edmf_ls)
+!write(6,*) 'yhc, k, old and new qa1',qa_temp(i,j,k),qa1(i,j,k)
+!write(6,*) 'yhc, k, qadt_edmf and ls, diff',k, C2ls_mp%qadt_edmf(i,j,k), diag_4d(i,j,k,diag_pt%qadt_edmf_ls), C2ls_mp%qadt_edmf(i,j,k) - diag_4d(i,j,k,diag_pt%qadt_edmf_ls)
 
             endif   ! end if of C2ls_mp%option_edmf2ls_mp
           endif     ! end if of C2ls_mp%kpbl_edmf

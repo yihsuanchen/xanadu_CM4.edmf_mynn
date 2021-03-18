@@ -2542,6 +2542,7 @@ type(cloud_processes_type), intent(inout) :: Cloud_processes
 !    expressions must be in the diag_table for the left side term to be
 !    meaningful.
 !-----------------------------------------------------------------------
+
       if (diag_id%SA_imb + diag_id%SA_imb_col > 0) then
         diag_4d(:,:,:,diag_pt%SA_imb) =    &
              diag_4d(:,:,:,diag_pt%SA3d) -   (       &

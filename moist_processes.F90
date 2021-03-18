@@ -696,13 +696,13 @@ type(aerosol_type),intent(in), optional :: Aerosol
                      bstar, qstar, Input_mp, Tend_mp, C2ls_mp, Output_mp,&
                      Removal_mp)
 
-write(6,*) 'yhc, C2ls_mp%option_edmf2ls_mp',      C2ls_mp%option_edmf2ls_mp  
-write(6,*) 'yhc, C2ls_mp%qadt_edmf',      C2ls_mp%qadt_edmf      
-write(6,*) 'yhc, C2ls_mp%qldt_edmf',      C2ls_mp%qldt_edmf      
-write(6,*) 'yhc, C2ls_mp%qidt_edmf',      C2ls_mp%qidt_edmf      
-write(6,*) 'yhc, C2ls_mp%dqa_edmf',      C2ls_mp%dqa_edmf       
-write(6,*) 'yhc, C2ls_mp%dql_edmf',      C2ls_mp%dql_edmf       
-write(6,*) 'yhc, C2ls_mp%dqi_edmf',      C2ls_mp%dqi_edmf       
+!write(6,*) 'yhc, C2ls_mp%option_edmf2ls_mp',      C2ls_mp%option_edmf2ls_mp  
+!write(6,*) 'yhc, C2ls_mp%qadt_edmf',      C2ls_mp%qadt_edmf      
+!write(6,*) 'yhc, C2ls_mp%qldt_edmf',      C2ls_mp%qldt_edmf      
+!write(6,*) 'yhc, C2ls_mp%qidt_edmf',      C2ls_mp%qidt_edmf      
+!write(6,*) 'yhc, C2ls_mp%dqa_edmf',      C2ls_mp%dqa_edmf       
+!write(6,*) 'yhc, C2ls_mp%dql_edmf',      C2ls_mp%dql_edmf       
+!write(6,*) 'yhc, C2ls_mp%dqi_edmf',      C2ls_mp%dqi_edmf       
 
 !----------------------------------------------------------------------
 !    call routines to process the model clouds. If a unified cloud scheme
