@@ -1889,7 +1889,13 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       real, dimension( size(Physics_tendency_block%u_dt,1), &
                        size(Physics_tendency_block%u_dt,2), &
                        size(Physics_tendency_block%u_dt,3)  )  :: &
-        udt_before_vdiff_down, vdt_before_vdiff_down
+        udt_before_vdiff_down, vdt_before_vdiff_down, tdt_before_vdiff_down
+
+      real, dimension( size(Physics_tendency_block%q_dt,1), &
+                       size(Physics_tendency_block%q_dt,2), &
+                       size(Physics_tendency_block%q_dt,3), &
+                       size(Physics_tendency_block%q_dt,4)  )  :: &
+        rdt_before_vdiff_down
 
       real, dimension( size(Physics_tendency_block%u_dt,1), &
                        size(Physics_tendency_block%u_dt,2)) :: &
@@ -2220,6 +2226,8 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         diff_t = 0.
         udt_before_vdiff_down(:,:,:) = udt(:,:,:)
         vdt_before_vdiff_down(:,:,:) = vdt(:,:,:)
+        tdt_before_vdiff_down(:,:,:) = tdt(:,:,:)
+        rdt_before_vdiff_down(:,:,:,:) = rdt(:,:,:,:)
         tau_x_before_vdiff_down(:,:) = tau_x(:,:)
         tau_y_before_vdiff_down(:,:) = tau_y(:,:)
 
@@ -2250,6 +2258,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         tau_y(:,:) = tau_y_before_vdiff_down(:,:) 
         surf_diff%delta_u(:,:) = 0.
         surf_diff%delta_v(:,:) = 0.
+
+        tdt(:,:,:)   = tdt_before_vdiff_down(:,:,:)
+        rdt(:,:,:,:) = rdt_before_vdiff_down(:,:,:,:)
       !<-- yhc
 
       else
@@ -2606,8 +2617,9 @@ real,dimension(:,:),    intent(inout)             :: gust
     write(6,*) 'data vdt_physics_up_begin/'    ,vdt(ii_write,jj_write,:)
     write(6,*) 'data tdt_physics_up_begin/'    ,tdt(ii_write,jj_write,:)
     write(6,*) 'data qdt_physics_up_begin/'    ,rdt(ii_write,jj_write,:,1)
-    write(6,*) 'data qldt_physics_up_begin/'    ,rdt(ii_write,jj_write,:,2)
-    write(6,*) 'data qidt_physics_up_begin/'    ,rdt(ii_write,jj_write,:,3)
+    write(6,*) 'data qadt_physics_up_begin/'    ,rdt(ii_write,jj_write,:,nqa)
+    write(6,*) 'data qldt_physics_up_begin/'    ,rdt(ii_write,jj_write,:,nql)
+    write(6,*) 'data qidt_physics_up_begin/'    ,rdt(ii_write,jj_write,:,nqi)
   endif
 !--> yhc
 
@@ -2714,8 +2726,9 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data vdt_diff_up/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_diff_up/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_diff_up/'    ,rdt(ii_write,jj_write,:,1)
-        write(6,*) 'data qldt_diff_up/'    ,rdt(ii_write,jj_write,:,2)
-        write(6,*) 'data qidt_diff_up/'    ,rdt(ii_write,jj_write,:,3)
+        write(6,*) 'data qadt_diff_up/'    ,rdt(ii_write,jj_write,:,nqa)
+        write(6,*) 'data qldt_diff_up/'    ,rdt(ii_write,jj_write,:,nql)
+        write(6,*) 'data qidt_diff_up/'    ,rdt(ii_write,jj_write,:,nqi)
   endif
 !--> yhc
 
@@ -3126,6 +3139,9 @@ real,dimension(:,:),    intent(inout)             :: gust
     write(6,*) 'data vdt_physics_up_end/'    ,vdt(ii_write,jj_write,:)
     write(6,*) 'data tdt_physics_up_end/'    ,tdt(ii_write,jj_write,:)
     write(6,*) 'data qdt_physics_up_end/'    ,rdt(ii_write,jj_write,:,1)
+    write(6,*) 'data qadt_physics_up_end/'    ,rdt(ii_write,jj_write,:,nqa)
+    write(6,*) 'data qldt_physics_up_end/'    ,rdt(ii_write,jj_write,:,nql)
+    write(6,*) 'data qidt_physics_up_end/'    ,rdt(ii_write,jj_write,:,nqi)
   endif
 !--> yhc
 
