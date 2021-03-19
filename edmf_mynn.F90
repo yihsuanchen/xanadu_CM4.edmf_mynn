@@ -394,11 +394,13 @@ end type edmf_ls_mp_type
   logical :: do_limit_tdt = .false.
   real    :: tdt_limit =   200. ! K/day
 
+  logical :: do_pblh_constant = .false.    ! fix PBL depth for testing
+  real    :: fixed_pblh       = 2500. 
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, &
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
-                            tdt_max, do_limit_tdt, tdt_limit, &
+                            tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh,  &
                             do_option_edmf2ls_mp, &
                             do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
          
@@ -8044,6 +8046,12 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; liquid water mixing ratio in edmf_mynn'
         write(6,3002) ' qc_bl = (/'    ,am4_Output_edmf%qc_bl (ii_write,jj_write,:)
         write(6,*)    ''
+        write(6,*)    '; k_pbl, ',am4_Output_edmf%kpbl_edmf(ii_write,jj_write)
+        write(6,*)    ''
+        write(6,*)    ''
+        write(6,*)    '; pbl depth,',am4_Output_edmf%pbltop(ii_write,jj_write)
+        write(6,*)    ''
+        write(6,*)    ''
         write(6,*)    ';=============='
         write(6,*)    ';=============='
         write(6,*)    ''
@@ -8237,7 +8245,7 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
 !--- local variable
   integer i,j,k,kk
   real :: &
-    dum, qa1, qc1, qi1, qt1
+    dum, dum1, qa1, qc1, qi1, qt1
 !------------------------------------------
 
 !---------------
@@ -8251,6 +8259,26 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
     am4_Output_edmf%kpbl_edmf(i,j) = kk
   enddo  ! end loop of j
   enddo  ! end loop of 1
+
+  !--- fixed pbl top for testing
+  if (do_pblh_constant) then
+    do i=1,ix
+    do j=1,jx
+      dum1 = 1.e+10
+      kk=1
+      do k=1,kx    
+        dum  = abs(Physics_input_block%z_full(i,j,k) - fixed_pblh)
+        if (dum.lt.dum1) then
+          dum1 = dum
+          kk = k
+        endif
+      enddo
+
+      am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
+      am4_Output_edmf%kpbl_edmf(i,j) = kk      
+    enddo
+    enddo
+  endif  ! end if of do_pblh_constant
 
 !---------------
 ! 3D variables
