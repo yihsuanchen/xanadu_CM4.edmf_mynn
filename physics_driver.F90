@@ -771,6 +771,13 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
            'When do_edmf_mynn_diagnostic is .true., do_edmf_mynn must be true', FATAL)
         endif
       endif
+
+      if (do_tracers_in_edmf_mynn) then
+        if (.not.do_edmf_mynn) then
+           call error_mesg('physics_driver_init',  &
+           'When do_tracers_in_edmf_mynn .true., do_edmf_mynn must be true', FATAL)
+        endif
+      endif
 !--> yhc check edmf_mynn
 
 !--------------------------------------------------------------------
@@ -2825,10 +2832,12 @@ real,dimension(:,:),    intent(inout)             :: gust
 !    dqi_edmf   (is:ie,js:je,:)   = qidt_edmf(is:ie,js:je,:) * dt
   endif  ! end if of do_edmf_mynn
 
-  !--- save diff_t values
-  !do_tracers_in_edmf_mynn
-  diff_t(:,:,:) = diff_t_edmf(:,:,:)
-  diff_m(:,:,:) = diff_m_edmf(:,:,:)
+  !--- only modify diff_t and diff_m when tracers are not handled by edmf_mynn and edmf_mynn is not diagnositic purpose
+  if (.not.do_tracers_in_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
+    !--- save diff_t values
+    diff_t(:,:,:) = diff_t_edmf(:,:,:)
+    diff_m(:,:,:) = diff_m_edmf(:,:,:)
+  endif
 
   if (do_writeout_column) then
         write(6,*) '-------------- i,j,',ii_write,jj_write
