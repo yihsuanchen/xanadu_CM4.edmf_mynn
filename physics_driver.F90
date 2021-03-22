@@ -1912,6 +1912,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       real, dimension( size(Physics_tendency_block%u_dt,1), &
                        size(Physics_tendency_block%u_dt,2)) :: &
         tau_x_before_vdiff_down, tau_y_before_vdiff_down
+      integer ii,jj,kk,rr
 !--> yhc
 
 !---------------------------------------------------------------------
@@ -2030,6 +2031,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data qadt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqa)
         write(6,*) 'data qldt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nql)
         write(6,*) 'data qidt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqi)
+        write(6,*) 'data qndt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqn)
   endif
 !--> yhc
 
@@ -2082,6 +2084,10 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data q_damping/'    ,r(ii_write,jj_write,:,1)
         write(6,*) 'data tdt_damping/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_damping/'    ,rdt(ii_write,jj_write,:,1)
+        write(6,*) 'data qadt_damping/'    ,rdt(ii_write,jj_write,:,nqa)
+        write(6,*) 'data qldt_damping/'    ,rdt(ii_write,jj_write,:,nql)
+        write(6,*) 'data qidt_damping/'    ,rdt(ii_write,jj_write,:,nqi)
+        write(6,*) 'data qndt_damping/'    ,rdt(ii_write,jj_write,:,nqn)
   endif
 !--> yhc
 
@@ -2161,6 +2167,10 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data vdt_tracer/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_tracer/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_tracer/'    ,rdt(ii_write,jj_write,:,1)
+        write(6,*) 'data qadt_tracer/'    ,rdt(ii_write,jj_write,:,nqa)
+        write(6,*) 'data qldt_tracer/'    ,rdt(ii_write,jj_write,:,nql)
+        write(6,*) 'data qidt_tracer/'    ,rdt(ii_write,jj_write,:,nqi)
+        write(6,*) 'data qndt_tracer/'    ,rdt(ii_write,jj_write,:,nqn)
   endif
 !--> yhc
 
@@ -2247,6 +2257,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         if (do_tracers_in_edmf_mynn) then
           diff_m = 0.   ! set diff_m and diff_t to zeros
           diff_t = 0.
+        else
+          diff_m(:,:,:) = diff_m_edmf(:,:,:)   ! use diff_t and diff_m from edmf_mynn
+          diff_t(:,:,:) = diff_t_edmf(:,:,:)
         endif
 
         call vert_diff_driver_down (is, js, Time_next, dt, p_half,   &
@@ -2321,6 +2334,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'lon',lon (ii_write,jj_write)
         write(6,*) 'data t_physics_down_end/'    ,t(ii_write,jj_write,:)
         write(6,*) 'data q_physics_down_end/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data qn_physics_down_end/'    ,r(ii_write,jj_write,:,nqn)
         write(6,*) 'data udt_physics_down_end/'    ,udt(ii_write,jj_write,:)
         write(6,*) 'data vdt_physics_down_end/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_physics_down_end/'    ,tdt(ii_write,jj_write,:)
@@ -2329,6 +2343,12 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data qldt_physics_down_end/'    ,rdt(ii_write,jj_write,:,nql)
         write(6,*) 'data qidt_physics_down_end/'    ,rdt(ii_write,jj_write,:,nqi)
         write(6,*) 'data qndt_physics_down_end/'    ,rdt(ii_write,jj_write,:,nqn)
+        write(6,*) 'data diff_t_physics_down_end/', diff_t(ii_write,jj_write,:)
+        write(6,*) 'data diff_m_physics_down_end/', diff_m(ii_write,jj_write,:)
+        write(6,*) 'yhc, nqa, nql, nqi, nqn',nqa, nql, nqi, nqn
+        !do rr=1, size(Physics_tendency_block%q_dt,4)
+        !  write(6,*) 'data rr, rdr'    ,rr, rdt(ii_write,jj_write,:,rr)
+        !enddo
   endif
 !--> yhc
 
@@ -2960,11 +2980,13 @@ real,dimension(:,:),    intent(inout)             :: gust
     write(6,*) 'lon',lon(ii_write,jj_write)  ! radians
         write(6,*) 'data t_moist_up/'    ,t(ii_write,jj_write,:)
         write(6,*) 'data q_moist_up/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data qn_moist_up/'    ,r(ii_write,jj_write,:,nqn)
         write(6,*) 'data tdt_moist_up/'    ,tdt(ii_write,jj_write,:)
         write(6,*) 'data qdt_moist_up/'    ,rdt(ii_write,jj_write,:,nsphum)
         write(6,*) 'data qadt_moist_up/'    ,rdt(ii_write,jj_write,:,nqa)
         write(6,*) 'data qldt_moist_up/'    ,rdt(ii_write,jj_write,:,nql)
         write(6,*) 'data qidt_moist_up/'    ,rdt(ii_write,jj_write,:,nqi)
+        write(6,*) 'data qndt_moist_up/'    ,rdt(ii_write,jj_write,:,nqn)
   endif
 !--> yhc
 
@@ -3453,7 +3475,7 @@ integer :: moist_processes_term_clock, damping_term_clock, turb_term_clock, &
                   hmint, cgust, tke, pblhto, rkmo, taudpo, exist_shconv, &  ! h1g, 2017-01-31
                   exist_dpconv, & 
                   pblht_prev, hlsrc_prev, qtsrc_prev, cape_prev, cin_prev, tke_prev, & !h1g, 2017-01-31
-                  option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, diff_t_edmf, kpbl_edmf, &  !yhc
+                  option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &  !yhc
                   dqa_edmf, dql_edmf, dqi_edmf, & ! yhc
                   convect, radturbten, r_convect)
 
