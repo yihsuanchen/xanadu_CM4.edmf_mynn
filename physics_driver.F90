@@ -378,9 +378,18 @@ real    :: cosp_frequency = 10800.
 logical :: do_edmf_mynn = .false.             ! switch to turn on/off edmf_mynn scheme
 logical :: do_edmf_mynn_diagnostic = .false.  ! .true.  : diagnostic edmf_mynn, no update on tendencies
                                               ! .false. : interactive edmf_mynn, update on tendencies
-logical :: do_tracers_in_edmf_mynn = .true.   ! .true.  : tracer diffusion is handled by edmf_mynn
+
+logical :: do_tracers_in_edmf_mynn = .true.   !  testing purpose 
+                                              ! .true.  : tracer diffusion is handled by edmf_mynn
                                               ! .false. : tracer diffusion is handled by vert_diff_driver_down, using 
                                               !           ED diffusion coefficients from edmf_mynn
+
+integer :: do_tracers_selective = 0           ! testing purpose
+                                              !   0: vert_diff would process all tracers, such as qa, ql, qn, dust, sea salt, etc
+                                              !   1: vert_diff would process all tracers except qn and qni
+                                              !   2: vert_diff would NOT process any tracers
+                                              !   3: vert_diff would ONLY process qn and qni        
+
 integer :: ii_write = -999                    ! i index for column written out. Set to 0 if you want to write out in SCM
 integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
 real    :: lat_write = -999.99                ! latitude  (radian) for column written out
@@ -406,7 +415,7 @@ namelist / physics_driver_nml / do_radiation, do_clubb,  do_cosp, &
                                 qmin, N_land, N_ocean, do_liq_num,  &
                                 do_ice_num, qcvar, overlap, N_min, &
                                 min_diam_ice, dcs, min_diam_drop, &
-                                do_edmf_mynn, do_edmf_mynn_diagnostic, do_tracers_in_edmf_mynn, & ! yhc add
+                                do_edmf_mynn, do_edmf_mynn_diagnostic, do_tracers_in_edmf_mynn, do_tracers_selective, & ! yhc add
                                 do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write, & ! yhc add
                                 tdt_max, do_limit_tdt, tdt_limit, &  ! yhc add
                                 max_diam_drop, use_tau, cosp_frequency
@@ -559,7 +568,7 @@ integer   :: nt                       ! total no. of tracers
 integer   :: ntp                      ! total no. of prognostic tracers
 !integer   :: ncol                     ! number of stochastic columns
 integer   ::  nsphum                  ! index for specific humidity tracer
-integer   :: nqa, nql, nqi, nqn       ! yhc 
+integer   :: nqa, nql, nqi, nqn, nqni ! yhc 
 
 logical   :: step_to_call_cosp
 logical   :: doing_prog_clouds
@@ -1082,6 +1091,7 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       nql = Physics%control%nql 
       nqi = Physics%control%nqi      
       nqn = Physics%control%nqn     
+      nqni = Physics%control%nqni   ! nqni is not supported by SCM yet    
 
 !--> yhc, initialize edmf_mynn module
 
@@ -1901,7 +1911,8 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       real, dimension( size(Physics_tendency_block%u_dt,1), &
                        size(Physics_tendency_block%u_dt,2), &
                        size(Physics_tendency_block%u_dt,3)  )  :: &
-        udt_before_vdiff_down, vdt_before_vdiff_down, tdt_before_vdiff_down
+        udt_before_vdiff_down, vdt_before_vdiff_down, tdt_before_vdiff_down,  &
+        rdt_dum1, rdt_dum2
 
       real, dimension( size(Physics_tendency_block%q_dt,1), &
                        size(Physics_tendency_block%q_dt,2), &
@@ -2171,6 +2182,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data qldt_tracer/'    ,rdt(ii_write,jj_write,:,nql)
         write(6,*) 'data qidt_tracer/'    ,rdt(ii_write,jj_write,:,nqi)
         write(6,*) 'data qndt_tracer/'    ,rdt(ii_write,jj_write,:,nqn)
+        do rr=1, size(Physics_tendency_block%q_dt,4)
+          write(6,*) 'data tr, rr, rdr'    ,rr, rdt(ii_write,jj_write,:,rr)
+        enddo
   endif
 !--> yhc
 
@@ -2217,6 +2231,16 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
 !    pheric vertical diffusion.
 !-----------------------------------------------------------------------
 
+      !<-- yhc
+      !--- save tendencies before vert_diff_driver_down
+      udt_before_vdiff_down(:,:,:) = udt(:,:,:)
+      vdt_before_vdiff_down(:,:,:) = vdt(:,:,:)
+      tdt_before_vdiff_down(:,:,:) = tdt(:,:,:)
+      rdt_before_vdiff_down(:,:,:,:) = rdt(:,:,:,:)
+      tau_x_before_vdiff_down(:,:) = tau_x(:,:)
+      tau_y_before_vdiff_down(:,:) = tau_y(:,:)
+      !--> yhc
+
       if (id_tdt_phys_vdif_dn > 0) then
         used = send_data ( id_tdt_phys_vdif_dn, -2.0*tdt(:,:,:), &
                            Time_next, is, js, 1)
@@ -2245,20 +2269,12 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       !<-- yhc set diff_t and diff_m to zeros if edmf_mynn is on because diffussive terms will be handled in edmf_mynn
       elseif (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
 
-        !--- save tendencies before vert_diff_driver_down
-        udt_before_vdiff_down(:,:,:) = udt(:,:,:)
-        vdt_before_vdiff_down(:,:,:) = vdt(:,:,:)
-        tdt_before_vdiff_down(:,:,:) = tdt(:,:,:)
-        rdt_before_vdiff_down(:,:,:,:) = rdt(:,:,:,:)
-        tau_x_before_vdiff_down(:,:) = tau_x(:,:)
-        tau_y_before_vdiff_down(:,:) = tau_y(:,:)
-
         !--- check tracers
-        if (do_tracers_in_edmf_mynn) then
-          diff_m = 0.   ! set diff_m and diff_t to zeros
+        if (do_tracers_in_edmf_mynn) then     ! do all tracers in edmf_mynn so setting diff_m and diff_t to zeros
+          diff_m = 0. 
           diff_t = 0.
-        else
-          diff_m(:,:,:) = diff_m_edmf(:,:,:)   ! use diff_t and diff_m from edmf_mynn
+        else            ! some tracers are processed in vert_diff, using diff_t and diff_m from edmf_mynn
+          diff_m(:,:,:) = diff_m_edmf(:,:,:) 
           diff_t(:,:,:) = diff_t_edmf(:,:,:)
         endif
 
@@ -2313,6 +2329,27 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                                     dtau_du, dtau_dv, tau_x, tau_y,  &
                                     udt, vdt, tdt, rdt(:,:,:,1), rdt,        &
                                     Surf_diff)
+
+        !<--- yhc
+        !--- select which tracers would be updated by vert_diff_driver_down. 
+        !    The tracers considered here are qn, qni, and others such as dust, sea salt, etc
+        if     (do_tracers_selective.eq.1) then      ! process all tracers except qn and qni
+          if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(:,:,:,nqn)
+          if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(:,:,:,nqni)
+
+        elseif (do_tracers_selective.eq.2) then      ! do not process any tracers
+          rdt(:,:,:,:)   = rdt_before_vdiff_down(:,:,:,:)
+
+        elseif (do_tracers_selective.eq.3) then      ! only process qn and qni
+          if (nqn  > 0) rdt_dum1 (:,:,:) = rdt(:,:,:,nqn)
+          if (nqni > 0) rdt_dum2 (:,:,:) = rdt(:,:,:,nqni)
+
+          rdt(:,:,:,:)    = rdt_before_vdiff_down(:,:,:,:)
+          if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_dum1(:,:,:)
+          if (nqni > 0) rdt(:,:,:,nqni) = rdt_dum2(:,:,:)
+        endif
+        !---> yhc
+
       endif
 
       if (id_tdt_phys_vdif_dn > 0) then
@@ -2346,9 +2383,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data diff_t_physics_down_end/', diff_t(ii_write,jj_write,:)
         write(6,*) 'data diff_m_physics_down_end/', diff_m(ii_write,jj_write,:)
         write(6,*) 'yhc, nqa, nql, nqi, nqn',nqa, nql, nqi, nqn
-        !do rr=1, size(Physics_tendency_block%q_dt,4)
-        !  write(6,*) 'data rr, rdr'    ,rr, rdt(ii_write,jj_write,:,rr)
-        !enddo
+        do rr=1, size(Physics_tendency_block%q_dt,4)
+          write(6,*) 'data dn, rr, rdr'    ,rr, rdt(ii_write,jj_write,:,rr)
+        enddo
   endif
 !--> yhc
 
@@ -2643,6 +2680,7 @@ real,dimension(:,:),    intent(inout)             :: gust
       real, dimension(:,:,:),   pointer :: udt    ! yhc
       real, dimension(:,:,:),   pointer :: vdt    ! yhc
       real :: tt1
+      integer :: rr
 
       t => Physics_input_block%t
       r => Physics_input_block%q
@@ -2761,6 +2799,9 @@ real,dimension(:,:),    intent(inout)             :: gust
       elseif (do_edmf_mynn .and. do_edmf_mynn_diagnostic) then
         call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
                                   Surf_diff, tdt, rdt(:,:,:,1), rdt )
+      elseif (do_edmf_mynn .and. .not.do_tracers_in_edmf_mynn) then
+        call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
+                                  Surf_diff, tdt, rdt(:,:,:,1), rdt )
       endif
 !--> yhc
 
@@ -2771,6 +2812,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'lon',lon (ii_write,jj_write)
         write(6,*) 'data t_diff_up/'    ,t(ii_write,jj_write,:)
         write(6,*) 'data q_diff_up/'    ,r(ii_write,jj_write,:,1)
+        write(6,*) 'data qn_diff_up/'    ,r(ii_write,jj_write,:,nqn)
         write(6,*) 'data udt_diff_up/'    ,udt(ii_write,jj_write,:)
         write(6,*) 'data vdt_diff_up/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_diff_up/'    ,tdt(ii_write,jj_write,:)
@@ -2779,6 +2821,10 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data qldt_diff_up/'    ,rdt(ii_write,jj_write,:,nql)
         write(6,*) 'data qidt_diff_up/'    ,rdt(ii_write,jj_write,:,nqi)
         write(6,*) 'data qndt_diff_up/'    ,rdt(ii_write,jj_write,:,nqn)
+        write(6,*) 'yhc, nqa, nql, nqi, nqn',nqa, nql, nqi, nqn
+        do rr=1, size(Physics_tendency_block%q_dt,4)
+          write(6,*) 'data up, rr, rdr'    ,rr, rdt(ii_write,jj_write,:,rr)
+        enddo
   endif
 !--> yhc
 
@@ -2987,6 +3033,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data qldt_moist_up/'    ,rdt(ii_write,jj_write,:,nql)
         write(6,*) 'data qidt_moist_up/'    ,rdt(ii_write,jj_write,:,nqi)
         write(6,*) 'data qndt_moist_up/'    ,rdt(ii_write,jj_write,:,nqn)
+        write(6,*) 'Phys_mp_exch%diff_t', Phys_mp_exch%diff_t(ii_write,jj_write,:)
   endif
 !--> yhc
 
