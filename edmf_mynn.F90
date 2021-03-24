@@ -688,7 +688,7 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  missing_value=missing_value )
 
   id_diff_m_edmf = register_diag_field (mod_name, 'diff_m_edmf', axes(full), Time, &
-                 'momentum diff coeffs from edmf_mynn', 'm2/s2' , &
+                 'momentum diff coeffs from edmf_mynn', 'm2/s' , &
                  missing_value=missing_value )
 
   id_el_edmf = register_diag_field (mod_name, 'el_edmf', axes(full), Time, &
@@ -6397,7 +6397,7 @@ subroutine edmf_mynn_driver ( &
 !   qldt_edmf 		- cloud liquid specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlev)
 !   qidt_edmf 		- cloud ice    specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlev)
 !   diff_t_edmf		- eddy diffusion coefficient for heat (K m/s)			  	, dimension (nlon,nlat,nlev)
-!   diff_m_edmf		- eddy diffusion coefficient for momentum (m/s m/s)		  	, dimension (nlon,nlat,nlev)
+!   diff_m_edmf		- eddy diffusion coefficient for momentum (m2/s)		  	, dimension (nlon,nlat,nlev)
 !   option_edmf2ls_mp 	- options for linkage to Tiedtke, same as "do_option_edmf2ls_mp" in the namelist
 !
 !   Note
@@ -6604,7 +6604,7 @@ subroutine edmf_mynn_driver ( &
     pbltop      (:,:)   = am4_Output_edmf%pbltop      (:,:)        ! PBL depth (m)
     kpbl_edmf   (:,:)   = am4_Output_edmf%kpbl_edmf   (:,:)        ! index of PBL top (none)
     diff_t_edmf (:,:,:) = am4_Output_edmf%diff_t_edmf (:,:,:)      ! diffusion coefficient for heat (K m/s)
-    diff_m_edmf (:,:,:) = am4_Output_edmf%diff_m_edmf (:,:,:)      ! diffusion coefficient for heat (m/s m/s)
+    diff_m_edmf (:,:,:) = am4_Output_edmf%diff_m_edmf (:,:,:)      ! diffusion coefficient for heat (m2/s)
 
     !--- set edmf to ls_mp
     option_edmf2ls_mp = do_option_edmf2ls_mp
@@ -6818,7 +6818,7 @@ subroutine edmf_mynn_driver ( &
         used = send_data (id_diff_t_edmf, am4_Output_edmf%diff_t_edmf, Time_next, is, js, 1 )
       endif
 
-!------- heat diff coeffs from edmf_mynn (units: K/m/s) at full level -------
+!------- momentum diff coeffs from edmf_mynn (units: m2/s) at full level -------
       if ( id_diff_m_edmf > 0) then
         used = send_data (id_diff_m_edmf, am4_Output_edmf%diff_m_edmf, Time_next, is, js, 1 )
       endif
@@ -8025,7 +8025,7 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; EDMF diffusion coefficients for heat (K m/s)'
         write(6,3002) ' diff_t_edmf = (/'    ,am4_Output_edmf%diff_t_edmf (ii_write,jj_write,:)
         write(6,*)    ' '
-        write(6,*)    '; EDMF diffusion coefficients for momentum (m2/s2)'
+        write(6,*)    '; EDMF diffusion coefficients for momentum (m2/s)'
         write(6,3002) ' diff_m_edmf = (/'    ,am4_Output_edmf%diff_m_edmf (ii_write,jj_write,:)
         write(6,*)    ' '
         write(6,*)    '; u tendency from edmf_mynn (m/s2)'
@@ -8182,6 +8182,12 @@ subroutine edmf_writeout_column ( &
         write(6,3002) ' edmf_qc = (/'    ,Output_edmf%edmf_qc(ii_write,:,jj_write)
         !write(6,3002) '  = (/'    ,Output_edmf%
         write(6,*)    ''
+        write(6,*)    '; Output_edmf%exch_h'
+        write(6,3002) ' exch_h = (/', Output_edmf%exch_h 
+        write(6,*)    ''
+        write(6,*)    '; Output_edmf%exch_m'
+        write(6,3002) ' exch_m = (/', Output_edmf%exch_m
+        write(6,*)    ''
         write(6,*)    ';-----------------------------'
         write(6,*)    ';  Some vi commands'
         write(6,*)    ';-----------------------------'
@@ -8301,83 +8307,96 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
 
   do i=1,ix
   do j=1,jx
-  do k=1,kx
-    kk=kx-k+1    
 
-    !--- set am4_Output_edmf
-    am4_Output_edmf%tke         (i,j,kk) = 0.5 * Output_edmf%Qke (i,k,j)
-    am4_Output_edmf%Tsq         (i,j,kk) = Output_edmf%Tsq       (i,k,j)
-    am4_Output_edmf%Cov_thl_qt  (i,j,kk) = Output_edmf%Cov       (i,k,j)
-    am4_Output_edmf%udt_edmf    (i,j,kk) = Output_edmf%RUBLTEN   (i,k,j) 
-    am4_Output_edmf%vdt_edmf    (i,j,kk) = Output_edmf%RVBLTEN   (i,k,j)
-    am4_Output_edmf%tdt_edmf    (i,j,kk) = Output_edmf%RTHBLTEN  (i,k,j) * Input_edmf%exner (i,k,j)
-    am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN  (i,k,j)
-    am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN  (i,k,j)
-    am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN  (i,k,j)
-    am4_Output_edmf%qadt_edmf   (i,j,kk) = Output_edmf%RCCBLTEN  (i,k,j)
-    am4_Output_edmf%qtdt_edmf   (i,j,kk) = Output_edmf%RQTBLTEN  (i,k,j)
-    am4_Output_edmf%thldt_edmf  (i,j,kk) = Output_edmf%RTHLBLTEN (i,k,j)
-    am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a    (i,k,j)
-    am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w    (i,k,j)
-    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
-    am4_Output_edmf%edmf_thl    (i,j,kk) = Output_edmf%edmf_thl  (i,k,j)
-    am4_Output_edmf%edmf_ent    (i,j,kk) = Output_edmf%edmf_ent  (i,k,j)
-    am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
-    am4_Output_edmf%cldfra_bl   (i,j,kk) = Output_edmf%cldfra_bl (i,k,j)
-    am4_Output_edmf%qc_bl       (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
-    am4_Output_edmf%diff_t_edmf (i,j,kk) = Output_edmf%exch_h    (i,k,j)
-    am4_Output_edmf%diff_m_edmf (i,j,kk) = Output_edmf%exch_m    (i,k,j)
-    am4_Output_edmf%el_edmf     (i,j,kk) = Output_edmf%el_pbl    (i,k,j)
-    !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
+    !======================
+    !  diff_t_edmf and diff_m_edmf are on half levels but the dimension is nlev, instead of nlev+1
+    do k=2,kx      ! k index for half levels. Skip k=1 because k=1 in MYNN is right at the surface
+      kk=kx-k+2
 
-    !--- if needed, modify am4_Output_edmf tendencies to make sure the updated qa, ql, qc, qi, qnd qt are larger than zero
-    !qa1 = Physics_input_block%q(i,j,kk,nqa) + am4_Output_edmf%qadt_edmf(i,j,kk) * dt
-    !if (qa1 .lt. 0.) then
-    !  am4_Output_edmf%qadt_edmf(i,j,kk) = -1.*Physics_input_block%q(i,j,kk,nqa) / dt
-    !  print*,'no,k,am4,mynn',kk,am4_Output_edmf%qadt_edmf(i,j,kk),Output_edmf%RCCBLTEN  (i,k,j), &
-    !                           am4_Output_edmf%qadt_edmf(i,j,kk)-Output_edmf%RCCBLTEN  (i,k,j)
-    !endif
+      !--- set am4_Output_edmf, on GFDL half levels
+      !      may need to reset edmf_* variables on half levels to avoid confusion, yhc, 03-24
+      am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a    (i,k,j)
+      am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w    (i,k,j)
+      am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
+      am4_Output_edmf%edmf_thl    (i,j,kk) = Output_edmf%edmf_thl  (i,k,j)
+      am4_Output_edmf%edmf_ent    (i,j,kk) = Output_edmf%edmf_ent  (i,k,j)
+      am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
+  
+      am4_Output_edmf%diff_t_edmf (i,j,kk) = Output_edmf%exch_h    (i,k,j)
+      am4_Output_edmf%diff_m_edmf (i,j,kk) = Output_edmf%exch_m    (i,k,j)
+    enddo          ! end loop of k, half levels
 
-    !--- “evaporate/condensate” the liquid and ice water that is produced during mixing when 
-    !       do_option_edmf2ls_mp=3, 
-    !       or above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
-    if (     do_option_edmf2ls_mp.eq.3     &
-        .or. kk.lt.am4_Output_edmf%kpbl_edmf(i,j) ) then
-      am4_Output_edmf%qdt_edmf  (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
-                                           + Output_edmf%RQCBLTEN (i,k,j)  &
-                                           + Output_edmf%RQIBLTEN (i,k,j) 
-      am4_Output_edmf%qidt_edmf (i,j,kk) = 0. 
-      am4_Output_edmf%qldt_edmf (i,j,kk) = 0. 
-      am4_Output_edmf%qadt_edmf (i,j,kk) = 0. 
+    !======================
+    do k=1,kx      ! k index for full levels
+      kk=kx-k+1
+  
+      !--- set am4_Output_edmf, on GFDL full levels
+      am4_Output_edmf%tke         (i,j,kk) = 0.5 * Output_edmf%Qke (i,k,j)
+      am4_Output_edmf%Tsq         (i,j,kk) = Output_edmf%Tsq       (i,k,j)
+      am4_Output_edmf%Cov_thl_qt  (i,j,kk) = Output_edmf%Cov       (i,k,j)
+      am4_Output_edmf%udt_edmf    (i,j,kk) = Output_edmf%RUBLTEN   (i,k,j) 
+      am4_Output_edmf%vdt_edmf    (i,j,kk) = Output_edmf%RVBLTEN   (i,k,j)
+      am4_Output_edmf%tdt_edmf    (i,j,kk) = Output_edmf%RTHBLTEN  (i,k,j) * Input_edmf%exner (i,k,j)
+      am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN  (i,k,j)
+      am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN  (i,k,j)
+      am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN  (i,k,j)
+      am4_Output_edmf%qadt_edmf   (i,j,kk) = Output_edmf%RCCBLTEN  (i,k,j)
+      am4_Output_edmf%qtdt_edmf   (i,j,kk) = Output_edmf%RQTBLTEN  (i,k,j)
+      am4_Output_edmf%thldt_edmf  (i,j,kk) = Output_edmf%RTHLBLTEN (i,k,j)
+      am4_Output_edmf%cldfra_bl   (i,j,kk) = Output_edmf%cldfra_bl (i,k,j)
+      am4_Output_edmf%qc_bl       (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
+      am4_Output_edmf%el_edmf     (i,j,kk) = Output_edmf%el_pbl    (i,k,j)
+      !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
+  
+      !--- if needed, modify am4_Output_edmf tendencies to make sure the updated qa, ql, qc, qi, qnd qt are larger than zero
+      !qa1 = Physics_input_block%q(i,j,kk,nqa) + am4_Output_edmf%qadt_edmf(i,j,kk) * dt
+      !if (qa1 .lt. 0.) then
+      !  am4_Output_edmf%qadt_edmf(i,j,kk) = -1.*Physics_input_block%q(i,j,kk,nqa) / dt
+      !  print*,'no,k,am4,mynn',kk,am4_Output_edmf%qadt_edmf(i,j,kk),Output_edmf%RCCBLTEN  (i,k,j), &
+      !                           am4_Output_edmf%qadt_edmf(i,j,kk)-Output_edmf%RCCBLTEN  (i,k,j)
+      !endif
+  
+      !--- “evaporate/condensate” the liquid and ice water that is produced during mixing when 
+      !       do_option_edmf2ls_mp=3, 
+      !       or above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
+      if (     do_option_edmf2ls_mp.eq.3     &
+          .or. kk.lt.am4_Output_edmf%kpbl_edmf(i,j) ) then
+        am4_Output_edmf%qdt_edmf  (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
+                                             + Output_edmf%RQCBLTEN (i,k,j)  &
+                                             + Output_edmf%RQIBLTEN (i,k,j) 
+        am4_Output_edmf%qidt_edmf (i,j,kk) = 0. 
+        am4_Output_edmf%qldt_edmf (i,j,kk) = 0. 
+        am4_Output_edmf%qadt_edmf (i,j,kk) = 0. 
+  
+        am4_Output_edmf%tdt_edmf  (i,j,kk) =   Input_edmf%exner (i,k,j) * Output_edmf%RTHBLTEN (i,k,j) &
+                                             - hlv/cp_air * Output_edmf%RQCBLTEN (i,k,j)  &
+                                             - hls/cp_air * Output_edmf%RQIBLTEN (i,k,j)
+      endif
+  
+      !--- change rdiag
+      Qke       (i,j,kk) = Output_edmf%Qke       (i,k,j)
+      el_pbl    (i,j,kk) = Output_edmf%el_pbl    (i,k,j)
+      cldfra_bl (i,j,kk) = Output_edmf%cldfra_bl (i,k,j)
+      qc_bl     (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
+      Sh3D      (i,j,kk) = Output_edmf%Sh3D      (i,k,j)
+      !!! rdiag(i,j,kk,n)      = Output_edmf%      (i,k,j)
+  
+      !--- To avoid MYNN producing weird tendencies when turbulent mixing is small, 
+      !    Kay Suselj suggested to set tendencies to zeros when TKE is small (e.g. <0.02 m2/s2)
+      if (Qke(i,j,kk) .lt. qke_min) then
+        am4_Output_edmf%udt_edmf    (i,j,kk) = 0.
+        am4_Output_edmf%vdt_edmf    (i,j,kk) = 0.
+        am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
+        am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
+        am4_Output_edmf%qidt_edmf   (i,j,kk) = 0.
+        am4_Output_edmf%qldt_edmf   (i,j,kk) = 0.
+        am4_Output_edmf%qadt_edmf   (i,j,kk) = 0.
+        am4_Output_edmf%qtdt_edmf   (i,j,kk) = 0.
+        am4_Output_edmf%thldt_edmf  (i,j,kk) = 0.
+      endif
+  
+    enddo  ! end loop of k, full levels
 
-      am4_Output_edmf%tdt_edmf  (i,j,kk) =   Input_edmf%exner (i,k,j) * Output_edmf%RTHBLTEN (i,k,j) &
-                                           - hlv/cp_air * Output_edmf%RQCBLTEN (i,k,j)  &
-                                           - hls/cp_air * Output_edmf%RQIBLTEN (i,k,j)
-    endif
-
-    !--- change rdiag
-    Qke       (i,j,kk) = Output_edmf%Qke       (i,k,j)
-    el_pbl    (i,j,kk) = Output_edmf%el_pbl    (i,k,j)
-    cldfra_bl (i,j,kk) = Output_edmf%cldfra_bl (i,k,j)
-    qc_bl     (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
-    Sh3D      (i,j,kk) = Output_edmf%Sh3D      (i,k,j)
-    !!! rdiag(i,j,kk,n)      = Output_edmf%      (i,k,j)
-
-    !--- To avoid MYNN producing weird tendencies when turbulent mixing is small, 
-    !    Kay Suselj suggested to set tendencies to zeros when TKE is small (e.g. <0.02 m2/s2)
-    if (Qke(i,j,kk) .lt. qke_min) then
-      am4_Output_edmf%udt_edmf    (i,j,kk) = 0.
-      am4_Output_edmf%vdt_edmf    (i,j,kk) = 0.
-      am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
-      am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
-      am4_Output_edmf%qidt_edmf   (i,j,kk) = 0.
-      am4_Output_edmf%qldt_edmf   (i,j,kk) = 0.
-      am4_Output_edmf%qadt_edmf   (i,j,kk) = 0.
-      am4_Output_edmf%qtdt_edmf   (i,j,kk) = 0.
-      am4_Output_edmf%thldt_edmf  (i,j,kk) = 0.
-    endif
-
-  enddo  ! end loop of k
   enddo  ! end loop of j
   enddo  ! end loop of 1
 
