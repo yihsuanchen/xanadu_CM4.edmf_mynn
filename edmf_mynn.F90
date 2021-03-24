@@ -415,7 +415,7 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni  ! tracer indices for stratiform clo
 integer :: nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl ! tracer index for EDMF-MYNN tracers
 integer :: ntp          ! number of prognostic tracers
 
-integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf, id_qtdt_edmf, id_thldt_edmf, id_diff_t_edmf, id_el_edmf
+integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf, id_qtdt_edmf, id_thldt_edmf, id_diff_t_edmf, id_diff_m_edmf, id_el_edmf
 
 !---------------------------------------------------------------------
 
@@ -685,6 +685,10 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_diff_t_edmf = register_diag_field (mod_name, 'diff_t_edmf', axes(full), Time, &
                  'heat diff coeffs from edmf_mynn', 'K/m/s' , &
+                 missing_value=missing_value )
+
+  id_diff_m_edmf = register_diag_field (mod_name, 'diff_m_edmf', axes(full), Time, &
+                 'momentum diff coeffs from edmf_mynn', 'm2/s2' , &
                  missing_value=missing_value )
 
   id_el_edmf = register_diag_field (mod_name, 'el_edmf', axes(full), Time, &
@@ -6345,7 +6349,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               do_edmf_mynn_diagnostic, &
-              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, kpbl_edmf, &
+              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
@@ -6393,6 +6397,7 @@ subroutine edmf_mynn_driver ( &
 !   qldt_edmf 		- cloud liquid specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlev)
 !   qidt_edmf 		- cloud ice    specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlev)
 !   diff_t_edmf		- eddy diffusion coefficient for heat (K m/s)			  	, dimension (nlon,nlat,nlev)
+!   diff_m_edmf		- eddy diffusion coefficient for momentum (m/s m/s)		  	, dimension (nlon,nlat,nlev)
 !   option_edmf2ls_mp 	- options for linkage to Tiedtke, same as "do_option_edmf2ls_mp" in the namelist
 !
 !   Note
@@ -6409,7 +6414,7 @@ subroutine edmf_mynn_driver ( &
   real, intent(out), dimension(:,:,:) :: &
     qadt_edmf, qldt_edmf, qidt_edmf, &   
     dqa_edmf,  dql_edmf, dqi_edmf,  &
-    diff_t_edmf
+    diff_t_edmf, diff_m_edmf
 
   integer, intent(out) :: &
     option_edmf2ls_mp
@@ -6584,6 +6589,7 @@ subroutine edmf_mynn_driver ( &
   dql_edmf    = 0.
   dqi_edmf    = 0.
   diff_t_edmf = 0.
+  diff_m_edmf = 0.
 
   if (.not.do_edmf_mynn_diagnostic) then
 
@@ -6598,6 +6604,7 @@ subroutine edmf_mynn_driver ( &
     pbltop      (:,:)   = am4_Output_edmf%pbltop      (:,:)        ! PBL depth (m)
     kpbl_edmf   (:,:)   = am4_Output_edmf%kpbl_edmf   (:,:)        ! index of PBL top (none)
     diff_t_edmf (:,:,:) = am4_Output_edmf%diff_t_edmf (:,:,:)      ! diffusion coefficient for heat (K m/s)
+    diff_m_edmf (:,:,:) = am4_Output_edmf%diff_m_edmf (:,:,:)      ! diffusion coefficient for heat (m/s m/s)
 
     !--- set edmf to ls_mp
     option_edmf2ls_mp = do_option_edmf2ls_mp
@@ -6809,6 +6816,11 @@ subroutine edmf_mynn_driver ( &
 !------- heat diff coeffs from edmf_mynn (units: K/m/s) at full level -------
       if ( id_diff_t_edmf > 0) then
         used = send_data (id_diff_t_edmf, am4_Output_edmf%diff_t_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- heat diff coeffs from edmf_mynn (units: K/m/s) at full level -------
+      if ( id_diff_m_edmf > 0) then
+        used = send_data (id_diff_m_edmf, am4_Output_edmf%diff_m_edmf, Time_next, is, js, 1 )
       endif
 
 !------- mixing length in edmf_mynn (units: m) at full level -------
@@ -8012,6 +8024,9 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ' '
         write(6,*)    '; EDMF diffusion coefficients for heat (K m/s)'
         write(6,3002) ' diff_t_edmf = (/'    ,am4_Output_edmf%diff_t_edmf (ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; EDMF diffusion coefficients for momentum (m2/s2)'
+        write(6,3002) ' diff_m_edmf = (/'    ,am4_Output_edmf%diff_m_edmf (ii_write,jj_write,:)
         write(6,*)    ' '
         write(6,*)    '; u tendency from edmf_mynn (m/s2)'
         write(6,3002) ' udt_edmf = (/'    ,am4_Output_edmf%udt_edmf (ii_write,jj_write,:)
