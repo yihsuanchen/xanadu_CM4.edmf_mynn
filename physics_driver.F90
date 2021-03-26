@@ -2043,6 +2043,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data qldt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nql)
         write(6,*) 'data qidt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqi)
         write(6,*) 'data qndt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqn)
+        do rr=1, size(Physics_tendency_block%q_dt,4)
+          write(6,*) 'data dn_begin, rr, r'    ,rr, r(ii_write,jj_write,:,rr)
+        enddo
   endif
 !--> yhc
 
@@ -2299,26 +2302,58 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'surf_diff%delta_v, after vdiff_down',surf_diff%delta_v(ii_write,jj_write)
         write(6,*) 'diff_t',diff_t(ii_write,jj_write,:)
         write(6,*) 'diff_m',diff_m(ii_write,jj_write,:)
+        write(6,*) 'udt_before_vdiff_down',udt_before_vdiff_down(ii_write,jj_write,:)
+        write(6,*) 'udt_after_vdiff_down ',udt(ii_write,jj_write,:)
+        write(6,*) 'rdt_before_vdiff_down, 12',rdt_before_vdiff_down(ii_write,jj_write,:,12)
+        write(6,*) 'rdt_after_vdiff_down , 12',rdt(ii_write,jj_write,:,12)
   endif
 
         !--- reset tendencies to pre-vert_diff values
         udt(:,:,:) = udt_before_vdiff_down(:,:,:)  ! yhc, even diff_m=0., udt and vdt at the lowest atm loevel are still changed.
         vdt(:,:,:) = vdt_before_vdiff_down(:,:,:)  !      make sure udt and vdt are reset to the values before vdiff_down
+        tdt(:,:,:) = tdt_before_vdiff_down(:,:,:)
+        rdt(:,:,:,nsphum) = rdt_before_vdiff_down(:,:,:,nsphum)
         tau_x(:,:) = tau_x_before_vdiff_down(:,:)  !      reset tau_x, tau_y, surf_diff%delta_u, and surf_diff%delta_v
         tau_y(:,:) = tau_y_before_vdiff_down(:,:) 
         surf_diff%delta_u(:,:) = 0.
         surf_diff%delta_v(:,:) = 0.
-        tdt(:,:,:)   = tdt_before_vdiff_down(:,:,:)
 
-        if (do_tracers_in_edmf_mynn) then
-          rdt(:,:,:,:)   = rdt_before_vdiff_down(:,:,:,:)    ! 
-        else
-          !--- ED of qa, ql, qi would be handled by edmf_mynn, so set these to the original values
-          rdt(:,:,:,nqa) = rdt_before_vdiff_down(:,:,:,nqa)
-          rdt(:,:,:,nql) = rdt_before_vdiff_down(:,:,:,nql)
-          rdt(:,:,:,nqi) = rdt_before_vdiff_down(:,:,:,nqi)
-        endif
-      !<-- yhc
+        !--- select which tracers would be updated by vert_diff_driver_down. 
+        !    The tracers considered here are qn, qni, and others such as dust, sea salt, etc
+        if (do_tracers_in_edmf_mynn) then     ! do all tracers in edmf_mynn so setting diff_m and diff_t to zeros
+          rdt(:,:,:,:)   = rdt_before_vdiff_down(:,:,:,:)
+
+        else  ! some tracers are handled by vert_diff
+          if     (do_tracers_selective.eq.1) then      ! process all tracers except qn and qni
+            if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(:,:,:,nqn)
+            if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(:,:,:,nqni)
+  
+          elseif (do_tracers_selective.eq.2) then      ! do not process any tracers
+            rdt(:,:,:,:)   = rdt_before_vdiff_down(:,:,:,:)
+  
+          elseif (do_tracers_selective.eq.3) then      ! only process qn and qni
+            if (nqn  > 0) rdt_dum1 (:,:,:) = rdt(:,:,:,nqn)
+            if (nqni > 0) rdt_dum2 (:,:,:) = rdt(:,:,:,nqni)
+  
+            rdt(:,:,:,:)    = rdt_before_vdiff_down(:,:,:,:)
+            if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_dum1(:,:,:)
+            if (nqni > 0) rdt(:,:,:,nqni) = rdt_dum2(:,:,:)
+
+          elseif (do_tracers_selective.eq.4) then      ! process all tracers except cloud fields: qa,ql,qi,nqn,nqi
+            if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(:,:,:,nqa)
+            if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(:,:,:,nql)
+            if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(:,:,:,nqi)
+            if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(:,:,:,nqn)
+            if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(:,:,:,nqni)
+
+          elseif (do_tracers_selective.eq.5) then      ! process all tracers except cloud fraction and specific humidity qa,ql,qi. Cloud number are processed by vert_diff
+            if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(:,:,:,nqa)
+            if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(:,:,:,nql)
+            if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(:,:,:,nqi)
+
+          endif  ! end if of do_tracers_selective
+        endif    ! end if of do_tracers_in_edmf_mynn 
+        !<-- yhc
 
       else
         call vert_diff_driver_down (is, js, Time_next, dt, p_half,   &
@@ -2330,7 +2365,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                                     udt, vdt, tdt, rdt(:,:,:,1), rdt,        &
                                     Surf_diff)
 
-        !<--- yhc
+        !<--- yhc, testing purpose
         !--- select which tracers would be updated by vert_diff_driver_down. 
         !    The tracers considered here are qn, qni, and others such as dust, sea salt, etc
         if     (do_tracers_selective.eq.1) then      ! process all tracers except qn and qni
@@ -2799,9 +2834,9 @@ real,dimension(:,:),    intent(inout)             :: gust
       elseif (do_edmf_mynn .and. do_edmf_mynn_diagnostic) then
         call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
                                   Surf_diff, tdt, rdt(:,:,:,1), rdt )
-      elseif (do_edmf_mynn .and. .not.do_tracers_in_edmf_mynn) then
-        call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
-                                  Surf_diff, tdt, rdt(:,:,:,1), rdt )
+      !elseif (do_edmf_mynn .and. .not.do_tracers_in_edmf_mynn) then
+      !  call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
+      !                            Surf_diff, tdt, rdt(:,:,:,1), rdt )
       endif
 !--> yhc
 
@@ -2886,7 +2921,7 @@ real,dimension(:,:),    intent(inout)             :: gust
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                do_edmf_mynn_diagnostic, &
-               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, kpbl_edmf, &
+               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
                pbltop, udt, vdt, tdt, rdt, rdiag)
 
 ! set temp values
@@ -2922,6 +2957,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data qndt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqn)
         write(6,*) 'data diff_t/'    ,diff_t(ii_write,jj_write,:)
         write(6,*) 'data diff_t_edmf/'    ,diff_t_edmf(ii_write,jj_write,:)
+        write(6,*) 'data diff_m_edmf/'    ,diff_m_edmf(ii_write,jj_write,:)
   endif
 !--> yhc
 
