@@ -389,6 +389,7 @@ integer :: do_tracers_selective = 0           ! testing purpose
                                               !   1: vert_diff would process all tracers except qn and qni
                                               !   2: vert_diff would NOT process any tracers
                                               !   3: vert_diff would ONLY process qn and qni        
+logical :: do_edmf_mynn_diffusion_smooth = .false.
 
 integer :: ii_write = -999                    ! i index for column written out. Set to 0 if you want to write out in SCM
 integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
@@ -415,7 +416,7 @@ namelist / physics_driver_nml / do_radiation, do_clubb,  do_cosp, &
                                 qmin, N_land, N_ocean, do_liq_num,  &
                                 do_ice_num, qcvar, overlap, N_min, &
                                 min_diam_ice, dcs, min_diam_drop, &
-                                do_edmf_mynn, do_edmf_mynn_diagnostic, do_tracers_in_edmf_mynn, do_tracers_selective, & ! yhc add
+                                do_edmf_mynn, do_edmf_mynn_diagnostic, do_tracers_in_edmf_mynn, do_tracers_selective, do_edmf_mynn_diffusion_smooth, & ! yhc add
                                 do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write, & ! yhc add
                                 tdt_max, do_limit_tdt, tdt_limit, &  ! yhc add
                                 max_diam_drop, use_tau, cosp_frequency
@@ -2276,10 +2277,10 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         if (do_tracers_in_edmf_mynn) then     ! do all tracers in edmf_mynn so setting diff_m and diff_t to zeros
           diff_m = 0. 
           diff_t = 0.
-        else            ! some tracers are processed in vert_diff, using diff_t and diff_m from edmf_mynn
-          diff_m(:,:,:) = diff_m_edmf(:,:,:) 
-          diff_t(:,:,:) = diff_t_edmf(:,:,:)
-        endif
+        else
+          diff_m(is:ie,js:je,:) = diff_m_edmf(is:ie,js:je,:)
+          diff_t(is:ie,js:je,:) = diff_t_edmf(is:ie,js:je,:)
+        endif    ! end if of do_tracers_in_edmf_mynn
 
         call vert_diff_driver_down (is, js, Time_next, dt, p_half,   &
                                     p_full, z_full,   &
@@ -2710,12 +2711,15 @@ real,dimension(:,:),    intent(inout)             :: gust
       real, dimension(:,:,:,:), pointer :: r
       real, dimension(:,:,:),   pointer :: p_full, p_half                 
       real, dimension(:,:,:),   pointer :: tdt
-      real, dimension(:,:,:,:), pointer :: rdt          
+      real, dimension(:,:,:,:), pointer :: rdt  
+      !<-- yhc        
       real, dimension(:,:,:,:), pointer :: rdiag  ! yhc 
       real, dimension(:,:,:),   pointer :: udt    ! yhc
       real, dimension(:,:,:),   pointer :: vdt    ! yhc
       real :: tt1
       integer :: rr
+      real                              :: alpha, dt2
+      !--> yhc        
 
       t => Physics_input_block%t
       r => Physics_input_block%q
@@ -2924,20 +2928,34 @@ real,dimension(:,:),    intent(inout)             :: gust
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
                pbltop, udt, vdt, tdt, rdt, rdiag)
 
-! set temp values
-!    qadt_edmf  (is:ie,js:je,24:29)   = 0.8/dt
-!    qldt_edmf  (is:ie,js:je,24:29)   = 0. !1.e-3/dt 
-!    qidt_edmf  (is:ie,js:je,24:29)   = 1.e-3/dt
-!    dqa_edmf   (is:ie,js:je,:)   = qadt_edmf(is:ie,js:je,:) * dt
-!    dql_edmf   (is:ie,js:je,:)   = qldt_edmf(is:ie,js:je,:) * dt
-!    dqi_edmf   (is:ie,js:je,:)   = qidt_edmf(is:ie,js:je,:) * dt
-  endif  ! end if of do_edmf_mynn
-
   !--- only modify diff_t and diff_m when tracers are not handled by edmf_mynn and edmf_mynn is not diagnositic purpose
   if (.not.do_tracers_in_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
-    !--- save diff_t values
-    diff_t(:,:,:) = diff_t_edmf(:,:,:)
-    diff_m(:,:,:) = diff_m_edmf(:,:,:)
+
+     !--- smooth diffusion coefficients following GFDL diffusion_smooth method
+     if (do_edmf_mynn_diffusion_smooth) then
+       call get_time (Time_next - Time, sec, day)
+       dt2 = real(sec + day*86400)
+       alpha = dt2/tau_diff
+       diff_m(is:ie,js:je,:) = (diff_m(is:ie,js:je,:) +       &
+                                alpha*diff_m_edmf(:,:,:))/&
+                                (1. + alpha)
+       where (diff_m(is:ie,js:je,:) < diff_min)
+         diff_m(is:ie,js:je,:) = 0.0
+       end where
+       diff_t(is:ie,js:je,:) = (diff_t(is:ie,js:je,:) +      &
+                                alpha*diff_t_edmf(:,:,:) )/  &
+                                (1. + alpha)
+       where (diff_t(is:ie,js:je,:) < diff_min)
+         diff_t(is:ie,js:je,:) = 0.0
+       end where
+     else
+       diff_t(is:ie,js:je,:) = diff_t_edmf
+       diff_m(is:ie,js:je,:) = diff_m_edmf 
+     end if  ! end if of do_edmf_mynn_diffusion_smooth
+
+     !--- save updated diff_t,m into diff_t,m_edmf
+     diff_t_edmf(is:ie,js:je,:) = diff_t
+     diff_m_edmf(is:ie,js:je,:) = diff_m 
   endif
 
   if (do_writeout_column) then
@@ -2959,6 +2977,8 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data diff_t_edmf/'    ,diff_t_edmf(ii_write,jj_write,:)
         write(6,*) 'data diff_m_edmf/'    ,diff_m_edmf(ii_write,jj_write,:)
   endif
+
+  endif  ! end if of do_edmf_mynn
 !--> yhc
 
 !-----------------------------------------------------------------------
@@ -3039,7 +3059,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         Phys_mp_exch%kpbl_edmf      =>    kpbl_edmf(is:ie,js:je)   ! yhc
 
         if (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
-          Phys_mp_exch%diff_t => diff_t_edmf(is:ie,js:je,:)
+          Phys_mp_exch%diff_t => diff_t
         endif
         !--> yhc
 
