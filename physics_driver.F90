@@ -379,17 +379,20 @@ logical :: do_edmf_mynn = .false.             ! switch to turn on/off edmf_mynn 
 logical :: do_edmf_mynn_diagnostic = .false.  ! .true.  : diagnostic edmf_mynn, no update on tendencies
                                               ! .false. : interactive edmf_mynn, update on tendencies
 
-logical :: do_tracers_in_edmf_mynn = .true.   !  testing purpose 
+logical :: do_tracers_in_edmf_mynn = .true.   ! do tracer diffusion in edmf_mynn
                                               ! .true.  : tracer diffusion is handled by edmf_mynn
                                               ! .false. : tracer diffusion is handled by vert_diff_driver_down, using 
                                               !           ED diffusion coefficients from edmf_mynn
 
-integer :: do_tracers_selective = 0           ! testing purpose
+integer :: do_tracers_selective = 0           ! determine which tracer would be processed by vert_diff_down
                                               !   0: vert_diff would process all tracers, such as qa, ql, qn, dust, sea salt, etc
                                               !   1: vert_diff would process all tracers except qn and qni
                                               !   2: vert_diff would NOT process any tracers
                                               !   3: vert_diff would ONLY process qn and qni        
-logical :: do_edmf_mynn_diffusion_smooth = .false.
+                                              !   4: process all tracers except cloud fields: qa,ql,qi,nqn,nqi
+                                              !   5: process all tracers except cloud fraction and specific humidity qa,ql,qi. Cloud number are processed by vert_diff
+
+logical :: do_edmf_mynn_diffusion_smooth = .false.  ! smooth the diffusion coefficients following AM4 "diffusion_smooth"
 
 integer :: ii_write = -999                    ! i index for column written out. Set to 0 if you want to write out in SCM
 integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
@@ -1125,17 +1128,19 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       allocate ( r_convect  (id, jd) )     ; r_convect   = 0.0
       allocate ( diff_t_clubb(id, jd, kd) ); diff_t_clubb = 0.0
 
-      allocate (  option_edmf2ls_mp )          ; option_edmf2ls_mp = 0  ! yhc
-      allocate (  qadt_edmf (id, jd, kd))  ; qadt_edmf = 0.0  ! yhc
-      allocate (  qldt_edmf (id, jd, kd))  ; qldt_edmf = 0.0  ! yhc
-      allocate (  qidt_edmf (id, jd, kd))  ; qidt_edmf = 0.0  ! yhc
-      allocate (  dqa_edmf  (id, jd, kd))  ; dqa_edmf  = 0.0  ! yhc
-      allocate (  dql_edmf  (id, jd, kd))  ; dql_edmf  = 0.0  ! yhc
-      allocate (  dqi_edmf  (id, jd, kd))  ; dqi_edmf  = 0.0  ! yhc
-      allocate (  diff_t_edmf(id, jd, kd)) ; diff_t_edmf = 0.0  ! yhc
-      allocate (  diff_m_edmf(id, jd, kd)) ; diff_m_edmf = 0.0  ! yhc
-      allocate (  kpbl_edmf  (id, jd))  ;  ; kpbl_edmf= 0     ! yhc
-      !allocate (  (id, jd, kd))  ;  = 0.0  ! yhc
+      !<--- yhc
+      allocate (  option_edmf2ls_mp )          ; option_edmf2ls_mp = 0  
+      allocate (  qadt_edmf (id, jd, kd))  ; qadt_edmf = 0.0  
+      allocate (  qldt_edmf (id, jd, kd))  ; qldt_edmf = 0.0  
+      allocate (  qidt_edmf (id, jd, kd))  ; qidt_edmf = 0.0  
+      allocate (  dqa_edmf  (id, jd, kd))  ; dqa_edmf  = 0.0  
+      allocate (  dql_edmf  (id, jd, kd))  ; dql_edmf  = 0.0  
+      allocate (  dqi_edmf  (id, jd, kd))  ; dqi_edmf  = 0.0  
+      allocate (  diff_t_edmf(id, jd, kd)) ; diff_t_edmf = 0.0  
+      allocate (  diff_m_edmf(id, jd, kd)) ; diff_m_edmf = 0.0  
+      allocate (  kpbl_edmf  (id, jd))  ;  ; kpbl_edmf= 0     
+      !allocate (  (id, jd, kd))  ;  = 0.0  
+      !---> yhc
 
       if (do_cosp) then
 !--------------------------------------------------------------------
@@ -2270,14 +2275,14 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                                     Surf_diff,                     &
                                     diff_t_clubb=diff_t_clubb(is:ie,js:je,:))
 
-      !<-- yhc set diff_t and diff_m to zeros if edmf_mynn is on because diffussive terms will be handled in edmf_mynn
+      !<-- yhc 
       elseif (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
 
         !--- check tracers
         if (do_tracers_in_edmf_mynn) then     ! do all tracers in edmf_mynn so setting diff_m and diff_t to zeros
-          diff_m = 0. 
+          diff_m = 0.                         ! vert_diff_driver_down still process variables that would be used in surface-atmosphere coupling
           diff_t = 0.
-        else
+        else                                  ! use vert_diff_driver_down process eddy diffusion suing edmf_mynn diffusion coefficients
           diff_m(is:ie,js:je,:) = diff_m_edmf(is:ie,js:je,:)
           diff_t(is:ie,js:je,:) = diff_t_edmf(is:ie,js:je,:)
         endif    ! end if of do_tracers_in_edmf_mynn
@@ -2321,7 +2326,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
 
         !--- select which tracers would be updated by vert_diff_driver_down. 
         !    The tracers considered here are qn, qni, and others such as dust, sea salt, etc
-        if (do_tracers_in_edmf_mynn) then     ! do all tracers in edmf_mynn so setting diff_m and diff_t to zeros
+        if (do_tracers_in_edmf_mynn) then     ! do all tracers in edmf_mynn so setting all rdt to pre-vert_diff values
           rdt(:,:,:,:)   = rdt_before_vdiff_down(:,:,:,:)
 
         else  ! some tracers are handled by vert_diff
@@ -2918,8 +2923,6 @@ real,dimension(:,:),    intent(inout)             :: gust
 !    call edmf_mynn to to calculate tendencies from convective mass flux
 !---------------------------------------------------------------------
 
-!write(6,*) 'a0.0, nQke, rdiag(:,:,:,nQke)', rdiag(:,:,:,28)
-
   if (do_edmf_mynn) then
     call edmf_mynn_driver ( &
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
@@ -3049,14 +3052,14 @@ real,dimension(:,:),    intent(inout)             :: gust
         Phys_mp_exch%tke_prev      => pblht_prev   (is:ie,js:je,:)
 
         !<-- yhc
-        Phys_mp_exch%option_edmf2ls_mp  =>    option_edmf2ls_mp             ! yhc
-        Phys_mp_exch%qadt_edmf      =>    qadt_edmf(is:ie,js:je,:)  ! yhc
-        Phys_mp_exch%qldt_edmf      =>    qldt_edmf(is:ie,js:je,:)  ! yhc
-        Phys_mp_exch%qidt_edmf      =>    qidt_edmf(is:ie,js:je,:)  ! yhc
-        Phys_mp_exch%dqa_edmf       =>    dqa_edmf(is:ie,js:je,:)   ! yhc
-        Phys_mp_exch%dql_edmf       =>    dql_edmf(is:ie,js:je,:)   ! yhc
-        Phys_mp_exch%dqi_edmf       =>    dqi_edmf(is:ie,js:je,:)   ! yhc
-        Phys_mp_exch%kpbl_edmf      =>    kpbl_edmf(is:ie,js:je)   ! yhc
+        Phys_mp_exch%option_edmf2ls_mp  =>    option_edmf2ls_mp             
+        Phys_mp_exch%qadt_edmf      =>    qadt_edmf(is:ie,js:je,:)  
+        Phys_mp_exch%qldt_edmf      =>    qldt_edmf(is:ie,js:je,:)  
+        Phys_mp_exch%qidt_edmf      =>    qidt_edmf(is:ie,js:je,:)  
+        Phys_mp_exch%dqa_edmf       =>    dqa_edmf(is:ie,js:je,:)   
+        Phys_mp_exch%dql_edmf       =>    dql_edmf(is:ie,js:je,:)   
+        Phys_mp_exch%dqi_edmf       =>    dqi_edmf(is:ie,js:je,:)   
+        Phys_mp_exch%kpbl_edmf      =>    kpbl_edmf(is:ie,js:je)   
 
         if (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
           Phys_mp_exch%diff_t => diff_t
