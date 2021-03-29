@@ -7205,6 +7205,48 @@ Major code version
     </input>
   </experiment>
 
+  <experiment name="rfo50a1-RF01-am4p0_rad_mynn_diag_NOqn_vdiff" inherit="rfo30-RF01-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_selective = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo50a2-RF01-am4p0_rad_mynn_diag_NOall_vdiff" inherit="rfo30-RF01-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_selective = 2
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo50a3-RF01-am4p0_rad_mynn_diag_YESqn_vdiff" inherit="rfo30-RF01-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_selective = 3
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="rfo53-RF01-mynn" inherit="rfo33-RF01-am4p0_rad_mynn">
   </experiment>
 
@@ -7257,6 +7299,382 @@ Major code version
       </namelist>
     </input>
   </experiment>
+
+  <experiment name="rfo53a1-RF01-mynn_tiedtkeADD_fixZPBL" inherit="rfo53a-RF01-mynn_tiedtkeADD">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 1
+ do_pblh_constant = T
+ fixed_pblh       = 3000.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53b1-RF01-mynn_tiedtkeREP_fixZPBL" inherit="rfo53b-RF01-mynn_tiedtkeREP">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 2
+ do_pblh_constant = T
+ fixed_pblh       = 3000.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53c1-RF01-mynn_modQDT_fixZPBL" inherit="rfo53c-RF01-mynn_modQDT">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 3
+ do_pblh_constant = T
+ fixed_pblh       = 3000.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53a2-RF01-mynn_tiedtkeADD_tracers" inherit="rfo53a-RF01-mynn_tiedtkeADD">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53b2-RF01-mynn_tiedtkeREP_tracers" inherit="rfo53b-RF01-mynn_tiedtkeREP">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 2
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53c2-RF01-mynn_modQDT_tracers" inherit="rfo53c-RF01-mynn_modQDT">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 3
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53a3-RF01-mynn_tiedtkeADD_NOqn_vdiff" inherit="rfo53a-RF01-mynn_tiedtkeADD">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+ do_tracers_selective = 5
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53b3-RF01-mynn_tiedtkeREP_NOqn_vdiff" inherit="rfo53b-RF01-mynn_tiedtkeREP">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+ do_tracers_selective = 5
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 2
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53c3-RF01-mynn_modQDT_NOqn_vdiff" inherit="rfo53c-RF01-mynn_modQDT">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+ do_tracers_selective = 0 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 3
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53a4-RF01-mynn_tiedtkeADD_vdiffAERO_sm" inherit="rfo53a-RF01-mynn_tiedtkeADD">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+ do_tracers_selective = 5
+ do_edmf_mynn_diffusion_smooth = T
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53b4-RF01-mynn_tiedtkeREP_vdiffAERO_sm" inherit="rfo53b-RF01-mynn_tiedtkeREP">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+ do_tracers_selective = 5
+ do_edmf_mynn_diffusion_smooth = T
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 2
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53c4-RF01-mynn_modQDT_vdiffAERO_sm" inherit="rfo53c-RF01-mynn_modQDT">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+ do_tracers_selective = 0 
+ do_edmf_mynn_diffusion_smooth = T
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 3
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo50_dt5min-RF01-am4p0_rad_mynn_diag" inherit="RF01_A_$(AWG_EXPERIMENT)">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="coupler_nml">
+        months = $months,
+        days   = $days,
+        hours  = $hours,
+        dt_atmos = 300,
+        dt_cpld = 300,
+        current_date = 2001, 7, 10, 0, 0, 0,
+        calendar = 'julian'
+        concurrent = .false.
+        do_ocean = .false.
+        do_land  = .false.
+        ocean_npes = 0
+        atmos_npes = $atm_ranks
+        atmos_nthreads = $atm_threads
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53a4_dt5min-RF01-mynn_tiedtkeADD_vdiffAERO_sm" inherit="rfo50_dt5min-RF01-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+ do_tracers_selective = 5
+ do_edmf_mynn_diffusion_smooth = T
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53b4_dt5min-RF01-mynn_tiedtkeREP_vdiffAERO_sm" inherit="rfo50_dt5min-RF01-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+ do_tracers_selective = 5
+ do_edmf_mynn_diffusion_smooth = T
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 2
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo53c4_dt5min-RF01-mynn_modQDT_vdiffAERO_sm" inherit="rfo50_dt5min-RF01-am4p0_rad_mynn_diag">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+ do_tracers_selective = 0 
+ do_edmf_mynn_diffusion_smooth = T
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 3
+      </namelist>
+    </input>
+  </experiment>
+
 
 <!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  -->
 <!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  -->
@@ -7405,7 +7823,7 @@ Major code version
 ##########################
 ##########################
 -->
-  <experiment name="x01-rfo30-RF01-am4p0_rad_mynn_diag" inherit="rfo30-RF01-am4p0_rad_mynn_diag">
+  <experiment name="x01-rfo50-RF01-am4p0_rad_mynn_diag" inherit="rfo50-RF01-am4p0_rad_mynn_diag">
     <input>
       <namelist name="physics_driver_nml">
  DO_EDMF_MYNN    = T,
@@ -7418,7 +7836,7 @@ Major code version
     </input>
   </experiment>
 
-  <experiment name="x01-rfo33a-RF01-mynn_tiedtkeADD" inherit="rfo33-RF01-am4p0_rad_mynn">
+  <experiment name="x01-rfo53a-RF01-mynn_tiedtkeADD" inherit="rfo53a-RF01-mynn_tiedtkeADD">
     <input>
       <namelist name="physics_driver_nml">
  DO_EDMF_MYNN    = T,
@@ -7427,6 +7845,7 @@ Major code version
  II_WRITE        =        0,
  JJ_WRITE        =        0,
  DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = T 
       </namelist>
       <namelist name="edmf_mynn_nml">
  DO_WRITEOUT_COLUMN_NML  = T,
@@ -7440,7 +7859,7 @@ Major code version
     </input>
   </experiment>
 
-  <experiment name="x01-rfo33b-RF01-mynn_tiedtkeREP" inherit="x01-rfo33a-RF01-mynn_tiedtkeADD">
+  <experiment name="x01-rfo53b-RF01-mynn_tiedtkeREP" inherit="x01-rfo53a-RF01-mynn_tiedtkeADD">
     <input>
       <namelist name="edmf_mynn_nml">
  DO_WRITEOUT_COLUMN_NML  = T,
@@ -7454,7 +7873,7 @@ Major code version
     </input>
   </experiment>
 
-  <experiment name="x01-rfo33c-RF01-mynn_modQDT" inherit="x01-rfo33a-RF01-mynn_tiedtkeADD">
+  <experiment name="x01-rfo53c-RF01-mynn_modQDT" inherit="x01-rfo53a-RF01-mynn_tiedtkeADD">
     <input>
       <namelist name="edmf_mynn_nml">
  DO_WRITEOUT_COLUMN_NML  = T,
@@ -7467,6 +7886,16 @@ Major code version
       </namelist>
     </input>
   </experiment>
+
+  <experiment name="x01-rfo53a2-RF01-mynn_tiedtkeADD_tracers" inherit="rfo53a2-RF01-mynn_tiedtkeADD_tracers">
+  </experiment>
+
+  <experiment name="x01-rfo53b2-RF01-mynn_tiedtkeREP_tracers" inherit="rfo53b2-RF01-mynn_tiedtkeREP_tracers">
+  </experiment>
+
+  <experiment name="x01-rfo53c2-RF01-mynn_modQDT_tracers" inherit="rfo53c2-RF01-mynn_modQDT_tracers">
+  </experiment>
+
 
   <experiment name="x01-b01-BOMEX-am4p0_rad_mynn" inherit="b01-BOMEX-am4p0_rad_mynn">
   </experiment>
