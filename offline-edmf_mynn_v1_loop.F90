@@ -2881,13 +2881,25 @@ DO k = kts,kte-1
 
 
 ! sigma_s: EQ. B6
-   if (k .eq. kts) then 
-	 dzk = 0.5*dz(k)
+!   if (k .eq. kts) then 
+!   	 dzk = dz(k)
+!   else
+!	 dzk = 0.5*( dz(k) + dz(k-1) )
+!   end if
+   !dth = 0.5*(thl(k+1)+thl(k)) - 0.5*(thl(k)+thl(MAX(k-1,kts)))
+   !dqw = 0.5*(qw(k+1) + qw(k)) - 0.5*(qw(k) + qw(MAX(k-1,kts)))
+    
+   if (k .eq. kts) then
+     dzk=dz(k)
+     dth=thl(k+1)-thl(k)
+     dqw=qw(k+1)-qw(k)
    else
-	 dzk = 0.5*( dz(k) + dz(k-1) )
-   end if
-   dth = 0.5*(thl(k+1)+thl(k)) - 0.5*(thl(k)+thl(MAX(k-1,kts)))
-   dqw = 0.5*(qw(k+1) + qw(k)) - 0.5*(qw(k) + qw(MAX(k-1,kts)))
+     dzk=dz(k-1)
+     dth=thl(k)-thl(k-1)
+     dqw=qw(k)-qw(k-1)     
+   endif
+
+
    sgm(k) = SQRT( MAX( (alp**2 * MAX(el(k)**2,0.1) * &
 					 b2 * MAX(Sh(k),0.03))/4. * &
 			  (dqw/dzk - bet*(dth/dzk ))**2 , 1.0e-12) ) 
