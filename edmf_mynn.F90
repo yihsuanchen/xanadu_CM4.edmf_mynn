@@ -104,6 +104,8 @@ type edmf_input_type
 
   real, dimension(:,:,:), allocatable :: &   ! INPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
     Qke, Sh3D, el_pbl, cldfra_bl, qc_bl      ! semi-prognostic variables
+
+
 end type edmf_input_type
 
 !==================
@@ -147,6 +149,9 @@ type am4_edmf_output_type
 
   integer, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
     kpbl_edmf
+
+  real, dimension(:,:,:), allocatable :: &   ! diagnostic purpose, not used by mynn 
+    rh    ! relative humidity
 
 end type am4_edmf_output_type
 
@@ -7206,6 +7211,7 @@ subroutine edmf_alloc ( &
   allocate (Input_edmf%cldfra_bl   (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%cldfra_bl   = 0.
   allocate (Input_edmf%qc_bl       (IMS:IME,KMS:KME,JMS:JME))  ; Input_edmf%qc_bl       = 0.
 
+
 !******************
 !--- Output_edmf
 !******************
@@ -7609,6 +7615,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Input_edmf%cldfra_bl   )
   deallocate (Input_edmf%qc_bl       )
 
+
 !******************
 !--- Output_edmf
 !******************
@@ -7758,6 +7765,11 @@ subroutine edmf_writeout_column ( &
   real, dimension(size(Physics_input_block%t,3)) ::  &
     var_temp1
 
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,2), &
+                   size(Physics_input_block%t,3)) :: &
+    rh, qsat
+
   real ::  &
     tk, qtk, qtdtk, rhok, dzk, &
     tt1, tt2, tt3
@@ -7773,6 +7785,15 @@ subroutine edmf_writeout_column ( &
   nt = size(Physics_input_block%q,4)
 
   kxp = kx + 1
+
+!-------------------------------------------------------------------------
+!  diagnose fields 
+!-------------------------------------------------------------------------
+
+  !--- compute rh
+  call compute_qs(Physics_input_block%t, Physics_input_block%p_full, qsat )
+
+  rh(:,:,:) = 100. * Physics_input_block%q(:,:,:,nsphum) / qsat(:,:,:)
 
 !-------------------------------------------------------------------------
 ! check tracer concentration 
@@ -7922,6 +7943,9 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ''
         write(6,*)    '; ice-liquid water potential temperatur at full levels (K)'
         write(6,3001) '  thl  = (/'    , am4_Output_edmf%thl_edmf(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '; relative humidity (%)'
+        write(6,3001) '  rh  = (/'    ,rh(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; specific humidity at full levels (kg/kg)'
         write(6,3002) '  qq  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nsphum)
