@@ -393,6 +393,8 @@ end type edmf_ls_mp_type
                                                 ! =1, add EDMF terms to Tiedtke and keep Tiedtke terms except turbulence heating
                                                 ! =2, add EDMF terms to Tiedtke and remove large-scale and coud erosion terms
                                                 ! =3, evaporate ql and qi and put these water back to vapor and change temperature accordingly
+  logical :: do_use_tau = .true.                ! .true.  : use the T,q at the current step
+                                                ! .false. : use the updated T,q
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
   real    :: tdt_max     = 500. ! K/day
@@ -406,7 +408,7 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh,  &
-                            do_option_edmf2ls_mp, &
+                            do_option_edmf2ls_mp, do_use_tau, &
                             do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
          
 !---------------------------------------------------------------------
@@ -6518,7 +6520,7 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
   call edmf_alloc ( &
               is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, tdt, rdt, &
               rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf)
 
@@ -6862,7 +6864,7 @@ end subroutine edmf_mynn_driver
 
 subroutine edmf_alloc ( &
               is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, tdt, rdt, &
               Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
               Input_edmf, Output_edmf, am4_Output_edmf )
 
@@ -6936,6 +6938,10 @@ subroutine edmf_alloc ( &
   real, intent(in), dimension(:,:,:,:)  :: rdiag
   real, intent(in), dimension(:,:,:)    :: &
     Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
+  real, intent(in), dimension(:,:,:)    :: &  ! (nlon,nlat,nlev)
+    tdt  
+  real, intent(in), dimension(:,:,:,:)  :: &  ! (nlon,nlat,nlev,ntracers)
+    rdt
 
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
@@ -7329,13 +7335,22 @@ subroutine edmf_alloc ( &
   u_host     (:,:,:) = Physics_input_block%u
   v_host     (:,:,:) = Physics_input_block%v
   omega_host (:,:,:) = Physics_input_block%omega
-  qv_host    (:,:,:) = Physics_input_block%q(:,:,:,nsphum)
   qc_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
   ql_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
   qi_host    (:,:,:) = Physics_input_block%q(:,:,:,nqi)
   qa_host    (:,:,:) = Physics_input_block%q(:,:,:,nqa)
   p_host     (:,:,:) = Physics_input_block%p_full
-  T3D_host   (:,:,:) = Physics_input_block%t
+
+  if (do_use_tau) then  ! use T,q at the current step
+    T3D_host   (:,:,:) = Physics_input_block%t
+    qv_host    (:,:,:) = Physics_input_block%q(:,:,:,nsphum)
+
+  else                  ! use updated T,q
+    T3D_host   (:,:,:) = Physics_input_block%t(:,:,:) +    &
+                                    tdt(:,:,:)*dt
+    qv_host    (:,:,:) = Physics_input_block%q(:,:,:,nsphum) +    &
+                             rdt(:,:,:,nsphum)*dt
+  endif
 
   exner_host(:,:,:) = (p_host(:,:,:)*p00inv)**(kappa)
   th_host   (:,:,:) = T3D_host(:,:,:) / exner_host(:,:,:)
