@@ -60,6 +60,7 @@ use   field_manager_mod, only: MODEL_ATMOS
 
 use  tracer_manager_mod, only: get_number_tracers, get_tracer_index,           &
                                get_tracer_names
+use moist_proc_utils_mod, only : rh_calc
  
 !---------------------------------------------------------------------
 
@@ -398,6 +399,11 @@ end type edmf_ls_mp_type
                                                 ! =3, evaporate ql and qi and put these water back to vapor and change temperature accordingly
   logical :: do_use_tau = .true.                ! .true.  : use the T,q at the current step
                                                 ! .false. : use the updated T,q
+  logical :: do_simple =.false.                 ! do_simple = switch to turn on alternative definition of specific
+                                                !             humidity. When true, specific humidity =
+                                                !             (rdgas/rvgas)*esat/pressure
+                                                ! same setting as module moist_processes_mod
+
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
   real    :: tdt_max     = 500. ! K/day
@@ -7105,7 +7111,7 @@ subroutine edmf_alloc ( &
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2), &
                    size(Physics_input_block%t,3)) :: &
-    dz_host, u_host, v_host, w_host, th_host, qv_host, p_host, exner_host, rho_host, T3D_host, qa_host, qc_host, ql_host, qi_host, qnc_host, qni_host, &
+    dz_host, u_host, v_host, w_host, th_host, qv_host, p_host, exner_host, rho_host, T3D_host, qa_host, qc_host, ql_host, qi_host, qnc_host, qni_host, rh_host, &
     thl_host, qt_host, &
     tv_host, thv_host, omega_host
 
@@ -7561,6 +7567,22 @@ subroutine edmf_alloc ( &
 !-------------------------------------------------------------------------
   am4_Output_edmf%thl_edmf (:,:,:) = thl_host (:,:,:)
   am4_Output_edmf%qt_edmf  (:,:,:) = qt_host  (:,:,:)
+
+!-------------------------------------------------------------------------
+! save the input values for diagnostic purpose
+!-------------------------------------------------------------------------
+  am4_Output_edmf%t_input   (:,:,:) = T3D_host   (:,:,:)
+  am4_Output_edmf%q_input   (:,:,:) = qv_host    (:,:,:)
+  am4_Output_edmf%qa_input  (:,:,:) = qa_host    (:,:,:)
+  am4_Output_edmf%ql_input  (:,:,:) = ql_host    (:,:,:)
+  am4_Output_edmf%qi_input  (:,:,:) = qi_host    (:,:,:)
+  am4_Output_edmf%thl_input (:,:,:) = thl_host   (:,:,:) 
+  am4_Output_edmf%qt_input  (:,:,:) = qt_host    (:,:,:)
+  am4_Output_edmf%th_input  (:,:,:) = th_host    (:,:,:)
+
+  call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_input(:,:,:),  &
+                am4_Output_edmf%q_input(:,:,:), rh_host(:,:,:), do_simple )
+  am4_Output_edmf%rh_input  (:,:,:) = rh_host(:,:,:)*100.
 
 !-------------------------------
 
