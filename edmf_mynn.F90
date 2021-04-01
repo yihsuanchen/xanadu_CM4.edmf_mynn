@@ -433,6 +433,7 @@ integer :: ntp          ! number of prognostic tracers
 
 integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf, id_qtdt_edmf, id_thldt_edmf, id_diff_t_edmf, id_diff_m_edmf, id_el_edmf
 
+integer :: id_t_input, id_q_input, id_qa_input, id_ql_input, id_qi_input, id_thl_input, id_qt_input, id_rh_input, id_th_input, id_t_before_mix, id_q_before_mix, id_qa_before_mix, id_ql_before_mix, id_qi_before_mix, id_thl_before_mix, id_qt_before_mix, id_rh_before_mix, id_th_before_mix, id_t_after_mix, id_q_after_mix, id_qa_after_mix, id_ql_after_mix, id_qi_after_mix, id_thl_after_mix, id_qt_after_mix, id_rh_after_mix, id_th_after_mix 
 !---------------------------------------------------------------------
 
   contains
@@ -709,6 +710,114 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_el_edmf = register_diag_field (mod_name, 'el_edmf', axes(full), Time, &
                  'mixing length in edmf_mynn', 'm' , &
+                 missing_value=missing_value )
+
+  id_t_input = register_diag_field (mod_name, 't_input', axes(full), Time, &
+                 'T input to edmf_mynn', 'K' , &
+                 missing_value=missing_value )
+
+  id_q_input = register_diag_field (mod_name, 'q_input', axes(full), Time, &
+                 'q input to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_qa_input = register_diag_field (mod_name, 'qa_input', axes(full), Time, &
+                 'qa input to edmf_mynn', 'none' , &
+                 missing_value=missing_value )
+
+  id_ql_input = register_diag_field (mod_name, 'ql_input', axes(full), Time, &
+                 'ql input to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_qi_input = register_diag_field (mod_name, 'qi_input', axes(full), Time, &
+                 'qi input to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_thl_input = register_diag_field (mod_name, 'thl_input', axes(full), Time, &
+                 'thl input to edmf_mynn', 'K' , &
+                 missing_value=missing_value )
+
+  id_qt_input = register_diag_field (mod_name, 'qt_input', axes(full), Time, &
+                 'qt input to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_rh_input = register_diag_field (mod_name, 'rh_input', axes(full), Time, &
+                 'rh input to edmf_mynn', 'percent' , &
+                 missing_value=missing_value )
+
+  id_th_input = register_diag_field (mod_name, 'th_input', axes(full), Time, &
+                 'theta input to edmf_mynn', 'K' , &
+                 missing_value=missing_value )
+
+  id_t_before_mix = register_diag_field (mod_name, 't_before_mix', axes(full), Time, &
+                 'T before_mix to edmf_mynn', 'K' , &
+                 missing_value=missing_value )
+
+  id_q_before_mix = register_diag_field (mod_name, 'q_before_mix', axes(full), Time, &
+                 'q before_mix to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_qa_before_mix = register_diag_field (mod_name, 'qa_before_mix', axes(full), Time, &
+                 'qa before_mix to edmf_mynn', 'none' , &
+                 missing_value=missing_value )
+
+  id_ql_before_mix = register_diag_field (mod_name, 'ql_before_mix', axes(full), Time, &
+                 'ql before_mix to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_qi_before_mix = register_diag_field (mod_name, 'qi_before_mix', axes(full), Time, &
+                 'qi before_mix to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_thl_before_mix = register_diag_field (mod_name, 'thl_before_mix', axes(full), Time, &
+                 'thl before_mix to edmf_mynn', 'K' , &
+                 missing_value=missing_value )
+
+  id_qt_before_mix = register_diag_field (mod_name, 'qt_before_mix', axes(full), Time, &
+                 'qt before_mix to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_rh_before_mix = register_diag_field (mod_name, 'rh_before_mix', axes(full), Time, &
+                 'rh before_mix to edmf_mynn', 'percent' , &
+                 missing_value=missing_value )
+
+  id_th_before_mix = register_diag_field (mod_name, 'th_before_mix', axes(full), Time, &
+                 'theta before_mix to edmf_mynn', 'K' , &
+                 missing_value=missing_value )
+
+  id_t_after_mix = register_diag_field (mod_name, 't_after_mix', axes(full), Time, &
+                 'T after_mix to edmf_mynn', 'K' , &
+                 missing_value=missing_value )
+
+  id_q_after_mix = register_diag_field (mod_name, 'q_after_mix', axes(full), Time, &
+                 'q after_mix to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_qa_after_mix = register_diag_field (mod_name, 'qa_after_mix', axes(full), Time, &
+                 'qa after_mix to edmf_mynn', 'none' , &
+                 missing_value=missing_value )
+
+  id_ql_after_mix = register_diag_field (mod_name, 'ql_after_mix', axes(full), Time, &
+                 'ql after_mix to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_qi_after_mix = register_diag_field (mod_name, 'qi_after_mix', axes(full), Time, &
+                 'qi after_mix to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_thl_after_mix = register_diag_field (mod_name, 'thl_after_mix', axes(full), Time, &
+                 'thl after_mix to edmf_mynn', 'K' , &
+                 missing_value=missing_value )
+
+  id_qt_after_mix = register_diag_field (mod_name, 'qt_after_mix', axes(full), Time, &
+                 'qt after_mix to edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_rh_after_mix = register_diag_field (mod_name, 'rh_after_mix', axes(full), Time, &
+                 'rh after_mix to edmf_mynn', 'percent' , &
+                 missing_value=missing_value )
+
+  id_th_after_mix = register_diag_field (mod_name, 'th_after_mix', axes(full), Time, &
+                 'theta after_mix to edmf_mynn', 'K' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -6854,6 +6963,141 @@ subroutine edmf_mynn_driver ( &
 !------- mixing length in edmf_mynn (units: m) at full level -------
       if ( id_el_edmf > 0) then
         used = send_data (id_el_edmf, am4_Output_edmf%el_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- T input to edmf_mynn (units: K) at full level -------
+      if ( id_t_input > 0) then
+        used = send_data (id_t_input, am4_Output_edmf%t_input, Time_next, is, js, 1 )
+      endif
+
+!------- q input to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_q_input > 0) then
+        used = send_data (id_q_input, am4_Output_edmf%q_input, Time_next, is, js, 1 )
+      endif
+
+!------- qa input to edmf_mynn (units: none) at full level -------
+      if ( id_qa_input > 0) then
+        used = send_data (id_qa_input, am4_Output_edmf%qa_input, Time_next, is, js, 1 )
+      endif
+
+!------- ql input to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_ql_input > 0) then
+        used = send_data (id_ql_input, am4_Output_edmf%ql_input, Time_next, is, js, 1 )
+      endif
+
+!------- qi input to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qi_input > 0) then
+        used = send_data (id_qi_input, am4_Output_edmf%qi_input, Time_next, is, js, 1 )
+      endif
+
+!------- thl input to edmf_mynn (units: K) at full level -------
+      if ( id_thl_input > 0) then
+        used = send_data (id_thl_input, am4_Output_edmf%thl_input, Time_next, is, js, 1 )
+      endif
+
+!------- qt input to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qt_input > 0) then
+        used = send_data (id_qt_input, am4_Output_edmf%qt_input, Time_next, is, js, 1 )
+      endif
+
+!------- rh input to edmf_mynn (units: percent) at full level -------
+      if ( id_rh_input > 0) then
+        used = send_data (id_rh_input, am4_Output_edmf%rh_input, Time_next, is, js, 1 )
+      endif
+
+!------- theta input to edmf_mynn (units: K) at full level -------
+      if ( id_th_input > 0) then
+        used = send_data (id_th_input, am4_Output_edmf%th_input, Time_next, is, js, 1 )
+      endif
+
+!------- T before_mix to edmf_mynn (units: K) at full level -------
+      if ( id_t_before_mix > 0) then
+        used = send_data (id_t_before_mix, am4_Output_edmf%t_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- q before_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_q_before_mix > 0) then
+        used = send_data (id_q_before_mix, am4_Output_edmf%q_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qa before_mix to edmf_mynn (units: none) at full level -------
+      if ( id_qa_before_mix > 0) then
+        used = send_data (id_qa_before_mix, am4_Output_edmf%qa_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- ql before_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_ql_before_mix > 0) then
+        used = send_data (id_ql_before_mix, am4_Output_edmf%ql_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qi before_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qi_before_mix > 0) then
+        used = send_data (id_qi_before_mix, am4_Output_edmf%qi_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- thl before_mix to edmf_mynn (units: K) at full level -------
+      if ( id_thl_before_mix > 0) then
+        used = send_data (id_thl_before_mix, am4_Output_edmf%thl_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qt before_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qt_before_mix > 0) then
+        used = send_data (id_qt_before_mix, am4_Output_edmf%qt_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- rh before_mix to edmf_mynn (units: percent) at full level -------
+      if ( id_rh_before_mix > 0) then
+        used = send_data (id_rh_before_mix, am4_Output_edmf%rh_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- theta before_mix to edmf_mynn (units: K) at full level -------
+      if ( id_th_before_mix > 0) then
+        used = send_data (id_th_before_mix, am4_Output_edmf%th_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- T after_mix to edmf_mynn (units: K) at full level -------
+      if ( id_t_after_mix > 0) then
+        used = send_data (id_t_after_mix, am4_Output_edmf%t_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- q after_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_q_after_mix > 0) then
+        used = send_data (id_q_after_mix, am4_Output_edmf%q_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qa after_mix to edmf_mynn (units: none) at full level -------
+      if ( id_qa_after_mix > 0) then
+        used = send_data (id_qa_after_mix, am4_Output_edmf%qa_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- ql after_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_ql_after_mix > 0) then
+        used = send_data (id_ql_after_mix, am4_Output_edmf%ql_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qi after_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qi_after_mix > 0) then
+        used = send_data (id_qi_after_mix, am4_Output_edmf%qi_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- thl after_mix to edmf_mynn (units: K) at full level -------
+      if ( id_thl_after_mix > 0) then
+        used = send_data (id_thl_after_mix, am4_Output_edmf%thl_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qt after_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qt_after_mix > 0) then
+        used = send_data (id_qt_after_mix, am4_Output_edmf%qt_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- rh after_mix to edmf_mynn (units: percent) at full level -------
+      if ( id_rh_after_mix > 0) then
+        used = send_data (id_rh_after_mix, am4_Output_edmf%rh_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- theta after_mix to edmf_mynn (units: K) at full level -------
+      if ( id_th_after_mix > 0) then
+        used = send_data (id_th_after_mix, am4_Output_edmf%th_after_mix, Time_next, is, js, 1 )
       endif
 
 !---------------------------------------------------------------------
