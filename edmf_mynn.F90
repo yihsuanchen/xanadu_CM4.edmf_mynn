@@ -151,9 +151,9 @@ type am4_edmf_output_type
     kpbl_edmf
 
   real, dimension(:,:,:), allocatable :: &   ! diagnostic purpose, not used by mynn 
-    t_input, q_input, qa_input, ql_input, qi_input, thl_input, qt_input, rh_input, &
-    t_before_mix, q_before_mix, qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, rh_before_mix, &
-    t_after_mix, q_after_mix, qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, rh_after_mix, &
+    t_input, q_input, qa_input, ql_input, qi_input, thl_input, qt_input, rh_input, th_input, &
+    t_before_mix, q_before_mix, qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, rh_before_mix, th_before_mix, &
+    t_after_mix, q_after_mix, qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, rh_after_mix, th_after_mix, &
     rh    ! relative humidity
 
 end type am4_edmf_output_type
@@ -7334,6 +7334,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%thl_input       (ix,jx,kx))  ; am4_Output_edmf%thl_input       = 0.
   allocate (am4_Output_edmf%qt_input        (ix,jx,kx))  ; am4_Output_edmf%qt_input        = 0.
   allocate (am4_Output_edmf%rh_input        (ix,jx,kx))  ; am4_Output_edmf%rh_input        = 0.
+  allocate (am4_Output_edmf%th_input        (ix,jx,kx))  ; am4_Output_edmf%th_input        = 0.
   allocate (am4_Output_edmf%t_before_mix    (ix,jx,kx))  ; am4_Output_edmf%t_before_mix    = 0.
   allocate (am4_Output_edmf%q_before_mix    (ix,jx,kx))  ; am4_Output_edmf%q_before_mix    = 0.
   allocate (am4_Output_edmf%qa_before_mix   (ix,jx,kx))  ; am4_Output_edmf%qa_before_mix   = 0.
@@ -7342,6 +7343,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%thl_before_mix  (ix,jx,kx))  ; am4_Output_edmf%thl_before_mix  = 0.
   allocate (am4_Output_edmf%qt_before_mix   (ix,jx,kx))  ; am4_Output_edmf%qt_before_mix   = 0.
   allocate (am4_Output_edmf%rh_before_mix   (ix,jx,kx))  ; am4_Output_edmf%rh_before_mix   = 0.
+  allocate (am4_Output_edmf%th_before_mix   (ix,jx,kx))  ; am4_Output_edmf%th_before_mix   = 0.
   allocate (am4_Output_edmf%t_after_mix     (ix,jx,kx))  ; am4_Output_edmf%t_after_mix     = 0.
   allocate (am4_Output_edmf%q_after_mix     (ix,jx,kx))  ; am4_Output_edmf%q_after_mix     = 0.
   allocate (am4_Output_edmf%qa_after_mix    (ix,jx,kx))  ; am4_Output_edmf%qa_after_mix    = 0.
@@ -7350,6 +7352,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%thl_after_mix   (ix,jx,kx))  ; am4_Output_edmf%thl_after_mix   = 0.
   allocate (am4_Output_edmf%qt_after_mix    (ix,jx,kx))  ; am4_Output_edmf%qt_after_mix    = 0.
   allocate (am4_Output_edmf%rh_after_mix    (ix,jx,kx))  ; am4_Output_edmf%rh_after_mix    = 0.
+  allocate (am4_Output_edmf%th_after_mix    (ix,jx,kx))  ; am4_Output_edmf%th_after_mix    = 0.
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
@@ -7773,6 +7776,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%thl_input       )
   deallocate (am4_Output_edmf%qt_input        )
   deallocate (am4_Output_edmf%rh_input        )
+  deallocate (am4_Output_edmf%th_input        )
   deallocate (am4_Output_edmf%t_before_mix    )
   deallocate (am4_Output_edmf%q_before_mix    )
   deallocate (am4_Output_edmf%qa_before_mix   )
@@ -7781,6 +7785,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%thl_before_mix  )
   deallocate (am4_Output_edmf%qt_before_mix   )
   deallocate (am4_Output_edmf%rh_before_mix   )
+  deallocate (am4_Output_edmf%th_before_mix   )
   deallocate (am4_Output_edmf%t_after_mix     )
   deallocate (am4_Output_edmf%q_after_mix     )
   deallocate (am4_Output_edmf%qa_after_mix    )
@@ -7789,6 +7794,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%thl_after_mix   )
   deallocate (am4_Output_edmf%qt_after_mix    )
   deallocate (am4_Output_edmf%rh_after_mix    )
+  deallocate (am4_Output_edmf%th_after_mix    )
 
 !--------------------
 !---  vi command  ---
