@@ -3733,8 +3733,11 @@ END SUBROUTINE mym_condensation
     !<--- yhc_mynn, add new output variables, 2021-04-02
     !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
-       qa_before_mix, ql_before_mix, qi_before_mix, th_before_mix, &
+       qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &
        qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix
+
+    REAL, DIMENSION(KMS:KME) :: &
+       dum_1D
     !---> yhc_mynn
 
     IF ( debug_code ) THEN
@@ -4125,6 +4128,12 @@ END SUBROUTINE mym_condensation
     ql_before_mix(i,:,j) = liquid_frac(:)      * qc_bl1D(:)   ! cloud liquid water content (kg/kg)
     qi_before_mix(i,:,j) = (1.-liquid_frac(:)) * qc_bl1D(:)   ! cloud ice    water content (kg/kg)
     th_before_mix(i,:,j) = th1(:)                             ! potential temperature (K)
+
+    thl_before_mix (i,:,j)  = thl(:)                           ! ice-liquid potential temperature (K)
+  
+    !sqw =sqw +Dsqw1*delt                                        ! total water content (vapor+liquid+ice) (kg/kg)
+    dum_1D =sqw                                      ! total water content (vapor+liquid+ice) (kg/kg)
+    qt_before_mix   (i,:,j)  = dum_1D(:)/(1.-dum_1D(:))                       !
     !---> yhc_mynn
                            
  
@@ -4375,8 +4384,9 @@ END SUBROUTINE mym_condensation
     th_after_mix  (i,:,j)  = th1(:)                              ! potential temperature (K)
     thl_after_mix (i,:,j)  = thl(:)+Dthl1*delt                   ! ice-liquid potential temperature (K)
   
-    sqw =sqw +Dsqw1*delt                                         ! total water content (vapor+liquid+ice) (kg/kg)
-    qt_after_mix   (i,:,j)  = sqw(:)/(1.-sqw(:))                       !
+    !sqw =sqw +Dsqw1*delt                                        ! total water content (vapor+liquid+ice) (kg/kg)
+    dum_1D =sqw +Dsqw1*delt                                      ! total water content (vapor+liquid+ice) (kg/kg)
+    qt_after_mix   (i,:,j)  = dum_1D(:)/(1.-dum_1D(:))                       !
     !---> yhc_mynn
  
           CALL retrieve_exchange_coeffs(kts,kte,&
