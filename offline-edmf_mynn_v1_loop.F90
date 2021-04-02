@@ -3730,6 +3730,13 @@ END SUBROUTINE mym_condensation
      REAL, DIMENSION(KTS:KTE)                         ::    rstoch_col
 
 
+    !<--- yhc_mynn, add new output variables, 2021-04-02
+    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
+    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+       qa_before_mix, ql_before_mix, qi_before_mix, th_before_mix, &
+       qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix
+    !---> yhc_mynn
+
     IF ( debug_code ) THEN
        print*,'in MYNN driver; at beginning'
     ENDIF
@@ -4113,12 +4120,14 @@ END SUBROUTINE mym_condensation
     print *,'Error ... wrong edmf_type!!!'    
     endif
         
-     
-     
-     
-               
-               
-                            
+    !<--- yhc_mynn, output before-mixing states, 2021-04-02
+    qa_before_mix(i,:,j) = cldfra_bl1D(:)                     ! cloud fraction (unit: none)
+    ql_before_mix(i,:,j) = liquid_frac(:)      * qc_bl1D(:)   ! cloud liquid water content (kg/kg)
+    qi_before_mix(i,:,j) = (1.-liquid_frac(:)) * qc_bl1D(:)   ! cloud ice    water content (kg/kg)
+    th_before_mix(i,:,j) = th1(:)                             ! potential temperature (K)
+    !---> yhc_mynn
+                           
+ 
 !          !ADD TKE source driven by cloud top cooling
 !          IF (bl_mynn_topdown.eq.1)then
 !             cloudflg=.false.
@@ -4359,7 +4368,16 @@ END SUBROUTINE mym_condensation
            dcc1(k)=(cldfra_bl1Da(k)-cldfra_bl1D(k))/delt 
          ENDDO
          
- 
+    !<--- yhc_mynn, output after-mixing states, 2021-04-02
+    qa_after_mix  (i,:,j)  = cldfra_bl1Da(:)                     ! cloud fraction (unit: none)
+    ql_after_mix  (i,:,j)  = liquid_frac(:)      * qc_bl1Da(:)   ! cloud liquid water content (kg/kg)
+    qi_after_mix  (i,:,j)  = (1.-liquid_frac(:)) * qc_bl1Da(:)   ! cloud ice    water content (kg/kg)
+    th_after_mix  (i,:,j)  = th1(:)                              ! potential temperature (K)
+    thl_after_mix (i,:,j)  = thl(:)+Dthl1*delt                   ! ice-liquid potential temperature (K)
+  
+    sqw =sqw +Dsqw1*delt                                         ! total water content (vapor+liquid+ice) (kg/kg)
+    qt_after_mix   (i,:,j)  = sqw(:)/(1.-sqw(:))                       !
+    !---> yhc_mynn
  
           CALL retrieve_exchange_coeffs(kts,kte,&
                &dfm, dfh, dfq, dz1,&
