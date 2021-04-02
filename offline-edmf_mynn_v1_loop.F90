@@ -169,6 +169,12 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
                                                 ! =1, add EDMF terms to Tiedtke and keep Tiedtke terms except turbulence heating
                                                 ! =2, add EDMF terms to Tiedtke and remove large-scale and coud erosion terms
                                                 ! =3, evaporate ql and qi and put these water back to vapor and change temperature accordingly
+  logical :: do_use_tau = .true.                ! .true.  : use the T,q at the current step
+                                                ! .false. : use the updated T,q
+  logical :: do_simple =.false.                 ! do_simple = switch to turn on alternative definition of specific
+                                                !             humidity. When true, specific humidity =
+                                                !             (rdgas/rvgas)*esat/pressure
+                                                ! same setting as module moist_processes_mod
 
   logical :: do_pblh_constant = .false.    ! fix PBL depth for testing
   real    :: fixed_pblh       = 2500.
@@ -236,6 +242,12 @@ type am4_edmf_output_type
 
   integer, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
     kpbl_edmf
+
+  real, dimension(:,:,:), allocatable :: &   ! diagnostic purpose, not used by mynn 
+    t_input, q_input, qa_input, ql_input, qi_input, thl_input, qt_input, rh_input, th_input, &
+    t_before_mix, q_before_mix, qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, rh_before_mix, th_before_mix, &
+    t_after_mix, q_after_mix, qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, rh_after_mix, th_after_mix, &
+    rh    ! relative humidity
 
 end type am4_edmf_output_type
 
@@ -6210,7 +6222,7 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
   call edmf_alloc ( &
               is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, tdt, rdt, &
               rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf)
 
@@ -6536,6 +6548,141 @@ subroutine edmf_mynn_driver ( &
 !      if ( id_el_edmf > 0) then
 !        used = send_data (id_el_edmf, am4_Output_edmf%el_edmf, Time_next, is, js, 1 )
 !      endif
+!
+!!------- T input to edmf_mynn (units: K) at full level -------
+!      if ( id_t_input > 0) then
+!        used = send_data (id_t_input, am4_Output_edmf%t_input, Time_next, is, js, 1 )
+!      endif
+!
+!!------- q input to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_q_input > 0) then
+!        used = send_data (id_q_input, am4_Output_edmf%q_input, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qa input to edmf_mynn (units: none) at full level -------
+!      if ( id_qa_input > 0) then
+!        used = send_data (id_qa_input, am4_Output_edmf%qa_input, Time_next, is, js, 1 )
+!      endif
+!
+!!------- ql input to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_ql_input > 0) then
+!        used = send_data (id_ql_input, am4_Output_edmf%ql_input, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qi input to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_qi_input > 0) then
+!        used = send_data (id_qi_input, am4_Output_edmf%qi_input, Time_next, is, js, 1 )
+!      endif
+!
+!!------- thl input to edmf_mynn (units: K) at full level -------
+!      if ( id_thl_input > 0) then
+!        used = send_data (id_thl_input, am4_Output_edmf%thl_input, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qt input to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_qt_input > 0) then
+!        used = send_data (id_qt_input, am4_Output_edmf%qt_input, Time_next, is, js, 1 )
+!      endif
+!
+!!------- rh input to edmf_mynn (units: percent) at full level -------
+!      if ( id_rh_input > 0) then
+!        used = send_data (id_rh_input, am4_Output_edmf%rh_input, Time_next, is, js, 1 )
+!      endif
+!
+!!------- theta input to edmf_mynn (units: K) at full level -------
+!      if ( id_th_input > 0) then
+!        used = send_data (id_th_input, am4_Output_edmf%th_input, Time_next, is, js, 1 )
+!      endif
+!
+!!------- T before_mix to edmf_mynn (units: K) at full level -------
+!      if ( id_t_before_mix > 0) then
+!        used = send_data (id_t_before_mix, am4_Output_edmf%t_before_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- q before_mix to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_q_before_mix > 0) then
+!        used = send_data (id_q_before_mix, am4_Output_edmf%q_before_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qa before_mix to edmf_mynn (units: none) at full level -------
+!      if ( id_qa_before_mix > 0) then
+!        used = send_data (id_qa_before_mix, am4_Output_edmf%qa_before_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- ql before_mix to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_ql_before_mix > 0) then
+!        used = send_data (id_ql_before_mix, am4_Output_edmf%ql_before_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qi before_mix to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_qi_before_mix > 0) then
+!        used = send_data (id_qi_before_mix, am4_Output_edmf%qi_before_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- thl before_mix to edmf_mynn (units: K) at full level -------
+!      if ( id_thl_before_mix > 0) then
+!        used = send_data (id_thl_before_mix, am4_Output_edmf%thl_before_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qt before_mix to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_qt_before_mix > 0) then
+!        used = send_data (id_qt_before_mix, am4_Output_edmf%qt_before_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- rh before_mix to edmf_mynn (units: percent) at full level -------
+!      if ( id_rh_before_mix > 0) then
+!        used = send_data (id_rh_before_mix, am4_Output_edmf%rh_before_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- theta before_mix to edmf_mynn (units: K) at full level -------
+!      if ( id_th_before_mix > 0) then
+!        used = send_data (id_th_before_mix, am4_Output_edmf%th_before_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- T after_mix to edmf_mynn (units: K) at full level -------
+!      if ( id_t_after_mix > 0) then
+!        used = send_data (id_t_after_mix, am4_Output_edmf%t_after_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- q after_mix to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_q_after_mix > 0) then
+!        used = send_data (id_q_after_mix, am4_Output_edmf%q_after_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qa after_mix to edmf_mynn (units: none) at full level -------
+!      if ( id_qa_after_mix > 0) then
+!        used = send_data (id_qa_after_mix, am4_Output_edmf%qa_after_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- ql after_mix to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_ql_after_mix > 0) then
+!        used = send_data (id_ql_after_mix, am4_Output_edmf%ql_after_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qi after_mix to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_qi_after_mix > 0) then
+!        used = send_data (id_qi_after_mix, am4_Output_edmf%qi_after_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- thl after_mix to edmf_mynn (units: K) at full level -------
+!      if ( id_thl_after_mix > 0) then
+!        used = send_data (id_thl_after_mix, am4_Output_edmf%thl_after_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qt after_mix to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_qt_after_mix > 0) then
+!        used = send_data (id_qt_after_mix, am4_Output_edmf%qt_after_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- rh after_mix to edmf_mynn (units: percent) at full level -------
+!      if ( id_rh_after_mix > 0) then
+!        used = send_data (id_rh_after_mix, am4_Output_edmf%rh_after_mix, Time_next, is, js, 1 )
+!      endif
+!
+!!------- theta after_mix to edmf_mynn (units: K) at full level -------
+!      if ( id_th_after_mix > 0) then
+!        used = send_data (id_th_after_mix, am4_Output_edmf%th_after_mix, Time_next, is, js, 1 )
+!      endif
 
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
@@ -6554,7 +6701,7 @@ end subroutine edmf_mynn_driver
 
 subroutine edmf_alloc ( &
               is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, tdt, rdt, &
               Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
               Input_edmf, Output_edmf, am4_Output_edmf )
 
@@ -6628,6 +6775,10 @@ subroutine edmf_alloc ( &
   real, intent(in), dimension(:,:,:,:)  :: rdiag
   real, intent(in), dimension(:,:,:)    :: &
     Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
+  real, intent(in), dimension(:,:,:)    :: &  ! (nlon,nlat,nlev)
+    tdt  
+  real, intent(in), dimension(:,:,:,:)  :: &  ! (nlon,nlat,nlev,ntracers)
+    rdt
 
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
@@ -6788,7 +6939,7 @@ subroutine edmf_alloc ( &
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2), &
                    size(Physics_input_block%t,3)) :: &
-    dz_host, u_host, v_host, w_host, th_host, qv_host, p_host, exner_host, rho_host, T3D_host, qa_host, qc_host, ql_host, qi_host, qnc_host, qni_host, &
+    dz_host, u_host, v_host, w_host, th_host, qv_host, p_host, exner_host, rho_host, T3D_host, qa_host, qc_host, ql_host, qi_host, qnc_host, qni_host, rh_host, &
     thl_host, qt_host, &
     tv_host, thv_host, omega_host
 
@@ -7007,6 +7158,35 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%diff_m_edmf (ix,jx,kx))  ; am4_Output_edmf%diff_m_edmf = 0.
   allocate (am4_Output_edmf%kpbl_edmf   (ix,jx))     ; am4_Output_edmf%kpbl_edmf   = 0
   allocate (am4_Output_edmf%el_edmf     (ix,jx,kx))  ; am4_Output_edmf%el_edmf     = 0.
+
+  !--- diagnostic purpose
+  allocate (am4_Output_edmf%t_input         (ix,jx,kx))  ; am4_Output_edmf%t_input         = 0.
+  allocate (am4_Output_edmf%q_input         (ix,jx,kx))  ; am4_Output_edmf%q_input         = 0.
+  allocate (am4_Output_edmf%qa_input        (ix,jx,kx))  ; am4_Output_edmf%qa_input        = 0.
+  allocate (am4_Output_edmf%ql_input        (ix,jx,kx))  ; am4_Output_edmf%ql_input        = 0.
+  allocate (am4_Output_edmf%qi_input        (ix,jx,kx))  ; am4_Output_edmf%qi_input        = 0.
+  allocate (am4_Output_edmf%thl_input       (ix,jx,kx))  ; am4_Output_edmf%thl_input       = 0.
+  allocate (am4_Output_edmf%qt_input        (ix,jx,kx))  ; am4_Output_edmf%qt_input        = 0.
+  allocate (am4_Output_edmf%rh_input        (ix,jx,kx))  ; am4_Output_edmf%rh_input        = 0.
+  allocate (am4_Output_edmf%th_input        (ix,jx,kx))  ; am4_Output_edmf%th_input        = 0.
+  allocate (am4_Output_edmf%t_before_mix    (ix,jx,kx))  ; am4_Output_edmf%t_before_mix    = 0.
+  allocate (am4_Output_edmf%q_before_mix    (ix,jx,kx))  ; am4_Output_edmf%q_before_mix    = 0.
+  allocate (am4_Output_edmf%qa_before_mix   (ix,jx,kx))  ; am4_Output_edmf%qa_before_mix   = 0.
+  allocate (am4_Output_edmf%ql_before_mix   (ix,jx,kx))  ; am4_Output_edmf%ql_before_mix   = 0.
+  allocate (am4_Output_edmf%qi_before_mix   (ix,jx,kx))  ; am4_Output_edmf%qi_before_mix   = 0.
+  allocate (am4_Output_edmf%thl_before_mix  (ix,jx,kx))  ; am4_Output_edmf%thl_before_mix  = 0.
+  allocate (am4_Output_edmf%qt_before_mix   (ix,jx,kx))  ; am4_Output_edmf%qt_before_mix   = 0.
+  allocate (am4_Output_edmf%rh_before_mix   (ix,jx,kx))  ; am4_Output_edmf%rh_before_mix   = 0.
+  allocate (am4_Output_edmf%th_before_mix   (ix,jx,kx))  ; am4_Output_edmf%th_before_mix   = 0.
+  allocate (am4_Output_edmf%t_after_mix     (ix,jx,kx))  ; am4_Output_edmf%t_after_mix     = 0.
+  allocate (am4_Output_edmf%q_after_mix     (ix,jx,kx))  ; am4_Output_edmf%q_after_mix     = 0.
+  allocate (am4_Output_edmf%qa_after_mix    (ix,jx,kx))  ; am4_Output_edmf%qa_after_mix    = 0.
+  allocate (am4_Output_edmf%ql_after_mix    (ix,jx,kx))  ; am4_Output_edmf%ql_after_mix    = 0.
+  allocate (am4_Output_edmf%qi_after_mix    (ix,jx,kx))  ; am4_Output_edmf%qi_after_mix    = 0.
+  allocate (am4_Output_edmf%thl_after_mix   (ix,jx,kx))  ; am4_Output_edmf%thl_after_mix   = 0.
+  allocate (am4_Output_edmf%qt_after_mix    (ix,jx,kx))  ; am4_Output_edmf%qt_after_mix    = 0.
+  allocate (am4_Output_edmf%rh_after_mix    (ix,jx,kx))  ; am4_Output_edmf%rh_after_mix    = 0.
+  allocate (am4_Output_edmf%th_after_mix    (ix,jx,kx))  ; am4_Output_edmf%th_after_mix    = 0.
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
@@ -7021,13 +7201,22 @@ subroutine edmf_alloc ( &
   u_host     (:,:,:) = Physics_input_block%u
   v_host     (:,:,:) = Physics_input_block%v
   omega_host (:,:,:) = Physics_input_block%omega
-  qv_host    (:,:,:) = Physics_input_block%q(:,:,:,nsphum)
   qc_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
   ql_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
   qi_host    (:,:,:) = Physics_input_block%q(:,:,:,nqi)
   qa_host    (:,:,:) = Physics_input_block%q(:,:,:,nqa)
   p_host     (:,:,:) = Physics_input_block%p_full
-  T3D_host   (:,:,:) = Physics_input_block%t
+
+  if (do_use_tau) then  ! use T,q at the current step
+    T3D_host   (:,:,:) = Physics_input_block%t
+    qv_host    (:,:,:) = Physics_input_block%q(:,:,:,nsphum)
+
+  else                  ! use updated T,q
+    T3D_host   (:,:,:) = Physics_input_block%t(:,:,:) +    &
+                                    tdt(:,:,:)*dt
+    qv_host    (:,:,:) = Physics_input_block%q(:,:,:,nsphum) +    &
+                             rdt(:,:,:,nsphum)*dt
+  endif
 
   exner_host(:,:,:) = (p_host(:,:,:)*p00inv)**(kappa)
   th_host   (:,:,:) = T3D_host(:,:,:) / exner_host(:,:,:)
@@ -7206,6 +7395,22 @@ subroutine edmf_alloc ( &
 !-------------------------------------------------------------------------
   am4_Output_edmf%thl_edmf (:,:,:) = thl_host (:,:,:)
   am4_Output_edmf%qt_edmf  (:,:,:) = qt_host  (:,:,:)
+
+!-------------------------------------------------------------------------
+! save the input values for diagnostic purpose
+!-------------------------------------------------------------------------
+  am4_Output_edmf%t_input   (:,:,:) = T3D_host   (:,:,:)
+  am4_Output_edmf%q_input   (:,:,:) = qv_host    (:,:,:)
+  am4_Output_edmf%qa_input  (:,:,:) = qa_host    (:,:,:)
+  am4_Output_edmf%ql_input  (:,:,:) = ql_host    (:,:,:)
+  am4_Output_edmf%qi_input  (:,:,:) = qi_host    (:,:,:)
+  am4_Output_edmf%thl_input (:,:,:) = thl_host   (:,:,:) 
+  am4_Output_edmf%qt_input  (:,:,:) = qt_host    (:,:,:)
+  am4_Output_edmf%th_input  (:,:,:) = th_host    (:,:,:)
+
+  call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_input(:,:,:),  &
+                am4_Output_edmf%q_input(:,:,:), rh_host(:,:,:), do_simple )
+  am4_Output_edmf%rh_input  (:,:,:) = rh_host(:,:,:)*100.
 
 !-------------------------------
 
@@ -7413,6 +7618,34 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%el_edmf     )  
   !deallocate (am4_Output_edmf%         )  
 
+  deallocate (am4_Output_edmf%t_input         )
+  deallocate (am4_Output_edmf%q_input         )
+  deallocate (am4_Output_edmf%qa_input        )
+  deallocate (am4_Output_edmf%ql_input        )
+  deallocate (am4_Output_edmf%qi_input        )
+  deallocate (am4_Output_edmf%thl_input       )
+  deallocate (am4_Output_edmf%qt_input        )
+  deallocate (am4_Output_edmf%rh_input        )
+  deallocate (am4_Output_edmf%th_input        )
+  deallocate (am4_Output_edmf%t_before_mix    )
+  deallocate (am4_Output_edmf%q_before_mix    )
+  deallocate (am4_Output_edmf%qa_before_mix   )
+  deallocate (am4_Output_edmf%ql_before_mix   )
+  deallocate (am4_Output_edmf%qi_before_mix   )
+  deallocate (am4_Output_edmf%thl_before_mix  )
+  deallocate (am4_Output_edmf%qt_before_mix   )
+  deallocate (am4_Output_edmf%rh_before_mix   )
+  deallocate (am4_Output_edmf%th_before_mix   )
+  deallocate (am4_Output_edmf%t_after_mix     )
+  deallocate (am4_Output_edmf%q_after_mix     )
+  deallocate (am4_Output_edmf%qa_after_mix    )
+  deallocate (am4_Output_edmf%ql_after_mix    )
+  deallocate (am4_Output_edmf%qi_after_mix    )
+  deallocate (am4_Output_edmf%thl_after_mix   )
+  deallocate (am4_Output_edmf%qt_after_mix    )
+  deallocate (am4_Output_edmf%rh_after_mix    )
+  deallocate (am4_Output_edmf%th_after_mix    )
+
 !--------------------
 !---  vi command  ---
 !--------------------
@@ -7495,9 +7728,12 @@ subroutine edmf_writeout_column ( &
 !-------------------------------------------------------------------------
 
   !--- compute rh
-  call compute_qs(Physics_input_block%t, Physics_input_block%p_full, qsat )
+  call rh_calc (Physics_input_block%p_full(:,:,:), Physics_input_block%t(:,:,:),  &
+                Physics_input_block%q(:,:,:,nsphum), rh(:,:,:), do_simple )
+  rh(:,:,:) = 100. * rh(:,:,:)
 
-  rh(:,:,:) = 100. * Physics_input_block%q(:,:,:,nsphum) / qsat(:,:,:)
+  !call compute_qs(Physics_input_block%t, Physics_input_block%p_full, qsat )
+  !rh(:,:,:) = 100. * Physics_input_block%q(:,:,:,nsphum) / qsat(:,:,:)
 
 !-------------------------------------------------------------------------
 ! check tracer concentration 
@@ -8128,6 +8364,10 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   enddo  ! end loop of j
   enddo  ! end loop of 1
 
+!----------------------------
+! variables for diagnostics
+!----------------------------
+
 end subroutine convert_edmf_to_am4_array
 
 !#############################
@@ -8178,6 +8418,16 @@ subroutine compute_qs(t, p, qs)
   enddo
 
 end subroutine compute_qs
+
+!----------------
+subroutine rh_calc(p, t, q, rh, do_simple)
+  real, dimension(:,:,:) :: &
+    p, t, q, rh
+  logical :: do_simple
+
+  rh = -99.99
+
+end subroutine rh_calc
 
 !###################################
 !###################################
