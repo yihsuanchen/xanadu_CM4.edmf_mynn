@@ -4105,9 +4105,9 @@ END SUBROUTINE mym_condensation
     endif
         
     !<--- yhc_mynn, output before-mixing states, 2021-04-02
-    qa_before_mix(i,:,j) = cldfra_bl1D(:)                     ! cloud fraction (unit: none)
-    ql_before_mix(i,:,j) = liquid_frac(:)      * qc_bl1D(:)   ! cloud liquid water content (kg/kg)
-    qi_before_mix(i,:,j) = (1.-liquid_frac(:)) * qc_bl1D(:)   ! cloud ice    water content (kg/kg)
+    qa_before_mix(i,:,j) = cldfra_bm(:)                     ! cloud fraction (unit: none)
+    ql_before_mix(i,:,j) = liquid_frac(:)      * qc_bm(:)   ! cloud liquid water content (kg/kg)
+    qi_before_mix(i,:,j) = (1.-liquid_frac(:)) * qc_bm(:)   ! cloud ice    water content (kg/kg)
     th_before_mix(i,:,j) = th1(:)                             ! potential temperature (K)
 
     thl_before_mix (i,:,j)  = thl(:)                           ! ice-liquid potential temperature (K)
@@ -4359,9 +4359,9 @@ END SUBROUTINE mym_condensation
          ENDDO
          
     !<--- yhc_mynn, output after-mixing states, 2021-04-02
-    qa_after_mix  (i,:,j)  = cldfra_bl1Da(:)                     ! cloud fraction (unit: none)
-    ql_after_mix  (i,:,j)  = liquid_frac(:)      * qc_bl1Da(:)   ! cloud liquid water content (kg/kg)
-    qi_after_mix  (i,:,j)  = (1.-liquid_frac(:)) * qc_bl1Da(:)   ! cloud ice    water content (kg/kg)
+    qa_after_mix  (i,:,j)  = cldfra_am(:)                     ! cloud fraction (unit: none)
+    ql_after_mix  (i,:,j)  = liquid_frac(:)      * qc_am(:)   ! cloud liquid water content (kg/kg)
+    qi_after_mix  (i,:,j)  = (1.-liquid_frac(:)) * qc_am(:)   ! cloud ice    water content (kg/kg)
     th_after_mix  (i,:,j)  = th1(:)                              ! potential temperature (K)
     thl_after_mix (i,:,j)  = thl(:)+Dthl1*delt                   ! ice-liquid potential temperature (K)
   
