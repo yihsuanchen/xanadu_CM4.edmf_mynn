@@ -211,7 +211,7 @@ type edmf_output_type
 
   real, dimension(:,:,:), allocatable :: &   ! INPUT/OUTPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
     Qke, Tsq, Qsq, Cov,         &
-    RUBLTEN, RVBLTEN, RTHBLTEN, RQVBLTEN, RQCBLTEN, RQIBLTEN, RQNIBLTEN, RTHRATEN, &
+    RUBLTEN, RVBLTEN, RTHBLTEN, RQVBLTEN, RQLBLTEN, RQIBLTEN, RQNIBLTEN, RTHRATEN, &
     RCCBLTEN, RTHLBLTEN, RQTBLTEN,   &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc, edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd, &
     edmf_debug1,edmf_debug2,edmf_debug3,edmf_debug4, &
@@ -6243,7 +6243,7 @@ subroutine edmf_mynn_driver ( &
        &initflag=initflag,grav_settling=grav_settling,         &
        &delt=Input_edmf%delt,dz=Input_edmf%dz,dx=Input_edmf%dx,znt=Input_edmf%znt,                 &
        &u=Input_edmf%u,v=Input_edmf%v,w=Input_edmf%w,th=Input_edmf%th,qv=Input_edmf%qv,             &
-       &ql=Input_edmf%qc,qi=Input_edmf%qi,cc=Input_edmf%qa,qni=Input_edmf%qni,qnc=Input_edmf%qnc,                    &
+       &ql=Input_edmf%ql,qi=Input_edmf%qi,cc=Input_edmf%qa,qni=Input_edmf%qni,qnc=Input_edmf%qnc,                    &
        &p=Input_edmf%p,exner=Input_edmf%exner,rho=Input_edmf%rho,T3D=Input_edmf%T3D,                &
        &xland=Input_edmf%xland,ts=Input_edmf%ts,qsfc=Input_edmf%qsfc,qcg=Input_edmf%qcg,ps=Input_edmf%ps,           &
        &ust=Input_edmf%ust,ch=Input_edmf%ch,hfx=Input_edmf%hfx,qfx=Input_edmf%qfx,rmol=Input_edmf%rmol,wspd=Input_edmf%wspd,       &
@@ -6252,7 +6252,7 @@ subroutine edmf_mynn_driver ( &
        &qke=Output_edmf%Qke,                    &
        &Tsq=Output_edmf%Tsq,Qsq=Output_edmf%Qsq,Cov=Output_edmf%Cov,                    &
        &RUBLTEN=Output_edmf%RUBLTEN,RVBLTEN=Output_edmf%RVBLTEN,RTHBLTEN=Output_edmf%RTHBLTEN,       &
-       &RQVBLTEN=Output_edmf%RQVBLTEN,RQLBLTEN=Output_edmf%RQCBLTEN,RQIBLTEN=Output_edmf%RQIBLTEN,     &
+       &RQVBLTEN=Output_edmf%RQVBLTEN,RQLBLTEN=Output_edmf%RQLBLTEN,RQIBLTEN=Output_edmf%RQIBLTEN,     &
        &RQNIBLTEN=Output_edmf%RQNIBLTEN,                      &
        &RCCBLTEN=Output_edmf%RCCBLTEN, RTHLBLTEN=Output_edmf%RTHLBLTEN, RQTBLTEN=Output_edmf%RQTBLTEN, &
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
@@ -6855,8 +6855,8 @@ subroutine edmf_alloc ( &
 ! exner .... exner function, half levels 
 ! rho ... density [kg m^-3], half levels
 ! T3D ... temperature [K], half levels
-! qc ... cloud water mixing ratio [kg kg^-1], half levels 
-! qi ... ice water mixing ratio [kg kg^-1], half levels 
+! ql ... cloud liquid water mixing ratio [kg kg^-1], half levels 
+! qi ... cloud ice water mixing ratio [kg kg^-1], half levels 
 ! qnc,qni ....  cloud liq and ice number concentration (#/kg), optional, do not set them
 !
 !*****************
@@ -7098,7 +7098,7 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%RVBLTEN     (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RVBLTEN     = 0.
   allocate (Output_edmf%RTHBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RTHBLTEN    = 0.
   allocate (Output_edmf%RQVBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQVBLTEN    = 0.
-  allocate (Output_edmf%RQCBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQCBLTEN    = 0.
+  allocate (Output_edmf%RQLBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQLBLTEN    = 0.
   allocate (Output_edmf%RQIBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQIBLTEN    = 0.
   allocate (Output_edmf%RQNIBLTEN   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQNIBLTEN   = 0.
   allocate (Output_edmf%RTHRATEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RTHRATEN    = 0.
@@ -7210,7 +7210,7 @@ subroutine edmf_alloc ( &
   u_host     (:,:,:) = Physics_input_block%u
   v_host     (:,:,:) = Physics_input_block%v
   omega_host (:,:,:) = Physics_input_block%omega
-  qc_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
+  qc_host    (:,:,:) = Physics_input_block%q(:,:,:,nql) + Physics_input_block%q(:,:,:,nqi)
   ql_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
   qi_host    (:,:,:) = Physics_input_block%q(:,:,:,nqi)
   qa_host    (:,:,:) = Physics_input_block%q(:,:,:,nqa)
@@ -7556,7 +7556,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%RVBLTEN     )  
   deallocate (Output_edmf%RTHBLTEN    )  
   deallocate (Output_edmf%RQVBLTEN    )  
-  deallocate (Output_edmf%RQCBLTEN    )  
+  deallocate (Output_edmf%RQLBLTEN    )  
   deallocate (Output_edmf%RQIBLTEN    )  
   deallocate (Output_edmf%RQNIBLTEN   )  
   deallocate (Output_edmf%RTHRATEN    )  
@@ -8124,8 +8124,8 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; Qv tendency due to EDMF parameterization (kg/kg/s)'
         write(6,3002) ' RQVBLTEN = (/'    ,Output_edmf%RQVBLTEN(ii_write,:,jj_write)
         write(6,*)    ''
-        write(6,*)    '; Qc tendency due to EDMF parameterization (kg/kg/s)'
-        write(6,3002) ' RQCBLTEN = (/'    ,Output_edmf%RQCBLTEN(ii_write,:,jj_write)
+        write(6,*)    '; Ql tendency due to EDMF parameterization (kg/kg/s)'
+        write(6,3002) ' RQLBLTEN = (/'    ,Output_edmf%RQLBLTEN(ii_write,:,jj_write)
         write(6,*)    ''
         write(6,*)    '; Qi tendency due to  EDMF parameterization (kg/kg/s)'
         write(6,3002) ' RQIBLTEN = (/'    ,Output_edmf%RQIBLTEN(ii_write,:,jj_write)
@@ -8312,7 +8312,7 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       am4_Output_edmf%tdt_edmf    (i,j,kk) = Output_edmf%RTHBLTEN  (i,k,j) * Input_edmf%exner (i,k,j)
       am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN  (i,k,j)
       am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN  (i,k,j)
-      am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN  (i,k,j)
+      am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQLBLTEN  (i,k,j)
       am4_Output_edmf%qadt_edmf   (i,j,kk) = Output_edmf%RCCBLTEN  (i,k,j)
       am4_Output_edmf%qtdt_edmf   (i,j,kk) = Output_edmf%RQTBLTEN  (i,k,j)
       am4_Output_edmf%thldt_edmf  (i,j,kk) = Output_edmf%RTHLBLTEN (i,k,j)
@@ -8335,14 +8335,14 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       if (     do_option_edmf2ls_mp.eq.3     &
           .or. kk.lt.am4_Output_edmf%kpbl_edmf(i,j) ) then
         am4_Output_edmf%qdt_edmf  (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
-                                             + Output_edmf%RQCBLTEN (i,k,j)  &
+                                             + Output_edmf%RQLBLTEN (i,k,j)  &
                                              + Output_edmf%RQIBLTEN (i,k,j) 
         am4_Output_edmf%qidt_edmf (i,j,kk) = 0. 
         am4_Output_edmf%qldt_edmf (i,j,kk) = 0. 
         am4_Output_edmf%qadt_edmf (i,j,kk) = 0. 
   
         am4_Output_edmf%tdt_edmf  (i,j,kk) =   Input_edmf%exner (i,k,j) * Output_edmf%RTHBLTEN (i,k,j) &
-                                             - hlv/cp_air * Output_edmf%RQCBLTEN (i,k,j)  &
+                                             - hlv/cp_air * Output_edmf%RQLBLTEN (i,k,j)  &
                                              - hls/cp_air * Output_edmf%RQIBLTEN (i,k,j)
       endif
   
