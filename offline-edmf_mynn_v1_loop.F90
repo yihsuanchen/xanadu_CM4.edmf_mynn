@@ -8422,6 +8422,39 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
 !----------------------------
 ! variables for diagnostics
 !----------------------------
+  do i=1,ix
+  do j=1,jx
+    do k=1,kx      ! k index for full levels
+      kk=kx-k+1
+
+      !--- before mixing
+      am4_Output_edmf%qa_before_mix   (i,j,kk) = Output_edmf%qa_before_mix   (i,k,j)
+      am4_Output_edmf%ql_before_mix   (i,j,kk) = Output_edmf%ql_before_mix   (i,k,j)
+      am4_Output_edmf%qi_before_mix   (i,j,kk) = Output_edmf%qi_before_mix   (i,k,j)
+      am4_Output_edmf%thl_before_mix  (i,j,kk) = Output_edmf%thl_before_mix  (i,k,j)
+      am4_Output_edmf%qt_before_mix   (i,j,kk) = Output_edmf%qt_before_mix   (i,k,j)
+      am4_Output_edmf%th_before_mix   (i,j,kk) = Output_edmf%th_before_mix   (i,k,j)
+      am4_Output_edmf%t_before_mix    (i,j,kk) = Output_edmf%th_before_mix   (i,k,j) * Input_edmf%exner (i,k,j)
+
+      !--- after mixing
+      am4_Output_edmf%qa_after_mix   (i,j,kk) = Output_edmf%qa_after_mix   (i,k,j)
+      am4_Output_edmf%ql_after_mix   (i,j,kk) = Output_edmf%ql_after_mix   (i,k,j)
+      am4_Output_edmf%qi_after_mix   (i,j,kk) = Output_edmf%qi_after_mix   (i,k,j)
+      am4_Output_edmf%thl_after_mix  (i,j,kk) = Output_edmf%thl_after_mix  (i,k,j)
+      am4_Output_edmf%qt_after_mix   (i,j,kk) = Output_edmf%qt_after_mix   (i,k,j)
+      am4_Output_edmf%th_after_mix   (i,j,kk) = Output_edmf%th_after_mix   (i,k,j)
+      am4_Output_edmf%t_after_mix    (i,j,kk) = Output_edmf%th_after_mix   (i,k,j) * Input_edmf%exner (i,k,j)
+
+    enddo  ! end loop of k, full levels
+  enddo  ! end loop of j
+  enddo  ! end loop of 1
+  
+  am4_Output_edmf%q_before_mix (:,:,:) =    am4_Output_edmf%qt_before_mix(:,:,:)   &
+                                         -  am4_Output_edmf%ql_before_mix(:,:,:)   &
+                                         -  am4_Output_edmf%qi_before_mix(:,:,:)   
+  am4_Output_edmf%q_after_mix (:,:,:)  =    am4_Output_edmf%qt_after_mix(:,:,:)    &
+                                         -  am4_Output_edmf%ql_after_mix(:,:,:)    &
+                                         -  am4_Output_edmf%qi_after_mix(:,:,:)    
 
 end subroutine convert_edmf_to_am4_array
 
