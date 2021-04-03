@@ -224,6 +224,10 @@ type edmf_output_type
     exch_h, exch_m, &
     qWT, qSHEAR, qBUOY, qDISS, dqke
 
+  real, dimension(:,:,:), allocatable :: &   ! diagnostic purpose, not used by mynn 
+    t_before_mix, q_before_mix, qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, rh_before_mix, th_before_mix, &
+    t_after_mix, q_after_mix, qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, rh_after_mix, th_after_mix
+
 end type edmf_output_type
 
 !==================
@@ -3558,7 +3562,9 @@ END SUBROUTINE mym_condensation
        &RUBLTEN,RVBLTEN,RTHBLTEN,       &
        &RQVBLTEN,RQLBLTEN,RQIBLTEN,     &
        &RQNIBLTEN,                      &
-       &RCCBLTEN, RTHLBLTEN, RQTBLTEN,  & ! yhc added
+       &RCCBLTEN, RTHLBLTEN, RQTBLTEN,  & ! yhc_mynn add
+       &qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &  ! yhc_mynn add
+       &qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix,       &  ! yhc_mynn add
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -3730,8 +3736,8 @@ END SUBROUTINE mym_condensation
 
 
     !<--- yhc_mynn, add new output variables, 2021-04-02
-    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
+    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
        qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &
        qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix
 
@@ -4108,12 +4114,12 @@ END SUBROUTINE mym_condensation
     qa_before_mix(i,:,j) = cldfra_bm(:)                     ! cloud fraction (unit: none)
     ql_before_mix(i,:,j) = liquid_frac(:)      * qc_bm(:)   ! cloud liquid water content (kg/kg)
     qi_before_mix(i,:,j) = (1.-liquid_frac(:)) * qc_bm(:)   ! cloud ice    water content (kg/kg)
-    th_before_mix(i,:,j) = th1(:)                             ! potential temperature (K)
+    th_before_mix(i,:,j) = th1(:)                           ! potential temperature (K)
 
-    thl_before_mix (i,:,j)  = thl(:)                           ! ice-liquid potential temperature (K)
+    thl_before_mix (i,:,j)  = thl(:)                        ! ice-liquid potential temperature (K)
   
-    !sqw =sqw +Dsqw1*delt                                        ! total water content (vapor+liquid+ice) (kg/kg)
-    dum_1D =sqw                                      ! total water content (vapor+liquid+ice) (kg/kg)
+    !sqw =sqw +Dsqw1*delt                                   ! total water content (vapor+liquid+ice) (kg/kg)
+    dum_1D =sqw                                             ! total water content (vapor+liquid+ice) (kg/kg)
     qt_before_mix   (i,:,j)  = dum_1D(:)/(1.-dum_1D(:))                       !
     !---> yhc_mynn
                            
@@ -4362,11 +4368,11 @@ END SUBROUTINE mym_condensation
     qa_after_mix  (i,:,j)  = cldfra_am(:)                     ! cloud fraction (unit: none)
     ql_after_mix  (i,:,j)  = liquid_frac(:)      * qc_am(:)   ! cloud liquid water content (kg/kg)
     qi_after_mix  (i,:,j)  = (1.-liquid_frac(:)) * qc_am(:)   ! cloud ice    water content (kg/kg)
-    th_after_mix  (i,:,j)  = th1(:)                              ! potential temperature (K)
-    thl_after_mix (i,:,j)  = thl(:)+Dthl1*delt                   ! ice-liquid potential temperature (K)
+    th_after_mix  (i,:,j)  = th1(:)                           ! potential temperature (K)
+    thl_after_mix (i,:,j)  = thl(:)+Dthl1*delt                ! ice-liquid potential temperature (K)
   
-    !sqw =sqw +Dsqw1*delt                                        ! total water content (vapor+liquid+ice) (kg/kg)
-    dum_1D =sqw +Dsqw1*delt                                      ! total water content (vapor+liquid+ice) (kg/kg)
+    !sqw =sqw +Dsqw1*delt                                     ! total water content (vapor+liquid+ice) (kg/kg)
+    dum_1D =sqw +Dsqw1*delt                                   ! total water content (vapor+liquid+ice) (kg/kg)
     qt_after_mix   (i,:,j)  = dum_1D(:)/(1.-dum_1D(:))                       !
     !---> yhc_mynn
  
@@ -6254,7 +6260,9 @@ subroutine edmf_mynn_driver ( &
        &RUBLTEN=Output_edmf%RUBLTEN,RVBLTEN=Output_edmf%RVBLTEN,RTHBLTEN=Output_edmf%RTHBLTEN,       &
        &RQVBLTEN=Output_edmf%RQVBLTEN,RQLBLTEN=Output_edmf%RQLBLTEN,RQIBLTEN=Output_edmf%RQIBLTEN,     &
        &RQNIBLTEN=Output_edmf%RQNIBLTEN,                      &
-       &RCCBLTEN=Output_edmf%RCCBLTEN, RTHLBLTEN=Output_edmf%RTHLBLTEN, RQTBLTEN=Output_edmf%RQTBLTEN, &
+       &RCCBLTEN=Output_edmf%RCCBLTEN, RTHLBLTEN=Output_edmf%RTHLBLTEN, RQTBLTEN=Output_edmf%RQTBLTEN, &  ! yhc_mynn add
+       &qa_before_mix=Output_edmf%qa_before_mix, ql_before_mix=Output_edmf%ql_before_mix, qi_before_mix=Output_edmf%qi_before_mix, thl_before_mix=Output_edmf%thl_before_mix, qt_before_mix=Output_edmf%qt_before_mix, th_before_mix=Output_edmf%th_before_mix, &      ! yhc_mynn add
+       &qa_after_mix=Output_edmf%qa_after_mix, ql_after_mix=Output_edmf%ql_after_mix, qi_after_mix=Output_edmf%qi_after_mix, thl_after_mix=Output_edmf%thl_after_mix, qt_after_mix=Output_edmf%qt_after_mix, th_after_mix=Output_edmf%th_after_mix,        &      ! yhc_mynn add
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
@@ -7133,6 +7141,25 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%qBUOY       (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qBUOY = 0.
   allocate (Output_edmf%qDISS       (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qDISS = 0.
   allocate (Output_edmf%dqke        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%dqke = 0.
+
+  allocate (Output_edmf%t_before_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%t_before_mix    = 0.
+  allocate (Output_edmf%q_before_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%q_before_mix    = 0.
+  allocate (Output_edmf%qa_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qa_before_mix   = 0.
+  allocate (Output_edmf%ql_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%ql_before_mix   = 0.
+  allocate (Output_edmf%qi_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qi_before_mix   = 0.
+  allocate (Output_edmf%thl_before_mix  (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%thl_before_mix  = 0.
+  allocate (Output_edmf%qt_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qt_before_mix   = 0.
+  allocate (Output_edmf%rh_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%rh_before_mix   = 0.
+  allocate (Output_edmf%th_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%th_before_mix   = 0.
+  allocate (Output_edmf%t_after_mix     (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%t_after_mix     = 0.
+  allocate (Output_edmf%q_after_mix     (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%q_after_mix     = 0.
+  allocate (Output_edmf%qa_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qa_after_mix    = 0.
+  allocate (Output_edmf%ql_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%ql_after_mix    = 0.
+  allocate (Output_edmf%qi_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qi_after_mix    = 0.
+  allocate (Output_edmf%thl_after_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%thl_after_mix   = 0.
+  allocate (Output_edmf%qt_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qt_after_mix    = 0.
+  allocate (Output_edmf%rh_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%rh_after_mix    = 0.
+  allocate (Output_edmf%th_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%th_after_mix    = 0.
   !allocate (Output_edmf%(IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf% = 0.
 
 !**********************
@@ -7592,6 +7619,25 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%qDISS       )  
   deallocate (Output_edmf%dqke        )  
   !deallocate (Output_edmf%)  
+
+  deallocate (Output_edmf%t_before_mix    )
+  deallocate (Output_edmf%q_before_mix    )
+  deallocate (Output_edmf%qa_before_mix   )
+  deallocate (Output_edmf%ql_before_mix   )
+  deallocate (Output_edmf%qi_before_mix   )
+  deallocate (Output_edmf%thl_before_mix  )
+  deallocate (Output_edmf%qt_before_mix   )
+  deallocate (Output_edmf%rh_before_mix   )
+  deallocate (Output_edmf%th_before_mix   )
+  deallocate (Output_edmf%t_after_mix     )
+  deallocate (Output_edmf%q_after_mix     )
+  deallocate (Output_edmf%qa_after_mix    )
+  deallocate (Output_edmf%ql_after_mix    )
+  deallocate (Output_edmf%qi_after_mix    )
+  deallocate (Output_edmf%thl_after_mix   )
+  deallocate (Output_edmf%qt_after_mix    )
+  deallocate (Output_edmf%rh_after_mix    )
+  deallocate (Output_edmf%th_after_mix    )
 
 !**********************
 !--- am4 Output_edmf
