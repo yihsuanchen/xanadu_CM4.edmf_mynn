@@ -4368,7 +4368,7 @@ END SUBROUTINE mym_condensation
     qa_after_mix  (i,:,j)  = cldfra_am(:)                     ! cloud fraction (unit: none)
     ql_after_mix  (i,:,j)  = liquid_frac(:)      * qc_am(:)   ! cloud liquid water content (kg/kg)
     qi_after_mix  (i,:,j)  = (1.-liquid_frac(:)) * qc_am(:)   ! cloud ice    water content (kg/kg)
-    th_after_mix  (i,:,j)  = th1(:)                           ! potential temperature (K)
+    th_after_mix  (i,:,j)  = th1(:)+dth1*delt                 ! potential temperature (K)
     thl_after_mix (i,:,j)  = thl(:)+Dthl1*delt                ! ice-liquid potential temperature (K)
   
     !sqw =sqw +Dsqw1*delt                                     ! total water content (vapor+liquid+ice) (kg/kg)
@@ -9240,6 +9240,7 @@ elseif (input_profile == "SCM_am4p0_RF01_02") then
   ! rdiag(1,1,:,ncldfra_bl), input
   rdiag(1,1,:,ncldfra_bl) = (/    0.4191E-01  ,  0.4191E-01  ,  0.1735E+00  ,  0.2774E+00  ,  0.3437E+00  ,  0.3871E+00  ,  0.4169E+00  ,  0.4379E+00  ,  0.4450E+00  ,  0.3118E+00  ,  0.7450E-01  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.1225E+00  ,  0.0000E+00  ,  0.0000E+00  /)
   
+
   ! rdiag(1,1,:,nqc_bl), input
   rdiag(1,1,:,nqc_bl) = (/    0.5000E-15  ,  0.5000E-15  ,  0.5000E-15  ,  0.5000E-15  ,  0.5000E-15  ,  0.5000E-15  ,  0.5000E-15  ,  0.5000E-15  ,  0.5000E-15  ,  0.5000E-15  ,  0.5000E-15  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.1936E-05  ,  0.0000E+00  ,  0.0000E+00  /)
 
