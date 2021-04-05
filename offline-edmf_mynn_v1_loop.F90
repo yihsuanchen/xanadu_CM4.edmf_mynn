@@ -4369,11 +4369,8 @@ END SUBROUTINE mym_condensation
     ql_after_mix  (i,:,j)  = liquid_frac(:)      * qc_am(:)   ! cloud liquid water content (kg/kg)
     qi_after_mix  (i,:,j)  = (1.-liquid_frac(:)) * qc_am(:)   ! cloud ice    water content (kg/kg)
     th_after_mix  (i,:,j)  = th1(:)+dth1*delt                 ! potential temperature (K)
-    thl_after_mix (i,:,j)  = thl(:)+Dthl1*delt                ! ice-liquid potential temperature (K)
-  
-    !sqw =sqw +Dsqw1*delt                                     ! total water content (vapor+liquid+ice) (kg/kg)
-    dum_1D =sqw +Dsqw1*delt                                   ! total water content (vapor+liquid+ice) (kg/kg)
-    qt_after_mix   (i,:,j)  = dum_1D(:)/(1.-dum_1D(:))                       !
+    thl_after_mix (i,:,j)  = thl(:)                           ! ice-liquid potential temperature (K)
+    qt_after_mix  (i,:,j)  = sqw(:)/(1.-sqw(:))               ! total water content (vapor+liquid+ice) (kg/kg)
     !---> yhc_mynn
  
           CALL retrieve_exchange_coeffs(kts,kte,&
