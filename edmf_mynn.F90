@@ -116,10 +116,10 @@ type edmf_output_type
 
   integer, dimension(:,:),   allocatable :: &   ! INPUT/OUTPUT, DIMENSION(IMS:IME,JMS:JME)
     KPBL, nupdraft, ktop_shallow
-
+  
   real, dimension(:,:,:), allocatable :: &   ! INPUT/OUTPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
     Qke, Tsq, Qsq, Cov,         &
-    RUBLTEN, RVBLTEN, RTHBLTEN, RQVBLTEN, RQCBLTEN, RQIBLTEN, RQNIBLTEN, RTHRATEN, &
+    RUBLTEN, RVBLTEN, RTHBLTEN, RQVBLTEN, RQLBLTEN, RQIBLTEN, RQNIBLTEN, RTHRATEN, &
     RCCBLTEN, RTHLBLTEN, RQTBLTEN,   &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc, edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd, &
     edmf_debug1,edmf_debug2,edmf_debug3,edmf_debug4, &
@@ -131,6 +131,10 @@ type edmf_output_type
   real, dimension(:,:,:), allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
     exch_h, exch_m, &
     qWT, qSHEAR, qBUOY, qDISS, dqke
+
+  real, dimension(:,:,:), allocatable :: &   ! diagnostic purpose, not used by mynn 
+    t_before_mix, q_before_mix, qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, rh_before_mix, th_before_mix, &
+    t_after_mix, q_after_mix, qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, rh_after_mix, th_after_mix
 
 end type edmf_output_type
 
@@ -3963,7 +3967,7 @@ END SUBROUTINE mym_condensation
   SUBROUTINE mynn_bl_driver(            &
        &initflag,grav_settling,         &
        &delt,dz,dx,znt,                 &
-       &u,v,w,th,qv,qc,qi,cc,qni,qnc,      &
+       &u,v,w,th,qv,ql,qi,cc,qni,qnc,      &
        &p,exner,rho,T3D,                &
        &xland,ts,qsfc,qcg,ps,           &
        &ust,ch,hfx,qfx,rmol,wspd,       &
@@ -3972,9 +3976,11 @@ END SUBROUTINE mym_condensation
        &Qke,                    &
        &Tsq,Qsq,Cov,                    &
        &RUBLTEN,RVBLTEN,RTHBLTEN,       &
-       &RQVBLTEN,RQCBLTEN,RQIBLTEN,     &
+       &RQVBLTEN,RQLBLTEN,RQIBLTEN,     &
        &RQNIBLTEN,                      &
-       &RCCBLTEN, RTHLBLTEN, RQTBLTEN,  & ! yhc added
+       &RCCBLTEN, RTHLBLTEN, RQTBLTEN,  & ! yhc_mynn add
+       &qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &  ! yhc_mynn add
+       &qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix,       &  ! yhc_mynn add
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -4040,7 +4046,7 @@ END SUBROUTINE mym_condensation
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(in) :: dz,&
          &u,v,w,th,qv,cc,p,exner,rho,T3D
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), OPTIONAL, INTENT(in)::&
-         &qc,qi,qni,qnc
+         &ql,qi,qni,qnc
     REAL, DIMENSION(IMS:IME,JMS:JME), INTENT(in) :: xland,ust,&
          &ch,rmol,ts,qsfc,qcg,ps,hfx,qfx, wspd,uoce,voce, vdfg,znt
 
@@ -4050,7 +4056,7 @@ END SUBROUTINE mym_condensation
          
 
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
-         &RUBLTEN,RVBLTEN,RTHBLTEN,RQVBLTEN,RQCBLTEN,&
+         &RUBLTEN,RVBLTEN,RTHBLTEN,RQVBLTEN,RQLBLTEN,&
          &RQIBLTEN,RQNIBLTEN,RTHRATEN !,RQNCBLTEN
 
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
@@ -4083,9 +4089,8 @@ END SUBROUTINE mym_condensation
 
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
          &qc_bl,cldfra_bl
-    REAL, DIMENSION(KTS:KTE) :: qc_bl1D,cldfra_bl1D,&
-                            qc_bl1D_old,cldfra_bl1D_old, &
-                             qc_bl1Da,cldfra_bl1Da
+    REAL, DIMENSION(KTS:KTE) :: qc_bm,cldfra_bm,&
+                             qc_am,cldfra_am
     REAl, DIMENSION(KTS:KTE) :: liquid_frac                        
   
     REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: RCCBLTEN,RTHLBLTEN,RQTBLTEN
@@ -4093,12 +4098,12 @@ END SUBROUTINE mym_condensation
 !local vars
 !  INTEGER :: ITF,JTF,KTF, IMD,JMD
     INTEGER :: i,j,k
-    REAL, DIMENSION(KTS:KTE) :: thl,thvl,tl,sqv,sqc,sqi,sqw,&
+    REAL, DIMENSION(KTS:KTE) :: thl,thvl,tl,sqv,sqc,sqi,sqw,sql,&
          &El, Dfm, Dfh, Dfq, Tcd, Qcd, Pdk, Pdt, Pdq, Pdc, &
          &Vt, Vq, sgm
 
     REAL, DIMENSION(KTS:KTE) :: thetav,sh,u1,v1,w1,p1,ex1,dz1,th1,tk1,rho1,&
-           & qke1,tsq1,qsq1,cov1,qv1,qi1,qc1,du1,dv1,dth1,dqv1,dsqw1,dqi1,dql1,dthl1, &
+           & qke1,tsq1,qsq1,cov1,qv1,qi1,ql1,qc1,du1,dv1,dth1,dqv1,dsqw1,dqi1,dql1,dthl1, &
            & k_m1,k_h1,k_q1,qni1,dqni1,qnc1,cc1,dcc1 !,dqnc1
 
 !JOE: mass-flux variables
@@ -4145,6 +4150,16 @@ END SUBROUTINE mym_condensation
 ! Stochastic fields 
      REAL, DIMENSION(KTS:KTE)                         ::    rstoch_col
 
+
+    !<--- yhc_mynn, add new output variables, 2021-04-02
+    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
+    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+       qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &
+       qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix
+
+    REAL, DIMENSION(KMS:KME) :: &
+       dum_1D
+    !---> yhc_mynn
 
     IF ( debug_code ) THEN
        print*,'in MYNN driver; at beginning'
@@ -4196,13 +4211,12 @@ END SUBROUTINE mym_condensation
        tsq(its:ite,kts:kte,jts:jte)=0.
        qsq(its:ite,kts:kte,jts:jte)=0.
        cov(its:ite,kts:kte,jts:jte)=0.
-!       dqc1(kts:kte)=0.0
        dqi1(kts:kte)=0.0
        dqni1(kts:kte)=0.0
-       qc_bl1D(kts:kte)=0.0
-       cldfra_bl1D(kts:kte)=0.0
-       qc_bl1D_old(kts:kte)=0.0
-       cldfra_bl1D_old(kts:kte)=0.0
+       qc_bm(kts:kte)=0.0
+       cldfra_bm(kts:kte)=0.0
+    !   qc_bl1D_old(kts:kte)=0.0
+    !   cldfra_bl1D_old(kts:kte)=0.0
        sgm(kts:kte)=0.0
        vt(kts:kte)=0.0
        vq(kts:kte)=0.0
@@ -4215,30 +4229,18 @@ END SUBROUTINE mym_condensation
                 v1(k) = v(i,k,j)
                 w1(k) = w(i,k,j)
                 cc1(k)=cc(i,k,j)
+                qc1(k)=ql(i,k,j)+qi(i,k,j)
                 th1(k)=th(i,k,j)
                 tk1(k)=T3D(i,k,j)
                 rho1(k)=rho(i,k,j)
-                sqc(k)=qc(i,k,j)/(1.+qc(i,k,j))
+                sql(k)=ql(i,k,j)/(1.+ql(i,k,j))
                 sqv(k)=qv(i,k,j)/(1.+qv(i,k,j))
                 thetav(k)=th(i,k,j)*(1.+0.61*sqv(k))
-                IF (PRESENT(qi) .AND. FLAG_QI ) THEN
-                   sqi(k)=qi(i,k,j)/(1.+qi(i,k,j))
-                   sqw(k)=sqv(k)+sqc(k)+sqi(k)
-                   thl(k)=th(i,k,j)- xlvcp/exner(i,k,j)*sqc(k) &
+                sqi(k)=qi(i,k,j)/(1.+qi(i,k,j))
+                sqc(k)=sqi(k)+sql(k)
+                sqw(k)=sqv(k)+sqc(k)
+                thl(k)=th(i,k,j)- xlvcp/exner(i,k,j)*sql(k) &
                        &           - xlscp/exner(i,k,j)*sqi(k)
-                   !Use form from Tripoli and Cotton (1981) with their
-                   !suggested min temperature to improve accuracy.
-                   !thl(k)=th(i,k,j)*(1.- xlvcp/MAX(tk1(k),TKmin)*sqc(k) &
-                   !    &               - xlscp/MAX(tk1(k),TKmin)*sqi(k))
-                ELSE
-                   sqi(k)=0.0
-                   sqw(k)=sqv(k)+sqc(k)
-                   thl(k)=th(i,k,j)-xlvcp/exner(i,k,j)*sqc(k)
-                   !Use form from Tripoli and Cotton (1981) with their 
-                   !suggested min temperature to improve accuracy.      
-                   !thl(k)=th(i,k,j)*(1.- xlvcp/MAX(tk1(k),TKmin)*sqc(k))
-                ENDIF
-
                 IF (k==kts) THEN
                    zw(k)=0.
                 ELSE
@@ -4255,13 +4257,7 @@ END SUBROUTINE mym_condensation
                 tsq1(k)=tsq(i,k,j)
                 qsq1(k)=qsq(i,k,j)
                 cov1(k)=cov(i,k,j)
-               ! if (spp_pbl==1) then
-               !     rstoch_col(k)=pattern_spp_pbl(i,k,j)
-               ! else
-                    rstoch_col(k)=0.0
-               ! endif
-
-
+                rstoch_col(k)=0.0
                 IF ( bl_mynn_tkebudget == 1) THEN
                    !TKE BUDGET VARIABLES
                    qWT(i,k,j)=0.
@@ -4293,7 +4289,7 @@ END SUBROUTINE mym_condensation
                   &PBLH(i,j), th1, sh,         &
                   &ust(i,j), rmol(i,j),        &
                   &el, Qke1, Tsq1, Qsq1, Cov1, &
-                  &Psig_bl(i,j), cldfra_bl1D,  &
+                  &Psig_bl(i,j), cldfra_bm,  &
                   &bl_mynn_mixlength,          &
                   &edmf_w1,edmf_a1,edmf_qc1,bl_mynn_edmf,&
                   &edmf_w_dd1,edmf_a_dd1,edmf_qc_dd1,bl_mynn_edmf_dd,&
@@ -4337,39 +4333,30 @@ END SUBROUTINE mym_condensation
              tk1(k)=T3D(i,k,j)
              rho1(k)=rho(i,k,j)
              qv1(k)= qv(i,k,j)
-             qc1(k)= qc(i,k,j)
+             ql1(k)= ql(i,k,j)
+             qi1(k)= qi(i,k,j)
+             qc1(k)=ql1(k)+qi1(k)
              cc1(k)=cc(i,k,j)
              sqv(k)= qv(i,k,j)/(1.+qv(i,k,j))
-             sqc(k)= qc(i,k,j)/(1.+qc(i,k,j))
+             sql(k)= ql(i,k,j)/(1.+ql(i,k,j))
+             sqi(k)= qi(i,k,j)/(1.+qi(i,k,j))
+             sqc(k)=sqi(k)+sql(k)
+             sqw(k)= sqv(k)+sqc(k)
+             thl(k)= th(i,k,j) - xlvcp/exner(i,k,j)*sql(k) &
+                     &            - xlscp/exner(i,k,j)*sqi(k)
+
             
-             IF(icloud_bl > 0)cldfra_bl1D_old(k)=cldfra_bl(i,k,j)
-             IF(icloud_bl > 0)qc_bl1D_old(k)=qc_bl(i,k,j)
+  !           IF(icloud_bl > 0)cldfra_bl1D_old(k)=cldfra_bl(i,k,j)
+  !           IF(icloud_bl > 0)qc_bl1D_old(k)=qc_bl(i,k,j)
           
              dql1(k)=0.0
              dqi1(k)=0.0
              dqni1(k)=0.0
       
-      
+    
              
-    !         IF(PRESENT(qi) .AND. FLAG_QI)THEN
-                qi1(k)= qi(i,k,j)
-                sqi(k)= qi(i,k,j)/(1.+qi(i,k,j))
-                sqw(k)= sqv(k)+sqc(k)+sqi(k)
-                thl(k)= th(i,k,j) - xlvcp/exner(i,k,j)*sqc(k) &
-                     &            - xlscp/exner(i,k,j)*sqi(k)
-                !Use form from Tripoli and Cotton (1981) with their
-                !suggested min temperature to improve accuracy.    
-                !thl(k)=th(i,k,j)*(1.- xlvcp/MAX(tk1(k),TKmin)*sqc(k) &
-                !    &               - xlscp/MAX(tk1(k),TKmin)*sqi(k))
-    !         ELSE
-    !            qi1(k)=0.0
-    !            sqi(k)=0.0
-    !            sqw(k)= sqv(k)+sqc(k)
-    !            thl(k)= th(i,k,j)-xlvcp/exner(i,k,j)*sqc(k)
-                !Use form from Tripoli and Cotton (1981) with their
-                !suggested min temperature to improve accuracy.    
-                !thl(k)=th(i,k,j)*(1.- xlvcp/MAX(tk1(k),TKmin)*sqc(k))
-    !         ENDIF
+          
+
 
              IF (PRESENT(qni) .AND. FLAG_QNI ) THEN
                 qni1(k)=qni(i,k,j)
@@ -4506,35 +4493,53 @@ END SUBROUTINE mym_condensation
           end if
 
 !
+! qc_bm and cldfra_bm are values of qc and cloud fraction before mixing
+!
 ! condensation uses sh and el from the previous time step 
 ! 
 
-     if (edmf_type .eq. 0) then
+    if (edmf_type .eq. 0) then
+!     
+! run the PDF scheme to compute qc and cloud fraction before mixing     
+!     
           CALL  mym_condensation ( kts,kte,      &
                &dx,dz1,thl,sqw,p1,ex1,           &
                &tsq1, qsq1, cov1,                &
                &Sh,el,liquid_frac,          &
-               &qc_bl1D,cldfra_bl1D,             &
+               &qc_bm,cldfra_bm,             &
                &PBLH(i,j),HFX(i,j),              &
                &Vt, Vq, th1, sgm )
-     elseif (edmf_type .eq. 1) then
-           qc_bl1D=qc1
-           cldfra_bl1D=cc1
-        ! compute vt and vq   
+    elseif (edmf_type .eq. 1) then
+!   
+! input values of qc and cc are taken as the values befor mixing
+!   
+           qc_bm=qc1
+           cldfra_bm=cc1
+!
+! compute vt and vq for TKE buoyancy calculation   
+!
          call  mym_vtvq (kts,kte,  &
           &th1,qc1,thl,sqw,cc1,    &
           &p1,ex1,liquid_frac,     &
           &Vt, Vq)
     else
-    print *,'Error ... wrong edmf_type!!!'    
+          print *,'Error ... wrong edmf_type!!!'    
     endif
         
-     
-     
-     
-               
-               
-                            
+    !<--- yhc_mynn, output before-mixing states, 2021-04-02
+    qa_before_mix(i,:,j) = cldfra_bm(:)                     ! cloud fraction (unit: none)
+    ql_before_mix(i,:,j) = liquid_frac(:)      * qc_bm(:)   ! cloud liquid water content (kg/kg)
+    qi_before_mix(i,:,j) = (1.-liquid_frac(:)) * qc_bm(:)   ! cloud ice    water content (kg/kg)
+    th_before_mix(i,:,j) = th1(:)                           ! potential temperature (K)
+
+    thl_before_mix (i,:,j)  = thl(:)                        ! ice-liquid potential temperature (K)
+  
+    !sqw =sqw +Dsqw1*delt                                   ! total water content (vapor+liquid+ice) (kg/kg)
+    dum_1D =sqw                                             ! total water content (vapor+liquid+ice) (kg/kg)
+    qt_before_mix   (i,:,j)  = dum_1D(:)/(1.-dum_1D(:))                       !
+    !---> yhc_mynn
+                           
+ 
 !          !ADD TKE source driven by cloud top cooling
 !          IF (bl_mynn_topdown.eq.1)then
 !             cloudflg=.false.
@@ -4640,7 +4645,7 @@ END SUBROUTINE mym_condensation
                & s_aw1,s_awthl1,s_awqt1,          &
                & s_awqv1,s_awqc1,s_awu1,s_awv1,   &
                & s_awqke1,                        &
-               & qc_bl1D,cldfra_bl1D,             &
+               & qc_bm,cldfra_bm,             &
                &ktop_shallow(i,j),ztop_shallow,   &
                KPBL(i,j)                          &
             )
@@ -4680,7 +4685,7 @@ END SUBROUTINE mym_condensation
                &qWT1,qSHEAR1,qBUOY1,qDISS1,      &
                &bl_mynn_tkebudget,               &
                &Psig_bl(i,j),Psig_shcu(i,j),     &     
-               &cldfra_bl1D,bl_mynn_mixlength,   &
+               &cldfra_bm,bl_mynn_mixlength,   &
                &edmf_w1,edmf_a1,edmf_qc1,bl_mynn_edmf,   &
                &edmf_w_dd1,edmf_a_dd1,edmf_qc_dd1,bl_mynn_edmf_dd,   &
                &TKEprodTD,                       &
@@ -4751,7 +4756,7 @@ END SUBROUTINE mym_condensation
                &dx,dz1,thl,sqw,p1,ex1,           &
                &tsq1, qsq1, cov1,                &
                &Sh,el,liquid_frac,          &
-               &qc_bl1Da,cldfra_bl1Da,             &
+               &qc_am,cldfra_am,             &
                &PBLH(i,j),HFX(i,j),              &
                &Vt, Vq, th1, sgm )
 
@@ -4764,18 +4769,25 @@ END SUBROUTINE mym_condensation
  
  
          DO k=kts,kte
-           dqcTT=(qc_bl1Da(k)-qc_bl1D(k))/delt
+           dqcTT=(qc_am(k)-qc_bm(k))/delt
            lfTT=liquid_frac(k)
            lvT=xlLF_blend(th1(k)*ex1(k),liquid_frac(k))
            
            dqv1(k)=dsqw1(k)/(1.-sqw(k))-dqcTT
            dql1(k)=dqcTT*lfTT
            dqi1(k)=(1.-lfTT)*dqcTT
-           dth1(k)=dthl1(k)+lvT/(ex1(k)*cp)*dqcTT
-           dcc1(k)=(cldfra_bl1Da(k)-cldfra_bl1D(k))/delt 
+           dth1(k)=dthl1(k)+lvT/(ex1(k)*cp)*dqcTT/(1.+qc1(k))
+           dcc1(k)=(cldfra_am(k)-cldfra_bm(k))/delt 
          ENDDO
          
- 
+    !<--- yhc_mynn, output after-mixing states, 2021-04-02
+    qa_after_mix  (i,:,j)  = cldfra_am(:)                     ! cloud fraction (unit: none)
+    ql_after_mix  (i,:,j)  = liquid_frac(:)      * qc_am(:)   ! cloud liquid water content (kg/kg)
+    qi_after_mix  (i,:,j)  = (1.-liquid_frac(:)) * qc_am(:)   ! cloud ice    water content (kg/kg)
+    th_after_mix  (i,:,j)  = th1(:)+dth1*delt                 ! potential temperature (K)
+    thl_after_mix (i,:,j)  = thl(:)                           ! ice-liquid potential temperature (K)
+    qt_after_mix  (i,:,j)  = sqw(:)/(1.-sqw(:))               ! total water content (vapor+liquid+ice) (kg/kg)
+    !---> yhc_mynn
  
           CALL retrieve_exchange_coeffs(kts,kte,&
                &dfm, dfh, dfq, dz1,&
@@ -4790,14 +4802,14 @@ END SUBROUTINE mym_condensation
              RVBLTEN(i,k,j)=dv1(k)
              RTHBLTEN(i,k,j)=dth1(k)
              RQVBLTEN(i,k,j)=dqv1(k)
-             RQCBLTEN(i,k,j)=dql1(k)
+             RQLBLTEN(i,k,j)=dql1(k)
              RQIBLTEN(i,k,j)=dqi1(k)
              RCCBLTEN(i,k,j)=dcc1(k)
              RTHLBLTEN(i,k,j)=dthl1(k)
              RQTBLTEN(i,k,j)=dsqw1(k)/(1.-sqw(k))
              IF (PRESENT(qni) .AND. FLAG_QNI) RQNIBLTEN(i,k,j)=dqni1(k)
-             qc_bl(i,k,j)=qc_bl1Da(k)
-             cldfra_bl(i,k,j)=cldfra_bl1Da(k) 
+             qc_bl(i,k,j)=qc_am(k)
+             cldfra_bl(i,k,j)=cldfra_am(k) 
              
              
               
@@ -4960,7 +4972,7 @@ end subroutine ComputeLiquidFrac
 ! ==================================================================
   SUBROUTINE mynn_bl_init_driver(                   &
        &RUBLTEN,RVBLTEN,RTHBLTEN,RQVBLTEN,          &
-       &RQCBLTEN,RQIBLTEN & !,RQNIBLTEN,RQNCBLTEN       &
+       &RQLBLTEN,RQIBLTEN & !,RQNIBLTEN,RQNCBLTEN       &
        &,QKE,EXCH_H                         &
 !       &,icloud_bl,qc_bl,cldfra_bl                 & !JOE-subgrid bl clouds 
        &,RESTART,ALLOWED_TO_READ,LEVEL              &
@@ -4979,7 +4991,7 @@ end subroutine ComputeLiquidFrac
     
     REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME),INTENT(INOUT) :: &
          &RUBLTEN,RVBLTEN,RTHBLTEN,RQVBLTEN,                 &
-         &RQCBLTEN,RQIBLTEN,& !RQNIBLTEN,RQNCBLTEN       &
+         &RQLBLTEN,RQIBLTEN,& !RQNIBLTEN,RQNCBLTEN       &
          &QKE,EXCH_H
 
 !    REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME),INTENT(INOUT) :: &
@@ -4997,7 +5009,7 @@ end subroutine ComputeLiquidFrac
                 RVBLTEN(i,k,j)=0.
                 RTHBLTEN(i,k,j)=0.
                 RQVBLTEN(i,k,j)=0.
-                if( p_qc >= param_first_scalar ) RQCBLTEN(i,k,j)=0.
+                if( p_qc >= param_first_scalar ) RQLBLTEN(i,k,j)=0.
                 if( p_qi >= param_first_scalar ) RQIBLTEN(i,k,j)=0.
                 !if( p_qnc >= param_first_scalar ) RQNCBLTEN(i,k,j)=0.
                 !if( p_qni >= param_first_scalar ) RQNIBLTEN(i,k,j)=0.
@@ -6650,7 +6662,7 @@ subroutine edmf_mynn_driver ( &
        &initflag=initflag,grav_settling=grav_settling,         &
        &delt=Input_edmf%delt,dz=Input_edmf%dz,dx=Input_edmf%dx,znt=Input_edmf%znt,                 &
        &u=Input_edmf%u,v=Input_edmf%v,w=Input_edmf%w,th=Input_edmf%th,qv=Input_edmf%qv,             &
-       &qc=Input_edmf%qc,qi=Input_edmf%qi,cc=Input_edmf%qa,qni=Input_edmf%qni,qnc=Input_edmf%qnc,                    &
+       &ql=Input_edmf%ql,qi=Input_edmf%qi,cc=Input_edmf%qa,qni=Input_edmf%qni,qnc=Input_edmf%qnc,                    &
        &p=Input_edmf%p,exner=Input_edmf%exner,rho=Input_edmf%rho,T3D=Input_edmf%T3D,                &
        &xland=Input_edmf%xland,ts=Input_edmf%ts,qsfc=Input_edmf%qsfc,qcg=Input_edmf%qcg,ps=Input_edmf%ps,           &
        &ust=Input_edmf%ust,ch=Input_edmf%ch,hfx=Input_edmf%hfx,qfx=Input_edmf%qfx,rmol=Input_edmf%rmol,wspd=Input_edmf%wspd,       &
@@ -6659,9 +6671,11 @@ subroutine edmf_mynn_driver ( &
        &qke=Output_edmf%Qke,                    &
        &Tsq=Output_edmf%Tsq,Qsq=Output_edmf%Qsq,Cov=Output_edmf%Cov,                    &
        &RUBLTEN=Output_edmf%RUBLTEN,RVBLTEN=Output_edmf%RVBLTEN,RTHBLTEN=Output_edmf%RTHBLTEN,       &
-       &RQVBLTEN=Output_edmf%RQVBLTEN,RQCBLTEN=Output_edmf%RQCBLTEN,RQIBLTEN=Output_edmf%RQIBLTEN,     &
+       &RQVBLTEN=Output_edmf%RQVBLTEN,RQLBLTEN=Output_edmf%RQLBLTEN,RQIBLTEN=Output_edmf%RQIBLTEN,     &
        &RQNIBLTEN=Output_edmf%RQNIBLTEN,                      &
-       &RCCBLTEN=Output_edmf%RCCBLTEN, RTHLBLTEN=Output_edmf%RTHLBLTEN, RQTBLTEN=Output_edmf%RQTBLTEN, &
+       &RCCBLTEN=Output_edmf%RCCBLTEN, RTHLBLTEN=Output_edmf%RTHLBLTEN, RQTBLTEN=Output_edmf%RQTBLTEN, &  ! yhc_mynn add
+       &qa_before_mix=Output_edmf%qa_before_mix, ql_before_mix=Output_edmf%ql_before_mix, qi_before_mix=Output_edmf%qi_before_mix, thl_before_mix=Output_edmf%thl_before_mix, qt_before_mix=Output_edmf%qt_before_mix, th_before_mix=Output_edmf%th_before_mix, &      ! yhc_mynn add
+       &qa_after_mix=Output_edmf%qa_after_mix, ql_after_mix=Output_edmf%ql_after_mix, qi_after_mix=Output_edmf%qi_after_mix, thl_after_mix=Output_edmf%thl_after_mix, qt_after_mix=Output_edmf%qt_after_mix, th_after_mix=Output_edmf%th_after_mix,        &      ! yhc_mynn add
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
@@ -7262,8 +7276,8 @@ subroutine edmf_alloc ( &
 ! exner .... exner function, half levels 
 ! rho ... density [kg m^-3], half levels
 ! T3D ... temperature [K], half levels
-! qc ... cloud water mixing ratio [kg kg^-1], half levels 
-! qi ... ice water mixing ratio [kg kg^-1], half levels 
+! ql ... cloud liquid water mixing ratio [kg kg^-1], half levels 
+! qi ... cloud ice water mixing ratio [kg kg^-1], half levels 
 ! qnc,qni ....  cloud liq and ice number concentration (#/kg), optional, do not set them
 !
 !*****************
@@ -7298,7 +7312,7 @@ subroutine edmf_alloc ( &
 !         RVBLTEN ... V tendency due to EDMF parameterization (m/s^2), set to 0. on the input
 !         RTHBLTEN ... Theta tendency due to EDMF parameterization (K/s), set to 0. on the input
 !         RQVBLTEN ....  Qv tendency due to EDMF parameterization (kg/kg/s), set to 0. on the input
-!         RQCBLTEN ....  Qc tendency due to EDMF parameterization (kg/kg/s), set to 0. on the input
+!         RQLBLTEN ....  Qc tendency due to EDMF parameterization (kg/kg/s), set to 0. on the input
 !         RQIBLTEN ...   Qi tendency due to  EDMF parameterization (kg/kg/s), set to 0. on the input
 !         RQNIBLTEN ....  Qni tendency due to EDMF parameterization (#/kg/s) , dummy argument (not activated)
 !         RTHRATEN .... tendency from radiation [K s^-1]
@@ -7505,7 +7519,7 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%RVBLTEN     (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RVBLTEN     = 0.
   allocate (Output_edmf%RTHBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RTHBLTEN    = 0.
   allocate (Output_edmf%RQVBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQVBLTEN    = 0.
-  allocate (Output_edmf%RQCBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQCBLTEN    = 0.
+  allocate (Output_edmf%RQLBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQLBLTEN    = 0.
   allocate (Output_edmf%RQIBLTEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQIBLTEN    = 0.
   allocate (Output_edmf%RQNIBLTEN   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RQNIBLTEN   = 0.
   allocate (Output_edmf%RTHRATEN    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%RTHRATEN    = 0.
@@ -7540,6 +7554,25 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%qBUOY       (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qBUOY = 0.
   allocate (Output_edmf%qDISS       (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qDISS = 0.
   allocate (Output_edmf%dqke        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%dqke = 0.
+
+  allocate (Output_edmf%t_before_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%t_before_mix    = 0.
+  allocate (Output_edmf%q_before_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%q_before_mix    = 0.
+  allocate (Output_edmf%qa_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qa_before_mix   = 0.
+  allocate (Output_edmf%ql_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%ql_before_mix   = 0.
+  allocate (Output_edmf%qi_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qi_before_mix   = 0.
+  allocate (Output_edmf%thl_before_mix  (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%thl_before_mix  = 0.
+  allocate (Output_edmf%qt_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qt_before_mix   = 0.
+  allocate (Output_edmf%rh_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%rh_before_mix   = 0.
+  allocate (Output_edmf%th_before_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%th_before_mix   = 0.
+  allocate (Output_edmf%t_after_mix     (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%t_after_mix     = 0.
+  allocate (Output_edmf%q_after_mix     (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%q_after_mix     = 0.
+  allocate (Output_edmf%qa_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qa_after_mix    = 0.
+  allocate (Output_edmf%ql_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%ql_after_mix    = 0.
+  allocate (Output_edmf%qi_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qi_after_mix    = 0.
+  allocate (Output_edmf%thl_after_mix   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%thl_after_mix   = 0.
+  allocate (Output_edmf%qt_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qt_after_mix    = 0.
+  allocate (Output_edmf%rh_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%rh_after_mix    = 0.
+  allocate (Output_edmf%th_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%th_after_mix    = 0.
   !allocate (Output_edmf%(IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf% = 0.
 
 !**********************
@@ -7617,7 +7650,7 @@ subroutine edmf_alloc ( &
   u_host     (:,:,:) = Physics_input_block%u
   v_host     (:,:,:) = Physics_input_block%v
   omega_host (:,:,:) = Physics_input_block%omega
-  qc_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
+  qc_host    (:,:,:) = Physics_input_block%q(:,:,:,nql) + Physics_input_block%q(:,:,:,nqi)
   ql_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
   qi_host    (:,:,:) = Physics_input_block%q(:,:,:,nqi)
   qa_host    (:,:,:) = Physics_input_block%q(:,:,:,nqa)
@@ -7963,7 +7996,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%RVBLTEN     )  
   deallocate (Output_edmf%RTHBLTEN    )  
   deallocate (Output_edmf%RQVBLTEN    )  
-  deallocate (Output_edmf%RQCBLTEN    )  
+  deallocate (Output_edmf%RQLBLTEN    )  
   deallocate (Output_edmf%RQIBLTEN    )  
   deallocate (Output_edmf%RQNIBLTEN   )  
   deallocate (Output_edmf%RTHRATEN    )  
@@ -7999,6 +8032,25 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%qDISS       )  
   deallocate (Output_edmf%dqke        )  
   !deallocate (Output_edmf%)  
+
+  deallocate (Output_edmf%t_before_mix    )
+  deallocate (Output_edmf%q_before_mix    )
+  deallocate (Output_edmf%qa_before_mix   )
+  deallocate (Output_edmf%ql_before_mix   )
+  deallocate (Output_edmf%qi_before_mix   )
+  deallocate (Output_edmf%thl_before_mix  )
+  deallocate (Output_edmf%qt_before_mix   )
+  deallocate (Output_edmf%rh_before_mix   )
+  deallocate (Output_edmf%th_before_mix   )
+  deallocate (Output_edmf%t_after_mix     )
+  deallocate (Output_edmf%q_after_mix     )
+  deallocate (Output_edmf%qa_after_mix    )
+  deallocate (Output_edmf%ql_after_mix    )
+  deallocate (Output_edmf%qi_after_mix    )
+  deallocate (Output_edmf%thl_after_mix   )
+  deallocate (Output_edmf%qt_after_mix    )
+  deallocate (Output_edmf%rh_after_mix    )
+  deallocate (Output_edmf%th_after_mix    )
 
 !**********************
 !--- am4 Output_edmf
@@ -8144,9 +8196,12 @@ subroutine edmf_writeout_column ( &
 !-------------------------------------------------------------------------
 
   !--- compute rh
-  call compute_qs(Physics_input_block%t, Physics_input_block%p_full, qsat )
+  call rh_calc (Physics_input_block%p_full(:,:,:), Physics_input_block%t(:,:,:),  &
+                Physics_input_block%q(:,:,:,nsphum), rh(:,:,:), do_simple )
+  rh(:,:,:) = 100. * rh(:,:,:)
 
-  rh(:,:,:) = 100. * Physics_input_block%q(:,:,:,nsphum) / qsat(:,:,:)
+  !call compute_qs(Physics_input_block%t, Physics_input_block%p_full, qsat )
+  !rh(:,:,:) = 100. * Physics_input_block%q(:,:,:,nsphum) / qsat(:,:,:)
 
 !-------------------------------------------------------------------------
 ! check tracer concentration 
@@ -8528,8 +8583,8 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; Qv tendency due to EDMF parameterization (kg/kg/s)'
         write(6,3002) ' RQVBLTEN = (/'    ,Output_edmf%RQVBLTEN(ii_write,:,jj_write)
         write(6,*)    ''
-        write(6,*)    '; Qc tendency due to EDMF parameterization (kg/kg/s)'
-        write(6,3002) ' RQCBLTEN = (/'    ,Output_edmf%RQCBLTEN(ii_write,:,jj_write)
+        write(6,*)    '; Ql tendency due to EDMF parameterization (kg/kg/s)'
+        write(6,3002) ' RQLBLTEN = (/'    ,Output_edmf%RQLBLTEN(ii_write,:,jj_write)
         write(6,*)    ''
         write(6,*)    '; Qi tendency due to  EDMF parameterization (kg/kg/s)'
         write(6,3002) ' RQIBLTEN = (/'    ,Output_edmf%RQIBLTEN(ii_write,:,jj_write)
@@ -8716,7 +8771,7 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       am4_Output_edmf%tdt_edmf    (i,j,kk) = Output_edmf%RTHBLTEN  (i,k,j) * Input_edmf%exner (i,k,j)
       am4_Output_edmf%qdt_edmf    (i,j,kk) = Output_edmf%RQVBLTEN  (i,k,j)
       am4_Output_edmf%qidt_edmf   (i,j,kk) = Output_edmf%RQIBLTEN  (i,k,j)
-      am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQCBLTEN  (i,k,j)
+      am4_Output_edmf%qldt_edmf   (i,j,kk) = Output_edmf%RQLBLTEN  (i,k,j)
       am4_Output_edmf%qadt_edmf   (i,j,kk) = Output_edmf%RCCBLTEN  (i,k,j)
       am4_Output_edmf%qtdt_edmf   (i,j,kk) = Output_edmf%RQTBLTEN  (i,k,j)
       am4_Output_edmf%thldt_edmf  (i,j,kk) = Output_edmf%RTHLBLTEN (i,k,j)
@@ -8739,14 +8794,14 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       if (     do_option_edmf2ls_mp.eq.3     &
           .or. kk.lt.am4_Output_edmf%kpbl_edmf(i,j) ) then
         am4_Output_edmf%qdt_edmf  (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
-                                             + Output_edmf%RQCBLTEN (i,k,j)  &
+                                             + Output_edmf%RQLBLTEN (i,k,j)  &
                                              + Output_edmf%RQIBLTEN (i,k,j) 
         am4_Output_edmf%qidt_edmf (i,j,kk) = 0. 
         am4_Output_edmf%qldt_edmf (i,j,kk) = 0. 
         am4_Output_edmf%qadt_edmf (i,j,kk) = 0. 
   
         am4_Output_edmf%tdt_edmf  (i,j,kk) =   Input_edmf%exner (i,k,j) * Output_edmf%RTHBLTEN (i,k,j) &
-                                             - hlv/cp_air * Output_edmf%RQCBLTEN (i,k,j)  &
+                                             - hlv/cp_air * Output_edmf%RQLBLTEN (i,k,j)  &
                                              - hls/cp_air * Output_edmf%RQIBLTEN (i,k,j)
       endif
   
@@ -8780,9 +8835,41 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
 !----------------------------
 ! variables for diagnostics
 !----------------------------
+  do i=1,ix
+  do j=1,jx
+    do k=1,kx      ! k index for full levels
+      kk=kx-k+1
+
+      !--- before mixing
+      am4_Output_edmf%qa_before_mix   (i,j,kk) = Output_edmf%qa_before_mix   (i,k,j)
+      am4_Output_edmf%ql_before_mix   (i,j,kk) = Output_edmf%ql_before_mix   (i,k,j)
+      am4_Output_edmf%qi_before_mix   (i,j,kk) = Output_edmf%qi_before_mix   (i,k,j)
+      am4_Output_edmf%thl_before_mix  (i,j,kk) = Output_edmf%thl_before_mix  (i,k,j)
+      am4_Output_edmf%qt_before_mix   (i,j,kk) = Output_edmf%qt_before_mix   (i,k,j)
+      am4_Output_edmf%th_before_mix   (i,j,kk) = Output_edmf%th_before_mix   (i,k,j)
+      am4_Output_edmf%t_before_mix    (i,j,kk) = Output_edmf%th_before_mix   (i,k,j) * Input_edmf%exner (i,k,j)
+
+      !--- after mixing
+      am4_Output_edmf%qa_after_mix   (i,j,kk) = Output_edmf%qa_after_mix   (i,k,j)
+      am4_Output_edmf%ql_after_mix   (i,j,kk) = Output_edmf%ql_after_mix   (i,k,j)
+      am4_Output_edmf%qi_after_mix   (i,j,kk) = Output_edmf%qi_after_mix   (i,k,j)
+      am4_Output_edmf%thl_after_mix  (i,j,kk) = Output_edmf%thl_after_mix  (i,k,j)
+      am4_Output_edmf%qt_after_mix   (i,j,kk) = Output_edmf%qt_after_mix   (i,k,j)
+      am4_Output_edmf%th_after_mix   (i,j,kk) = Output_edmf%th_after_mix   (i,k,j)
+      am4_Output_edmf%t_after_mix    (i,j,kk) = Output_edmf%th_after_mix   (i,k,j) * Input_edmf%exner (i,k,j)
+
+    enddo  ! end loop of k, full levels
+  enddo  ! end loop of j
+  enddo  ! end loop of 1
+  
+  am4_Output_edmf%q_before_mix (:,:,:) =    am4_Output_edmf%qt_before_mix(:,:,:)   &
+                                         -  am4_Output_edmf%ql_before_mix(:,:,:)   &
+                                         -  am4_Output_edmf%qi_before_mix(:,:,:)   
+  am4_Output_edmf%q_after_mix (:,:,:)  =    am4_Output_edmf%qt_after_mix(:,:,:)    &
+                                         -  am4_Output_edmf%ql_after_mix(:,:,:)    &
+                                         -  am4_Output_edmf%qi_after_mix(:,:,:)    
 
 end subroutine convert_edmf_to_am4_array
-
 
 !#############################
 ! Mellor-Yamada
