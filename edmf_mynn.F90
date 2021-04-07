@@ -8861,13 +8861,22 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
     enddo  ! end loop of k, full levels
   enddo  ! end loop of j
   enddo  ! end loop of 1
-  
+
   am4_Output_edmf%q_before_mix (:,:,:) =    am4_Output_edmf%qt_before_mix(:,:,:)   &
                                          -  am4_Output_edmf%ql_before_mix(:,:,:)   &
                                          -  am4_Output_edmf%qi_before_mix(:,:,:)   
   am4_Output_edmf%q_after_mix (:,:,:)  =    am4_Output_edmf%qt_after_mix(:,:,:)    &
                                          -  am4_Output_edmf%ql_after_mix(:,:,:)    &
                                          -  am4_Output_edmf%qi_after_mix(:,:,:)    
+
+
+  call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_before_mix(:,:,:),  &
+                am4_Output_edmf%q_before_mix(:,:,:), am4_Output_edmf%rh_before_mix(:,:,:), do_simple )
+  am4_Output_edmf%rh_before_mix  (:,:,:) = am4_Output_edmf%rh_before_mix(:,:,:)*100.
+
+  call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_after_mix(:,:,:),  &
+                am4_Output_edmf%q_after_mix(:,:,:), am4_Output_edmf%rh_after_mix(:,:,:), do_simple )
+  am4_Output_edmf%rh_after_mix  (:,:,:) = am4_Output_edmf%rh_after_mix(:,:,:)*100.
 
 end subroutine convert_edmf_to_am4_array
 
