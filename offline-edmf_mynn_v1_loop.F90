@@ -159,7 +159,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    !logical :: do_check_realizability = .true.
    logical :: do_check_realizability = .false.
 
-  integer :: edmf_type=1                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
+  integer :: edmf_type=0                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
                                                 ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
   real    :: qke_min = 0.04                     ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
