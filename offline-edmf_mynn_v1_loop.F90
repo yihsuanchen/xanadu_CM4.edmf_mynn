@@ -2921,7 +2921,7 @@ DO k = kts,kte-1
 			  (dqw/dzk - bet*(dth/dzk ))**2 , 1.0e-12) ) 
    sgm(k) = min(sgm(k),1.0e-3) 
    
-   
+   sgm(k)=1.e-5  ! yhc_mynn add, 2021-04-12
    
    
    
@@ -2952,6 +2952,8 @@ DO k = kts,kte-1
 
   ! sanity checks
   
+print*,'k,ql,cld',k,ql(k),cld(k)  ! yhc_mynn
+
    if (ql(k) .lt. 1.e-6) then
       ql(k)=0.
       cld(k)=0.
@@ -6291,6 +6293,13 @@ subroutine edmf_mynn_driver ( &
   if (initflag == 1) then
     initflag = 0          ! no initialization
   endif
+
+print*,'Output_edmf%qa_before_mix',Output_edmf%qa_before_mix
+print*,'Output_edmf%ql_before_mix',Output_edmf%ql_before_mix
+
+print*,'Output_edmf%qa_after_mix',Output_edmf%qa_after_mix
+print*,'Output_edmf%ql_after_mix',Output_edmf%ql_after_mix
+
 
 !---------------------------------------------------------------------
 ! process the outputs from the EDMF-MYNN program
