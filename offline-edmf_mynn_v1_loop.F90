@@ -2954,19 +2954,33 @@ DO k = kts,kte-1
   
 print*,'k,ql,cld',k,ql(k),cld(k)  ! yhc_mynn
 
-   if (ql(k) .lt. 1.e-6) then
+
+   if (ql(k) > qw(k)) then
+      ql(k)=qw(k)
+    endif
+
+
+
+   if ( ql(k) < 1.e-8 ) then
       ql(k)=0.
       cld(k)=0.
    endif
   
-   if (cld(k) .le. 0.01) then
+
+   if (cld(k)< 0.01) then
      cld(k)=0.
      ql(k)=0.
    endif
+
+
+   if ((cld(k)==0.) .or. (ql(k)==0.)) then
+    cld(k)=0.
+    ql(k)=0.
+  endif 
       
-   if (ql(k) .gt. qw(k)) then
-      ql(k)=qw(k)
-    endif
+
+print*,'k,ql,cld',k,ql(k),cld(k)  ! yhc_mynn
+
     
 END DO
     
