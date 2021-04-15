@@ -417,7 +417,7 @@ end type edmf_ls_mp_type
   logical :: do_pblh_constant = .false.    ! fix PBL depth for testing
   real    :: fixed_pblh       = 2500. 
 
-namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, &
+namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, &
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh,  &
@@ -3367,20 +3367,25 @@ DO k = kts,kte-1
    vq(k) = p608*pt-tv0 +rac ! Eq. beta_qt-tv; Eq. B9
 
   ! sanity checks
-  
-   if (ql(k) .lt. 1.e-6) then
+
+   if (ql(k) > qw(k)) then
+      ql(k)=qw(k)
+    endif
+
+   if ( ql(k) < 1.e-8 ) then
       ql(k)=0.
       cld(k)=0.
    endif
-  
-   if (cld(k) .le. 0.01) then
+
+   if (cld(k)< 0.01) then
      cld(k)=0.
      ql(k)=0.
    endif
-      
-   if (ql(k) .gt. qw(k)) then
-      ql(k)=qw(k)
-    endif
+
+   if ((cld(k)==0.) .or. (ql(k)==0.)) then
+    cld(k)=0.
+    ql(k)=0.
+  endif
     
 END DO
     
