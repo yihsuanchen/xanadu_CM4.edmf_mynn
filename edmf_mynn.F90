@@ -417,10 +417,12 @@ end type edmf_ls_mp_type
   logical :: do_pblh_constant = .false.    ! fix PBL depth for testing
   real    :: fixed_pblh       = 2500. 
 
+  real    :: sgm_factor = 100.                  ! factor in computing sigma_s in MYNN
+
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, &
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
-                            tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh,  &
+                            tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, & 
                             do_option_edmf2ls_mp, do_use_tau, &
                             do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
          
@@ -3318,8 +3320,8 @@ DO k = kts,kte-1
 !   else
 !	 dzk = 0.5*( dz(k) + dz(k-1) )
 !   end if
-   !dth = 0.5*(thl(k+1)+thl(k)) - 0.5*(thl(k)+thl(MAX(k-1,kts)))
-   !dqw = 0.5*(qw(k+1) + qw(k)) - 0.5*(qw(k) + qw(MAX(k-1,kts)))
+!   dth = 0.5*(thl(k+1)+thl(k)) - 0.5*(thl(k)+thl(MAX(k-1,kts)))
+!   dqw = 0.5*(qw(k+1) + qw(k)) - 0.5*(qw(k) + qw(MAX(k-1,kts)))
     
    if (k .eq. kts) then
      dzk=dz(k)
@@ -3335,11 +3337,14 @@ DO k = kts,kte-1
    sgm(k) = SQRT( MAX( (alp**2 * MAX(el(k)**2,0.1) * &
 					 b2 * MAX(Sh(k),0.03))/4. * &
 			  (dqw/dzk - bet*(dth/dzk ))**2 , 1.0e-12) ) 
-   sgm(k) = min(sgm(k),1.0e-3) 
+  ! sgm(k) = min(sgm(k),1.0e-3) 
    
-   
-   
-   
+  ! sgm(k)=1.e-5  ! yhc_mynn add, 2021-04-12
+
+  !sgm(k)=100.*alp*abs(dqw/dzk)
+  sgm(k)=sgm_factor*alp*abs(dqw/dzk)    ! yhc_mynn, mkae sgm_factor
+  sgm(k)=max(min(sgm(k),1.e-3),1.e-6)  
+ 
    
    q1   = alp*(qw(k)-qsl) / (2.*sgm(k)) ! Q1; Eq. B4
    
@@ -3348,6 +3353,31 @@ DO k = kts,kte-1
    eq1  = rrp*EXP( -0.5*q1**2)  ! rrp=1/(2*pi)
    ql (k) = 2.*sgm(k)*MAX( cld(k)*q1 + eq1, 0.0 ) ! Eq. B1
  
+! sanity check
+
+   if (ql(k) > qw(k)) then
+      ql(k)=qw(k)
+    endif
+
+   if ( ql(k) < 1.e-8 ) then
+      ql(k)=0.
+      cld(k)=0.
+   endif
+  
+
+   if (cld(k)< 0.01) then
+     cld(k)=0.
+     ql(k)=0.
+   endif
+
+
+   if ((cld(k)==0.) .or. (ql(k)==0.)) then
+    cld(k)=0.
+    ql(k)=0.
+  endif 
+
+
+
  ! qll=MAX( cld(k)*q1 + eq1, 0.0 )
  
    q2p = lhb/(cp*exner(k)) ! L/(cp*Pi)
@@ -3364,28 +3394,12 @@ DO k = kts,kte-1
    !"+1" and "+tv0", respectively, so these are subtracted out here.
    !vt is unitless and vq has units of K.
    vt(k) =      qt-1.0 -rac*bet ! beta_theta-1: Eq. B8
-   vq(k) = p608*pt-tv0 +rac ! Eq. beta_qt-tv; Eq. B9
+   vq(k) = p608*pt-tv0 +rac ! Eq. beta_qt-tv;
 
-  ! sanity checks
+      
 
-   if (ql(k) > qw(k)) then
-      ql(k)=qw(k)
-    endif
+!print*,'k,ql,cld',k,ql(k),cld(k)  ! yhc_mynn
 
-   if ( ql(k) < 1.e-8 ) then
-      ql(k)=0.
-      cld(k)=0.
-   endif
-
-   if (cld(k)< 0.01) then
-     cld(k)=0.
-     ql(k)=0.
-   endif
-
-   if ((cld(k)==0.) .or. (ql(k)==0.)) then
-    cld(k)=0.
-    ql(k)=0.
-  endif
     
 END DO
     
