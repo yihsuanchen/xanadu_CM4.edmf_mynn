@@ -179,6 +179,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
   logical :: do_pblh_constant = .false.    ! fix PBL depth for testing
   real    :: fixed_pblh       = 2500.
 
+  real    :: sgm_factor = 100.                  ! factor in computing sigma_s in MYNN
+
 !==================
 type edmf_input_type
   integer,              allocatable ::   &
@@ -2923,7 +2925,8 @@ DO k = kts,kte-1
    
   ! sgm(k)=1.e-5  ! yhc_mynn add, 2021-04-12
 
-  sgm(k)=100.*alp*abs(dqw/dzk)
+  !sgm(k)=100.*alp*abs(dqw/dzk)
+  sgm(k)=sgm_factor*alp*abs(dqw/dzk)    ! yhc_mynn, mkae sgm_factor
   sgm(k)=max(min(sgm(k),1.e-3),1.e-6)  
  
    
@@ -2979,7 +2982,7 @@ DO k = kts,kte-1
 
       
 
-print*,'k,ql,cld',k,ql(k),cld(k)  ! yhc_mynn
+!print*,'k,ql,cld',k,ql(k),cld(k)  ! yhc_mynn
 
     
 END DO
@@ -6308,11 +6311,11 @@ subroutine edmf_mynn_driver ( &
     initflag = 0          ! no initialization
   endif
 
-print*,'Output_edmf%qa_before_mix',Output_edmf%qa_before_mix
-print*,'Output_edmf%ql_before_mix',Output_edmf%ql_before_mix
+!print*,'Output_edmf%qa_before_mix',Output_edmf%qa_before_mix
+!print*,'Output_edmf%ql_before_mix',Output_edmf%ql_before_mix
 
-print*,'Output_edmf%qa_after_mix',Output_edmf%qa_after_mix
-print*,'Output_edmf%ql_after_mix',Output_edmf%ql_after_mix
+!print*,'Output_edmf%qa_after_mix',Output_edmf%qa_after_mix
+!print*,'Output_edmf%ql_after_mix',Output_edmf%ql_after_mix
 
 
 !---------------------------------------------------------------------
