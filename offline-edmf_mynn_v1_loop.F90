@@ -2902,8 +2902,8 @@ DO k = kts,kte-1
 !   else
 !	 dzk = 0.5*( dz(k) + dz(k-1) )
 !   end if
-   !dth = 0.5*(thl(k+1)+thl(k)) - 0.5*(thl(k)+thl(MAX(k-1,kts)))
-   !dqw = 0.5*(qw(k+1) + qw(k)) - 0.5*(qw(k) + qw(MAX(k-1,kts)))
+!   dth = 0.5*(thl(k+1)+thl(k)) - 0.5*(thl(k)+thl(MAX(k-1,kts)))
+!   dqw = 0.5*(qw(k+1) + qw(k)) - 0.5*(qw(k) + qw(MAX(k-1,kts)))
     
    if (k .eq. kts) then
      dzk=dz(k)
@@ -2919,11 +2919,13 @@ DO k = kts,kte-1
    sgm(k) = SQRT( MAX( (alp**2 * MAX(el(k)**2,0.1) * &
 					 b2 * MAX(Sh(k),0.03))/4. * &
 			  (dqw/dzk - bet*(dth/dzk ))**2 , 1.0e-12) ) 
-   sgm(k) = min(sgm(k),1.0e-3) 
+  ! sgm(k) = min(sgm(k),1.0e-3) 
    
-   sgm(k)=1.e-5  ! yhc_mynn add, 2021-04-12
-   
-   
+  ! sgm(k)=1.e-5  ! yhc_mynn add, 2021-04-12
+
+  sgm(k)=100.*alp*abs(dqw/dzk)
+  sgm(k)=max(min(sgm(k),1.e-3),1.e-6)  
+ 
    
    q1   = alp*(qw(k)-qsl) / (2.*sgm(k)) ! Q1; Eq. B4
    
@@ -2932,34 +2934,11 @@ DO k = kts,kte-1
    eq1  = rrp*EXP( -0.5*q1**2)  ! rrp=1/(2*pi)
    ql (k) = 2.*sgm(k)*MAX( cld(k)*q1 + eq1, 0.0 ) ! Eq. B1
  
- ! qll=MAX( cld(k)*q1 + eq1, 0.0 )
- 
-   q2p = lhb/(cp*exner(k)) ! L/(cp*Pi)
-   pt = thl(k) +q2p*ql(k) ! potential temp
-
-   !qt is a THETA-V CONVERSION FOR TOTAL WATER (i.e., THETA-V = qt*THETA)
-   qt   = 1.0 +p608*qw(k) -(1.+p608)*ql(k) ! Eq. B8, first three terms
-
-   rac=(cld(k)-0.5*ql(k)/sgm(k)*eq1)*alp*( q2p*qt-(1.+p608)*pt ) ! ~R*a*c
-  ! print *,'qt,pt,r,a,c',qt,pt,(cld(k)-0.5*ql(k)/sgm(k)*eq1),alp,( q2p*qt-(1.+p608)*pt )
-  ! print *,'a',alp
-  ! print *,'c',( q2p*qt-(1.+p608)*pt )
-   !BUOYANCY FACTORS: wherever vt and vq are used, there is a
-   !"+1" and "+tv0", respectively, so these are subtracted out here.
-   !vt is unitless and vq has units of K.
-   vt(k) =      qt-1.0 -rac*bet ! beta_theta-1: Eq. B8
-   vq(k) = p608*pt-tv0 +rac ! Eq. beta_qt-tv; Eq. B9
-
-  ! sanity checks
-  
-print*,'k,ql,cld',k,ql(k),cld(k)  ! yhc_mynn
-
+! sanity check
 
    if (ql(k) > qw(k)) then
       ql(k)=qw(k)
     endif
-
-
 
    if ( ql(k) < 1.e-8 ) then
       ql(k)=0.
@@ -2977,6 +2956,27 @@ print*,'k,ql,cld',k,ql(k),cld(k)  ! yhc_mynn
     cld(k)=0.
     ql(k)=0.
   endif 
+
+
+
+ ! qll=MAX( cld(k)*q1 + eq1, 0.0 )
+ 
+   q2p = lhb/(cp*exner(k)) ! L/(cp*Pi)
+   pt = thl(k) +q2p*ql(k) ! potential temp
+
+   !qt is a THETA-V CONVERSION FOR TOTAL WATER (i.e., THETA-V = qt*THETA)
+   qt   = 1.0 +p608*qw(k) -(1.+p608)*ql(k) ! Eq. B8, first three terms
+
+   rac=(cld(k)-0.5*ql(k)/sgm(k)*eq1)*alp*( q2p*qt-(1.+p608)*pt ) ! ~R*a*c
+  ! print *,'qt,pt,r,a,c',qt,pt,(cld(k)-0.5*ql(k)/sgm(k)*eq1),alp,( q2p*qt-(1.+p608)*pt )
+  ! print *,'a',alp
+  ! print *,'c',( q2p*qt-(1.+p608)*pt )
+   !BUOYANCY FACTORS: wherever vt and vq are used, there is a
+   !"+1" and "+tv0", respectively, so these are subtracted out here.
+   !vt is unitless and vq has units of K.
+   vt(k) =      qt-1.0 -rac*bet ! beta_theta-1: Eq. B8
+   vq(k) = p608*pt-tv0 +rac ! Eq. beta_qt-tv;
+
       
 
 print*,'k,ql,cld',k,ql(k),cld(k)  ! yhc_mynn
