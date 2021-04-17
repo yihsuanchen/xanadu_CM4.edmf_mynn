@@ -8631,7 +8631,24 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ''
         write(6,*)    '; qc in updrafts [kg kg^-1]'
         write(6,3002) ' edmf_qc = (/'    ,Output_edmf%edmf_qc(ii_write,:,jj_write)
-        !write(6,3002) '  = (/'    ,Output_edmf%
+        write(6,*)    ''
+        write(6,*)    '; qt_before_mix [kg kg^-1]'
+        write(6,3002) '  qt_before_mix = (/'    ,Output_edmf%qt_before_mix(ii_write,:,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; qt_after_mix [kg kg^-1]'
+        write(6,3002) '  qt_after_mix = (/'    ,Output_edmf%qt_after_mix(ii_write,:,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; qa_before_mix'
+        write(6,3002) '  qa_before_mix = (/'    ,Output_edmf%qa_before_mix(ii_write,:,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; qa_after_mix'
+        write(6,3002) '  qa_after_mix = (/'    ,Output_edmf%qa_after_mix(ii_write,:,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; ql_before_mix [kg kg^-1]'
+        write(6,3002) '  ql_before_mix = (/'    ,Output_edmf%ql_before_mix(ii_write,:,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; ql_after_mix [kg kg^-1]'
+        write(6,3002) '  ql_after_mix = (/'    ,Output_edmf%ql_after_mix(ii_write,:,jj_write)
         write(6,*)    ''
         write(6,*)    '; Output_edmf%exch_h'
         write(6,3002) ' exch_h = (/', Output_edmf%exch_h 
