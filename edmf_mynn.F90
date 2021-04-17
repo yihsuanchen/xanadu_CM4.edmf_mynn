@@ -6516,7 +6516,7 @@ END SUBROUTINE edmf_JPL
 subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-              do_edmf_mynn_diagnostic, &
+              do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
@@ -6524,6 +6524,14 @@ subroutine edmf_mynn_driver ( &
 ! Arguments (Intent in)  
 !
 !   Descriptions of the input arguments are in subroutine edmf_alloc
+!
+!     do_edmf_mynn_diagnostic       = .true.,  edmf_mynn is only for diagnostic purpose, i.e. no changes to the model
+!                                              so the model should be exactly the same as the standard one
+!                                     .false., edmf_mynn will affect the model simulation
+!
+!     do_return_edmf_mynn_diff_only = .true.,  return edmf_mynn diffusion coefficients 
+!                                              and let vert_diff do the diffusion rather than in edmf_mynn
+!                                     .false., tendencies are updated in edmf_mynn
 !---------------------------------------------------------------------
   integer, intent(in)                   :: is, ie, js, je, npz
   type(time_type), intent(in)           :: Time_next
@@ -6533,6 +6541,7 @@ subroutine edmf_mynn_driver ( &
    frac_land, area, u_star, b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux
   type(physics_input_block_type)        :: Physics_input_block
   logical, intent(in)                   :: do_edmf_mynn_diagnostic
+  logical, intent(in)                   :: do_return_edmf_mynn_diff_only
 
 !---------------------------------------------------------------------
 ! Arguments (Intent inout)  
@@ -6763,18 +6772,28 @@ subroutine edmf_mynn_driver ( &
 
   if (.not.do_edmf_mynn_diagnostic) then
 
-    !--- updated tendencies
-    udt(:,:,:) = udt(:,:,:) + am4_Output_edmf%udt_edmf(:,:,:)
-    vdt(:,:,:) = vdt(:,:,:) + am4_Output_edmf%vdt_edmf(:,:,:)
-    tdt(:,:,:) = tdt(:,:,:) + am4_Output_edmf%tdt_edmf(:,:,:)
+    ! return edmf_mynn diffusion coefficients and let vert_diff do the diffusion rather than in edmf_mynn
+    if (do_return_edmf_mynn_diff_only) then
+      diff_t_edmf (:,:,:) = am4_Output_edmf%diff_t_edmf (:,:,:)      ! diffusion coefficient for heat (K m/s)
+      diff_m_edmf (:,:,:) = am4_Output_edmf%diff_m_edmf (:,:,:)      ! diffusion coefficient for heat (m2/s)
+      pbltop      (:,:)   = am4_Output_edmf%pbltop      (:,:)        ! PBL depth (m)
+      kpbl_edmf   (:,:)   = am4_Output_edmf%kpbl_edmf   (:,:)        ! index of PBL top (none)
 
-    rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
+    ! update tendencies
+    else
+      !--- updated tendencies
+      udt(:,:,:) = udt(:,:,:) + am4_Output_edmf%udt_edmf(:,:,:)
+      vdt(:,:,:) = vdt(:,:,:) + am4_Output_edmf%vdt_edmf(:,:,:)
+      tdt(:,:,:) = tdt(:,:,:) + am4_Output_edmf%tdt_edmf(:,:,:)
 
-    !--- return PBL depth, index of PBL top, and diffusion coefficient for heat
-    pbltop      (:,:)   = am4_Output_edmf%pbltop      (:,:)        ! PBL depth (m)
-    kpbl_edmf   (:,:)   = am4_Output_edmf%kpbl_edmf   (:,:)        ! index of PBL top (none)
-    diff_t_edmf (:,:,:) = am4_Output_edmf%diff_t_edmf (:,:,:)      ! diffusion coefficient for heat (K m/s)
-    diff_m_edmf (:,:,:) = am4_Output_edmf%diff_m_edmf (:,:,:)      ! diffusion coefficient for heat (m2/s)
+      rdt(:,:,:,nsphum) = rdt(:,:,:,nsphum) + am4_Output_edmf%qdt_edmf(:,:,:)
+
+      !--- return PBL depth, index of PBL top, and diffusion coefficient for heat
+      pbltop      (:,:)   = am4_Output_edmf%pbltop      (:,:)        ! PBL depth (m)
+      kpbl_edmf   (:,:)   = am4_Output_edmf%kpbl_edmf   (:,:)        ! index of PBL top (none)
+      diff_t_edmf (:,:,:) = am4_Output_edmf%diff_t_edmf (:,:,:)      ! diffusion coefficient for heat (K m/s)
+      diff_m_edmf (:,:,:) = am4_Output_edmf%diff_m_edmf (:,:,:)      ! diffusion coefficient for heat (m2/s)
+    endif  ! end if do_return_edmf_mynn_diff_only
 
     !--- set edmf to ls_mp
     option_edmf2ls_mp = do_option_edmf2ls_mp
@@ -6797,7 +6816,13 @@ subroutine edmf_mynn_driver ( &
       qadt_edmf   = 0.
       qldt_edmf   = 0.
       qidt_edmf   = 0.
-    
+
+    ! set to zeros if option_edmf2ls_mp is not supported
+    else
+      qadt_edmf   = 0.
+      qldt_edmf   = 0.
+      qidt_edmf   = 0.
+
     endif  ! end if of option_edmf2ls_mp
 
     dqa_edmf      (:,:,:) = qadt_edmf(:,:,:) * dt
