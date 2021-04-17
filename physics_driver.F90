@@ -383,6 +383,9 @@ logical :: do_tracers_in_edmf_mynn = .true.   ! do tracer diffusion in edmf_mynn
                                               ! .true.  : tracer diffusion is handled by edmf_mynn
                                               ! .false. : tracer diffusion is handled by vert_diff_driver_down, using 
                                               !           ED diffusion coefficients from edmf_mynn
+logical :: do_return_edmf_mynn_diff_only = .false. ! .true.,  return edmf_mynn diffusion coefficients 
+                                                   !          and let vert_diff do the diffusion rather than in edmf_mynn
+                                                   ! .false., tendencies are updated in edmf_mynn
 
 integer :: do_tracers_selective = 0           ! determine which tracer would be processed by vert_diff_down
                                               !   0: vert_diff would process all tracers, such as qa, ql, qn, dust, sea salt, etc
@@ -392,7 +395,7 @@ integer :: do_tracers_selective = 0           ! determine which tracer would be 
                                               !   4: process all tracers except cloud fields: qa,ql,qi,nqn,nqi
                                               !   5: process all tracers except cloud fraction and specific humidity qa,ql,qi. Cloud number are processed by vert_diff
 
-logical :: do_edmf_mynn_diffusion_smooth = .false.  ! smooth the diffusion coefficients following AM4 "diffusion_smooth"
+logical :: do_edmf_mynn_diffusion_smooth = .true.  ! smooth the diffusion coefficients following AM4 "diffusion_smooth"
 
 integer :: ii_write = -999                    ! i index for column written out. Set to 0 if you want to write out in SCM
 integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
@@ -2314,15 +2317,18 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'rdt_after_vdiff_down , 12',rdt(ii_write,jj_write,:,12)
   endif
 
-        !--- reset tendencies to pre-vert_diff values
-        udt(:,:,:) = udt_before_vdiff_down(:,:,:)  ! yhc, even diff_m=0., udt and vdt at the lowest atm loevel are still changed.
-        vdt(:,:,:) = vdt_before_vdiff_down(:,:,:)  !      make sure udt and vdt are reset to the values before vdiff_down
-        tdt(:,:,:) = tdt_before_vdiff_down(:,:,:)
-        rdt(:,:,:,nsphum) = rdt_before_vdiff_down(:,:,:,nsphum)
-        tau_x(:,:) = tau_x_before_vdiff_down(:,:)  !      reset tau_x, tau_y, surf_diff%delta_u, and surf_diff%delta_v
-        tau_y(:,:) = tau_y_before_vdiff_down(:,:) 
-        surf_diff%delta_u(:,:) = 0.
-        surf_diff%delta_v(:,:) = 0.
+        !--- reset tendencies only the diffusion is handled by edmf_mynn
+        if (.not.do_return_edmf_mynn_diff_only) then
+          !--- reset tendencies to pre-vert_diff values
+          udt(:,:,:) = udt_before_vdiff_down(:,:,:)  ! yhc, even diff_m=0., udt and vdt at the lowest atm loevel are still changed.
+          vdt(:,:,:) = vdt_before_vdiff_down(:,:,:)  !      make sure udt and vdt are reset to the values before vdiff_down
+          tdt(:,:,:) = tdt_before_vdiff_down(:,:,:)
+          rdt(:,:,:,nsphum) = rdt_before_vdiff_down(:,:,:,nsphum)
+          tau_x(:,:) = tau_x_before_vdiff_down(:,:)  !      reset tau_x, tau_y, surf_diff%delta_u, and surf_diff%delta_v
+          tau_y(:,:) = tau_y_before_vdiff_down(:,:) 
+          surf_diff%delta_u(:,:) = 0.
+          surf_diff%delta_v(:,:) = 0.
+        endif
 
         !--- select which tracers would be updated by vert_diff_driver_down. 
         !    The tracers considered here are qn, qni, and others such as dust, sea salt, etc
@@ -2356,6 +2362,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
             if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(:,:,:,nqa)
             if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(:,:,:,nql)
             if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(:,:,:,nqi)
+          
+          else   ! do not do anything
+            rdt_dum1 = 0.
 
           endif  ! end if of do_tracers_selective
         endif    ! end if of do_tracers_in_edmf_mynn 
@@ -2927,7 +2936,7 @@ real,dimension(:,:),    intent(inout)             :: gust
     call edmf_mynn_driver ( &
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-               do_edmf_mynn_diagnostic, &
+               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
                pbltop, udt, vdt, tdt, rdt, rdiag)
 
