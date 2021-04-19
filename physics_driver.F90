@@ -376,6 +376,7 @@ real    :: cosp_frequency = 10800.
 
 !<-- yhc, add edmf_mynn nml
 logical :: do_edmf_mynn = .false.             ! switch to turn on/off edmf_mynn scheme
+character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up" in physics_driver_up; "down" in physics_driver_down
 logical :: do_edmf_mynn_diagnostic = .false.  ! .true.  : diagnostic edmf_mynn, no update on tendencies
                                               ! .false. : interactive edmf_mynn, update on tendencies
 
@@ -422,7 +423,7 @@ namelist / physics_driver_nml / do_radiation, do_clubb,  do_cosp, &
                                 qmin, N_land, N_ocean, do_liq_num,  &
                                 do_ice_num, qcvar, overlap, N_min, &
                                 min_diam_ice, dcs, min_diam_drop, &
-                                do_edmf_mynn, do_edmf_mynn_diagnostic, do_tracers_in_edmf_mynn, do_tracers_selective, do_edmf_mynn_diffusion_smooth, & ! yhc add
+                                do_edmf_mynn, do_edmf_mynn_diagnostic, do_tracers_in_edmf_mynn, do_tracers_selective, do_edmf_mynn_diffusion_smooth, do_return_edmf_mynn_diff_only, & ! yhc add
                                 do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write, & ! yhc add
                                 tdt_max, do_limit_tdt, tdt_limit, &  ! yhc add
                                 max_diam_drop, use_tau, cosp_frequency
@@ -793,6 +794,12 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
            call error_mesg('physics_driver_init',  &
            'When do_tracers_in_edmf_mynn .true., do_edmf_mynn must be true', FATAL)
         endif
+      endif
+
+      if ( trim(do_edmf_mynn_in_physics) /= 'up' .and. &
+           trim(do_edmf_mynn_in_physics) /= 'down' )       then
+        call error_mesg('physics_driver_init',  &
+                        'do_edmf_mynn_in_physics must be either [up] or [down]', FATAL)
       endif
 !--> yhc check edmf_mynn
 
@@ -1931,7 +1938,8 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
 
       real, dimension( size(Physics_tendency_block%u_dt,1), &
                        size(Physics_tendency_block%u_dt,2)) :: &
-        tau_x_before_vdiff_down, tau_y_before_vdiff_down
+        tau_x_before_vdiff_down, tau_y_before_vdiff_down,  &
+        shflx, lhflx, u_flux, v_flux
       integer ii,jj,kk,rr
 !--> yhc
 
@@ -2158,6 +2166,51 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         endif
       end do
 
+!---------------------------------------------------------------------
+!    call edmf_mynn to to calculate tendencies from PBL and convective mass flux
+!---------------------------------------------------------------------
+  if (do_edmf_mynn .and. do_edmf_mynn_in_physics.eq."down") then
+
+    !--- updated fluxes are not available
+    shflx  = 0.
+    lhflx  = 0.
+    u_flux = 0.
+    v_flux = 0.
+
+    call edmf_mynn_driver ( &
+               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
+               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, &
+               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
+               pbltop, udt, vdt, tdt, rdt, rdiag)
+
+    !--- replace model diffusion coefficients with edmf_mynn ones
+    diff_t_vert(:,:,:) = diff_t_edmf(:,:,:)
+    diff_m_vert(:,:,:) = diff_m_edmf(:,:,:)
+    !endif  ! end if of do_return_edmf_mynn_diff_only
+    !if (do_return_edmf_mynn_diff_only) then
+
+  if (do_writeout_column) then
+        write(6,*) '-------------- i,j,',ii_write,jj_write
+        write(6,*) 'lat',lat (ii_write,jj_write)
+        write(6,*) 'lon',lon (ii_write,jj_write)
+        write(6,*) 'pbltop',pbltop (ii_write,jj_write)
+        write(6,*) 'data t_edmf_mynn/'    ,t(ii_write,jj_write,:)
+        write(6,*) 'data q_edmf_mynn/'    ,r(ii_write,jj_write,:,nsphum)
+        write(6,*) 'data udt_edmf_mynn/'    ,udt(ii_write,jj_write,:)
+        write(6,*) 'data vdt_edmf_mynn/'    ,vdt(ii_write,jj_write,:)
+        write(6,*) 'data tdt_edmf_mynn/'    ,tdt(ii_write,jj_write,:)
+        write(6,*) 'data qdt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nsphum)
+        write(6,*) 'data qadt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqa)
+        write(6,*) 'data qldt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nql)
+        write(6,*) 'data qidt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqi)
+        write(6,*) 'data qndt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqn)
+        write(6,*) 'data diff_t_vert/'    ,diff_t_vert(ii_write,jj_write,:)
+        write(6,*) 'data diff_m_vert/'    ,diff_m_vert(ii_write,jj_write,:)
+  endif
+
+  endif ! end if of do_edmf_mynn
+
 !-----------------------------------------------------------------------
 !    process any tracer fields.
 !-----------------------------------------------------------------------
@@ -2285,7 +2338,8 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         if (do_tracers_in_edmf_mynn) then     ! do all tracers in edmf_mynn so setting diff_m and diff_t to zeros
           diff_m = 0.                         ! vert_diff_driver_down still process variables that would be used in surface-atmosphere coupling
           diff_t = 0.
-        else                                  ! use vert_diff_driver_down process eddy diffusion suing edmf_mynn diffusion coefficients
+        elseif (do_edmf_mynn_in_physics.eq."up") then   ! let vert_diff_driver_down process eddy diffusion,
+                                                        ! using edmf_mynn diffusion coefficients computed in physics_up
           diff_m(is:ie,js:je,:) = diff_m_edmf(is:ie,js:je,:)
           diff_t(is:ie,js:je,:) = diff_t_edmf(is:ie,js:je,:)
         endif    ! end if of do_tracers_in_edmf_mynn
@@ -2846,10 +2900,18 @@ real,dimension(:,:),    intent(inout)             :: gust
 !------------------------------------------------------------------
 
 !<-- yhc
-      if (.not.do_edmf_mynn) then
+      !--- call vert_diff_driver_up is not doing edmf_mynn
+      if (.not.do_edmf_mynn) then    
         call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
                                   Surf_diff, tdt, rdt(:,:,:,1), rdt )
-      elseif (do_edmf_mynn .and. do_edmf_mynn_diagnostic) then
+
+      !--- call vert_diff_driver_up if edmf_mynn is diagnostic
+      elseif (do_edmf_mynn .and. do_edmf_mynn_diagnostic) then  
+        call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
+                                  Surf_diff, tdt, rdt(:,:,:,1), rdt )
+
+      !--- call vert_diff_driver_up if edmf_mynn only returns diffusion coefficients and diffusion is handle by vert_diff
+      elseif (do_edmf_mynn .and. do_return_edmf_mynn_diff_only) then  ! 
         call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
                                   Surf_diff, tdt, rdt(:,:,:,1), rdt )
       !elseif (do_edmf_mynn .and. .not.do_tracers_in_edmf_mynn) then
@@ -2932,7 +2994,7 @@ real,dimension(:,:),    intent(inout)             :: gust
 !    call edmf_mynn to to calculate tendencies from convective mass flux
 !---------------------------------------------------------------------
 
-  if (do_edmf_mynn) then
+  if (do_edmf_mynn .and. do_edmf_mynn_in_physics.eq."up") then
     call edmf_mynn_driver ( &
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
