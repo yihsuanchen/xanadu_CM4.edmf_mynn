@@ -514,15 +514,15 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                      FATAL )
   endif
 
-  if (     do_option_edmf2ls_mp.ne.0    &
-     .and. do_option_edmf2ls_mp.ne.1    &
-     .and. do_option_edmf2ls_mp.ne.2    &
-     .and. do_option_edmf2ls_mp.ne.3    &
-     ) then
-    call error_mesg( ' edmf_mynn',     &
-                     ' do_option_edmf2ls_mp must be 0,1,2, or 3',&
-                     FATAL )
-  endif
+!  if (     do_option_edmf2ls_mp.ne.0    &
+!     .and. do_option_edmf2ls_mp.ne.1    &
+!     .and. do_option_edmf2ls_mp.ne.2    &
+!     .and. do_option_edmf2ls_mp.ne.3    &
+!     ) then
+!    call error_mesg( ' edmf_mynn',     &
+!                     ' do_option_edmf2ls_mp must be 0,1,2, or 3',&
+!                     FATAL )
+!  endif
 
 !  if ( trim(option_solver) /= 'explicit' .and. &
 !       trim(option_solver) /= 'implicit' )       then 
@@ -6678,7 +6678,7 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
   call edmf_alloc ( &
               is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, tdt, rdt, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, udt, vdt, tdt, rdt, &
               rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf)
 
@@ -7175,7 +7175,7 @@ end subroutine edmf_mynn_driver
 
 subroutine edmf_alloc ( &
               is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, tdt, rdt, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, udt, vdt, tdt, rdt, &
               Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
               Input_edmf, Output_edmf, am4_Output_edmf )
 
@@ -7250,7 +7250,7 @@ subroutine edmf_alloc ( &
   real, intent(in), dimension(:,:,:)    :: &
     Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
   real, intent(in), dimension(:,:,:)    :: &  ! (nlon,nlat,nlev)
-    tdt  
+    udt, vdt, tdt  
   real, intent(in), dimension(:,:,:,:)  :: &  ! (nlon,nlat,nlev,ntracers)
     rdt
 
@@ -7691,26 +7691,34 @@ subroutine edmf_alloc ( &
   Input_edmf%dx   = sqrt(area(1,1))
 
   !--- 3-D variable
-  u_host     (:,:,:) = Physics_input_block%u
-  v_host     (:,:,:) = Physics_input_block%v
   omega_host (:,:,:) = Physics_input_block%omega
-  qc_host    (:,:,:) = Physics_input_block%q(:,:,:,nql) + Physics_input_block%q(:,:,:,nqi)
-  ql_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
-  qi_host    (:,:,:) = Physics_input_block%q(:,:,:,nqi)
-  qa_host    (:,:,:) = Physics_input_block%q(:,:,:,nqa)
   p_host     (:,:,:) = Physics_input_block%p_full
 
-  if (do_use_tau) then  ! use T,q at the current step
+  if (do_use_tau) then  ! use T,q,u,v,clouds at the current step
+    u_host     (:,:,:) = Physics_input_block%u
+    v_host     (:,:,:) = Physics_input_block%v
     T3D_host   (:,:,:) = Physics_input_block%t
     qv_host    (:,:,:) = Physics_input_block%q(:,:,:,nsphum)
+    ql_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)
+    qi_host    (:,:,:) = Physics_input_block%q(:,:,:,nqi)
+    qa_host    (:,:,:) = Physics_input_block%q(:,:,:,nqa)
 
-  else                  ! use updated T,q
-    T3D_host   (:,:,:) = Physics_input_block%t(:,:,:) +    &
-                                    tdt(:,:,:)*dt
+  else                  ! use updated T,q,u,v,clouds
+    u_host     (:,:,:) = Physics_input_block%u(:,:,:) + udt(:,:,:)*dt
+    v_host     (:,:,:) = Physics_input_block%v(:,:,:) + vdt(:,:,:)*dt
+    T3D_host   (:,:,:) = Physics_input_block%t(:,:,:) + tdt(:,:,:)*dt
+
     qv_host    (:,:,:) = Physics_input_block%q(:,:,:,nsphum) +    &
                              rdt(:,:,:,nsphum)*dt
+    qa_host    (:,:,:) = Physics_input_block%q(:,:,:,nqa)    +    &
+                             rdt(:,:,:,nqa)   *dt
+    ql_host    (:,:,:) = Physics_input_block%q(:,:,:,nql)    +    &
+                             rdt(:,:,:,nql)   *dt
+    qi_host    (:,:,:) = Physics_input_block%q(:,:,:,nqi)    +    &
+                             rdt(:,:,:,nqi)   *dt
   endif
 
+  qc_host    (:,:,:) = ql_host(:,:,:) + qi_host(:,:,:) 
   exner_host(:,:,:) = (p_host(:,:,:)*p00inv)**(kappa)
   th_host   (:,:,:) = T3D_host(:,:,:) / exner_host(:,:,:)
   tv_host   (:,:,:) = T3D_host(:,:,:)*(qv_host(:,:,:)*d608+1.0)
@@ -7901,6 +7909,8 @@ subroutine edmf_alloc ( &
   am4_Output_edmf%qt_input  (:,:,:) = qt_host    (:,:,:)
   am4_Output_edmf%th_input  (:,:,:) = th_host    (:,:,:)
 
+  !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_input(:,:,:),  &
+  !              am4_Output_edmf%q_input(:,:,:), rh_host(:,:,:), do_simple )
   call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_input(:,:,:),  &
                 am4_Output_edmf%q_input(:,:,:), rh_host(:,:,:), do_simple )
   am4_Output_edmf%rh_input  (:,:,:) = rh_host(:,:,:)*100.
