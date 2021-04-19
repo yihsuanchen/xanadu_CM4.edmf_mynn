@@ -8250,9 +8250,9 @@ subroutine edmf_writeout_column ( &
 !-------------------------------------------------------------------------
 
   !--- compute rh
-  call rh_calc (Physics_input_block%p_full(:,:,:), Physics_input_block%t(:,:,:),  &
-                Physics_input_block%q(:,:,:,nsphum), rh(:,:,:), do_simple )
-  rh(:,:,:) = 100. * rh(:,:,:)
+  !call rh_calc (Physics_input_block%p_full(:,:,:), Physics_input_block%t(:,:,:),  &
+  !              Physics_input_block%q(:,:,:,nsphum), rh(:,:,:), do_simple )
+  !rh(:,:,:) = 100. * rh(:,:,:)
 
   !call compute_qs(Physics_input_block%t, Physics_input_block%p_full, qsat )
   !rh(:,:,:) = 100. * Physics_input_block%q(:,:,:,nsphum) / qsat(:,:,:)
@@ -8385,16 +8385,31 @@ subroutine edmf_writeout_column ( &
         write(6,3001) '  z_full_surf0  = (/',Physics_input_block%z_full(ii_write,jj_write,:) - Physics_input_block%z_half(ii_write,jj_write,kxp)
         write(6,*)    ''
         write(6,*)    '; zonal wind velocity at full levels (m/s)'
-        write(6,3001) '  uu  = (/'    ,Physics_input_block%u(ii_write,jj_write,:)
+        !write(6,3001) '  uu  = (/'    ,Physics_input_block%u(ii_write,jj_write,:)
+           do k=1,kx
+             kk=kx-k+1
+             var_temp1(k) = Input_edmf%u(ii_write,kk,jj_write)
+           enddo
+        write(6,3001) '  uu  = (/'    ,var_temp1(:)
         write(6,*)    ''
         write(6,*)    '; meridional wind velocity at full levels (m/s)'
-        write(6,3001) '  vv  = (/'    ,Physics_input_block%v(ii_write,jj_write,:)
+        !write(6,3001) '  vv  = (/'    ,Physics_input_block%v(ii_write,jj_write,:)
+           do k=1,kx
+             kk=kx-k+1
+             var_temp1(k) = Input_edmf%v(ii_write,kk,jj_write)
+           enddo
+        write(6,3001) '  vv  = (/'    ,var_temp1(:)
         write(6,*)    ''
         write(6,*)    '; vertical velocity (Pa/s)'
         write(6,3002) '  omega  = (/'    ,Physics_input_block%omega(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; temperatur at full levels (K)'
-        write(6,3001) '  tt  = (/'    ,Physics_input_block%t(ii_write,jj_write,:)
+        !write(6,3001) '  tt  = (/'    ,Physics_input_block%t(ii_write,jj_write,:)
+           do k=1,kx
+             kk=kx-k+1
+             var_temp1(k) = Input_edmf%T3D(ii_write,kk,jj_write)
+           enddo
+        write(6,3001) '  tt  = (/'    ,var_temp1(:)
         write(6,*)    ''
         write(6,*)    '; potential temperatur at full levels (K)'
            do k=1,kx
@@ -8406,20 +8421,40 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; ice-liquid water potential temperatur at full levels (K)'
         write(6,3001) '  thl  = (/'    , am4_Output_edmf%thl_edmf(ii_write,jj_write,:)
         write(6,*)    ''
-        write(6,*)    '; relative humidity (%)'
-        write(6,3001) '  rh  = (/'    ,rh(ii_write,jj_write,:)
+        write(6,*)    '; input relative humidity (%)'
+        write(6,3001) '  rh  = (/'    ,am4_Output_edmf%rh_input(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; specific humidity at full levels (kg/kg)'
-        write(6,3002) '  qq  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nsphum)
+        !write(6,3002) '  qq  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nsphum)
+           do k=1,kx
+             kk=kx-k+1
+             var_temp1(k) = Input_edmf%qv(ii_write,kk,jj_write)
+           enddo
+        write(6,3002) '  qq  = (/'    ,var_temp1(:)
         write(6,*)    ''
         write(6,*)    '; cloud fraction (none)'
-        write(6,3002) '  qa  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nqa)
+        !write(6,3002) '  qa  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nqa)
+           do k=1,kx
+             kk=kx-k+1
+             var_temp1(k) = Input_edmf%qa(ii_write,kk,jj_write)
+           enddo
+        write(6,3002) '  qa  = (/'    ,var_temp1(:)
         write(6,*)    ''
         write(6,*)    '; cloud liquid water mixing ratio at full levels (kg/kg)'
-        write(6,3002) '  ql  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nql)
+        !write(6,3002) '  ql  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nql)
+           do k=1,kx
+             kk=kx-k+1
+             var_temp1(k) = Input_edmf%ql(ii_write,kk,jj_write)
+           enddo
+        write(6,3002) '  ql  = (/'    ,var_temp1(:)
         write(6,*)    ''
         write(6,*)    '; cloud ice water mixing ratio at full levels (kg/kg)'
-        write(6,3002) '  qi  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nqi)
+        !write(6,3002) '  qi  = (/'    ,Physics_input_block%q(ii_write,jj_write,:,nqi)
+           do k=1,kx
+             kk=kx-k+1
+             var_temp1(k) = Input_edmf%qi(ii_write,kk,jj_write)
+           enddo
+        write(6,3002) '  qi  = (/'    ,var_temp1(:)
         write(6,*)    ''
         write(6,*)    '; total water mixing ratio (qv+ql+qi) at full levels (kg/kg)'
         write(6,3002) '  qt  = (/'    ,am4_Output_edmf%qt_edmf(ii_write,jj_write,:)
