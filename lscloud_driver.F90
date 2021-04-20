@@ -2138,7 +2138,13 @@ type(diag_pt_type),         intent(in)    :: diag_pt
           qi_too_small = (Cloud_state%qi_in .le.  qmin )
         endif
       endif
-  
+ 
+!write(6,*) 'yhc, qmin, do_liq_num',qmin,do_liq_num
+!write(6,*) 'yhc, ql_too_small,',ql_too_small
+!write(6,*) 'yhc, Cloud_state%ql_in',Cloud_state%ql_in
+!write(6,*) 'yhc, Cloud_state%qa_in',Cloud_state%qa_in
+!write(6,*) 'yhc, Cloud_state%qn_in',Cloud_state%qn_in
+ 
 !------------------------------------------------------------------------
 !    call subroutine adjust_condensate to conservatively fill ql if needed.
 !------------------------------------------------------------------------
