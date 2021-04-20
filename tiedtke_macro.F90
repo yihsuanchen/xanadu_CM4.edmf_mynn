@@ -766,6 +766,7 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
 !write(6,*) 'yhc, tiedtke_macro, Cloud_processes%dcond_ls',Cloud_processes%dcond_ls
 !write(6,*) 'yhc, tiedtke_macro, Cloud_state%qa_upd,',Cloud_state%qa_upd
 !write(6,*) 'yhc, tiedtke_macro, ',
+!write(6,*) 'yhc, Particles%drop1, ',Particles%drop1
 
 !----------------------------------------------------------------------!
 
