@@ -6516,7 +6516,7 @@ END SUBROUTINE edmf_JPL
 subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-              do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, &
+              do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
@@ -6532,6 +6532,9 @@ subroutine edmf_mynn_driver ( &
 !     do_return_edmf_mynn_diff_only = .true.,  return edmf_mynn diffusion coefficients 
 !                                              and let vert_diff do the diffusion rather than in edmf_mynn
 !                                     .false., tendencies are updated in edmf_mynn
+!
+!     do_edmf_mynn_in_physics       = "down",  edmf_mynn_driver is called in physics_driver_down
+!                                     "up"  ,  edmf_mynn_driver is called in physics_driver_up      
 !---------------------------------------------------------------------
   integer, intent(in)                   :: is, ie, js, je, npz
   type(time_type), intent(in)           :: Time_next
@@ -6542,6 +6545,7 @@ subroutine edmf_mynn_driver ( &
   type(physics_input_block_type)        :: Physics_input_block
   logical, intent(in)                   :: do_edmf_mynn_diagnostic
   logical, intent(in)                   :: do_return_edmf_mynn_diff_only
+  character*5, intent(in)               :: do_edmf_mynn_in_physics
 
 !---------------------------------------------------------------------
 ! Arguments (Intent inout)  
@@ -6610,6 +6614,15 @@ subroutine edmf_mynn_driver ( &
   integer :: i,j,k
 
 !-------------------------
+
+!---------
+! check 
+!---------
+  if (do_edmf_mynn_in_physics.eq."down" .and. option_surface_flux.ne."star") then
+    call error_mesg( ' edmf_mynn',     &
+                     ' when do_edmf_mynn_in_physics=down, option_surface_flux must be "star" in the edmf_mynn_nml',&
+                     FATAL )
+  endif
 
 !! debug01
 !write(6,*) 'edmf_mynn, beginning'
