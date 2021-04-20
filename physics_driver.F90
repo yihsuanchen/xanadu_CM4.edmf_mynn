@@ -423,7 +423,7 @@ namelist / physics_driver_nml / do_radiation, do_clubb,  do_cosp, &
                                 qmin, N_land, N_ocean, do_liq_num,  &
                                 do_ice_num, qcvar, overlap, N_min, &
                                 min_diam_ice, dcs, min_diam_drop, &
-                                do_edmf_mynn, do_edmf_mynn_diagnostic, do_tracers_in_edmf_mynn, do_tracers_selective, do_edmf_mynn_diffusion_smooth, do_return_edmf_mynn_diff_only, & ! yhc add
+                                do_edmf_mynn, do_edmf_mynn_diagnostic, do_tracers_in_edmf_mynn, do_tracers_selective, do_edmf_mynn_diffusion_smooth, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, & ! yhc add
                                 do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write, & ! yhc add
                                 tdt_max, do_limit_tdt, tdt_limit, &  ! yhc add
                                 max_diam_drop, use_tau, cosp_frequency
@@ -2180,7 +2180,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
     call edmf_mynn_driver ( &
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, &
+               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
                pbltop, udt, vdt, tdt, rdt, rdiag)
 
@@ -2998,7 +2998,7 @@ real,dimension(:,:),    intent(inout)             :: gust
     call edmf_mynn_driver ( &
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, &
+               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
                pbltop, udt, vdt, tdt, rdt, rdiag)
 
