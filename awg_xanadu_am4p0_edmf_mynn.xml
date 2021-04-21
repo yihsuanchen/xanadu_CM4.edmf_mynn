@@ -1293,6 +1293,18 @@ $baseDate
     </input>
   </freInclude>
 
+<!-- yhc add: initial conditions of the year 2000 from standarf am4p0 -->
+  <freInclude name="c96L33_initCond_am4p0_yr2000">
+    <input>
+      <!-- source: gfdl:/archive/Charles.Seman/awg/verona/cm4p10_bronx11/c96L48_am4b6_DDFull/gfdl.ncrc3-intel-prod-openmp/restart/20080101.tar -->
+      <dataFile label="initCond" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">/lustre/f2/scratch/Yi-hsuan.Chen/data/xanadu/cm4p12_am4p0_bronx18/c96L33_am4p0_donner/gfdl.ncrc4-intel19-prod-openmp/restart/20000101.tar</dataSource>
+        <!--dataSource platform="$(platform)">/lustre/f1/unswept/Charles.Seman/awg/verona/cm4p10_bronx11/c96L48_am4b6_DDFull/ncrc3.intel-prod-openmp/restart/20080101.tar</dataSource-->
+      </dataFile>
+    </input>
+  </freInclude>
+
+
   <freInclude name="c96L48_initCond">
     <input>
       <dataFile label="initCond" target="INPUT/" chksum="" size="" timestamp="">
@@ -1380,6 +1392,17 @@ $baseDate
                 <lnd                            layout = "3,12"    io_layout = "1,4" />
                 <ocn ranks="0"   threads="0"    layout = "72,3"    io_layout = "1,3" />
                 <ice                            layout = "72,3"    io_layout = "1,3" />
+                </resources>
+        </run>
+</freInclude>
+
+<freInclude name="c96_864_basic_24node">
+        <run days="8">
+                <resources jobWallclock="00:40:00">
+                <atm ranks="432" threads="2"    layout = "3,24"    io_layout = "1,4" />
+                <lnd                            layout = "3,24"    io_layout = "1,4" />
+                <ocn ranks="0"   threads="0"    layout = "144,3"   io_layout = "1,3" />
+                <ice                            layout = "144,3"   io_layout = "1,3" />
                 </resources>
         </run>
 </freInclude>
@@ -2801,6 +2824,9 @@ Experiment name = $(name)
       <regression name="basic">
           <xi:include xpointer="xpointer(//freInclude[@name='c96_216_basic']/node())"/>
       </regression>
+      <regression name="basic_24node">
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_basic_24node']/node())"/>
+      </regression>
       <regression name="debug_30d">
           <xi:include xpointer="xpointer(//freInclude[@name='c96_432_debug_30d']/node())"/>
       </regression>
@@ -4014,6 +4040,79 @@ Latest code version, 01/24/2021
 
   <experiment name="x81b-c96L33_am4p0_mynn_MODqdt" inherit="x61b-c96L33_am4p0_mynn_MODqdt">
   </experiment>
+
+<!--
+####################
+
+@@@@@@@@@  
+  m01 
+
+Latest code version, 01/24/2021
+  edmf_mynn.F90, b1e73695c26c4baf194111f1cbfd56408a87730a
+    cloud physics modified
+    stability limiters for MF
+    fixes in the vertical velocity equation for the plumes  
+
+  physics_driver.F90, 44318e42f403401bcfd15207b08dffe614aefdc1
+    reset tau_x, tau_y, surf_diff%delta_u, surf_diff%delta_v when MYNN is on
+
+####################
+-->
+
+  <experiment name="m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000" inherit="a00-c96L33_am4p0_donner">
+    <description>
+       MYNN only returns the diffusion coefficients to AM4 and diffusion is handled by the vertical diffusion program. This configuration is similar to Lock: MYNN is put in physics_driver_down and see the updated state by radiation and GWD.
+   
+      code version
+        edmf_mynn.F90, 2f31094acca6289e2e520da599126400b1cdf8b9
+        physics_driver.F90, b5b41a472a7207bd4fd31aaa5aebb80beb677957
+    </description>
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96L33_initCond_am4p0_yr2000']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ DO_SIMPLE       = F,
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714
+ LON_WRITE       =   5.49627374598293
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 0
+ do_edmf_mynn_diffusion_smooth = T
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714
+ LON_WRITE       =   5.49627374598293
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99
+ edmf_type = 1
+ do_use_tau = F
+      </namelist>
+    </input>
+  </experiment>
+
+
 
 <!--
 ####################
