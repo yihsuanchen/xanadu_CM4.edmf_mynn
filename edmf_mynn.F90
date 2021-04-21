@@ -387,8 +387,8 @@ end type edmf_ls_mp_type
   integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
   real    :: lat_write = -999.99                ! latitude  (radian) for column written out
   real    :: lon_write = -999.99                ! longitude (radian) for column written out
-  real    :: lat_range = 0.001
-  real    :: lon_range = 0.001
+  real    :: lat_range = 0.000001
+  real    :: lon_range = 0.000001
   logical :: do_writeout_column_nml = .false.   ! control whether writing out the column
   logical :: do_check_consrv = .false.          ! control whether writing out the water/heat conservation
   logical :: do_check_realizability = .false.   ! control whether writing out current and update cloud properties (qa,ql)
@@ -8989,13 +8989,14 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
                                          -  am4_Output_edmf%qi_after_mix(:,:,:)    
 
 
-  call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_before_mix(:,:,:),  &
-                am4_Output_edmf%q_before_mix(:,:,:), am4_Output_edmf%rh_before_mix(:,:,:), do_simple )
-  am4_Output_edmf%rh_before_mix  (:,:,:) = am4_Output_edmf%rh_before_mix(:,:,:)*100.
+  ! amip run this will fail, comment out for a moment. 2021-04-20
+  !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_before_mix(:,:,:),  &
+  !              am4_Output_edmf%q_before_mix(:,:,:), am4_Output_edmf%rh_before_mix(:,:,:), do_simple )
+  !am4_Output_edmf%rh_before_mix  (:,:,:) = am4_Output_edmf%rh_before_mix(:,:,:)*100.
 
-  call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_after_mix(:,:,:),  &
-                am4_Output_edmf%q_after_mix(:,:,:), am4_Output_edmf%rh_after_mix(:,:,:), do_simple )
-  am4_Output_edmf%rh_after_mix  (:,:,:) = am4_Output_edmf%rh_after_mix(:,:,:)*100.
+  !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_after_mix(:,:,:),  &
+  !              am4_Output_edmf%q_after_mix(:,:,:), am4_Output_edmf%rh_after_mix(:,:,:), do_simple )
+  !am4_Output_edmf%rh_after_mix  (:,:,:) = am4_Output_edmf%rh_after_mix(:,:,:)*100.
 
 end subroutine convert_edmf_to_am4_array
 
