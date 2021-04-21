@@ -2022,10 +2022,10 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
 
       if (lat_write.ne.-999.99 .and. lon_write.ne.-999.99) then
 
-        lat_lower = lat_write - 0.001
-        lat_upper = lat_write + 0.001
-        lon_lower = lon_write - 0.001
-        lon_upper = lon_write + 0.001
+        lat_lower = lat_write - 0.000001
+        lat_upper = lat_write + 0.000001
+        lon_lower = lon_write - 0.000001
+        lon_upper = lon_write + 0.000001
 
         if (lat (ii_write,jj_write).gt.lat_lower .and. lat (ii_write,jj_write).lt.lat_upper .and. &
             lon (ii_write,jj_write).gt.lon_lower .and. lon (ii_write,jj_write).lt.lon_upper ) then
@@ -2417,7 +2417,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
             if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(:,:,:,nql)
             if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(:,:,:,nqi)
           
-          else   ! do not do anything
+          else   ! do nothing, all tracers are processed by vert_diff
             rdt_dum1 = 0.
 
           endif  ! end if of do_tracers_selective
@@ -3391,24 +3391,24 @@ real,dimension(:,:),    intent(inout)             :: gust
 !--> yhc
 
 !<-- debug 
-  tt1 = tdt_max / 86400.  ! change unit from K/day to K/sec
-  do i=1,size(tdt,1)
-  do j=1,size(tdt,2)
-  do k=1,size(tdt,3)
-    if ( abs(tdt(i,j,k)) .ge. tt1 ) then
-      write(6,*) 'phys, >tdt_max,i,j,lat,lon,',tdt_max,i,j,lat(i,j),lon(i,j)
-
-      if (do_limit_tdt) then
-        if (tdt(i,j,k).ge.0.) then
-          tdt(i,j,k) = tdt_limit / 86400.
-        else
-          tdt(i,j,k) = -1.*tdt_limit / 86400.
-        endif
-      endif
-    endif
-  enddo
-  enddo
-  enddo
+!  tt1 = tdt_max / 86400.  ! change unit from K/day to K/sec
+!  do i=1,size(tdt,1)
+!  do j=1,size(tdt,2)
+!  do k=1,size(tdt,3)
+!    if ( abs(tdt(i,j,k)) .ge. tt1 ) then
+!      write(6,*) 'phys, >tdt_max,i,j,lat,lon,',tdt_max,i,j,lat(i,j),lon(i,j)
+!
+!      if (do_limit_tdt) then
+!        if (tdt(i,j,k).ge.0.) then
+!          tdt(i,j,k) = tdt_limit / 86400.
+!        else
+!          tdt(i,j,k) = -1.*tdt_limit / 86400.
+!        endif
+!      endif
+!    endif
+!  enddo
+!  enddo
+!  enddo
 !-->
 
 
