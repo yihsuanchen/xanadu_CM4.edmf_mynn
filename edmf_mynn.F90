@@ -6586,7 +6586,7 @@ subroutine edmf_mynn_driver ( &
 !        k=1 is at 1/2 level and k=N is at N-1/2 level 
 !---------------------------------------------------------------------
 
-  real, intent(out), dimension(:,:) :: &
+  real, intent(inout), dimension(:,:) :: &
     pbltop
 
   integer, intent(out), dimension(:,:) :: &
