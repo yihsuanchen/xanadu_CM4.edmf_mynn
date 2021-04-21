@@ -3246,8 +3246,6 @@ integer,            intent(out)   :: n_diag_4d, n_diag_4d_kp1
         diag_pt%qadt_edmf_ls = n_diag_4d
         n_diag_4d = n_diag_4d + 1 
       end if
-
-write(6,*) 'diag_id%qadt_edmf_ls',diag_id%qadt_edmf_ls
       !---> yhc111
 
 
