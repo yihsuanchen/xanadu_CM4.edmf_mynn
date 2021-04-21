@@ -8734,10 +8734,10 @@ subroutine edmf_writeout_column ( &
         write(6,3002) '  ql_after_mix = (/'    ,Output_edmf%ql_after_mix(ii_write,:,jj_write)
         write(6,*)    ''
         write(6,*)    '; Output_edmf%exch_h'
-        write(6,3002) ' exch_h = (/', Output_edmf%exch_h 
+        write(6,3002) ' exch_h = (/', Output_edmf%exch_h(ii_write,:,jj_write)
         write(6,*)    ''
         write(6,*)    '; Output_edmf%exch_m'
-        write(6,3002) ' exch_m = (/', Output_edmf%exch_m
+        write(6,3002) ' exch_m = (/', Output_edmf%exch_m(ii_write,:,jj_write)
         write(6,*)    ''
         write(6,*)    ';-----------------------------'
         write(6,*)    ';  Some vi commands'
