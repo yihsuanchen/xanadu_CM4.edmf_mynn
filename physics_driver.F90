@@ -2182,7 +2182,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
-               pbltop, udt, vdt, tdt, rdt, rdiag)
+               z_pbl, udt, vdt, tdt, rdt, rdiag)
+               !pbltop, udt, vdt, tdt, rdt, rdiag)  ! if using pbltop, amip4 run will fail and such failure happen any time and is not reproducible, yhc 2021-04-21
+    pbltop(is:ie,js:je) = z_pbl(:,:)
 
     !--- replace model diffusion coefficients with edmf_mynn ones
     diff_t_vert(:,:,:) = diff_t_edmf(:,:,:)
@@ -2787,6 +2789,7 @@ real,dimension(:,:),    intent(inout)             :: gust
       real :: tt1
       integer :: rr
       real                              :: alpha, dt2
+      real, dimension(ie-is+1,je-js+1)       :: z_pbl
       !--> yhc        
 
       t => Physics_input_block%t
@@ -3000,7 +3003,9 @@ real,dimension(:,:),    intent(inout)             :: gust
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
-               pbltop, udt, vdt, tdt, rdt, rdiag)
+               z_pbl, udt, vdt, tdt, rdt, rdiag)
+               !pbltop, udt, vdt, tdt, rdt, rdiag)  ! if using pbltop, amip4 run will fail and such failure happen any time and is not reproducible, yhc 2021-04-21
+    pbltop(is:ie,js:je) = z_pbl(:,:)
 
   !--- only modify diff_t and diff_m when tracers are not handled by edmf_mynn and edmf_mynn is not diagnositic purpose
   if (.not.do_tracers_in_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
