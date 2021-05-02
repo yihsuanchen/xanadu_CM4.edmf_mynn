@@ -115,12 +115,14 @@ properties below.
 <!--  6-year AMIP
 -->
 
+<!--
   <property name="EXP_AMIP_START" value="1979"/>
   <property name="EXP_AMIP_END"   value="1984"/>
   <property name="EXP_AMIP_LEN"   value="6"/>
   <property name="ANA_AMIP_START" value="1980"/>
   <property name="ANA_AMIP_END"   value="1984"/>
   <property name="ANA_AMIP_LEN"   value="5yr"/>
+-->
 
 <!--
   <property name="EXP_AMIP_START" value="1979"/>
@@ -130,6 +132,13 @@ properties below.
   <property name="ANA_AMIP_END"   value="2003"/>
   <property name="ANA_AMIP_LEN"   value="24yr"/>
 -->
+
+  <property name="EXP_AMIP_START" value="2000"/>
+  <property name="EXP_AMIP_END"   value="2014"/>
+  <property name="EXP_AMIP_LEN"   value="15"/>
+  <property name="ANA_AMIP_START" value="2001"/>
+  <property name="ANA_AMIP_END"   value="2014"/>
+  <property name="ANA_AMIP_LEN"   value="14yr"/>
 
   <property name="CVDP_startyear" value="$(EXP_AMIP_START)"/>
 
@@ -1407,6 +1416,17 @@ $baseDate
         </run>
 </freInclude>
 
+<freInclude name="c96_864_basic_24node_30d">
+        <run days="30">
+                <resources jobWallclock="02:00:00">
+                <atm ranks="432" threads="2"    layout = "3,24"    io_layout = "1,4" />
+                <lnd                            layout = "3,24"    io_layout = "1,4" />
+                <ocn ranks="0"   threads="0"    layout = "144,3"   io_layout = "1,3" />
+                <ice                            layout = "144,3"   io_layout = "1,3" />
+                </resources>
+        </run>
+</freInclude>
+
 <freInclude name="c96_216_rts">
         <run days="8">
                 <resources jobWallclock="00:40:00">
@@ -1966,6 +1986,29 @@ $baseDate
 
     </postProcess>
   </freInclude>
+
+  <!-- yhc: this compare model results with CERES-EBAF & GPCP from 2001 to 2014 -->
+   <freInclude name="c96_amip_postprocess_EDMF">
+     <postProcess>
+       <component type="atmos" zInterp="era40" start="$(ANA_AMIP_START)"
+                  source="atmos_month" sourceGrid="atmos-cubedsphere" xyInterp="180,288">
+         <timeAverage source="monthly" interval="$(PP_AMIP_CHUNK)">
+           <variables>
+             olr olr_clr swdn_toa swup_toa swup_toa_clr
+             lwdn_sfc lwdn_sfc_clr lwup_sfc lwup_sfc_clr
+             swdn_sfc swdn_sfc_clr swup_sfc swup_sfc_clr
+             precip
+           </variables>
+         </timeAverage>
+         <timeAverage source="monthly" interval="$(ANA_AMIP_LEN)">
+           <analysis
+              script="/home/Charles.Seman/fms.ana/fre-analysis/cjs/stub/radiation_atmos_av_mon2.csh"/>
+           <analysis
+              script="/home/Charles.Seman/fms.ana/fre-analysis/cjs/stub/precip_atmos_av_mon2.csh"/>
+         </timeAverage>
+       </component>
+     </postProcess>
+   </freInclude>
 
   <freInclude name="c96_climo_postprocess">
     <postProcess>
@@ -2826,6 +2869,9 @@ Experiment name = $(name)
       </regression>
       <regression name="basic_24node">
           <xi:include xpointer="xpointer(//freInclude[@name='c96_864_basic_24node']/node())"/>
+      </regression>
+      <regression name="basic_24node_30d">
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_basic_24node_30d']/node())"/>
       </regression>
       <regression name="debug_30d">
           <xi:include xpointer="xpointer(//freInclude[@name='c96_432_debug_30d']/node())"/>
@@ -4110,6 +4156,10 @@ Latest code version, 01/24/2021
  do_use_tau = F
       </namelist>
     </input>
+    <postProcess>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess']/postProcess/node())"/>
+      <!--xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess_EDMF']/postProcess/node())"/-->
+    </postProcess>
   </experiment>
 
 
