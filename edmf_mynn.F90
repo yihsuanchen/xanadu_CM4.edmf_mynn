@@ -6569,6 +6569,9 @@ subroutine edmf_mynn_driver ( &
   real, intent(inout), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
+  real, intent(inout), dimension(:,:) :: &
+    pbltop
+
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
 !
@@ -6585,9 +6588,6 @@ subroutine edmf_mynn_driver ( &
 !     1. diff_t_edmf is at half levels, although AM4 use dimension of nlev instead of nlev+1
 !        k=1 is at 1/2 level and k=N is at N-1/2 level 
 !---------------------------------------------------------------------
-
-  real, intent(inout), dimension(:,:) :: &
-    pbltop
 
   integer, intent(out), dimension(:,:) :: &
     kpbl_edmf
@@ -8990,13 +8990,13 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
 
 
   ! amip run this will fail, comment out for a moment. 2021-04-20
-  !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_before_mix(:,:,:),  &
-  !              am4_Output_edmf%q_before_mix(:,:,:), am4_Output_edmf%rh_before_mix(:,:,:), do_simple )
-  !am4_Output_edmf%rh_before_mix  (:,:,:) = am4_Output_edmf%rh_before_mix(:,:,:)*100.
+  call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_before_mix(:,:,:),  &
+                am4_Output_edmf%q_before_mix(:,:,:), am4_Output_edmf%rh_before_mix(:,:,:), do_simple )
+  am4_Output_edmf%rh_before_mix  (:,:,:) = am4_Output_edmf%rh_before_mix(:,:,:)*100.
 
-  !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_after_mix(:,:,:),  &
-  !              am4_Output_edmf%q_after_mix(:,:,:), am4_Output_edmf%rh_after_mix(:,:,:), do_simple )
-  !am4_Output_edmf%rh_after_mix  (:,:,:) = am4_Output_edmf%rh_after_mix(:,:,:)*100.
+  call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_after_mix(:,:,:),  &
+                am4_Output_edmf%q_after_mix(:,:,:), am4_Output_edmf%rh_after_mix(:,:,:), do_simple )
+  am4_Output_edmf%rh_after_mix  (:,:,:) = am4_Output_edmf%rh_after_mix(:,:,:)*100.
 
 end subroutine convert_edmf_to_am4_array
 
