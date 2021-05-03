@@ -380,7 +380,7 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
 logical :: do_edmf_mynn_diagnostic = .false.  ! .true.  : diagnostic edmf_mynn, no update on tendencies
                                               ! .false. : interactive edmf_mynn, update on tendencies
 
-logical :: do_tracers_in_edmf_mynn = .true.   ! do tracer diffusion in edmf_mynn
+logical :: do_tracers_in_edmf_mynn = .false.  ! do tracer diffusion in edmf_mynn
                                               ! .true.  : tracer diffusion is handled by edmf_mynn
                                               ! .false. : tracer diffusion is handled by vert_diff_driver_down, using 
                                               !           ED diffusion coefficients from edmf_mynn
@@ -2184,13 +2184,13 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
                z_pbl, udt, vdt, tdt, rdt, rdiag)
                !pbltop, udt, vdt, tdt, rdt, rdiag)  ! if using pbltop, amip4 run will fail and such failure happen any time and is not reproducible, yhc 2021-04-21
-    pbltop(is:ie,js:je) = z_pbl(:,:)
 
-    !--- replace model diffusion coefficients with edmf_mynn ones
-    diff_t_vert(:,:,:) = diff_t_edmf(:,:,:)
-    diff_m_vert(:,:,:) = diff_m_edmf(:,:,:)
-    !endif  ! end if of do_return_edmf_mynn_diff_only
-    !if (do_return_edmf_mynn_diff_only) then
+    !--- replace model diffusion coefficients and z_pbl with edmf_mynn ones when edmf_mynn is not diagnostic
+    if (.not.do_edmf_mynn_diagnostic) then
+      pbltop(is:ie,js:je) = z_pbl(:,:)
+      diff_t_vert(:,:,:) = diff_t_edmf(:,:,:)
+      diff_m_vert(:,:,:) = diff_m_edmf(:,:,:)
+    endif
 
   if (do_writeout_column) then
         write(6,*) '-------------- i,j,',ii_write,jj_write
@@ -3005,7 +3005,11 @@ real,dimension(:,:),    intent(inout)             :: gust
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
                z_pbl, udt, vdt, tdt, rdt, rdiag)
                !pbltop, udt, vdt, tdt, rdt, rdiag)  ! if using pbltop, amip4 run will fail and such failure happen any time and is not reproducible, yhc 2021-04-21
-    pbltop(is:ie,js:je) = z_pbl(:,:)
+
+    !--- replace pbltop with edmf_mynn ones when edmf_mynn is not diagnostic
+    if (.not.do_edmf_mynn_diagnostic) then
+      pbltop(is:ie,js:je) = z_pbl(:,:)
+    endif
 
   !--- only modify diff_t and diff_m when tracers are not handled by edmf_mynn and edmf_mynn is not diagnositic purpose
   if (.not.do_tracers_in_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
