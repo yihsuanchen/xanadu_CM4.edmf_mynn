@@ -2166,6 +2166,17 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         endif
       end do
 
+  if (do_writeout_column) then
+        write(6,*) '-------------- i,j,',ii_write,jj_write
+        write(6,*) 'lat',lat (ii_write,jj_write)
+        write(6,*) 'lon',lon (ii_write,jj_write)
+        write(6,*) 'pbltop',pbltop (ii_write,jj_write)
+        write(6,*) 'data diff_t_vert/'    ,diff_t_vert(ii_write,jj_write,:)
+        write(6,*) 'data diff_m_vert/'    ,diff_m_vert(ii_write,jj_write,:)
+        write(6,*) 'data diff_t/'    ,diff_t(ii_write,jj_write,:)
+        write(6,*) 'data diff_m/'    ,diff_m(ii_write,jj_write,:)
+  endif
+
 !---------------------------------------------------------------------
 !    call edmf_mynn to to calculate tendencies from PBL and convective mass flux
 !---------------------------------------------------------------------
@@ -2181,15 +2192,20 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
-               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
+               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf, &
                z_pbl, udt, vdt, tdt, rdt, rdiag)
-               !pbltop, udt, vdt, tdt, rdt, rdiag)  ! if using pbltop, amip4 run will fail and such failure happen any time and is not reproducible, yhc 2021-04-21
+
+    !--- yhc note, 2021-05-03
+    ! diff_t & diff_m from edmf_mynn must be (ie-is+1,je-js+1,npz) dimensions, otherwise it will have grid projection problems to diff_t and diff_m
+    ! For example, 
+    !   diff_t,m_vert is (ie-is+1,je-js+1,npz) but diff_t,m_edmf is (id,jd,kd) 
+    !     diff_t,m_vert (:,:,:)         = diff_t,m_edmf(:,:,:), this will have trouble projecting to correct grids
+    !     diff_t,m_vert (is:ie,js:je,:) = diff_t,m_edmf(:,:,:), this will have very obvious problems in projecting to correct grids
+    !   The regression 30-day mean will have weird "stripes" over the Pacific and Atlantic.
 
     !--- replace model diffusion coefficients and z_pbl with edmf_mynn ones when edmf_mynn is not diagnostic
     if (.not.do_edmf_mynn_diagnostic) then
       pbltop(is:ie,js:je) = z_pbl(:,:)
-      diff_t_vert(:,:,:) = diff_t_edmf(:,:,:)
-      diff_m_vert(:,:,:) = diff_m_edmf(:,:,:)
     endif
 
   if (do_writeout_column) then
@@ -2783,6 +2799,7 @@ real,dimension(:,:),    intent(inout)             :: gust
       real, dimension(:,:,:),   pointer :: tdt
       real, dimension(:,:,:,:), pointer :: rdt  
       !<-- yhc        
+      real, dimension(ie-is+1,je-js+1,npz)   :: diff_t_vert, diff_m_vert
       real, dimension(:,:,:,:), pointer :: rdiag  ! yhc 
       real, dimension(:,:,:),   pointer :: udt    ! yhc
       real, dimension(:,:,:),   pointer :: vdt    ! yhc
@@ -3002,9 +3019,17 @@ real,dimension(:,:),    intent(inout)             :: gust
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
-               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_edmf, diff_m_edmf, kpbl_edmf, &
+               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf, &
                z_pbl, udt, vdt, tdt, rdt, rdiag)
                !pbltop, udt, vdt, tdt, rdt, rdiag)  ! if using pbltop, amip4 run will fail and such failure happen any time and is not reproducible, yhc 2021-04-21
+
+    !--- yhc note, 2021-05-03
+    ! diff_t & diff_m from edmf_mynn must be (ie-is+1,je-js+1,npz) dimensions, otherwise it will have grid projection problems to diff_t and diff_m
+    ! For example, 
+    !   diff_t,m_vert is (ie-is+1,je-js+1,npz) but diff_t,m_edmf is (id,jd,kd) 
+    !     diff_t,m_vert (:,:,:)         = diff_t,m_edmf(:,:,:), this will have trouble projecting to correct grids
+    !     diff_t,m_vert (is:ie,js:je,:) = diff_t,m_edmf(:,:,:), this will have very obvious problems in projecting to correct grids
+    !   The regression 30-day mean will have weird "stripes" over the Pacific and Atlantic.
 
     !--- replace pbltop with edmf_mynn ones when edmf_mynn is not diagnostic
     if (.not.do_edmf_mynn_diagnostic) then
@@ -3020,20 +3045,20 @@ real,dimension(:,:),    intent(inout)             :: gust
        dt2 = real(sec + day*86400)
        alpha = dt2/tau_diff
        diff_m(is:ie,js:je,:) = (diff_m(is:ie,js:je,:) +       &
-                                alpha*diff_m_edmf(:,:,:))/&
+                                alpha*diff_m_vert(:,:,:))/&
                                 (1. + alpha)
        where (diff_m(is:ie,js:je,:) < diff_min)
          diff_m(is:ie,js:je,:) = 0.0
        end where
        diff_t(is:ie,js:je,:) = (diff_t(is:ie,js:je,:) +      &
-                                alpha*diff_t_edmf(:,:,:) )/  &
+                                alpha*diff_t_vert(:,:,:) )/  &
                                 (1. + alpha)
        where (diff_t(is:ie,js:je,:) < diff_min)
          diff_t(is:ie,js:je,:) = 0.0
        end where
      else
-       diff_t(is:ie,js:je,:) = diff_t_edmf
-       diff_m(is:ie,js:je,:) = diff_m_edmf 
+       diff_t(is:ie,js:je,:) = diff_t_vert
+       diff_m(is:ie,js:je,:) = diff_m_vert 
      end if  ! end if of do_edmf_mynn_diffusion_smooth
 
      !--- save updated diff_t,m into diff_t,m_edmf
@@ -3057,8 +3082,8 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data qidt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqi)
         write(6,*) 'data qndt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqn)
         write(6,*) 'data diff_t/'    ,diff_t(ii_write,jj_write,:)
-        write(6,*) 'data diff_t_edmf/'    ,diff_t_edmf(ii_write,jj_write,:)
-        write(6,*) 'data diff_m_edmf/'    ,diff_m_edmf(ii_write,jj_write,:)
+        write(6,*) 'data diff_t_vert/'    ,diff_t_vert(ii_write,jj_write,:)
+        write(6,*) 'data diff_m_vert/'    ,diff_m_vert(ii_write,jj_write,:)
   endif
 
   endif  ! end if of do_edmf_mynn
