@@ -7922,11 +7922,10 @@ subroutine edmf_alloc ( &
   am4_Output_edmf%qt_input  (:,:,:) = qt_host    (:,:,:)
   am4_Output_edmf%th_input  (:,:,:) = th_host    (:,:,:)
 
+  ! amip run this will fail, comment out for a moment. 2021-05-03
   !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_input(:,:,:),  &
   !              am4_Output_edmf%q_input(:,:,:), rh_host(:,:,:), do_simple )
-  call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_input(:,:,:),  &
-                am4_Output_edmf%q_input(:,:,:), rh_host(:,:,:), do_simple )
-  am4_Output_edmf%rh_input  (:,:,:) = rh_host(:,:,:)*100.
+  !am4_Output_edmf%rh_input  (:,:,:) = rh_host(:,:,:)*100.
 
 !-------------------------------
 
@@ -8990,13 +8989,13 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
 
 
   ! amip run this will fail, comment out for a moment. 2021-04-20
-  call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_before_mix(:,:,:),  &
-                am4_Output_edmf%q_before_mix(:,:,:), am4_Output_edmf%rh_before_mix(:,:,:), do_simple )
-  am4_Output_edmf%rh_before_mix  (:,:,:) = am4_Output_edmf%rh_before_mix(:,:,:)*100.
+  !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_before_mix(:,:,:),  &
+  !              am4_Output_edmf%q_before_mix(:,:,:), am4_Output_edmf%rh_before_mix(:,:,:), do_simple )
+  !am4_Output_edmf%rh_before_mix  (:,:,:) = am4_Output_edmf%rh_before_mix(:,:,:)*100.
 
-  call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_after_mix(:,:,:),  &
-                am4_Output_edmf%q_after_mix(:,:,:), am4_Output_edmf%rh_after_mix(:,:,:), do_simple )
-  am4_Output_edmf%rh_after_mix  (:,:,:) = am4_Output_edmf%rh_after_mix(:,:,:)*100.
+  !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_after_mix(:,:,:),  &
+  !              am4_Output_edmf%q_after_mix(:,:,:), am4_Output_edmf%rh_after_mix(:,:,:), do_simple )
+  !am4_Output_edmf%rh_after_mix  (:,:,:) = am4_Output_edmf%rh_after_mix(:,:,:)*100.
 
 end subroutine convert_edmf_to_am4_array
 
