@@ -4104,6 +4104,48 @@ Latest code version, 01/24/2021
 
 ####################
 -->
+  
+  <experiment name="a00-m00-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000_diag" inherit="a00-c96L33_am4p0_donner">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96L33_initCond_am4p0_yr2000']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+    </input>
+  </experiment>
+
+  <experiment name="m00-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000_diag" inherit="a00-c96L33_am4p0_donner">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96L33_initCond_am4p0_yr2000']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714
+ LON_WRITE       =   5.49627374598293
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 0
+ do_edmf_mynn_diffusion_smooth = T
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714
+ LON_WRITE       =   5.49627374598293
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99
+ edmf_type = 1
+ do_use_tau = F
+      </namelist>
+    </input>
+  </experiment>
 
   <experiment name="m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000" inherit="a00-c96L33_am4p0_donner">
     <description>
@@ -4162,7 +4204,52 @@ Latest code version, 01/24/2021
     </postProcess>
   </experiment>
 
+  <experiment name="m11-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000" inherit="m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000">
+    <description>
+       MYNN only returns the diffusion coefficients to AM4 and diffusion is handled by the vertical diffusion program. This configuration is similar to Lock: MYNN is put in physics_driver_down and see the updated state by radiation and GWD.
+   
+      code version
+        edmf_mynn.F90, 6bfd2092d4525ffc5280efa8ab56281f655efb07
+        physics_driver.F90, b0d1abf1b0525699e16dcf8465484455e233db4f
+   
+      fix index problems in diff_t,m from edmf_mynn
+    </description>
+  </experiment>
 
+
+  <experiment name="x01-m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000" inherit="m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000">
+  </experiment>
+
+  <experiment name="x02-m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000" inherit="m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000">
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = T,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = T,
+ DO_SIMPLE       = F,
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714
+ LON_WRITE       =   5.49627374598293
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 0
+ do_edmf_mynn_diffusion_smooth = T
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+      </namelist>
+    </input>
+  </experiment>
 
 <!--
 ####################
