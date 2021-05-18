@@ -594,6 +594,8 @@ integer                            :: id_tdt_phys,         &
                                       id_tdt_phys_vdif_dn, &
                                       id_tdt_phys_vdif_up, &
                                       id_tdt_phys_turb,    &
+                                      id_diff_t_vdif,       &  ! yhc
+                                      id_diff_m_vdif,       &  ! yhc
                                       id_tdt_phys_moist
 
 integer, dimension(:), allocatable :: id_tracer_phys,         &
@@ -1365,6 +1367,16 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
          'tdt_phys', axes(1:3), Time,                          &
          'temperature tendency from physics ', &
          'K/s', missing_value=missing_value)
+
+      !<--- yhc
+      id_diff_t_vdif = register_diag_field (mod_name, 'diff_t_vdif', axes(1:3), Time, &
+                       'heat diff coeffs used by vdif', 'K/m/s' , &
+                       missing_value=missing_value )
+
+      id_diff_m_vdif = register_diag_field (mod_name, 'diff_m_vdif', axes(1:3), Time, &
+                       'momentum diff coeffs used by vdif', 'm2/s' , &
+                       missing_value=missing_value )
+      !---> yhc
 
      !-------- CMIP diagnostics --------
       ID_pfull = register_cmip_diag_field_3d ( mod_name, 'pfull', Time, &
@@ -2509,6 +2521,18 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
           write(6,*) 'data dn, rr, rdr'    ,rr, rdt(ii_write,jj_write,:,rr)
         enddo
   endif
+!--> yhc
+
+!<-- yhc
+!------- heat diff coeffs used by vdif (units: K/m/s) at full level -------
+      if ( id_diff_t_vdif > 0) then
+        used = send_data (id_diff_t_vdif, diff_t, Time_next, is, js, 1 )
+      endif
+
+!------- momentum diff coeffs used by vdif (units: m2/s) at full level -------
+      if ( id_diff_m_vdif > 0) then
+        used = send_data (id_diff_m_vdif, diff_m, Time_next, is, js, 1 )
+      endif
 !--> yhc
 
 
