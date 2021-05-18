@@ -5667,6 +5667,9 @@ unset occam_file
     </input>
   </experiment>
 
+  <experiment name="b00-BOMEX-am4p0" inherit="BOMEX_$(AWG_EXPERIMENT)">
+  </experiment>
+
   <experiment name="b00-BOMEX-am4p0_rad" inherit="BOMEX_$(AWG_EXPERIMENT)">
     <input>
       <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
@@ -7962,6 +7965,120 @@ Major code version
 ############################
 ############################
 -->
+
+<!--
+@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@
+
+BOMEX case
+
+@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@
+-->
+
+  <experiment name="b60a-BOMEX-am4p0_mynn_diag" inherit="BOMEX_$(AWG_EXPERIMENT)">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b65-BOMEX-mynn_diff" inherit="b60a-BOMEX-am4p0_mynn_diag">
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ DO_SIMPLE       = F,
+ GUST_SCHEME     = beljaars 
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F 
+ do_tracers_selective = 0 
+ do_edmf_mynn_diffusion_smooth = T
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99  
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b65c-BOMEX-mynn_diff-Gmy_qnT_tauF" inherit="b65-BOMEX-mynn_diff">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99  
+ edmf_type = 1
+ do_use_tau = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b65d-BOMEX-mynn_diff-Omy_qnT_tauF" inherit="b65-BOMEX-mynn_diff">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99  
+ edmf_type = 0
+ do_use_tau = F
+      </namelist>
+    </input>
+  </experiment>
+
+
+<!--
+@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@
+
+DYCOMS RF01 case
+
+@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@
+-->
+
   <experiment name="rfo60-RF01-am4p0_mynn_diag" inherit="RF01_A_$(AWG_EXPERIMENT)">
     <input>
       <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
@@ -9224,6 +9341,9 @@ Major code version
  do_option_edmf2ls_mp = 3
       </namelist>
     </input>
+  </experiment>
+
+  <experiment name="x01-rfo60a-RF01-am4p0_mynn_diag-Gmy_aerT_qnT_tauT" inherit="rfo60a-RF01-am4p0_mynn_diag-Gmy_aerT_qnT_tauT">
   </experiment>
 
   <experiment name="x01-b01-BOMEX-am4p0_rad_mynn" inherit="b01-BOMEX-am4p0_rad_mynn">
