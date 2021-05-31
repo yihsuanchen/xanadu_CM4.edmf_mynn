@@ -2002,9 +2002,9 @@ $baseDate
          </timeAverage>
          <timeAverage source="monthly" interval="$(ANA_AMIP_LEN)">
            <analysis
-              script="/home/Charles.Seman/fms.ana/fre-analysis/cjs/stub/radiation_atmos_av_mon2.csh"/>
+              script="/home/Yi-hsuan.Chen/fms.ana/fre-analysis/yhc/stub/radiation_atmos_av_mon2.csh"/>
            <analysis
-              script="/home/Charles.Seman/fms.ana/fre-analysis/cjs/stub/precip_atmos_av_mon2.csh"/>
+              script="/home/Yi-hsuan.Chen/fms.ana/fre-analysis/yhc/stub/precip_atmos_av_mon2.csh"/>
          </timeAverage>
        </component>
      </postProcess>
@@ -4216,6 +4216,115 @@ Latest code version, 01/24/2021
     </description>
   </experiment>
 
+  <experiment name="m12-c96L33_am4p0_mynn_diff_Gmy_UWlock_ICam4p0_2000" inherit="m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000">
+    <description>
+       MYNN only returns the diffusion coefficients to AM4 and diffusion is handled by the vertical diffusion program. This configuration is similar to Lock: MYNN is put in physics_driver_down and see the updated state by radiation and GWD.
+   
+      code version
+        edmf_mynn.F90, 6bfd2092d4525ffc5280efa8ab56281f655efb07 
+        physics_driver.F90, 030d0d6df06ecb09e7f15ff9867ea813890812bc
+   
+      fix index problems in diff_t,m from edmf_mynn
+      The UW convection scheme diagnoses PBL depth using Lock's approach, instead of using MYNN-diagnosed PBL depth
+      set compute_pblht = .true.' and 'parcel_buoy = 0.25' in uw_conv_nml.
+      the updated version of uw_conv.F90, conv_utilities_k.F90, moistproc_kernels.F90 are used, taken from Zhihong Tan on 05/20/2021
+    </description>
+    <input>
+      <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     , 
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   8.00000000000000     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000     ,
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+
+
+  <experiment name="x01-a00-c96L33_am4p0_donner" inherit="a00-c96L33_am4p0_donner">
+  </experiment>
+
+  <experiment name="x01-m11-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000" inherit="m11-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000">
+  </experiment>
 
   <experiment name="x01-m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000" inherit="m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000">
   </experiment>
