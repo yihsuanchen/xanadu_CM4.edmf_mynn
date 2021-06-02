@@ -7994,6 +7994,140 @@ BOMEX case
  DO_STOP_RUN     = F,
  OPTION_SURFACE_FLUX     = updated
       </namelist>
+      <namelist name="uw_conv_nml">  <!-- set do_deep = F -->
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   8.00000000000000     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = F,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000     ,
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b60ae-BOMEX-am4p0_mynn_diag_noUW" inherit="b60a-BOMEX-am4p0_mynn_diag">
+    <input>
+      <namelist name="moist_processes_nml">
+ DO_UW_CONV      = F,
+ DO_UNIFIED_CLOUDS       = F,
+ DO_LSC  = F,
+ DO_MCA  = F,
+ DO_RAS  = F,
+ DO_DONNER_DEEP  = F,
+ DO_DRYADJ       = F,
+ DO_BM   = F,
+ DO_BMMASS       = F,
+ DO_BMOMP        = F,
+ DO_SIMPLE       = F,
+ DO_RH_CLOUDS    = F,
+ DO_DIAG_CLOUDS  = F,
+ PDEPTH  =   15000.0000000000     ,
+ LIMIT_CONV_CLOUD_FRAC   = F,
+ INCLUDE_DONMCA_IN_COSP  = T,
+ USE_ONLINE_AEROSOL      = T,
+ USE_SUB_SEASALT = F,
+ SEA_SALT_SCALE  =  0.100000000000000     ,
+ OM_TO_OC        =   1.67000000000000     ,
+ DO_HEIGHT_ADJUST        = T
+      </namelist>
+      <namelist name="CONVECTION_DRIVER_NML">   
+ DO_CMT  = F,
+ DO_LIMIT_DONNER = F,
+ DO_LIMIT_UW     = F,
+ DO_UNIFIED_CONVECTIVE_CLOSURE   = F,
+ CMT_MASS_FLUX_SOURCE    = uw                                                              ,
+ DO_GUST_CV      = F,
+ DO_GUST_CV_NEW  = F,
+ GUSTMAX =   3.00000000000000     ,
+ GUSTCONST       =  1.157407407407407E-004,
+ DO_DONNER_BEFORE_UW     = F,
+ USE_UPDATED_PROFILES_FOR_UW     = F,
+ ONLY_ONE_CONV_SCHEME_PER_COLUMN = F,
+ FORCE_DONNER_MOIST_CONSERV      = F,
+ DO_DONNER_CONSERVATION_CHECKS   = F,
+ DO_DONNER_MCA   = F,
+ USING_FMS       = T,
+ DETRAIN_LIQ_NUM = F,
+ DETRAIN_ICE_NUM = F,
+ CONV_FRAC_MAX   =  0.990000000000000     ,
+ REMAIN_DETRAIN_BUG      = F,
+ KEEP_ICENUM_DETRAIN_BUG = F
+      </namelist>
     </input>
   </experiment>
 
@@ -8052,6 +8186,202 @@ BOMEX case
     </input>
   </experiment>
 
+  <experiment name="b65ca-BOMEX-mynn_diff-Gmy_qnT_tauF_difftEQdiffm" inherit="b65-BOMEX-mynn_diff">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99  
+ edmf_type = 1
+ do_use_tau = F
+ do_debug_option = "diff_t=diff_m"
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b65cb-BOMEX-mynn_diff-Gmy_qnT_tauF_difftEQhalf_diffm" inherit="b65-BOMEX-mynn_diff">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99  
+ edmf_type = 1
+ do_use_tau = F
+ do_debug_option = "diff_t=half_diff_m"
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b65cc-BOMEX-mynn_diff-Gmy_qnT_tauF_mixleng3" inherit="b65-BOMEX-mynn_diff">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99  
+ edmf_type = 1
+ do_use_tau = F
+ bl_mynn_mixlength = 3
+      </namelist>
+    </input>
+  </experiment>
+
+
+  <experiment name="b65cd-BOMEX-mynn_diff-Gmy_qnT_tauF_UWlock" inherit="b65c-BOMEX-mynn_diff-Gmy_qnT_tauF">
+    <input>
+      <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   8.00000000000000     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = F,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_SHALLOW      = T,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000     ,
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F,
+ DO_CMF_PBLZERO  = F,
+ TEMP_JUMP       =  0.100000000000000
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b65ce-BOMEX-mynn_diff-Gmy_qnT_tauF_noUW" inherit="b65c-BOMEX-mynn_diff-Gmy_qnT_tauF">
+    <input>
+      <namelist name="moist_processes_nml">
+ DO_UW_CONV      = F,
+ DO_UNIFIED_CLOUDS       = F,
+ DO_LSC  = F,
+ DO_MCA  = F,
+ DO_RAS  = F,
+ DO_DONNER_DEEP  = F,
+ DO_DRYADJ       = F,
+ DO_BM   = F,
+ DO_BMMASS       = F,
+ DO_BMOMP        = F,
+ DO_SIMPLE       = F,
+ DO_RH_CLOUDS    = F,
+ DO_DIAG_CLOUDS  = F,
+ PDEPTH  =   15000.0000000000     ,
+ LIMIT_CONV_CLOUD_FRAC   = F,
+ INCLUDE_DONMCA_IN_COSP  = T,
+ USE_ONLINE_AEROSOL      = T,
+ USE_SUB_SEASALT = F,
+ SEA_SALT_SCALE  =  0.100000000000000     ,
+ OM_TO_OC        =   1.67000000000000     ,
+ DO_HEIGHT_ADJUST        = T
+      </namelist>
+      <namelist name="CONVECTION_DRIVER_NML">   
+ DO_CMT  = F,
+ DO_LIMIT_DONNER = F,
+ DO_LIMIT_UW     = F,
+ DO_UNIFIED_CONVECTIVE_CLOSURE   = F,
+ CMT_MASS_FLUX_SOURCE    = uw                                                              ,
+ DO_GUST_CV      = F,
+ DO_GUST_CV_NEW  = F,
+ GUSTMAX =   3.00000000000000     ,
+ GUSTCONST       =  1.157407407407407E-004,
+ DO_DONNER_BEFORE_UW     = F,
+ USE_UPDATED_PROFILES_FOR_UW     = F,
+ ONLY_ONE_CONV_SCHEME_PER_COLUMN = F,
+ FORCE_DONNER_MOIST_CONSERV      = F,
+ DO_DONNER_CONSERVATION_CHECKS   = F,
+ DO_DONNER_MCA   = F,
+ USING_FMS       = T,
+ DETRAIN_LIQ_NUM = F,
+ DETRAIN_ICE_NUM = F,
+ CONV_FRAC_MAX   =  0.990000000000000     ,
+ REMAIN_DETRAIN_BUG      = F,
+ KEEP_ICENUM_DETRAIN_BUG = F
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="b65d-BOMEX-mynn_diff-Omy_qnT_tauF" inherit="b65-BOMEX-mynn_diff">
     <input>
       <namelist name="edmf_mynn_nml">
@@ -8068,6 +8398,152 @@ BOMEX case
     </input>
   </experiment>
 
+  <experiment name="b65da-BOMEX-mynn_diff-Omy_qnT_tauF__difftEQdiffm" inherit="b65-BOMEX-mynn_diff">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99  
+ edmf_type = 0
+ do_use_tau = F
+ do_debug_option = "diff_t=diff_m"
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b65db-BOMEX-mynn_diff-Omy_qnT_tauF_difftEQhalf_diffm" inherit="b65-BOMEX-mynn_diff">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99  
+ edmf_type = 0
+ do_use_tau = F
+ do_debug_option = "diff_t=half_diff_m"
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b65dc-BOMEX-mynn_diff-Omy_qnT_tauF_mixleng3" inherit="b65-BOMEX-mynn_diff">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99  
+ edmf_type = 0
+ do_use_tau = F
+ bl_mynn_mixlength = 3
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="x01-b65c-BOMEX-mynn_diff-Gmy_qnT_tauF" inherit="b65c-BOMEX-mynn_diff-Gmy_qnT_tauF">
+  </experiment>
+
+  <experiment name="x01-b65c-BOMEX-mynn_diff-Gmy_qnT_tauF_UWlock" inherit="b65c-BOMEX-mynn_diff-Gmy_qnT_tauF">
+    <input>
+      <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   8.00000000000000     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = F,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_SHALLOW      = T,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000     ,
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F,
+ DO_CMF_PBLZERO  = F,
+ TEMP_JUMP       =  0.100000000000000
+      </namelist>
+    </input>
+  </experiment>
 
 <!--
 @@@@@@@@@@@@@@@@@@@@@@
