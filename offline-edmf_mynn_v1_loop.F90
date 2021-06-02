@@ -101,7 +101,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    INTEGER :: grav_settling     = 0         ! 1 - the cloud/fog will experience gravitational settling, 0 - it does not
    INTEGER :: bl_mynn_tkebudget = 0         ! if 1 the budget terms in the TKE equation are allocated for output (WRF), if 0 then not
    INTEGER :: bl_mynn_cloudpdf  = 1         ! define the type of the subgrid PDF for cloud computation, 1= Nakanishi & Niino 2004
-   INTEGER :: bl_mynn_mixlength = 3         ! defines the ED mixing length formulation
+   INTEGER :: bl_mynn_mixlength = 2         ! defines the ED mixing length formulation
    INTEGER :: bl_mynn_edmf      = 0         ! controls  the version of the EDMF to be called 3=JPLedmf documented by Wu et al., 2020
                                             ! set “bl_mynn_edmf=0” and “bl_mynn_edmf_dd<>1” then the scheme will be MYNN only.
    INTEGER :: bl_mynn_edmf_dd   = 0         ! 0 - no downdrafts, 1 - Wu et al., 2020 downdrafts 
@@ -177,6 +177,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
                                                 !             humidity. When true, specific humidity =
                                                 !             (rdgas/rvgas)*esat/pressure
                                                 ! same setting as module moist_processes_mod
+  character*20 :: do_debug_option = ""          ! debug purpose
 
 logical :: do_return_edmf_mynn_diff_only = .false. ! .true.,  return edmf_mynn diffusion coefficients 
                                                    !          and let vert_diff do the diffusion rather than in edmf_mynn
@@ -3653,26 +3654,26 @@ END SUBROUTINE mym_condensation
 ! grav_settling = 0 when gravitational settling NOT accounted for
     
     REAL, INTENT(in) :: delt,dx
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(in) :: dz,&
+    REAL, DIMENSION(:,:,:), INTENT(in) :: dz,&
          &u,v,w,th,qv,cc,p,exner,rho,T3D
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), OPTIONAL, INTENT(in)::&
+    REAL, DIMENSION(:,:,:), OPTIONAL, INTENT(in)::&
          &ql,qi,qni,qnc
     REAL, DIMENSION(IMS:IME,JMS:JME), INTENT(in) :: xland,ust,&
          &ch,rmol,ts,qsfc,qcg,ps,hfx,qfx, wspd,uoce,voce, vdfg,znt
 
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
+    REAL, DIMENSION(:,:,:), INTENT(inout) :: &
          &Qke,Tsq,Qsq,Cov
        
          
 
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
+    REAL, DIMENSION(:,:,:), INTENT(inout) :: &
          &RUBLTEN,RVBLTEN,RTHBLTEN,RQVBLTEN,RQLBLTEN,&
          &RQIBLTEN,RQNIBLTEN,RTHRATEN !,RQNCBLTEN
 
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
+    REAL, DIMENSION(:,:,:), INTENT(out) :: &
          &exch_h,exch_m
 
-   REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), OPTIONAL, INTENT(inout) :: &
+   REAL, DIMENSION(:,:,:), OPTIONAL, INTENT(inout) :: &
          & edmf_a,edmf_w,edmf_qt,edmf_thl,edmf_ent,edmf_qc, &
          & edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd,& 
          & mynn_ql,edmf_debug1,edmf_debug2,edmf_debug3,edmf_debug4
@@ -3686,10 +3687,10 @@ END SUBROUTINE mym_condensation
          &KPBL,ktop_shallow
 
 
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
+    REAL, DIMENSION(:,:,:), INTENT(inout) :: &
          &el_pbl
 
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
+    REAL, DIMENSION(:,:,:), INTENT(out) :: &
          &qWT,qSHEAR,qBUOY,qDISS,dqke
     ! 3D budget arrays are not allocated when bl_mynn_tkebudget == 0.
     ! 1D (local) budget arrays are used for passing between subroutines.
@@ -3697,13 +3698,13 @@ END SUBROUTINE mym_condensation
 
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: K_q,Sh3D
 
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
+    REAL, DIMENSION(:,:,:), INTENT(inout) :: &
          &qc_bl,cldfra_bl
     REAL, DIMENSION(KTS:KTE) :: qc_bm,cldfra_bm,&
                              qc_am,cldfra_am
     REAl, DIMENSION(KTS:KTE) :: liquid_frac                        
   
-    REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: RCCBLTEN,RTHLBLTEN,RQTBLTEN
+    REAL,DIMENSION(:,:,:), INTENT(out) :: RCCBLTEN,RTHLBLTEN,RQTBLTEN
   
 !local vars
 !  INTEGER :: ITF,JTF,KTF, IMD,JMD
@@ -3762,8 +3763,8 @@ END SUBROUTINE mym_condensation
 
 
     !<--- yhc_mynn, add new output variables, 2021-04-02
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
-    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+    REAL, DIMENSION(:,:,:), INTENT(out) :: &
+    !REAL, DIMENSION(:,:,:) :: &
        qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &
        qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix
 
@@ -6202,9 +6203,24 @@ subroutine edmf_mynn_driver ( &
   logical do_writeout_column
   real    :: lat_lower, lat_upper, lon_lower, lon_upper, lat_temp, lon_temp
   real    :: tt1
+  integer :: ix,jx,kx
   integer :: i,j,k
 
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,2), &
+                   size(Physics_input_block%t,3)+1) :: &
+          diag_half
+
+  logical, dimension (size(Physics_input_block%t,1), &
+                      size(Physics_input_block%t,2), &
+                      size(Physics_input_block%t,3)+1) :: &
+          lmask_half 
+
 !-------------------------
+
+  ix = size(Physics_input_block%t,1)
+  jx = size(Physics_input_block%t,2)
+  kx = size(Physics_input_block%t,3)
 
 !---------
 ! check 
@@ -6446,6 +6462,10 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 ! write out fields to history files
 !---------------------------------------------------------------------
+      
+      !--- set up local mask for fields without surface data
+      lmask_half(:,:,1:kx) = .true.
+      lmask_half(:,:,kx+1) = .false.
 
 !!------- zonal wind stress (units: kg/m/s2) at one level -------
 !      if ( id_u_flux > 0) then
@@ -6612,14 +6632,20 @@ subroutine edmf_mynn_driver ( &
 !        used = send_data (id_thldt_edmf, am4_Output_edmf%thldt_edmf, Time_next, is, js, 1 )
 !      endif
 !
-!!------- heat diff coeffs from edmf_mynn (units: K/m/s) at full level -------
+!!------- heat diff coeffs from edmf_mynn (units: K/m/s) at half level -------
 !      if ( id_diff_t_edmf > 0) then
-!        used = send_data (id_diff_t_edmf, am4_Output_edmf%diff_t_edmf, Time_next, is, js, 1 )
+!        ! the dimension size of am4_Output_edmf%diff_t_edmf is kx, but it is on half level. Write out on half levels
+!        diag_half(:,:,kx+1) = 0.
+!        diag_half(:,:,1:kx) = am4_Output_edmf%diff_t_edmf(:,:,1:kx)
+!        used = send_data (id_diff_t_edmf, diag_half, Time_next, is, js, 1, mask=lmask_half )
 !      endif
 !
-!!------- momentum diff coeffs from edmf_mynn (units: m2/s) at full level -------
+!!------- momentum diff coeffs from edmf_mynn (units: m2/s) at half level -------
 !      if ( id_diff_m_edmf > 0) then
-!        used = send_data (id_diff_m_edmf, am4_Output_edmf%diff_m_edmf, Time_next, is, js, 1 )
+!        ! the dimension size of am4_Output_edmf%diff_t_edmf is kx, but it is on half level. Write out on half levels
+!        diag_half(:,:,kx+1) = 0.
+!        diag_half(:,:,1:kx) = am4_Output_edmf%diff_m_edmf(:,:,1:kx)
+!        used = send_data (id_diff_m_edmf, diag_half, Time_next, is, js, 1, mask=lmask_half )
 !      endif
 !
 !!------- mixing length in edmf_mynn (units: m) at full level -------
@@ -7159,7 +7185,7 @@ subroutine edmf_alloc ( &
 
   ! 3-D variable
   allocate (Output_edmf%Qke         (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Qke         = 0.
-!print*,'alloc, Output_edmf%Qke, ix,jx,kx',size(Output_edmf%Qke,1),size(Output_edmf%Qke,2),size(Output_edmf%Qke,3)
+!print*,'alloc, Output_edmf%Qke, IMS:IME,JMS:JME,kx',size(Output_edmf%Qke,1),size(Output_edmf%Qke,2),size(Output_edmf%Qke,3)
   allocate (Output_edmf%Tsq         (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Tsq         = 0.
   allocate (Output_edmf%Qsq         (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Qsq         = 0.
   allocate (Output_edmf%Cov         (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Cov         = 0.
@@ -7513,7 +7539,7 @@ subroutine edmf_alloc ( &
   am4_Output_edmf%qt_input  (:,:,:) = qt_host    (:,:,:)
   am4_Output_edmf%th_input  (:,:,:) = th_host    (:,:,:)
 
-  ! amip run this will fail, comment out for a moment. 2021-05-03
+  !--- amip run blew up when this is on, comment out. 2021-05-05
   !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_input(:,:,:),  &
   !              am4_Output_edmf%q_input(:,:,:), rh_host(:,:,:), do_simple )
   !am4_Output_edmf%rh_input  (:,:,:) = rh_host(:,:,:)*100.
@@ -8578,7 +8604,6 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
                                          -  am4_Output_edmf%ql_after_mix(:,:,:)    &
                                          -  am4_Output_edmf%qi_after_mix(:,:,:)    
 
-
   ! amip run this will fail, comment out for a moment. 2021-04-20
   !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_before_mix(:,:,:),  &
   !              am4_Output_edmf%q_before_mix(:,:,:), am4_Output_edmf%rh_before_mix(:,:,:), do_simple )
@@ -8587,6 +8612,20 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_after_mix(:,:,:),  &
   !              am4_Output_edmf%q_after_mix(:,:,:), am4_Output_edmf%rh_after_mix(:,:,:), do_simple )
   !am4_Output_edmf%rh_after_mix  (:,:,:) = am4_Output_edmf%rh_after_mix(:,:,:)*100.
+
+  !----------------
+  ! debug purpose
+  !----------------
+
+  !--- set diff_t = diff_m
+  if (do_debug_option .eq. "diff_t=diff_m") then
+    am4_Output_edmf%diff_t_edmf(:,:,:) = am4_Output_edmf%diff_m_edmf(:,:,:)
+  endif  ! end if of do_debug_option .eq. "diff_t=diff_m"
+
+  !--- set diff_t = 0.5 * diff_m
+  if (do_debug_option .eq. "diff_t=half_diff_m") then
+    am4_Output_edmf%diff_t_edmf(:,:,:) = 0.5 * am4_Output_edmf%diff_m_edmf(:,:,:)
+  endif  ! end if of do_debug_option .eq. "diff_t=diff_m"
 
 end subroutine convert_edmf_to_am4_array
 
