@@ -115,7 +115,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
 
    !integer :: initflag = 1                 ! (when 1 it initializes TKE using level 2 MYNN scheme) 
    integer :: initflag = 0 
-   logical :: FLAG_QI  = .false.             ! (flags for whether cloud and ice mixing rations and number concentrations are mixed separately)
+   logical :: FLAG_QI  = .true.             ! (flags for whether cloud and ice mixing rations and number concentrations are mixed separately)
    logical :: FLAG_QNI = .false.            ! all false
    logical :: FLAG_QC  = .false.
    logical :: FLAG_QNC = .false.
