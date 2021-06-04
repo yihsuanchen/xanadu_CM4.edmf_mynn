@@ -365,7 +365,7 @@ end type edmf_ls_mp_type
 
   integer :: initflag = 1                 ! (when 1 it initializes TKE using level 2 MYNN scheme)
   logical :: FLAG_QI  = .true.            ! (flags for whether cloud and ice mixing rations and number concentrations are mixed separately)
-  logical :: FLAG_QNI = .false.            ! all false except FLAG_QI that Kay Suselj said "bl_mynn_cloudmix=1 and FLAG_QI=.true." on 12/11/2020
+  logical :: FLAG_QNI = .false.           ! all false except FLAG_QI that Kay Suselj said "bl_mynn_cloudmix=1 and FLAG_QI=.true." on 12/11/2020
   logical :: FLAG_QC  = .false.
   logical :: FLAG_QNC = .false.
 
@@ -408,6 +408,8 @@ end type edmf_ls_mp_type
                                                 !             (rdgas/rvgas)*esat/pressure
                                                 ! same setting as module moist_processes_mod
 
+  character*20 :: do_debug_option = ""          ! debug purpose
+
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
   real    :: tdt_max     = 500. ! K/day
@@ -424,8 +426,8 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, & 
                             do_option_edmf2ls_mp, do_use_tau, &
-                            do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
-         
+                            do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
+
 !---------------------------------------------------------------------
 !--- Diagnostic fields       
 !---------------------------------------------------------------------
@@ -706,11 +708,11 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  'thl tendency from edmf_mynn', 'K/s' , &
                  missing_value=missing_value )
 
-  id_diff_t_edmf = register_diag_field (mod_name, 'diff_t_edmf', axes(full), Time, &
+  id_diff_t_edmf = register_diag_field (mod_name, 'diff_t_edmf', axes(half), Time, &
                  'heat diff coeffs from edmf_mynn', 'K/m/s' , &
                  missing_value=missing_value )
 
-  id_diff_m_edmf = register_diag_field (mod_name, 'diff_m_edmf', axes(full), Time, &
+  id_diff_m_edmf = register_diag_field (mod_name, 'diff_m_edmf', axes(half), Time, &
                  'momentum diff coeffs from edmf_mynn', 'm2/s' , &
                  missing_value=missing_value )
 
@@ -6612,8 +6614,21 @@ subroutine edmf_mynn_driver ( &
   real    :: lat_lower, lat_upper, lon_lower, lon_upper, lat_temp, lon_temp
   real    :: tt1
   integer :: i,j,k
+  integer :: ix,jx,kx
 
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,2), &
+                   size(Physics_input_block%t,3)+1) :: &
+          diag_half
+
+  logical, dimension (size(Physics_input_block%t,1), &
+                      size(Physics_input_block%t,2), &
+                      size(Physics_input_block%t,3)+1) :: &
+          lmask_half 
 !-------------------------
+  ix = size(Physics_input_block%t,1)
+  jx = size(Physics_input_block%t,2)
+  kx = size(Physics_input_block%t,3)  
 
 !---------
 ! check 
@@ -6856,6 +6871,10 @@ subroutine edmf_mynn_driver ( &
 ! write out fields to history files
 !---------------------------------------------------------------------
 
+      !--- set up local mask for fields without surface data
+      lmask_half(:,:,1:kx) = .true.
+      lmask_half(:,:,kx+1) = .false.
+
 !------- zonal wind stress (units: kg/m/s2) at one level -------
       if ( id_u_flux > 0) then
         used = send_data (id_u_flux, u_flux, Time_next, is, js )
@@ -7021,14 +7040,22 @@ subroutine edmf_mynn_driver ( &
         used = send_data (id_thldt_edmf, am4_Output_edmf%thldt_edmf, Time_next, is, js, 1 )
       endif
 
-!------- heat diff coeffs from edmf_mynn (units: K/m/s) at full level -------
+!------- heat diff coeffs from edmf_mynn (units: K/m/s) at half level -------
       if ( id_diff_t_edmf > 0) then
-        used = send_data (id_diff_t_edmf, am4_Output_edmf%diff_t_edmf, Time_next, is, js, 1 )
+        ! the dimension size of am4_Output_edmf%diff_t_edmf is kx, but it is on half level. Write out on half levels
+        diag_half(:,:,kx+1) = 0.
+        diag_half(:,:,1:kx) = am4_Output_edmf%diff_t_edmf(:,:,1:kx)
+        used = send_data (id_diff_t_edmf, diag_half, Time_next, is, js, 1, mask=lmask_half )
+        !used = send_data (id_diff_t_edmf, am4_Output_edmf%diff_t_edmf, Time_next, is, js, 1 )
       endif
 
-!------- momentum diff coeffs from edmf_mynn (units: m2/s) at full level -------
+!------- momentum diff coeffs from edmf_mynn (units: m2/s) at half level -------
       if ( id_diff_m_edmf > 0) then
-        used = send_data (id_diff_m_edmf, am4_Output_edmf%diff_m_edmf, Time_next, is, js, 1 )
+        ! the dimension size of am4_Output_edmf%diff_m_edmf is kx, but it is on half level. Write out on half levels
+        diag_half(:,:,kx+1) = 0.
+        diag_half(:,:,1:kx) = am4_Output_edmf%diff_m_edmf(:,:,1:kx)
+        used = send_data (id_diff_m_edmf, diag_half, Time_next, is, js, 1, mask=lmask_half )
+        !used = send_data (id_diff_m_edmf, am4_Output_edmf%diff_m_edmf, Time_next, is, js, 1 )
       endif
 
 !------- mixing length in edmf_mynn (units: m) at full level -------
