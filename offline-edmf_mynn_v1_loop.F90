@@ -25,8 +25,8 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "xxx"
   character*50 :: input_profile = "SCM_BOMEX_MYNN_ED_mixleng3"
 
-  integer, parameter :: loop_times = 24
- ! integer, parameter :: loop_times = 24 
+!  integer, parameter :: loop_times = 1
+  integer, parameter :: loop_times = 24 
  ! integer, parameter :: loop_times = 100
  ! integer, parameter :: loop_times = 60 
 
@@ -1182,11 +1182,19 @@ CONTAINS
 !   **  Flux Richardson number  **
        rf = MIN( ri1*( ri+ri2-SQRT(ri**2-ri3*ri+ri4) ), rfc )
 !
-       sh (k) = shc*( rfc-rf )/( 1.0-rf )
-       sm (k) = smc*( rf1-rf )/( rf2-rf ) * sh(k)
-       
-       sm(k)=1.
-       sh(k)=1.
+!       sh (k) = shc*( rfc-rf )/( 1.0-rf )
+!       sm (k) = smc*( rf1-rf )/( rf2-rf ) * sh(k)
+! replace stability functions with alphas from Suselj et al. 2019        
+        if (ri .le. 0.) then
+        ! unstable/neutral layers
+         sh(k)=1.4
+         sm(k)=1.
+         else
+         ! stable layers
+         sh(k)=(1.4-0.001*ri+1.29*ri**2)/(1.+2.3*ri+19.81*ri**2)      
+         sm(k)=(1.+8.*ri**2)/(1.+2.3*ri+35.*ri**2)
+        end if
+  !      print *,'k,ri,sm,sh',k,ri,sm(k),sh(k)
     END DO
 !
 !    RETURN
@@ -2092,9 +2100,6 @@ CONTAINS
           sm(k) = sm(k) * qdiv
           sh(k) = sh(k) * qdiv
 !
-
-          sm(k)=1.
-          sh(k)=1. 
           !JOE-Canuto/Kitamura mod
           !e1   = q3sq - e1c*ghel * qdiv**2
           !e2   = q3sq - e2c*ghel * qdiv**2
@@ -2124,8 +2129,6 @@ CONTAINS
           !JOE-Canuto/Kitamura mod
           !sh(k) = q3sq*a2*( e2+3.0*c1*e5c*gmel )/eden
           sh(k) = q3sq*(a2/a2den)*( e2+3.0*c1*e5c*gmel )/eden
-          sm(k)=1.
-          sh(k)=1.
        END IF !end Helfand & Labraga check
 
        !JOE: Level 2.5 debug prints
