@@ -4199,8 +4199,8 @@ Latest code version, 01/24/2021
       </namelist>
     </input>
     <postProcess>
-      <xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess']/postProcess/node())"/>
-      <!--xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess_EDMF']/postProcess/node())"/-->
+      <!--xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess']/postProcess/node())"/-->
+      <xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess_EDMF']/postProcess/node())"/>
     </postProcess>
   </experiment>
 
@@ -4318,12 +4318,193 @@ Latest code version, 01/24/2021
     </input>
   </experiment>
 
+  <experiment name="m12a-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000" inherit="m12-c96L33_am4p0_mynn_diff_Gmy_UWlock_ICam4p0_2000">
+    <description>
+       same as m12-c96L33_am4p0_mynn_diff_Gmy_UWlock_ICam4p0_2000 but the edmf_mynn.F90 and physics_driver.F90 are updated.
+       The results are exactly the same
 
+      code version
+        edmf_mynn.F90, abceb102bd6fe854ba4f9e6ff3e8e389df331ab1
+        physics_driver.F90, 030d0d6df06ecb09e7f15ff9867ea813890812bc
+    </description>
+  </experiment>
+
+  <experiment name="m12a1-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_ei4" inherit="m12a-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000">
+    <input>
+      <namelist name="deep_conv_nml">
+ PEFF_I_D        =  4.E-5
+ CBMF0   =  1.000000000000000E-004,
+ RKM_DP1 =  0.900000000000000     ,
+ RKM_DP2 =  0.100000000000000     ,
+ DO_FORCED_CONV  = F,
+ INCLUDE_EMF_D   = F,
+ CRH_TH_OCEAN    =  0.400000000000000     ,
+ CRH_TH_LAND     =  0.400000000000000     ,
+ DO_FORCEDLIFTING_D      = F,
+ FRAC_LIMIT_D    =  0.250000000000000     ,
+ WCRIT_MIN_GUST  =  0.200000000000000     ,
+ CIN_FACT        =   1.00000000000000     ,
+ CAPE_TH =   10.0000000000000     ,
+ CIN_TH  =   5.00000000000000     ,
+ CWFN_TH =   10.0000000000000     ,
+ TAU_DP  =   28800.0000000000     ,
+ RPEN_D  =   4.00000000000000     ,
+ MIXING_ASSUMPTION_D     =           6,
+ NORDER  =           1,
+ DCWFNDM_TH      =   100.000000000000     ,
+ DO_PPEN_D       = T,
+ DO_PEVAP_D      = T,
+ CFRAC_D =  0.150000000000000     ,
+ HCEVAP_D        =  0.850000000000000     ,
+ PBLFAC_D        =   1.00000000000000     ,
+ HCEVAPPBL_D     =  0.950000000000000     ,
+ LOFACTOR_D      =   1.00000000000000     ,
+ DCAPEDM_TH      =  0.000000000000000E+000,
+ AUTO_TH0_D      =  2.000000000000000E-004,
+ TCRIT_D =  -25.1500000000000     ,
+ DO_LOD_RKM      = F,
+ DO_LOD_CFRAC    = F,
+ DO_LOD_TCRIT    = F,
+ DO_LOD_CAPE     = F,
+ PEFF_L_D        =  6.000000000000000E-005,
+ DO_LOD_TAU      = F,
+ DO_LOD_CUSH     = F,
+ CGUST_CHOICE    =           1,
+ TAU_DP_FACT     =   10.0000000000000     ,
+ CRH_MAX =   1.00000000000000     ,
+ DO_STOCHASTIC_RKM       = F,
+ FRAC_RKM_PERT   =   1.00000000000000     ,
+ DO_CGUST_DP     = T,
+ GUSTMAX =   3.00000000000000     ,
+ CPOOL_GUST      =   10.0000000000000     ,
+ SRC_CHOICE_D    =           0
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="m12b1-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_rdpI0.2" inherit="m12a-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000">
+    <input>
+      <namelist name="deep_conv_nml">
+ CBMF0   =  1.000000000000000E-004,
+ RKM_DP1 =  0.200000000000000     ,
+ RKM_DP2 =  0.100000000000000     ,
+ DO_FORCED_CONV  = F,
+ INCLUDE_EMF_D   = F,
+ CRH_TH_OCEAN    =  0.400000000000000     ,
+ CRH_TH_LAND     =  0.400000000000000     ,
+ DO_FORCEDLIFTING_D      = F,
+ FRAC_LIMIT_D    =  0.250000000000000     ,
+ WCRIT_MIN_GUST  =  0.200000000000000     ,
+ CIN_FACT        =   1.00000000000000     ,
+ CAPE_TH =   10.0000000000000     ,
+ CIN_TH  =   5.00000000000000     ,
+ CWFN_TH =   10.0000000000000     ,
+ TAU_DP  =   28800.0000000000     ,
+ RPEN_D  =   4.00000000000000     ,
+ MIXING_ASSUMPTION_D     =           6,
+ NORDER  =           1,
+ DCWFNDM_TH      =   100.000000000000     ,
+ DO_PPEN_D       = T,
+ DO_PEVAP_D      = T,
+ CFRAC_D =  0.150000000000000     ,
+ HCEVAP_D        =  0.850000000000000     ,
+ PBLFAC_D        =   1.00000000000000     ,
+ HCEVAPPBL_D     =  0.950000000000000     ,
+ LOFACTOR_D      =   1.00000000000000     ,
+ DCAPEDM_TH      =  0.000000000000000E+000,
+ AUTO_TH0_D      =  2.000000000000000E-004,
+ TCRIT_D =  -25.1500000000000     ,
+ DO_LOD_RKM      = F,
+ DO_LOD_CFRAC    = F,
+ DO_LOD_TCRIT    = F,
+ DO_LOD_CAPE     = F,
+ PEFF_I_D        =  11.E-5
+ PEFF_L_D        =  6.000000000000000E-005,
+ DO_LOD_TAU      = F,
+ DO_LOD_CUSH     = F,
+ CGUST_CHOICE    =           1,
+ TAU_DP_FACT     =   10.0000000000000     ,
+ CRH_MAX =   1.00000000000000     ,
+ DO_STOCHASTIC_RKM       = F,
+ FRAC_RKM_PERT   =   1.00000000000000     ,
+ DO_CGUST_DP     = T,
+ GUSTMAX =   3.00000000000000     ,
+ CPOOL_GUST      =   10.0000000000000     ,
+ SRC_CHOICE_D    =           0
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xxm12b1-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_rdpI0.2" inherit="m12a-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000">
+    <input>
+      <namelist name="deep_conv_nml">
+ RKM_DP1 =  0.200000000000000     ,
+ PEFF_I  =  1.100000000000000E-004,
+ CBMF0   =  1.000000000000000E-004,
+ RKM_DP2 =  0.100000000000000     ,
+ DO_FORCED_CONV  = F,
+ INCLUDE_EMF_D   = F,
+ CRH_TH_OCEAN    =  0.400000000000000     ,
+ CRH_TH_LAND     =  0.400000000000000     ,
+ DO_FORCEDLIFTING_D      = F,
+ FRAC_LIMIT_D    =  0.250000000000000     ,
+ WCRIT_MIN_GUST  =  0.200000000000000     ,
+ CIN_FACT        =   1.00000000000000     ,
+ CAPE_TH =   10.0000000000000     ,
+ CIN_TH  =   5.00000000000000     ,
+ CWFN_TH =   10.0000000000000     ,
+ TAU_DP  =   28800.0000000000     ,
+ RPEN_D  =   4.00000000000000     ,
+ MIXING_ASSUMPTION_D     =           6,
+ NORDER  =           1,
+ DCWFNDM_TH      =   100.000000000000     ,
+ DO_PPEN_D       = T,
+ DO_PEVAP_D      = T,
+ CFRAC_D =  0.150000000000000     ,
+ HCEVAP_D        =  0.850000000000000     ,
+ PBLFAC_D        =   1.00000000000000     ,
+ HCEVAPPBL_D     =  0.950000000000000     ,
+ LOFACTOR_D      =   1.00000000000000     ,
+ DCAPEDM_TH      =  0.000000000000000E+000,
+ AUTO_TH0_D      =  2.000000000000000E-004,
+ TCRIT_D =  -25.1500000000000     ,
+ DO_LOD_RKM      = F,
+ DO_LOD_CFRAC    = F,
+ DO_LOD_TCRIT    = F,
+ DO_LOD_CAPE     = F,
+ PEFF_L_D        =  6.000000000000000E-005,
+ DO_LOD_TAU      = F,
+ DO_LOD_CUSH     = F,
+ CGUST_CHOICE    =           1,
+ TAU_DP_FACT     =   10.0000000000000     ,
+ CRH_MAX =   1.00000000000000     ,
+ DO_STOCHASTIC_RKM       = F,
+ FRAC_RKM_PERT   =   1.00000000000000     ,
+ DO_CGUST_DP     = T,
+ GUSTMAX =   3.00000000000000     ,
+ CPOOL_GUST      =   10.0000000000000     ,
+ SRC_CHOICE_D    =           0
+      </namelist>
+    </input>
+  </experiment>
+  
+
+
+<!--
+########################
+########################
+########################
+########################
+########################
+-->
 
   <experiment name="x01-a00-c96L33_am4p0_donner" inherit="a00-c96L33_am4p0_donner">
   </experiment>
 
   <experiment name="x01-m11-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000" inherit="m11-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000">
+  </experiment>
+
+  <experiment name="x01-m12-c96L33_am4p0_mynn_diff_Gmy_UWlock_ICam4p0_2000" inherit="m12-c96L33_am4p0_mynn_diff_Gmy_UWlock_ICam4p0_2000">
   </experiment>
 
   <experiment name="x01-m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000" inherit="m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000">
