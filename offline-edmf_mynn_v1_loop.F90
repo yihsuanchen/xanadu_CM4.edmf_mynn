@@ -126,6 +126,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
   real :: L0 = 100.                      ! entrainemnt rate parameter
   integer :: NUP=100                     ! the number of updrafts
   REAL :: UPSTAB=1.            ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
+  INTEGER :: bl_mynn_stabfunc  = 0       !  option for stability function. 0 - MYNN, 1 - Suselj et al. (2019)
 
 !############################
 !############################
@@ -1182,18 +1183,23 @@ CONTAINS
 !   **  Flux Richardson number  **
        rf = MIN( ri1*( ri+ri2-SQRT(ri**2-ri3*ri+ri4) ), rfc )
 !
-!       sh (k) = shc*( rfc-rf )/( 1.0-rf )
-!       sm (k) = smc*( rf1-rf )/( rf2-rf ) * sh(k)
+       if (bl_mynn_stabfunc .eq. 0)  then   ! yhc_0614, use MYNN's stability function
+         sh (k) = shc*( rfc-rf )/( 1.0-rf )
+         sm (k) = smc*( rf1-rf )/( rf2-rf ) * sh(k)
 ! replace stability functions with alphas from Suselj et al. 2019        
-        if (ri .le. 0.) then
-        ! unstable/neutral layers
-         sh(k)=1.4
-         sm(k)=1.
-         else
-         ! stable layers
-         sh(k)=(1.4-0.001*ri+1.29*ri**2)/(1.+2.3*ri+19.81*ri**2)      
-         sm(k)=(1.+8.*ri**2)/(1.+2.3*ri+35.*ri**2)
-        end if
+
+       else if (bl_mynn_stabfunc .eq. 1) then  ! yhc_0614, use Suselj et al (2019)'s stability function
+         if (ri .le. 0.) then
+         ! unstable/neutral layers
+          sh(k)=1.4
+          sm(k)=1.
+          else
+          ! stable layers
+          sh(k)=(1.4-0.001*ri+1.29*ri**2)/(1.+2.3*ri+19.81*ri**2)      
+          sm(k)=(1.+8.*ri**2)/(1.+2.3*ri+35.*ri**2)
+         endif
+       endif
+
   !      print *,'k,ri,sm,sh',k,ri,sm(k),sh(k)
     END DO
 !
