@@ -102,8 +102,14 @@ logical, public                :: do_nudge = .true.
 real,    private               :: psfc = 1015.0e2
 real,    private               :: zsfc =    0.0
 real,    private               :: ustar_sfc   =   0.28
+! ZNT 05/15/2020: Minor difference from Siebesma paper 
+! in which the non-massweighted values are prescribed (8e-3 K*m/s, 5.2e-5 kg/kg*m/s)
 real,    private               :: flux_t_sfc  =   9.52
 real,    private               :: flux_q_sfc  = 153.4
+! ZNT 05/18/2020: Original Siebesma value
+real,    private               :: wpthlp_sfc = 8.e-3
+real,    private               :: wpqtp_sfc  = 5.2e-5
+real,    private               :: fcor = 0.376e-4
 ! ZNT 06/14/2021: Stability for profile above 3000m (need to be non-convecting)
 real,    private               :: dthldz_up = 3.65E-3
 
@@ -111,6 +117,7 @@ real,    private               :: missing_value = -999.
 
 logical, private               :: initialized = .false.
 logical                        :: do_netcdf_restart = .true.
+logical                        :: do_siebesma = .true.   ! ZNT 05/18/2020
 
 integer :: nsphum, nql, nqi, nqa, nqn, nqni
 integer :: vadvec_scheme
@@ -131,7 +138,9 @@ namelist /scm_bomex_nml/ tracer_vert_advec_scheme,                   &
                          do_nudge,                                   &
                          ustar_sfc, flux_t_sfc, flux_q_sfc,          &
                          configuration,                              &
-                         dthldz_up                    ! ZNT 06/14/2021
+                         wpthlp_sfc, wpqtp_sfc, fcor,  & ! ZNT 05/18/2020
+                         do_siebesma, &                  ! ZNT 05/18/2020
+                         dthldz_up                       ! ZNT 06/14/2021
 
 ! diagnostics
 
@@ -362,6 +371,7 @@ integer :: j
       call bomex_snd( zf(1,1,k), u_snd, v_snd, ug_snd, vg_snd, thetal_snd, qt_snd )
       u_geos(:,:,k) = ug_snd
       v_geos(:,:,k) = vg_snd
+      ! ZNT 05/15/2020: Note the following subroutine takes mixing ratio as input but outputs sphum.
       call thetal_to_temp( thetal_snd, qt_snd, pf(1,1,k), T_snd, qv_snd, ql_snd )
       pt(:,:,k)  = max ( T_snd, 200.0 )
       ua(:,:,k) = u_snd
@@ -623,11 +633,11 @@ end do
 omega_h = 0.0
 do k=2,kdim
    if ( zh(1,1,k) < 1500.0 ) then
-      omega_h(:,:,k) = pf(1,1,k)/(rdgas*0.5*(pt(1,1,k)+pt(1,1,k-1)))*grav &
-                       * (0.0065/2100.0)*zh(1,1,k)
+      omega_h(:,:,k) = ph(1,1,k)/(rdgas*0.5*(pt(1,1,k)+pt(1,1,k-1)))*grav &
+                       * (0.0065/1500.0)*zh(1,1,k)                           ! ZNT corrected 05/18/2020
    elseif ( zh(1,1,k) < 2100.0 ) then
-      omega_h(:,:,k) = pf(1,1,k)/(rdgas*0.5*(pt(1,1,k)+pt(1,1,k-1)))*grav &
-                       * (0.0065 - (0.0065/(2100.-1500.))*(zh(1,1,k)-1500.))
+      omega_h(:,:,k) = ph(1,1,k)/(rdgas*0.5*(pt(1,1,k)+pt(1,1,k-1)))*grav &
+                       * (0.0065 - (0.0065/(2100.-1500.))*(zh(1,1,k)-1500.)) ! ZNT corrected 05/18/2020
    else
       omega_h(:,:,k) = 0.
    end if
@@ -735,7 +745,12 @@ dv_nudge = 0.0
 ! --- compute geostrophic tendencies
 du_geos=0.; dv_geos=0.;
 if (do_geo) then
-   fcriolis = f_d(1,1)
+   ! ZNT 05/15/2020: minor difference from Siebesma (2003) paper (computed: 0.3775e-4; paper: 0.376e-4)
+   if (do_siebesma) then
+      fcriolis = fcor
+   else
+      fcriolis = f_d(1,1)
+   endif   
    do k=1, kdim
       du_geos(:,:,k) =   fcriolis * (va(1,1,k)-v_geos(1,1,k))
       dv_geos(:,:,k) = - fcriolis * (ua(1,1,k)-u_geos(1,1,k))
@@ -824,14 +839,20 @@ end subroutine update_bomex_forc
 !########################################################################
 ! This subroutine returns imposed surface fluxes
 
-subroutine get_bomex_flx( ustar, flux_t, flux_q )
+subroutine get_bomex_flx( rho, ustar, flux_t, flux_q )
 
   implicit none
+  real, intent(in),  dimension(:) :: rho
   real, intent(out), dimension(:) :: ustar, flux_t, flux_q
 
   ustar = ustar_sfc
-  flux_t = flux_t_sfc
-  flux_q = flux_q_sfc
+  if (do_siebesma) then
+      flux_t = rho*cp_air*wpthlp_sfc*(psfc/p00)**(rdgas/cp_air)
+      flux_q = rho*hlv*wpqtp_sfc
+  else
+      flux_t = flux_t_sfc
+      flux_q = flux_q_sfc
+  endif
 
 end subroutine get_bomex_flx
 
