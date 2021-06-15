@@ -360,6 +360,7 @@ end type edmf_ls_mp_type
   INTEGER :: bl_mynn_edmf_part = 1         ! partition area into updrafts and remaining environment
   INTEGER :: bl_mynn_cloudmix  = 1         ! 1 - cloud species are mixed separately, 0 - not
   INTEGER :: bl_mynn_mixqt     = 2         ! will mix moist conserved variables, after mixing invokes PDF cloud scheme to convert moist variables to dry
+  INTEGER :: bl_mynn_stabfunc  = 0       !  option for stability function. 0 - MYNN, 1 - Suselj et al. (2019)
   INTEGER :: icloud_bl         = 1         ! 1, cloud cover and liquid water from the PDF scheme will be on the cloud output
   INTEGER :: spp_pbl           = 0         ! 1 stochastic perturbation to condensation  
 
@@ -421,7 +422,7 @@ end type edmf_ls_mp_type
 
   real    :: sgm_factor = 100.                  ! factor in computing sigma_s in MYNN
 
-namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, &
+namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, & 
@@ -1592,8 +1593,23 @@ end subroutine edmf_mynn_end
 !   **  Flux Richardson number  **
        rf = MIN( ri1*( ri+ri2-SQRT(ri**2-ri3*ri+ri4) ), rfc )
 !
-       sh (k) = shc*( rfc-rf )/( 1.0-rf )
-       sm (k) = smc*( rf1-rf )/( rf2-rf ) * sh(k)
+       if (bl_mynn_stabfunc .eq. 0)  then   ! yhc_0614, use MYNN's stability function
+         sh (k) = shc*( rfc-rf )/( 1.0-rf )
+         sm (k) = smc*( rf1-rf )/( rf2-rf ) * sh(k)
+! replace stability functions with alphas from Suselj et al. 2019        
+
+       else if (bl_mynn_stabfunc .eq. 1) then  ! yhc_0614, use Suselj et al (2019)'s stability function
+         if (ri .le. 0.) then
+         ! unstable/neutral layers
+          sh(k)=1.4
+          sm(k)=1.
+          else
+          ! stable layers
+          sh(k)=(1.4-0.001*ri+1.29*ri**2)/(1.+2.3*ri+19.81*ri**2)
+          sm(k)=(1.+8.*ri**2)/(1.+2.3*ri+35.*ri**2)
+         endif
+       endif
+
     END DO
 !
 !    RETURN
