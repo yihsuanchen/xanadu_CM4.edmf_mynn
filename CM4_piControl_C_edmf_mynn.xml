@@ -65,6 +65,8 @@ NOTES:
 -->
 
 <experimentSuite rtsVersion="4" xmlns:xi="http://www.w3.org/2003/XInclude">
+  <!-- yhc's variables -->
+  <property name="MODEL_CONFIG"        value="cm4_sis2_compile_edmf_mynn"/>    <!-- set the name of source code and complie options -->
 
   <!--User should set the following properties according to the plan for the production run-->	
   <property name="RELEASE"        value="xanadu"/>           <!-- git tag for general component source code-->
@@ -859,7 +861,9 @@ NOTES:
   <property name="FMS_LIB_DIR"    value="./$(LIBS_ROOT)/$(platform)-$(target)/exec"/>
   <property name="MY_LIBS"        value="$(EXEC_ROOT)/$(FMS_LIB_DIR)"/>
 
-  <experiment name="cm4_sis2_compile">
+  <!--experiment name="cm4_sis2_compile"-->
+  <!--experiment name="cm4_sis2_compile_original"-->  
+  <experiment name="$(MODEL_CONFIG)">  
     <description>
 Experiment to build executable.
     </description>
@@ -1150,9 +1154,24 @@ Experiment to build executable.
       <dataFile label="fieldTable" target="INPUT/" chksum="" size="" timestamp="">
         <dataSource platform="$(platform)">$(AWG_INPUT_HOME)/field_table/field_table_am4p11_cmip6</dataSource>
       </dataFile>
+      <dataFile label="fieldTable" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(AWG_INPUT_HOME)/field_table/field_table_edmf_mynn</dataSource>  <!-- yhc add -->
+      </dataFile>
     </input>
   </freInclude>
 
+  <!-- yhc add
+  <freInclude name="field_table_am4p11_cmip6_edmf_mynn">
+    <input>
+      <dataFile label="fieldTable" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(AWG_INPUT_HOME)/field_table/field_table_am4p11_cmip6</dataSource>
+      </dataFile>
+      <dataFile label="fieldTable" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(AWG_INPUT_HOME)/field_table/field_table_edmf_mynn</dataSource>
+      </dataFile>
+    </input>
+  </freInclude>
+  -->
 
   <freInclude name="diag_table_lm3p2_fullaero_cmip6">
     <input>
@@ -3027,7 +3046,8 @@ $baseDate
       </diagTable>
     </input>
   </experiment>
-  <experiment name="CM4_piControl_C" inherit="cm4_sis2_compile">
+  <!--experiment name="CM4_piControl_C" inherit="cm4_sis2_compile"-->
+  <experiment name="CM4_piControl_C" inherit="$(MODEL_CONFIG)">
 
 <description>
 change from A
@@ -3463,6 +3483,9 @@ MOM_OVERRIDE_EOF
         <run days="2"><xi:include xpointer="xpointer(//freInclude[@name='resourceparams_A216x4h_O648']/node())"/> </run>
         <run days="1 1"><xi:include xpointer="xpointer(//freInclude[@name='resourceparams_A216x4h_O648']/node())"/> </run>
       </regression>
+      <regression name="debug_4d">
+        <run days="4"><xi:include xpointer="xpointer(//freInclude[@name='resourceparams_A216x2_O648']/node())"/> </run>
+      </regression>
       <regression name="timing">
         <run months="1"> <xi:include xpointer="xpointer(//freInclude[@name='resourceparams_A576x2_O2997']/node())"/> </run>
         <run months="1"> <xi:include xpointer="xpointer(//freInclude[@name='resourceparams_A432x2_O2997']/node())"/> </run>
@@ -3571,4 +3594,27 @@ MATCH
       </dataFile>       
     </input>
   </experiment>
+
+  <experiment name="a00-CM4_piControl_C_original" inherit="CM4_piControl_C">
+      <!--xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_cmip6_edmf_mynn']/input/node())"/-->
+    <input>
+      <diagTable order="append">
+ "edmf_mynn", "tke_edmf"     , "tke_edmf" , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "udt_edmf"        , "udt_edmf"    , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "vdt_edmf"        , "vdt_edmf"    , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "tdt_edmf"        , "tdt_edmf"    , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "qdt_edmf"        , "qdt_edmf"    , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "qadt_edmf"       , "qadt_edmf"   , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "qidt_edmf"       , "qidt_edmf"   , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "qldt_edmf"       , "qldt_edmf"   , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "cldfra_bl"       , "cldfra_bl"   , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "qc_bl"   , "qc_bl"       , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn",  "diff_t_edmf",                        "diff_t",      "atmos_month", "all", .true.,  "none", 2
+ "edmf_mynn",  "diff_m_edmf",                        "diff_m",      "atmos_month", "all", .true.,  "none", 2
+ "edmf_mynn", "z_pbl",           "z_pbl_edmf",           "atmos_month", "all", .true.,  "none", 2,
+ "uw_conv", "pblht_uwc",           "pblht_uwc",           "atmos_month", "all", .true.,  "none", 2,
+      </diagTable>
+    </input>
+  </experiment>
+
 </experimentSuite>
