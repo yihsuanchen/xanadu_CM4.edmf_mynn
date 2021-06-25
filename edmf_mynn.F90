@@ -6918,7 +6918,7 @@ subroutine edmf_mynn_driver ( &
 
 !------- kinematic virtual temperature flux from star (units: K m/s) at one level -------
       if ( id_w1_thv1_surf_star > 0) then
-        used = send_data (id_w1_thv1_surf_star, Input_edmf%w1_th1_surf_star, Time_next, is, js )
+        used = send_data (id_w1_thv1_surf_star, Input_edmf%w1_thv1_surf_star, Time_next, is, js )
       endif
 
 !------- kinematic virtual temperature flux from updated fluxes (units: K m/s) at one level -------
