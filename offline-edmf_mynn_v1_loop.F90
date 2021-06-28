@@ -18,15 +18,15 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
   !character*50 :: input_profile = "AMIP_i27_j01_IndOcn"
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
-  !character*50 :: input_profile = "SCM_am4p0_RF01_01"
+  character*50 :: input_profile = "SCM_am4p0_RF01_01"
   ! character*50 :: input_profile = "SCM_am4p0_RF01_02"
   ! character*50 :: input_profile = "SCM_am4p0_RF01_03_cloudy"
   !character*50 :: input_profile = "SCM_RF01_modQDT-Gmy_aTnTtT_a3_5.0h"
   !character*50 :: input_profile = "xxx"
-  character*50 :: input_profile = "SCM_BOMEX_MYNN_ED_mixleng3"
+  !character*50 :: input_profile = "SCM_BOMEX_MYNN_ED_mixleng3"
 
-!  integer, parameter :: loop_times = 1
-  integer, parameter :: loop_times = 24 
+  integer, parameter :: loop_times = 1
+ ! integer, parameter :: loop_times = 24 
  ! integer, parameter :: loop_times = 100
  ! integer, parameter :: loop_times = 60 
 
@@ -162,7 +162,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    !logical :: do_check_realizability = .true.
    logical :: do_check_realizability = .false.
 
-  integer :: edmf_type=1                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
+  integer :: edmf_type=0                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
                                                 ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
   real    :: qke_min = 0.04                     ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
@@ -237,6 +237,7 @@ type edmf_output_type
 
   real, dimension(:,:,:), allocatable :: &   ! diagnostic purpose, not used by mynn 
     t_before_mix, q_before_mix, qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, rh_before_mix, th_before_mix, &
+    qa_before_pdf, ql_before_pdf, qi_before_pdf, &
     t_after_mix, q_after_mix, qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, rh_after_mix, th_after_mix
 
 end type edmf_output_type
@@ -261,6 +262,7 @@ type am4_edmf_output_type
   real, dimension(:,:,:), allocatable :: &   ! diagnostic purpose, not used by mynn 
     t_input, q_input, qa_input, ql_input, qi_input, thl_input, qt_input, rh_input, th_input, &
     t_before_mix, q_before_mix, qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, rh_before_mix, th_before_mix, &
+    qa_before_pdf, ql_before_pdf, qi_before_pdf, &
     t_after_mix, q_after_mix, qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, rh_after_mix, th_after_mix, &
     rh    ! relative humidity
 
@@ -3608,6 +3610,7 @@ END SUBROUTINE mym_condensation
        &RCCBLTEN, RTHLBLTEN, RQTBLTEN,  & ! yhc_mynn add
        &qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &  ! yhc_mynn add
        &qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix,       &  ! yhc_mynn add
+       &qa_before_pdf, ql_before_pdf, qi_before_pdf,                                               &  ! yhc_mynn add
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -3782,7 +3785,11 @@ END SUBROUTINE mym_condensation
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
     !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
        qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &
+       qa_before_pdf, ql_before_pdf, qi_before_pdf, &
        qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix
+
+    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+    !   qa_before_pdf, ql_before_pdf, qi_before_pdf
 
     REAL, DIMENSION(KMS:KME) :: &
        dum_1D
@@ -4136,7 +4143,28 @@ END SUBROUTINE mym_condensation
                &qc_bm,cldfra_bm,             &
                &PBLH(i,j),HFX(i,j),              &
                &Vt, Vq, th1, sgm )
+
+          !<--- yhc, save cloud fraction from the PDF cloud scheme
+          qa_before_pdf(i,:,j) = cldfra_bm(:)
+          ql_before_pdf(i,:,j) = liquid_frac(:)      * qc_bm(:)   ! cloud liquid water content (kg/kg)
+          qi_before_pdf(i,:,j) = (1.-liquid_frac(:)) * qc_bm(:)   ! cloud ice    water content (kg/kg)
+          !---> yhc 
+
     elseif (edmf_type .eq. 1) then
+
+          !<--- yhc, save cloud fraction from the PDF cloud scheme
+          CALL  mym_condensation ( kts,kte,      &
+               &dx,dz1,thl,sqw,p1,ex1,           &
+               &tsq1, qsq1, cov1,                &
+               &Sh,el,liquid_frac,          &
+               &qc_bm,cldfra_bm,             &
+               &PBLH(i,j),HFX(i,j),              &
+               &Vt, Vq, th1, sgm )
+
+          qa_before_pdf(i,:,j) = cldfra_bm(:)
+          ql_before_pdf(i,:,j) = liquid_frac(:)      * qc_bm(:)   ! cloud liquid water content (kg/kg)
+          qi_before_pdf(i,:,j) = (1.-liquid_frac(:)) * qc_bm(:)   ! cloud ice    water content (kg/kg)
+          !---> yhc
 !   
 ! input values of qc and cc are taken as the values befor mixing
 !   
@@ -4164,6 +4192,10 @@ END SUBROUTINE mym_condensation
     !sqw =sqw +Dsqw1*delt                                   ! total water content (vapor+liquid+ice) (kg/kg)
     dum_1D =sqw                                             ! total water content (vapor+liquid+ice) (kg/kg)
     qt_before_mix   (i,:,j)  = dum_1D(:)/(1.-dum_1D(:))                       !
+
+!print*,'qa_before_mix',qa_before_mix
+!print*,'qa_before_pdf',qa_before_pdf
+
     !---> yhc_mynn
                            
  
@@ -6338,6 +6370,7 @@ subroutine edmf_mynn_driver ( &
        &RCCBLTEN=Output_edmf%RCCBLTEN, RTHLBLTEN=Output_edmf%RTHLBLTEN, RQTBLTEN=Output_edmf%RQTBLTEN, &  ! yhc_mynn add
        &qa_before_mix=Output_edmf%qa_before_mix, ql_before_mix=Output_edmf%ql_before_mix, qi_before_mix=Output_edmf%qi_before_mix, thl_before_mix=Output_edmf%thl_before_mix, qt_before_mix=Output_edmf%qt_before_mix, th_before_mix=Output_edmf%th_before_mix, &      ! yhc_mynn add
        &qa_after_mix=Output_edmf%qa_after_mix, ql_after_mix=Output_edmf%ql_after_mix, qi_after_mix=Output_edmf%qi_after_mix, thl_after_mix=Output_edmf%thl_after_mix, qt_after_mix=Output_edmf%qt_after_mix, th_after_mix=Output_edmf%th_after_mix,        &      ! yhc_mynn add
+        &qa_before_pdf=Output_edmf%qa_before_pdf, ql_before_pdf=Output_edmf%ql_before_pdf, qi_before_pdf=Output_edmf%qi_before_pdf, & ! yhc_mynn add
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
@@ -6803,6 +6836,21 @@ subroutine edmf_mynn_driver ( &
 !      if ( id_th_after_mix > 0) then
 !        used = send_data (id_th_after_mix, am4_Output_edmf%th_after_mix, Time_next, is, js, 1 )
 !      endif
+!
+!!------- qa before_pdf to edmf_mynn (units: none) at full level -------
+!      if ( id_qa_before_pdf > 0) then
+!        used = send_data (id_qa_before_pdf, am4_Output_edmf%qa_before_pdf, Time_next, is, js, 1 )
+!      endif
+!
+!!------- ql before_pdf to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_ql_before_pdf > 0) then
+!        used = send_data (id_ql_before_pdf, am4_Output_edmf%ql_before_pdf, Time_next, is, js, 1 )
+!      endif
+!
+!!------- qi before_pdf to edmf_mynn (units: kg/kg) at full level -------
+!      if ( id_qi_before_pdf > 0) then
+!        used = send_data (id_qi_before_pdf, am4_Output_edmf%qi_before_pdf, Time_next, is, js, 1 )
+!      endif
 
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
@@ -7263,6 +7311,9 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%qt_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qt_after_mix    = 0.
   allocate (Output_edmf%rh_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%rh_after_mix    = 0.
   allocate (Output_edmf%th_after_mix    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%th_after_mix    = 0.
+  allocate (Output_edmf%qa_before_pdf   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qa_before_pdf   = 0.
+  allocate (Output_edmf%ql_before_pdf   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%ql_before_pdf   = 0.
+  allocate (Output_edmf%qi_before_pdf   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qi_before_pdf   = 0.
   !allocate (Output_edmf%(IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf% = 0.
 
 !**********************
@@ -7326,6 +7377,9 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qt_after_mix    (ix,jx,kx))  ; am4_Output_edmf%qt_after_mix    = 0.
   allocate (am4_Output_edmf%rh_after_mix    (ix,jx,kx))  ; am4_Output_edmf%rh_after_mix    = 0.
   allocate (am4_Output_edmf%th_after_mix    (ix,jx,kx))  ; am4_Output_edmf%th_after_mix    = 0.
+  allocate (am4_Output_edmf%qa_before_pdf   (ix,jx,kx))  ; am4_Output_edmf%qa_before_pdf   = 0.
+  allocate (am4_Output_edmf%ql_before_pdf   (ix,jx,kx))  ; am4_Output_edmf%ql_before_pdf   = 0.
+  allocate (am4_Output_edmf%qi_before_pdf   (ix,jx,kx))  ; am4_Output_edmf%qi_before_pdf   = 0.
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
@@ -7750,6 +7804,9 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%qt_after_mix    )
   deallocate (Output_edmf%rh_after_mix    )
   deallocate (Output_edmf%th_after_mix    )
+  deallocate (Output_edmf%qa_before_pdf   )
+  deallocate (Output_edmf%ql_before_pdf   )
+  deallocate (Output_edmf%qi_before_pdf   )
 
 !**********************
 !--- am4 Output_edmf
@@ -7812,6 +7869,9 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qt_after_mix    )
   deallocate (am4_Output_edmf%rh_after_mix    )
   deallocate (am4_Output_edmf%th_after_mix    )
+  deallocate (am4_Output_edmf%qa_before_pdf   )
+  deallocate (am4_Output_edmf%ql_before_pdf   )
+  deallocate (am4_Output_edmf%qi_before_pdf   )
 
 !--------------------
 !---  vi command  ---
@@ -8608,6 +8668,11 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       am4_Output_edmf%qt_after_mix   (i,j,kk) = Output_edmf%qt_after_mix   (i,k,j)
       am4_Output_edmf%th_after_mix   (i,j,kk) = Output_edmf%th_after_mix   (i,k,j)
       am4_Output_edmf%t_after_mix    (i,j,kk) = Output_edmf%th_after_mix   (i,k,j) * Input_edmf%exner (i,k,j)
+
+      !--- before mixing, from the PDF cloud scheme
+      am4_Output_edmf%qa_before_pdf   (i,j,kk) = Output_edmf%qa_before_pdf   (i,k,j)
+      am4_Output_edmf%ql_before_pdf   (i,j,kk) = Output_edmf%ql_before_pdf   (i,k,j)
+      am4_Output_edmf%qi_before_pdf   (i,j,kk) = Output_edmf%qi_before_pdf   (i,k,j)
 
     enddo  ! end loop of k, full levels
   enddo  ! end loop of j
