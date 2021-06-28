@@ -145,8 +145,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    real    :: lat_range = 0.001
    real    :: lon_range = 0.001
-   !logical :: do_writeout_column_nml = .true.
-   logical :: do_writeout_column_nml = .false.
+   logical :: do_writeout_column_nml = .true.
+   !logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
    logical :: do_edmf2ls_mp = .true.
@@ -162,7 +162,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    !logical :: do_check_realizability = .true.
    logical :: do_check_realizability = .false.
 
-  integer :: edmf_type=0                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
+  integer :: edmf_type=1                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
                                                 ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
   real    :: qke_min = 0.04                     ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
@@ -8413,11 +8413,17 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; qt_after_mix [kg kg^-1]'
         write(6,3002) '  qt_after_mix = (/'    ,Output_edmf%qt_after_mix(ii_write,:,jj_write)
         write(6,*)    ''
+        write(6,*)    '; qa_before_pdf'
+        write(6,3002) '  qa_before_pdf = (/'    ,Output_edmf%qa_before_pdf(ii_write,:,jj_write)
+        write(6,*)    ''
         write(6,*)    '; qa_before_mix'
         write(6,3002) '  qa_before_mix = (/'    ,Output_edmf%qa_before_mix(ii_write,:,jj_write)
         write(6,*)    ''
         write(6,*)    '; qa_after_mix'
         write(6,3002) '  qa_after_mix = (/'    ,Output_edmf%qa_after_mix(ii_write,:,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; ql_before_pdf [kg kg^-1]'
+        write(6,3002) '  ql_before_pdf = (/'    ,Output_edmf%ql_before_pdf(ii_write,:,jj_write)
         write(6,*)    ''
         write(6,*)    '; ql_before_mix [kg kg^-1]'
         write(6,3002) '  ql_before_mix = (/'    ,Output_edmf%ql_before_mix(ii_write,:,jj_write)
