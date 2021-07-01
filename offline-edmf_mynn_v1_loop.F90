@@ -103,7 +103,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    INTEGER :: bl_mynn_tkebudget = 0         ! if 1 the budget terms in the TKE equation are allocated for output (WRF), if 0 then not
    INTEGER :: bl_mynn_cloudpdf  = 1         ! define the type of the subgrid PDF for cloud computation, 1= Nakanishi & Niino 2004
    INTEGER :: bl_mynn_mixlength = 2         ! defines the ED mixing length formulation
-   INTEGER :: bl_mynn_edmf      = 0         ! controls  the version of the EDMF to be called 3=JPLedmf documented by Wu et al., 2020
+   INTEGER :: bl_mynn_edmf      = 3         ! controls  the version of the EDMF to be called 3=JPLedmf documented by Wu et al., 2020
                                             ! set “bl_mynn_edmf=0” and “bl_mynn_edmf_dd<>1” then the scheme will be MYNN only.
    INTEGER :: bl_mynn_edmf_dd   = 0         ! 0 - no downdrafts, 1 - Wu et al., 2020 downdrafts 
    REAL    :: bl_mynn_edmf_Lent = 0.        ! dummy argument
@@ -9976,8 +9976,15 @@ endif ! end if of input profile
 !==============================
 !==============================
 
+  print*,'------------------------'
   print*,'hello world!'
-  print*,'input profile, ',input_profile
+  print*,'input profile   ,', input_profile
+  print*,'bl_mynn_edmf    ,', bl_mynn_edmf
+  print*,'bl_mynn_stabfunc,', bl_mynn_stabfunc
+  print*,'expmf           ,', expmf
+  print*,'upwind          ,', upwind
+  print*,'------------------------'
+  print*,''
 
   area = 1.e+10
   Physics_input_block%p_full = p_full
