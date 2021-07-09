@@ -66,7 +66,7 @@ NOTES:
 
 <experimentSuite rtsVersion="4" xmlns:xi="http://www.w3.org/2003/XInclude">
   <!-- yhc's variables -->
-  <property name="MODEL_CONFIG"        value="cm4_sis2_compile_edmf_mynn"/>    <!-- set the name of source code and complie options -->
+  <property name="MODEL_CONFIG"        value="cm4_sis2_compile_edmf_mynn"/>    <!-- yhc set the name of source code and complie options -->
 
   <!--User should set the following properties according to the plan for the production run-->	
   <property name="RELEASE"        value="xanadu"/>           <!-- git tag for general component source code-->
@@ -82,11 +82,11 @@ NOTES:
 
   <property name="OM4_ANALYSIS" value="ice_ocean_SIS2/OM4_025"/>  <!--example containing .frepp scripts for analysis-->
                                                                  <!--Please set the value to ice_ocean_SIS2/OM4_05 for 1/2 degree ocean model runs--> 
-  <property name="PROD_SIMTIME"     value="100"/>  <!--simulation length in years-->
+  <property name="PROD_SIMTIME"     value="5"/>  <!--simulation length in years-->
   <property name="PP_CPLD_CHUNK_A"  value="5yr"/>  <!--smaller chunk length for pp/analysis-->
-  <property name="PP_CPLD_CHUNK_B"  value="20yr"/> <!--bigger  chunk length for pp/analysis-->
+  <property name="PP_CPLD_CHUNK_B"  value="5yr"/> <!--bigger  chunk length for pp/analysis-->
   <property name="PP_START_YEAR"    value="0001" />
-  <property name="PP_CPLD_START"    value="0549" />
+  <property name="PP_CPLD_START"    value="0154" />
   <property name="PROD_RUNTIME"     value="16:00:00"/><!--Maximum wall clock per simulation-->
   <property name="PROD_SEGTIME"     value="03:00:00"/><!--Wall clock per segment (usually 1 year)-->
 
@@ -3506,7 +3506,7 @@ MOM_OVERRIDE_EOF
     <postProcess>
       <xi:include xpointer="xpointer(//freInclude[@name='c96_climo_cmip6_postprocess']/postProcess/node())"/>
       <xi:include xpointer="xpointer(//freInclude[@name='OM4_postprocess']/postProcess/node())"/>
-      <xi:include xpointer="xpointer(//freInclude[@name='BLING_postprocess']/postProcess/node())"/>
+      <!-- xi:include xpointer="xpointer(//freInclude[@name='BLING_postprocess']/postProcess/node())"/ --> <!-- yhc commented BLING out because this would cause error message when BLING is disabled  -->
     </postProcess>
   </experiment>
 
@@ -3595,8 +3595,9 @@ MATCH
     </input>
   </experiment>
 
+
+
   <experiment name="a00-CM4_piControl_C_original" inherit="CM4_piControl_C">
-      <!--xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_cmip6_edmf_mynn']/input/node())"/-->
     <input>
       <diagTable order="append">
  "edmf_mynn", "tke_edmf"     , "tke_edmf" , "atmos_month", "all", .true., "none", 2,
@@ -3616,5 +3617,329 @@ MATCH
       </diagTable>
     </input>
   </experiment>
+
+  <experiment name="a00-CM4_piControl_C_noBLING_original" inherit="CM4_piControl_C_noBLING">
+    <input>
+      <diagTable order="append">
+ "edmf_mynn", "tke_edmf"     , "tke_edmf" , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "udt_edmf"        , "udt_edmf"    , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "vdt_edmf"        , "vdt_edmf"    , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "tdt_edmf"        , "tdt_edmf"    , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "qdt_edmf"        , "qdt_edmf"    , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "qadt_edmf"       , "qadt_edmf"   , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "qidt_edmf"       , "qidt_edmf"   , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "qldt_edmf"       , "qldt_edmf"   , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "cldfra_bl"       , "cldfra_bl"   , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn", "qc_bl"   , "qc_bl"       , "atmos_month", "all", .true., "none", 2,
+ "edmf_mynn",  "diff_t_edmf",                        "diff_t",      "atmos_month", "all", .true.,  "none", 2
+ "edmf_mynn",  "diff_m_edmf",                        "diff_m",      "atmos_month", "all", .true.,  "none", 2
+ "edmf_mynn", "z_pbl",           "z_pbl_edmf",           "atmos_month", "all", .true.,  "none", 2,
+ "uw_conv", "pblht_uwc",           "pblht_uwc",           "atmos_month", "all", .true.,  "none", 2,
+      </diagTable>
+    </input>
+  </experiment>
+
+  <experiment name="a10-CM4_piControl_C_original_restartYY0154" inherit="a00-CM4_piControl_C_original">
+    <description>
+This run failed with this erroro message:
+FATAL from PE   200: CT_restore_state_2d: test_by_field is true, and co2_flux_flux0_ice was not read but some other fields in co2_flux were.
+Huan Guo said ""co2_flux_flux0" is a  tracer in Bling. In CM4, Bling is a diagnostic ocean biogeochemistry package, and does not change model results. "
+    </description>
+    <input>
+     <!--There are MOM6/SIS2 restarts in the initCond. Ensure input_filename = 'r' -->
+     <namelist name="MOM_input_nml" >
+         output_directory = './',
+         input_filename = 'r'
+         restart_input_dir = 'INPUT/',
+         restart_output_dir = 'RESTART/',
+         parameter_filename = 'INPUT/MOM_input','INPUT/MOM_layout','INPUT/MOM_override'
+     </namelist>
+     <namelist name="SIS_input_nml" >
+         output_directory = './',
+         input_filename = 'r'
+         restart_input_dir = 'INPUT/',
+         restart_output_dir = 'RESTART/',
+         parameter_filename = 'INPUT/SIS_input','INPUT/SIS_layout','INPUT/SIS_override'
+     </namelist>
+      <dataFile label="initCond" target="INPUT/" chksum="" size="" timestamp="">
+        <!--year 549 of dora run 985 for CM4_piControl_C-->
+        <dataSource site="ncrc">/lustre/f2/dev/gfdl/Huan.Guo/INPUT/InitCond/mdt/Run895_Rst154_combined.tar</dataSource>
+        <dataSource site="gfdl">/archive/oar.gfdl.cmip6/CM4/warsaw_201710_om4_v1.0.1/CM4_piControl_C/gfdl.ncrc4-intel16-prod-openmp/restart/01540101.tar</dataSource>
+      </dataFile>       
+    </input>
+  </experiment>
+
+  <experiment name="a10-CM4_piControl_C_noBLING_restartyear154" inherit="a00-CM4_piControl_C_noBLING_original">
+    <input>
+     <!--There are MOM6/SIS2 restarts in the initCond. Ensure input_filename = 'r' -->
+     <namelist name="MOM_input_nml" >
+         output_directory = './',
+         input_filename = 'r'
+         restart_input_dir = 'INPUT/',
+         restart_output_dir = 'RESTART/',
+         parameter_filename = 'INPUT/MOM_input','INPUT/MOM_layout','INPUT/MOM_override'
+     </namelist>
+     <namelist name="SIS_input_nml" >
+         output_directory = './',
+         input_filename = 'r'
+         restart_input_dir = 'INPUT/',
+         restart_output_dir = 'RESTART/',
+         parameter_filename = 'INPUT/SIS_input','INPUT/SIS_layout','INPUT/SIS_override'
+     </namelist>
+      <dataFile label="initCond" target="INPUT/" chksum="" size="" timestamp="">
+        <!--year 651 of dora run 985 for CM4_piControl_C-->
+        <dataSource site="ncrc">/lustre/f2/dev/gfdl/Huan.Guo/INPUT/InitCond/mdt/Run895_Rst154_combined.tar</dataSource>
+      </dataFile>
+    </input>
+
+    <!--runtime>
+      <production simTime="1" units="years">
+          <segment simTime="12" units="months"/>
+          <xi:include xpointer="xpointer(//freInclude[@name='resourceparams_A432x2_O2997_production']/node())"/>
+      </production>
+    </runtime-->
+
+  </experiment>
+
+  <!--experiment name="m13b2-CM4_piControl_C-mynn_ED_Gmy_sfK_UWlock_rdpI0.4" inherit="a00-CM4_piControl_C_original"-->
+  <experiment name="m13b2-CM4_piControl_C_noBLING_reYY154-mynn_ED_Gmy_sfK_UWlock_rdpI0.4" inherit="a10-CM4_piControl_C_noBLING_restartyear154">
+    <description>
+       MYNN only returns the diffusion coefficients to AM4 and diffusion is handled by the vertical diffusion program. This configuration is similar to Lock: MYNN is put in physics_driver_down and see the updated state by radiation and GWD.
+
+      code version
+        edmf_mynn.F90, c1db55761e528a36caa1c46237b5f3524fa12d5d
+        physics_driver.F90, 030d0d6df06ecb09e7f15ff9867ea813890812bc
+
+      fix index problems in diff_t,m from edmf_mynn
+      The UW convection scheme diagnoses PBL depth using Lock's approach, instead of using MYNN-diagnosed PBL depth
+      set compute_pblht = .true.' and 'parcel_buoy = 0.25' in uw_conv_nml.
+      the updated version of uw_conv.F90, conv_utilities_k.F90, moistproc_kernels.F90 are used, taken from Zhihong Tan on 05/20/2021
+
+      same as m12, but stability function in MYNN is replaced with Suselj et al. (2019). bl_mynn_stabfunc = 1
+    </description>
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ DO_SIMPLE       = F,
+ GUST_SCHEME     = beljaars                ,
+      </namelist>
+      <namelist name="physics_driver_nml">
+ DO_RADIATION    = T,
+ DO_CLUBB        =           0,
+ DO_COSP = T,
+ DO_MODIS_YIM    = T,
+ DONNER_MESO_IS_LARGESCALE       = F,
+ DO_MOIST_PROCESSES      = T,
+ TAU_DIFF        =   3600.00000000000     ,
+ DIFF_MIN        =  1.000000000000000E-003,
+ DIFFUSION_SMOOTH        = T,
+ DO_GREY_RADIATION       = F,
+ R1      =  0.250000000000000     ,
+ R2      =  0.250000000000000     ,
+ R3      =  0.250000000000000     ,
+ R4      =  0.250000000000000     ,
+ OVERRIDE_AEROSOLS_CLOUD = F,
+ L_HOST_APPLIES_SFC_FLUXES       = T,
+ QMIN    =  1.000000000000000E-010,
+ N_LAND  =   300000000.000000     ,
+ N_OCEAN =   100000000.000000     ,
+ DO_LIQ_NUM      = T,
+ DO_ICE_NUM      = F,
+ QCVAR   =   1.00000000000000     ,
+ OVERLAP =           2,
+ N_MIN   =   1000000.00000000     ,
+ MIN_DIAM_ICE    =  1.000000000000000E-005,
+ DCS     =  2.000000000000000E-004,
+ MIN_DIAM_DROP   =  2.000000000000000E-006,
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        24,
+ JJ_WRITE        =        2,
+ LAT_WRITE       =   1.05915483000714
+ LON_WRITE       =   5.49627374598293
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 0
+ do_edmf_mynn_diffusion_smooth = T
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           0,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           1,
+ QKE_MIN =  4.000000000000000E-002,
+ OPTION_SURFACE_FLUX     = star                ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ DO_OPTION_EDMF2LS_MP    =          99,
+ DO_USE_TAU      = F,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =          24,
+ JJ_WRITE        =           2,
+ LAT_WRITE       =   1.05915483000714     ,
+ LON_WRITE       =   5.49627374598293
+    </namelist>
+      <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   8.00000000000000     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000     ,
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+      <namelist name="deep_conv_nml">
+ CBMF0   =  1.000000000000000E-004,
+ RKM_DP1 =  0.400000000000000     ,
+ RKM_DP2 =  0.100000000000000     ,
+ DO_FORCED_CONV  = F,
+ INCLUDE_EMF_D   = F,
+ CRH_TH_OCEAN    =  0.400000000000000     ,
+ CRH_TH_LAND     =  0.400000000000000     ,
+ DO_FORCEDLIFTING_D      = F,
+ FRAC_LIMIT_D    =  0.250000000000000     ,
+ WCRIT_MIN_GUST  =  0.200000000000000     ,
+ CIN_FACT        =   1.00000000000000     ,
+ CAPE_TH =   10.0000000000000     ,
+ CIN_TH  =   5.00000000000000     ,
+ CWFN_TH =   10.0000000000000     ,
+ TAU_DP  =   28800.0000000000     ,
+ RPEN_D  =   4.00000000000000     ,
+ MIXING_ASSUMPTION_D     =           6,
+ NORDER  =           1,
+ DCWFNDM_TH      =   100.000000000000     ,
+ DO_PPEN_D       = T,
+ DO_PEVAP_D      = T,
+ CFRAC_D =  0.150000000000000     ,
+ HCEVAP_D        =  0.850000000000000     ,
+ PBLFAC_D        =   1.00000000000000     ,
+ HCEVAPPBL_D     =  0.950000000000000     ,
+ LOFACTOR_D      =   1.00000000000000     ,
+ DCAPEDM_TH      =  0.000000000000000E+000,
+ AUTO_TH0_D      =  2.000000000000000E-004,
+ TCRIT_D =  -25.1500000000000     ,
+ DO_LOD_RKM      = F,
+ DO_LOD_CFRAC    = F,
+ DO_LOD_TCRIT    = F,
+ DO_LOD_CAPE     = F,
+ PEFF_I_D        =  11.E-5
+ PEFF_L_D        =  6.000000000000000E-005,
+ DO_LOD_TAU      = F,
+ DO_LOD_CUSH     = F,
+ CGUST_CHOICE    =           1,
+ TAU_DP_FACT     =   10.0000000000000     ,
+ CRH_MAX =   1.00000000000000     ,
+ DO_STOCHASTIC_RKM       = F,
+ FRAC_RKM_PERT   =   1.00000000000000     ,
+ DO_CGUST_DP     = T,
+ GUSTMAX =   3.00000000000000     ,
+ CPOOL_GUST      =   10.0000000000000     ,
+ SRC_CHOICE_D    =           0
+      </namelist>
+    </input>
+  </experiment>
+
+
 
 </experimentSuite>
