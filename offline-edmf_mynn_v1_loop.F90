@@ -168,7 +168,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
 
   integer :: edmf_type=0                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
                                                 ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
-  real    :: qke_min = 0.04                     ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
+  real    :: qke_min = -1.                      ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
+                                                !   set qke_min>0 may remove energy/water away and cause water mass is not conserved
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
                                                 ! 1.E-10 is same as qmin in lscloud_driver
   integer :: do_option_edmf2ls_mp = 3           ! option to include EDMF cloud tendencies terms into Tiedtke
@@ -8648,17 +8649,25 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   
       !--- To avoid MYNN producing weird tendencies when turbulent mixing is small, 
       !    Kay Suselj suggested to set tendencies to zeros when TKE is small (e.g. <0.02 m2/s2)
-      if (Qke(i,j,kk) .lt. qke_min) then
-        am4_Output_edmf%udt_edmf    (i,j,kk) = 0.
-        am4_Output_edmf%vdt_edmf    (i,j,kk) = 0.
-        am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
-        am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
-        am4_Output_edmf%qidt_edmf   (i,j,kk) = 0.
-        am4_Output_edmf%qldt_edmf   (i,j,kk) = 0.
-        am4_Output_edmf%qadt_edmf   (i,j,kk) = 0.
-        am4_Output_edmf%qtdt_edmf   (i,j,kk) = 0.
-        am4_Output_edmf%thldt_edmf  (i,j,kk) = 0.
-      endif
+      !    However, When MF is included, it is possible that updrafts can exist where TKE is very small, 
+      !    which means MYNN-EDMF tendencies are not zeros. In such cases, the limiter would reset these tendencies to zeros, 
+      !    removing some water/energy away and causing the conservation problem. 
+      !    I think I added this limiter because if using edmf_type=1 (tendencies are computed based on the difference 
+      !    between the variables from the PDF scheme and the input variables from the GFDL model). Even though there was no mixing, 
+      !    it could have spurious tendencies due to the incompatibility between Tiedtke and the PDF cloud scheme. 
+      !    I guess that is why I added the limiter to remove spurious tendencies when TKE is small. 
+      !    Diabling this limiter to avoid a=confusion.
+      !if (Qke(i,j,kk) .lt. qke_min) then
+      !  am4_Output_edmf%udt_edmf    (i,j,kk) = 0.
+      !  am4_Output_edmf%vdt_edmf    (i,j,kk) = 0.
+      !  am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
+      !  am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
+      !  am4_Output_edmf%qidt_edmf   (i,j,kk) = 0.
+      !  am4_Output_edmf%qldt_edmf   (i,j,kk) = 0.
+      !  am4_Output_edmf%qadt_edmf   (i,j,kk) = 0.
+      !  am4_Output_edmf%qtdt_edmf   (i,j,kk) = 0.
+      !  am4_Output_edmf%thldt_edmf  (i,j,kk) = 0.
+      !endif
   
     enddo  ! end loop of k, full levels
 
