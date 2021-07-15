@@ -396,7 +396,8 @@ end type edmf_ls_mp_type
   logical :: do_check_consrv = .false.          ! control whether writing out the water/heat conservation
   logical :: do_check_realizability = .false.   ! control whether writing out current and update cloud properties (qa,ql)
   logical :: do_stop_run = .false.              ! whether to stop the simulation
-  real    :: qke_min = 0.04                     ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
+  real    :: qke_min = -1.                      ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
+                                                !   set qke_min>0 may remove energy/water away and cause water mass is not conserved
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
                                                 ! 1.E-10 is same as qmin in lscloud_driver
   integer :: do_option_edmf2ls_mp = 0           ! option to include EDMF cloud tendencies terms into Tiedtke
@@ -3548,6 +3549,8 @@ END SUBROUTINE mym_condensation
    REAL,DIMENSION(kts:kte) :: dfm,dfh 
    REAL(kind=selected_real_kind(14)) :: tt                          
 
+   REAL :: test
+
     nz=kte-kts+1
 
     dztop=.5*(dz(kte)+dz(kte-1))
@@ -3900,6 +3903,12 @@ END SUBROUTINE mym_condensation
          sqw(k)=x(k) 
    ENDDO
 
+!<--- yhc, Kay add check total water conservation 
+! rho <w'q_t'>|surf=int_z (rho * d q_t/dz) dz
+!test=sum(dsqw*dz*rho) ! test is the RHS in the upper equation
+!print *,'surface flux qt',flq*rhoh(1)
+!print *,'zero q_t',test-flq*rhoh(1) ! difference between the LHS and RHS of  upper equation
+!-->
 
 !!============================================
 !! cloud ice number concentration (qni)
@@ -9051,20 +9060,28 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       qc_bl     (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
       Sh3D      (i,j,kk) = Output_edmf%Sh3D      (i,k,j)
       !!! rdiag(i,j,kk,n)      = Output_edmf%      (i,k,j)
-  
+ 
       !--- To avoid MYNN producing weird tendencies when turbulent mixing is small, 
       !    Kay Suselj suggested to set tendencies to zeros when TKE is small (e.g. <0.02 m2/s2)
-      if (Qke(i,j,kk) .lt. qke_min) then
-        am4_Output_edmf%udt_edmf    (i,j,kk) = 0.
-        am4_Output_edmf%vdt_edmf    (i,j,kk) = 0.
-        am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
-        am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
-        am4_Output_edmf%qidt_edmf   (i,j,kk) = 0.
-        am4_Output_edmf%qldt_edmf   (i,j,kk) = 0.
-        am4_Output_edmf%qadt_edmf   (i,j,kk) = 0.
-        am4_Output_edmf%qtdt_edmf   (i,j,kk) = 0.
-        am4_Output_edmf%thldt_edmf  (i,j,kk) = 0.
-      endif
+      !    However, When MF is included, it is possible that updrafts can exist where TKE is very small, 
+      !    which means MYNN-EDMF tendencies are not zeros. In such cases, the limiter would reset these tendencies to zeros, 
+      !    removing some water/energy away and causing the conservation problem. 
+      !    I think I added this limiter because if using edmf_type=1 (tendencies are computed based on the difference 
+      !    between the variables from the PDF scheme and the input variables from the GFDL model). Even though there was no mixing, 
+      !    it could have spurious tendencies due to the incompatibility between Tiedtke and the PDF cloud scheme. 
+      !    I guess that is why I added the limiter to remove spurious tendencies when TKE is small. 
+      !    Diabling this limiter to avoid a=confusion.
+      !if (Qke(i,j,kk) .lt. qke_min) then
+      !  am4_Output_edmf%udt_edmf    (i,j,kk) = 0.
+      !  am4_Output_edmf%vdt_edmf    (i,j,kk) = 0.
+      !  am4_Output_edmf%tdt_edmf    (i,j,kk) = 0.
+      !  am4_Output_edmf%qdt_edmf    (i,j,kk) = 0.
+      !  am4_Output_edmf%qidt_edmf   (i,j,kk) = 0.
+      !  am4_Output_edmf%qldt_edmf   (i,j,kk) = 0.
+      !  am4_Output_edmf%qadt_edmf   (i,j,kk) = 0.
+      !  am4_Output_edmf%qtdt_edmf   (i,j,kk) = 0.
+      !  am4_Output_edmf%thldt_edmf  (i,j,kk) = 0.
+      !endif
   
     enddo  ! end loop of k, full levels
 
