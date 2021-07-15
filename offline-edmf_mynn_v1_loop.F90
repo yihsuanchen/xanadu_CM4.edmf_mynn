@@ -166,7 +166,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    !logical :: do_check_realizability = .true.
    logical :: do_check_realizability = .false.
 
-  integer :: edmf_type=1                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
+  integer :: edmf_type=0                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
                                                 ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
   real    :: qke_min = 0.04                     ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
@@ -3130,6 +3130,8 @@ END SUBROUTINE mym_condensation
    REAL,DIMENSION(kts:kte) :: dfm,dfh 
    REAL(kind=selected_real_kind(14)) :: tt                          
 
+  REAL :: test
+
     nz=kte-kts+1
 
     dztop=.5*(dz(kte)+dz(kte-1))
@@ -3481,6 +3483,13 @@ END SUBROUTINE mym_condensation
         dsqw(k)=(x(k)-sqw(k))/delt
          sqw(k)=x(k) 
    ENDDO
+
+!<--- yhc, Kay add check total water conservation 
+! rho <w'q_t'>|surf=int_z (rho * d q_t/dz) dz
+test=sum(dsqw*dz*rho) ! test is the RHS in the upper equation
+print *,'surface flux qt',flq*rhoh(1)
+print *,'zero q_t',test-flq*rhoh(1) ! difference between the LHS and RHS of  upper equation
+!-->
 
 
 !!============================================
