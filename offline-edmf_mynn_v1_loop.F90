@@ -3131,7 +3131,7 @@ END SUBROUTINE mym_condensation
    REAL,DIMENSION(kts:kte) :: dfm,dfh 
    REAL(kind=selected_real_kind(14)) :: tt                          
 
-  REAL :: test
+   REAL :: test
 
     nz=kte-kts+1
 
@@ -3487,11 +3487,10 @@ END SUBROUTINE mym_condensation
 
 !<--- yhc, Kay add check total water conservation 
 ! rho <w'q_t'>|surf=int_z (rho * d q_t/dz) dz
-test=sum(dsqw*dz*rho) ! test is the RHS in the upper equation
-print *,'surface flux qt',flq*rhoh(1)
-print *,'zero q_t',test-flq*rhoh(1) ! difference between the LHS and RHS of  upper equation
+!test=sum(dsqw*dz*rho) ! test is the RHS in the upper equation
+!print *,'surface flux qt',flq*rhoh(1)
+!print *,'zero q_t',test-flq*rhoh(1) ! difference between the LHS and RHS of  upper equation
 !-->
-
 
 !!============================================
 !! cloud ice number concentration (qni)
@@ -6220,8 +6219,8 @@ subroutine edmf_mynn_driver ( &
     udt, vdt, tdt
   real, intent(inout), dimension(:,:,:,:) :: &
     rdt
+  real, intent(inout), dimension(:,:,:,:) :: &   ! Mellor-Yamada, enable this in offline mode
   !real, intent(inout), dimension(:,:,:,ntp+1:) :: &
-  real, intent(inout), dimension(:,:,:,:) :: &        ! Mellor-, remove comments when in the offline program
     rdiag
 
   real, intent(inout), dimension(:,:) :: &
@@ -6301,7 +6300,7 @@ subroutine edmf_mynn_driver ( &
 !write(6,*) 'rdiag(:,:,:,ncldfra_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nqc_bl)',rdiag(:,:,:,nqc_bl)
 !write(6,*) 'rdiag(:,:,:,nSh3D)',rdiag(:,:,:,nSh3D)
-!write(6,*) 'ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl',ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl
+!!write(6,*) 'ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl',ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl
 
 !-------------------------------------------------------------------------
 !  determine whether writing out the selected column
@@ -6521,14 +6520,14 @@ subroutine edmf_mynn_driver ( &
               rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
-!---------------------------------------------------------------------
-! write out fields to history files
-!---------------------------------------------------------------------
-
-      !--- set up local mask for fields without surface data
-      lmask_half(:,:,1:kx) = .true.
-      lmask_half(:,:,kx+1) = .false.
-
+!!---------------------------------------------------------------------
+!! write out fields to history files
+!!---------------------------------------------------------------------
+!
+!      !--- set up local mask for fields without surface data
+!      lmask_half(:,:,1:kx) = .true.
+!      lmask_half(:,:,kx+1) = .false.
+!
 !!------- zonal wind stress (units: kg/m/s2) at one level -------
 !      if ( id_u_flux > 0) then
 !        used = send_data (id_u_flux, u_flux, Time_next, is, js )
@@ -7928,8 +7927,8 @@ subroutine edmf_writeout_column ( &
   type(edmf_output_type), intent(in) :: Output_edmf
 
   type(am4_edmf_output_type), intent(in) :: am4_Output_edmf
-  !real, dimension (:,:,:,:) , intent(in) :: rdiag
-  real, intent(inout), dimension(:,:,:,ntp+1:) :: &
+  real, intent(inout), dimension(:,:,:,:) :: &   ! Mellor-Yamada, enable this in offline mode
+  !real, intent(inout), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
   logical, intent(in) :: do_writeout_column
@@ -8036,11 +8035,9 @@ subroutine edmf_writeout_column ( &
       qtk     =   Physics_input_block%q(i,j,k,nsphum)  &
                 + Physics_input_block%q(i,j,k,nql)     &
                 + Physics_input_block%q(i,j,k,nqi)
-      !qtdtk   =   am4_Output_edmf%qdt_edmf(i,j,k)     &
-      !          + am4_Output_edmf%qldt_edmf(i,j,k)    &
-      !          + am4_Output_edmf%qidt_edmf(i,j,k)
-
-      qtdtk   =   am4_Output_edmf%qtdt_edmf(i,j,k)    
+      qtdtk   =   am4_Output_edmf%qdt_edmf(i,j,k)     &
+                + am4_Output_edmf%qldt_edmf(i,j,k)    &
+                + am4_Output_edmf%qidt_edmf(i,j,k)
 
       !qtk     =   Physics_input_block%q(i,j,k,nsphum)
       dzk  = Physics_input_block%z_half(i,j,k) - Physics_input_block%z_half(i,j,k+1)
@@ -8058,7 +8055,7 @@ subroutine edmf_writeout_column ( &
     print*,'column-integrated total water tendency (kg/m2/s) = ',tt2
     print*,'moisture flux, qfx (kg/m2/s) = ',Input_edmf%qfx(i,j)
     print*,'diff column-integrated total water tendency - qfx (kg/m2/s)= ',tt2 - Input_edmf%qfx(i,j)
-    !print*,'column-integrated rho*T*dz = ',tt3
+    print*,'column-integrated rho*T*dz = ',tt3
 
   endif  ! end if of do_check_consrv
 
@@ -8646,7 +8643,7 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       qc_bl     (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
       Sh3D      (i,j,kk) = Output_edmf%Sh3D      (i,k,j)
       !!! rdiag(i,j,kk,n)      = Output_edmf%      (i,k,j)
-  
+ 
       !--- To avoid MYNN producing weird tendencies when turbulent mixing is small, 
       !    Kay Suselj suggested to set tendencies to zeros when TKE is small (e.g. <0.02 m2/s2)
       !    However, When MF is included, it is possible that updrafts can exist where TKE is very small, 
@@ -8727,7 +8724,6 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   !am4_Output_edmf%rh_after_mix  (:,:,:) = am4_Output_edmf%rh_after_mix(:,:,:)*100.
 
 end subroutine convert_edmf_to_am4_array
-
 
 !#############################
 ! Mellor-Yamada
