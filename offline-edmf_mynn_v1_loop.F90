@@ -6423,6 +6423,13 @@ subroutine edmf_mynn_driver ( &
   endif 
 
 !---------------------------------------------------------------------
+! recover dry variable tendencies from mynn_edmf
+!---------------------------------------------------------------------
+  call recover_dry_vars_tend_from_mynn_edmf(Physics_input_block, Input_edmf, qldt_vdif, qidt_vdif, &
+                                            size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
+                                            Output_edmf)
+
+!---------------------------------------------------------------------
 ! process the outputs from the EDMF-MYNN program
 !---------------------------------------------------------------------
 
@@ -8729,6 +8736,30 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   !am4_Output_edmf%rh_after_mix  (:,:,:) = am4_Output_edmf%rh_after_mix(:,:,:)*100.
 
 end subroutine convert_edmf_to_am4_array
+
+!###################################
+
+subroutine recover_dry_vars_tend_from_mynn_edmf (Physics_input_block, Input_edmf, qldt_vdif, qidt_vdif, &
+                                                 ix, jx, kx,  &
+                                                 Output_edmf)
+
+!--- input arguments
+  type(physics_input_block_type), intent(in)  :: Physics_input_block
+  type(edmf_input_type)     , intent(in)  :: Input_edmf
+  integer                   , intent(in)  :: ix, jx, kx
+  real, dimension(:,:,:) :: &
+    qldt_vdif, qidt_vdif
+
+!--- input/output arguments
+  type(edmf_output_type)    , intent(in)  :: Output_edmf
+
+!--- local variable
+  integer i,j,k,kk
+!------------------------------------------
+
+
+end subroutine recover_dry_vars_tend_from_mynn_edmf
+
 
 !#############################
 ! Mellor-Yamada
