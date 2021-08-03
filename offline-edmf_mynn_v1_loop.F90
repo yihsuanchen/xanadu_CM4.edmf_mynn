@@ -6169,6 +6169,7 @@ END SUBROUTINE edmf_JPL
 subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              qldt_vdif, qidt_vdif, &
               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
@@ -6195,6 +6196,10 @@ subroutine edmf_mynn_driver ( &
   real,    intent(in), dimension(:,:)   :: &
    lon, lat, &  ! longitude and latitude in radians
    frac_land, area, u_star, b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux
+
+  real,    intent(in), dimension(:,:,:)   :: &
+   qldt_vdif, qidt_vdif
+
   type(physics_input_block_type)        :: Physics_input_block
   logical, intent(in)                   :: do_edmf_mynn_diagnostic
   logical, intent(in)                   :: do_return_edmf_mynn_diff_only
@@ -6415,7 +6420,7 @@ subroutine edmf_mynn_driver ( &
   !--- SCM, set initflag
   if (initflag == 1) then
     initflag = 0          ! no initialization
-  endif
+  endif 
 
 !---------------------------------------------------------------------
 ! process the outputs from the EDMF-MYNN program
@@ -8809,6 +8814,7 @@ program test111
   real,    dimension(ni,nj,nfull) :: diff_t, diff_m, diff_t_edmf, diff_m_edmf
   real,    dimension(ni,nj,nfull) :: udt_mf, vdt_mf, tdt_mf, qdt_mf, thvdt_mf, qtdt_mf, thlidt_mf
   real,    dimension(ni,nj,nfull) :: qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf
+  real,    dimension(ni,nj,nfull) :: qldt_vdif, qidt_vdif
 
   !real,    dimension(ni,nj)   :: cov_w_thv, cov_w_qt
   real,    dimension(ni,nj)   :: z_pbl, pbltop
@@ -10043,6 +10049,7 @@ endif ! end if of input profile
   call edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              qldt_vdif, qidt_vdif,  &
               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
