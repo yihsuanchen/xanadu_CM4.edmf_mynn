@@ -6169,7 +6169,7 @@ END SUBROUTINE edmf_JPL
 subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-              qldt_vdif, qidt_vdif, &
+              rdt_mynn_ed_am4, &
               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
@@ -6197,8 +6197,8 @@ subroutine edmf_mynn_driver ( &
    lon, lat, &  ! longitude and latitude in radians
    frac_land, area, u_star, b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux
 
-  real,    intent(in), dimension(:,:,:)   :: &
-   qldt_vdif, qidt_vdif
+  real, intent(in), dimension(:,:,:,:) :: &
+    rdt_mynn_ed_am4
 
   type(physics_input_block_type)        :: Physics_input_block
   logical, intent(in)                   :: do_edmf_mynn_diagnostic
@@ -6425,7 +6425,7 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 ! recover dry variable tendencies from mynn_edmf
 !---------------------------------------------------------------------
-  call recover_dry_vars_tend_from_mynn_edmf(Physics_input_block, Input_edmf, qldt_vdif, qidt_vdif, &
+  call modify_mynn_ednf_tendencies(Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                             size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
                                             Output_edmf)
 
@@ -8739,7 +8739,7 @@ end subroutine convert_edmf_to_am4_array
 
 !###################################
 
-subroutine recover_dry_vars_tend_from_mynn_edmf (Physics_input_block, Input_edmf, qldt_vdif, qidt_vdif, &
+subroutine modify_mynn_ednf_tendencies (Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                                  ix, jx, kx,  &
                                                  Output_edmf)
 
@@ -8747,18 +8747,46 @@ subroutine recover_dry_vars_tend_from_mynn_edmf (Physics_input_block, Input_edmf
   type(physics_input_block_type), intent(in)  :: Physics_input_block
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   integer                   , intent(in)  :: ix, jx, kx
-  real, dimension(:,:,:) :: &
-    qldt_vdif, qidt_vdif
+  real, dimension(:,:,:,:) :: &
+    rdt_mynn_ed_am4
 
 !--- input/output arguments
-  type(edmf_output_type)    , intent(in)  :: Output_edmf
+  type(edmf_output_type)    , intent(inout)  :: Output_edmf
 
 !--- local variable
   integer i,j,k,kk
 !------------------------------------------
 
+!---------------
+! edmf_type=3, recover dry variable tendencies by approximating cloud liquid/ice tendencies
+!---------------
 
-end subroutine recover_dry_vars_tend_from_mynn_edmf
+  !******************************
+  if (edmf_type .eq. 3) then
+  !******************************
+    do i=1,ix
+    do j=1,jx
+    do k=1,kx      ! k index for full levels
+      kk=kx-k+1
+
+      Output_edmf%RQIBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqi)
+      Output_edmf%RQLBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nql)
+      Output_edmf%RCCBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqa)
+
+    enddo
+    enddo
+    enddo
+
+    Output_edmf%RQVBLTEN  (:,:,:) =   Output_edmf%RQTBLTEN  (:,:,:)  &
+                                    - Output_edmf%RQIBLTEN  (:,:,:) - Output_edmf%RQIBLTEN  (:,:,:)
+    Output_edmf%RTHBLTEN  (:,:,:) =   Output_edmf%RTHLBLTEN (:,:,:)  &
+                                    + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
+
+  !******************************
+  end if  ! end if of edmf_type=3
+  !******************************
+
+end subroutine modify_mynn_ednf_tendencies
 
 
 !#############################
@@ -8856,6 +8884,7 @@ program test111
   real,    dimension(ni,nj,nfull,ntracer) :: rdiag
   real,    dimension(ni,nj,nfull) :: udt, vdt, tdt
   real,    dimension(ni,nj,nfull,tr) :: rdt 
+  real,    dimension(ni,nj,nfull,tr) :: rdt_mynn_ed_am4 
   
   integer mm
 
@@ -10080,7 +10109,7 @@ endif ! end if of input profile
   call edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-              qldt_vdif, qidt_vdif,  &
+              rdt_mynn_ed_am4,  & 
               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
