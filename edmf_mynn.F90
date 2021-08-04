@@ -429,7 +429,7 @@ end type edmf_ls_mp_type
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
-                            tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, & 
+                            ! tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, &  for testing, no need any more 2021-08-04
                             do_option_edmf2ls_mp, do_use_tau, &
                             do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
 
@@ -8988,25 +8988,25 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   enddo  ! end loop of j
   enddo  ! end loop of 1
 
-  !--- fixed pbl top for testing
-  if (do_pblh_constant) then
-    do i=1,ix
-    do j=1,jx
-      dum1 = 1.e+10
-      kk=1
-      do k=1,kx    
-        dum  = abs(Physics_input_block%z_full(i,j,k) - fixed_pblh)
-        if (dum.lt.dum1) then
-          dum1 = dum
-          kk = k
-        endif
-      enddo
-
-      am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
-      am4_Output_edmf%kpbl_edmf(i,j) = kk      
-    enddo
-    enddo
-  endif  ! end if of do_pblh_constant
+!  !--- fixed pbl top for testing
+!  if (do_pblh_constant) then
+!    do i=1,ix
+!    do j=1,jx
+!      dum1 = 1.e+10
+!      kk=1
+!      do k=1,kx    
+!        dum  = abs(Physics_input_block%z_full(i,j,k) - fixed_pblh)
+!        if (dum.lt.dum1) then
+!          dum1 = dum
+!          kk = k
+!        endif
+!      enddo
+!
+!      am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
+!      am4_Output_edmf%kpbl_edmf(i,j) = kk      
+!    enddo
+!    enddo
+!  endif  ! end if of do_pblh_constant
 
 !---------------
 ! 3D variables
