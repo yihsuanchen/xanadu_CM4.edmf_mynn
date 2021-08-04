@@ -9063,22 +9063,6 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       !                           am4_Output_edmf%qadt_edmf(i,j,kk)-Output_edmf%RCCBLTEN  (i,k,j)
       !endif
   
-      !--- “evaporate/condensate” the liquid and ice water that is produced during mixing when 
-      !       do_option_edmf2ls_mp=3, 
-      !       or above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
-      if (     do_option_edmf2ls_mp.eq.3     &
-          .or. kk.lt.am4_Output_edmf%kpbl_edmf(i,j) ) then
-        am4_Output_edmf%qdt_edmf  (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
-                                             + Output_edmf%RQLBLTEN (i,k,j)  &
-                                             + Output_edmf%RQIBLTEN (i,k,j) 
-        am4_Output_edmf%qidt_edmf (i,j,kk) = 0. 
-        am4_Output_edmf%qldt_edmf (i,j,kk) = 0. 
-        am4_Output_edmf%qadt_edmf (i,j,kk) = 0. 
-  
-        am4_Output_edmf%tdt_edmf  (i,j,kk) =   Input_edmf%exner (i,k,j) * Output_edmf%RTHBLTEN (i,k,j) &
-                                             - hlv/cp_air * Output_edmf%RQLBLTEN (i,k,j)  &
-                                             - hls/cp_air * Output_edmf%RQIBLTEN (i,k,j)
-      endif
   
       !--- change rdiag
       Qke       (i,j,kk) = Output_edmf%Qke       (i,k,j)
@@ -9189,6 +9173,32 @@ subroutine modify_mynn_edmf_tendencies (Physics_input_block, Input_edmf, rdt_myn
   integer i,j,k,kk
 !------------------------------------------
 
+   !---  do_option_edmf2ls_mp=1 or 2, 
+   !      “evaporate/condensate” the liquid and ice water that is produced during mixing  
+   !       above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
+   if ( do_option_edmf2ls_mp.eq.1 .or. do_option_edmf2ls_mp.eq.2 ) then
+     do i=1,ix
+     do j=1,jx
+       k = Output_edmf%kpbl(i,j) 
+       Output_edmf%RQLBLTEN (:,k+1:kx,:) =  0.
+       Output_edmf%RQIBLTEN (:,k+1:kx,:) =  0.
+       Output_edmf%RQVBLTEN (:,k+1:kx,:) =  Output_edmf%RQTBLTEN(:,k+1:kx,:)
+       Output_edmf%RTHBLTEN (:,k+1:kx,:) =  Output_edmf%RTHLBLTEN (:,k+1:kx,:)  &
+                                         + (hlv*Output_edmf%RQLBLTEN (:,k+1:kx,:)+hls*Output_edmf%RQIBLTEN(:,k+1:kx,:)) / cp_air / Input_edmf%exner(:,k+1:kx,:)
+      enddo  ! end loop of i
+      enddo  ! end loop of j
+   endif
+
+   !---  do_option_edmf2ls_mp=3 
+   !      “evaporate/condensate” the liquid and ice water that is produced during mixing  
+   if ( do_option_edmf2ls_mp.eq.3 ) then
+     Output_edmf%RQLBLTEN (:,:,:) =  0.
+     Output_edmf%RQIBLTEN (:,:,:) =  0.
+     Output_edmf%RQVBLTEN (:,:,:) =  Output_edmf%RQTBLTEN(:,:,:)
+     Output_edmf%RTHBLTEN (:,:,:) =  Output_edmf%RTHLBLTEN (:,:,:)  &
+                                   + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
+   endif
+
 !---------------
 ! edmf_type=2, recover dry variable tendencies by approximating cloud liquid/ice tendencies
 !---------------
@@ -9222,7 +9232,6 @@ subroutine modify_mynn_edmf_tendencies (Physics_input_block, Input_edmf, rdt_myn
   !******************************
 
 end subroutine modify_mynn_edmf_tendencies
-
 
 !#############################
 ! Mellor-Yamada
