@@ -533,6 +533,9 @@ real,    dimension(:,:,:), allocatable,target :: &  ! yhc, the description of th
   diff_t_edmf, diff_m_edmf, &
   dqa_edmf,  dql_edmf, dqi_edmf
 
+real,    dimension(:,:,:,:), allocatable,target :: & 
+  rdt_before_vdiff_down
+
 integer, dimension(:,:), allocatable,target :: kpbl_edmf  
 
 integer,                   allocatable,target :: option_edmf2ls_mp  ! yhc
@@ -1151,6 +1154,7 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       allocate (  diff_t_edmf(id, jd, kd)) ; diff_t_edmf = 0.0  
       allocate (  diff_m_edmf(id, jd, kd)) ; diff_m_edmf = 0.0  
       allocate (  kpbl_edmf  (id, jd))  ;  ; kpbl_edmf= 0     
+      allocate (  rdt_before_vdiff_down  (id, jd, kd, ntp))  ;  rdt_before_vdiff_down= 0     
       !allocate (  (id, jd, kd))  ;  = 0.0  
       !---> yhc
 
@@ -1946,7 +1950,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                        size(Physics_tendency_block%q_dt,2), &
                        size(Physics_tendency_block%q_dt,3), &
                        size(Physics_tendency_block%q_dt,4)  )  :: &
-        rdt_before_vdiff_down, rdt_mynn_ed_am4
+        rdt_before_vdiff_down2, rdt_mynn_ed_am4
 
       real, dimension( size(Physics_tendency_block%u_dt,1), &
                        size(Physics_tendency_block%u_dt,2)) :: &
@@ -2448,7 +2452,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
             if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(:,:,:,nql)
             if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(:,:,:,nqi)
           
-          else   ! do nothing, all tracers are processed by vert_diff
+          else   ! do nothing, all tracers are processed by vert_diff excpet specific humidity
             rdt_dum1 = 0.
 
           endif  ! end if of do_tracers_selective
@@ -2967,6 +2971,23 @@ real,dimension(:,:),    intent(inout)             :: gust
       !elseif (do_edmf_mynn .and. .not.do_tracers_in_edmf_mynn) then
       !  call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
       !                            Surf_diff, tdt, rdt(:,:,:,1), rdt )
+      endif
+
+      !--- get tracer tendencies from vert_diff
+      rdt_mynn_ed_am4(:,:,:,:) =  rdt(:,:,:,:) - rdt_before_vdiff_down (:,:,:,:)
+      if (do_writeout_column) then
+        write(6,*) 'data qdt/        '    ,rdt(ii_write,jj_write,:,1)
+        write(6,*) 'data qdt_before_ed/'  ,rdt_before_vdiff_down(ii_write,jj_write,:,1)
+        write(6,*) 'data qdt_mynn_ed/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,1)
+        write(6,*) 'data qadt/        '    ,rdt(ii_write,jj_write,:,nqa)
+        write(6,*) 'data qadt_before_ed/'  ,rdt_before_vdiff_down(ii_write,jj_write,:,nqa)
+        write(6,*) 'data qadt_mynn_ed/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqa)
+        write(6,*) 'data qldt/        '    ,rdt(ii_write,jj_write,:,nql)
+        write(6,*) 'data qldt_before_ed/'  ,rdt_before_vdiff_down(ii_write,jj_write,:,nql)
+        write(6,*) 'data qldt_mynn_ed/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nql)
+        write(6,*) 'data qidt/        '    ,rdt(ii_write,jj_write,:,nqi)
+        write(6,*) 'data qidt_before_ed/'  ,rdt_before_vdiff_down(ii_write,jj_write,:,nqi)
+        write(6,*) 'data qidt_mynn_ed/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
       endif
 !--> yhc
 
@@ -3719,6 +3740,7 @@ integer :: moist_processes_term_clock, damping_term_clock, turb_term_clock, &
                   pblht_prev, hlsrc_prev, qtsrc_prev, cape_prev, cin_prev, tke_prev, & !h1g, 2017-01-31
                   option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &  !yhc
                   dqa_edmf, dql_edmf, dqi_edmf, & ! yhc
+                  rdt_before_vdiff_down, &
                   convect, radturbten, r_convect)
 
       if (do_cosp) then
