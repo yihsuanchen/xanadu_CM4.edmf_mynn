@@ -4163,7 +4163,8 @@ END SUBROUTINE mym_condensation
           qi_before_pdf(i,:,j) = (1.-liquid_frac(:)) * qc_bm(:)   ! cloud ice    water content (kg/kg)
           !---> yhc 
 
-    elseif (edmf_type .eq. 1) then
+    !elseif (edmf_type .eq. 1) then
+    elseif (edmf_type .eq. 1 .or. edmf_type .eq. 2) then  ! yhc add edmf_type=2, 2021-08-31
 
           !<--- yhc, save cloud fraction from the PDF cloud scheme
           CALL  mym_condensation ( kts,kte,      &
@@ -8758,11 +8759,11 @@ subroutine modify_mynn_ednf_tendencies (Physics_input_block, Input_edmf, rdt_myn
 !------------------------------------------
 
 !---------------
-! edmf_type=3, recover dry variable tendencies by approximating cloud liquid/ice tendencies
+! edmf_type=2, recover dry variable tendencies by approximating cloud liquid/ice tendencies
 !---------------
 
   !******************************
-  if (edmf_type .eq. 3) then
+  if (edmf_type .eq. 2) then
   !******************************
     do i=1,ix
     do j=1,jx
