@@ -1946,7 +1946,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                        size(Physics_tendency_block%q_dt,2), &
                        size(Physics_tendency_block%q_dt,3), &
                        size(Physics_tendency_block%q_dt,4)  )  :: &
-        rdt_before_vdiff_down
+        rdt_before_vdiff_down, rdt_mynn_ed_am4
 
       real, dimension( size(Physics_tendency_block%u_dt,1), &
                        size(Physics_tendency_block%u_dt,2)) :: &
@@ -2203,6 +2203,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
     call edmf_mynn_driver ( &
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+               rdt_mynn_ed_am4,  &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf, &
                z_pbl, udt, vdt, tdt, rdt, rdiag)
@@ -2831,6 +2832,11 @@ real,dimension(:,:),    intent(inout)             :: gust
       integer :: rr
       real                              :: alpha, dt2
       real, dimension(ie-is+1,je-js+1)       :: z_pbl
+      real, dimension( size(Physics_tendency_block%q_dt,1), &
+                       size(Physics_tendency_block%q_dt,2), &
+                       size(Physics_tendency_block%q_dt,3), &
+                       size(Physics_tendency_block%q_dt,4)  )  :: &
+         rdt_mynn_ed_am4
       !--> yhc        
 
       t => Physics_input_block%t
@@ -3042,6 +3048,7 @@ real,dimension(:,:),    intent(inout)             :: gust
     call edmf_mynn_driver ( &
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+               rdt_mynn_ed_am4,  &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf, &
                z_pbl, udt, vdt, tdt, rdt, rdiag)
