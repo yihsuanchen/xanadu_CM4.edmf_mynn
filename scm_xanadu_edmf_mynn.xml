@@ -9495,6 +9495,244 @@ DYCOMS RF01 case
     </input>
   </experiment>
 
+  <experiment name="rfo73-RF01-am4p0_mynn_DIFF_UWlock" inherit="rfo71-RF01-am4p0_mynn_ED_Gmy_UWlock">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 5
+ do_edmf_mynn_diffusion_smooth = T
+ do_return_edmf_mynn_diff_only = F
+ do_edmf_mynn_in_physics = "up"
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo73a-RF01-mynn_DIFF_EDonly_Gmy_tiedtkeADD" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 1
+ edmf_type = 1
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo73b-RF01-mynn_DIFF_EDonly_Gmy_tiedtkeREP" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 2
+ edmf_type = 1
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo73c-RF01-mynn_DIFF_EDMFexpUP_Gmy_tiedtkeREP" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 2
+ edmf_type = 1
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .true.
+ upwind = 1.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo73d-RF01-mynn_DIFF_EDMFimpCD_Gmy_tiedtkeREP" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 2
+ edmf_type = 1
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .false.
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo73e-RF01-mynn_DIFF_EDMFexpUP_Gmy_tiedtkeADD" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 1
+ edmf_type = 1
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .true.
+ upwind = 1.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo73f-RF01-mynn_DIFF_EDMFimpCD_Gmy_tiedtkeADD" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 1
+ edmf_type = 1
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .false.
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo74a-RF01-mynn_DIFF_EDonly_Omy_tiedtkeADD" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 1
+ edmf_type = 0
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo74b-RF01-mynn_DIFF_EDonly_Omy_tiedtkeREP" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 2
+ edmf_type = 0
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo74c-RF01-mynn_DIFF_EDMFexpUP_Omy_tiedtkeREP" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 2
+ edmf_type = 0
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .true.
+ upwind = 1.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo74d-RF01-mynn_DIFF_EDMFimpCD_Omy_tiedtkeREP" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 2
+ edmf_type = 0
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .false.
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo74e-RF01-mynn_DIFF_EDMFexpUP_Omy_tiedtkeADD" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 1
+ edmf_type = 0
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .true.
+ upwind = 1.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo74f-RF01-mynn_DIFF_EDMFimpCD_Omy_tiedtkeADD" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = star
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 1
+ edmf_type = 0
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .false.
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
 
   <experiment name="rfo71ab-RF01-am4p0_mynn_ED_Gmy_UWlock_rdpI0.45" inherit="rfo71aa-RF01-am4p0_mynn_ED_Gmy_UWlock">
     <input>
