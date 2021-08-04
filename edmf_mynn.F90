@@ -447,6 +447,9 @@ integer :: ntp          ! number of prognostic tracers
 integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf, id_qtdt_edmf, id_thldt_edmf, id_diff_t_edmf, id_diff_m_edmf, id_el_edmf
 
 integer :: id_t_input, id_q_input, id_qa_input, id_ql_input, id_qi_input, id_thl_input, id_qt_input, id_rh_input, id_th_input, id_t_before_mix, id_q_before_mix, id_qa_before_mix, id_ql_before_mix, id_qi_before_mix, id_thl_before_mix, id_qt_before_mix, id_rh_before_mix, id_th_before_mix, id_t_after_mix, id_q_after_mix, id_qa_after_mix, id_ql_after_mix, id_qi_after_mix, id_thl_after_mix, id_qt_after_mix, id_rh_after_mix, id_th_after_mix, id_qa_before_pdf, id_ql_before_pdf, id_qi_before_pdf 
+
+integer :: id_tdt_edmf_orig, id_qdt_edmf_orig, id_qadt_edmf_orig, id_qidt_edmf_orig, id_qldt_edmf_orig
+
 !---------------------------------------------------------------------
 
   contains
@@ -521,7 +524,7 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                      FATAL )
   endif
 
-  if ( edmf_type > 3 ) then
+  if ( edmf_type .gt. 2 ) then
     call error_mesg( ' edmf_mynn',     &
                      ' edmf_type must be either 0, 1, or 2',&
                      FATAL )
@@ -849,6 +852,26 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_qi_before_pdf = register_diag_field (mod_name, 'qi_before_pdf', axes(full), Time, &
                  'qi diagnosed by edmf_mynn', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_tdt_edmf_orig = register_diag_field (mod_name, 'tdt_edmf_orig', axes(full), Time, &
+                 't tendency from edmf_mynn original', 'K/s' , &
+                 missing_value=missing_value )
+
+  id_qdt_edmf_orig = register_diag_field (mod_name, 'qdt_edmf_orig', axes(full), Time, &
+                 'q tendency from edmf_mynn original', 'kg/kg/s' , &
+                 missing_value=missing_value )
+
+  id_qadt_edmf_orig = register_diag_field (mod_name, 'qadt_edmf_orig', axes(full), Time, &
+                 'cldfra tendency from edmf_mynn original', '1/s' , &
+                 missing_value=missing_value )
+
+  id_qidt_edmf_orig = register_diag_field (mod_name, 'qidt_edmf_orig', axes(full), Time, &
+                 'qi tendency from edmf_mynn original', 'kg/kg/s' , &
+                 missing_value=missing_value )
+
+  id_qldt_edmf_orig = register_diag_field (mod_name, 'qldt_edmf_orig', axes(full), Time, &
+                 'ql tendency from edmf_mynn original', 'kg/kg/s' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -6705,6 +6728,11 @@ subroutine edmf_mynn_driver ( &
 
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2), &
+                   size(Physics_input_block%t,3)) :: &
+          tmp_3d
+
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,2), &
                    size(Physics_input_block%t,3)+1) :: &
           diag_half
 
@@ -7308,6 +7336,32 @@ subroutine edmf_mynn_driver ( &
       if ( id_qi_before_pdf > 0) then
         used = send_data (id_qi_before_pdf, am4_Output_edmf%qi_before_pdf, Time_next, is, js, 1 )
       endif
+
+!------- t tendency from edmf_mynn original (units: K/s) at full level -------
+      if ( id_tdt_edmf_orig > 0) then
+        used = send_data (id_tdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+      endif
+
+!------- q tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+      if ( id_qdt_edmf_orig > 0) then
+        used = send_data (id_qdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+      endif
+
+!------- cldfra tendency from edmf_mynn original (units: 1/s) at full level -------
+      if ( id_qadt_edmf_orig > 0) then
+        used = send_data (id_qadt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+      endif
+
+!------- qi tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+      if ( id_qidt_edmf_orig > 0) then
+        used = send_data (id_qidt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+      endif
+
+!------- ql tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+      if ( id_qldt_edmf_orig > 0) then
+        used = send_data (id_qldt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+      endif
+
 !send_data
 
 !---------------------------------------------------------------------
@@ -9228,7 +9282,7 @@ subroutine modify_mynn_edmf_tendencies (Physics_input_block, Input_edmf, rdt_myn
                                     + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
 
   !******************************
-  end if  ! end if of edmf_type=3
+  end if  ! end if of edmf_type=2
   !******************************
 
 end subroutine modify_mynn_edmf_tendencies
