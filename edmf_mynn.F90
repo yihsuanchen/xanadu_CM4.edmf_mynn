@@ -381,8 +381,9 @@ end type edmf_ls_mp_type
   integer :: NUP = 100                   ! the number of updrafts
   real    :: UPSTAB = 1.                 ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
 
-  integer :: edmf_type=1                 ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
+  integer :: edmf_type=0                 ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
                                          ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
+                                         ! =2, approximate ql and qi tendencies from AM4 ED and MF terms, and then recover T and qv tendencies 
 
   logical :: do_qdt_same_as_qtdt = .false.  ! = .true., for testing purposes, evaporate/condensate the liquid and ice water that is produced during mixing. 
 
@@ -517,6 +518,12 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
   if (.not.expmf .and. upwind.ne.0.5) then
     call error_mesg( ' edmf_mynn',     &
                      ' when expmf=.false., upwind must be 0.5 (implicit MF with centered-diff)',&
+                     FATAL )
+  endif
+
+  if ( edmf_type > 3 ) then
+    call error_mesg( ' edmf_mynn',     &
+                     ' edmf_type must be either 0, 1, or 2',&
                      FATAL )
   endif
 
