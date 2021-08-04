@@ -2451,6 +2451,9 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
             if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(:,:,:,nqa)
             if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(:,:,:,nql)
             if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(:,:,:,nqi)
+
+          elseif (do_tracers_selective.eq.6) then      ! process all tracers and qa,ql,qi would be changed in mynn_edmf 
+            rdt_dum1 = 0.
           
           else   ! do nothing, all tracers are processed by vert_diff excpet specific humidity
             rdt_dum1 = 0.
@@ -2988,6 +2991,13 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data qidt/        '    ,rdt(ii_write,jj_write,:,nqi)
         write(6,*) 'data qidt_before_ed/'  ,rdt_before_vdiff_down(ii_write,jj_write,:,nqi)
         write(6,*) 'data qidt_mynn_ed/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
+        write(6,*) 'do_tracers_selective, nqa, nql, nqi',do_tracers_selective, nqa, nql, nqi
+      endif
+
+      if (do_tracers_selective.eq.6) then
+        if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(:,:,:,nqa)
+        if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(:,:,:,nql)
+        if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(:,:,:,nqi)
       endif
 !--> yhc
 
