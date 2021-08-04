@@ -6190,6 +6190,10 @@ subroutine edmf_mynn_driver ( &
 !
 !     do_edmf_mynn_in_physics       = "down",  edmf_mynn_driver is called in physics_driver_down
 !                                     "up"  ,  edmf_mynn_driver is called in physics_driver_up      
+!
+!     rdt_mynn_ed_am4
+!       multiple tracer tendencies [ unit / unit / sec ] only for eddy-diffusion
+!       This is used to recover dry variable tendencies when edmf_type=2
 !---------------------------------------------------------------------
   integer, intent(in)                   :: is, ie, js, je, npz
   type(time_type), intent(in)           :: Time_next
@@ -6426,7 +6430,7 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 ! recover dry variable tendencies from mynn_edmf
 !---------------------------------------------------------------------
-  call modify_mynn_ednf_tendencies(Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
+  call modify_mynn_edmf_tendencies(Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                             size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
                                             Output_edmf)
 
@@ -8740,7 +8744,7 @@ end subroutine convert_edmf_to_am4_array
 
 !###################################
 
-subroutine modify_mynn_ednf_tendencies (Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
+subroutine modify_mynn_edmf_tendencies (Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                                  ix, jx, kx,  &
                                                  Output_edmf)
 
@@ -8770,16 +8774,19 @@ subroutine modify_mynn_ednf_tendencies (Physics_input_block, Input_edmf, rdt_myn
     do k=1,kx      ! k index for full levels
       kk=kx-k+1
 
-      Output_edmf%RQIBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqi)
-      Output_edmf%RQLBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nql)
-      Output_edmf%RCCBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqa)
+      Output_edmf%RQIBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqi)   ! modify qi tendency
+      Output_edmf%RQLBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nql)   ! modify ql tendency
+      Output_edmf%RCCBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqa)   ! modify qa tendency
 
-    enddo
-    enddo
-    enddo
+    enddo  ! end loop of i
+    enddo  ! end loop of j
+    enddo  ! end loop of k
 
+    ! modify qv tendecy, qvdt = qtdt - modified qldt & qidt
     Output_edmf%RQVBLTEN  (:,:,:) =   Output_edmf%RQTBLTEN  (:,:,:)  &
-                                    - Output_edmf%RQIBLTEN  (:,:,:) - Output_edmf%RQIBLTEN  (:,:,:)
+                                    - Output_edmf%RQLBLTEN  (:,:,:) - Output_edmf%RQIBLTEN  (:,:,:)
+
+    ! modify theta tendency accordingly, keep theta_li tendency unchanged
     Output_edmf%RTHBLTEN  (:,:,:) =   Output_edmf%RTHLBLTEN (:,:,:)  &
                                     + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
 
@@ -8787,7 +8794,7 @@ subroutine modify_mynn_ednf_tendencies (Physics_input_block, Input_edmf, rdt_myn
   end if  ! end if of edmf_type=3
   !******************************
 
-end subroutine modify_mynn_ednf_tendencies
+end subroutine modify_mynn_edmf_tendencies
 
 
 !#############################
