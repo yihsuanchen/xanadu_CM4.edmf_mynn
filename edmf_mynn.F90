@@ -4581,7 +4581,8 @@ END SUBROUTINE mym_condensation
           qi_before_pdf(i,:,j) = (1.-liquid_frac(:)) * qc_bm(:)   ! cloud ice    water content (kg/kg)
           !---> yhc 
 
-    elseif (edmf_type .eq. 1) then
+    !elseif (edmf_type .eq. 1) then
+    elseif (edmf_type .eq. 1 .or. edmf_type .eq. 2) then  ! yhc add edmf_type=2, 2021-08-31
 
           !<--- yhc, save cloud fraction from the PDF cloud scheme
           CALL  mym_condensation ( kts,kte,      &
@@ -6587,6 +6588,7 @@ END SUBROUTINE edmf_JPL
 subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              rdt_mynn_ed_am4, &
               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
@@ -6606,6 +6608,10 @@ subroutine edmf_mynn_driver ( &
 !
 !     do_edmf_mynn_in_physics       = "down",  edmf_mynn_driver is called in physics_driver_down
 !                                     "up"  ,  edmf_mynn_driver is called in physics_driver_up      
+!
+!     rdt_mynn_ed_am4
+!       multiple tracer tendencies [ unit / unit / sec ] only for eddy-diffusion
+!       This is used to recover dry variable tendencies when edmf_type=2
 !---------------------------------------------------------------------
   integer, intent(in)                   :: is, ie, js, je, npz
   type(time_type), intent(in)           :: Time_next
@@ -6613,6 +6619,10 @@ subroutine edmf_mynn_driver ( &
   real,    intent(in), dimension(:,:)   :: &
    lon, lat, &  ! longitude and latitude in radians
    frac_land, area, u_star, b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux
+
+  real, intent(in), dimension(:,:,:,:) :: &
+    rdt_mynn_ed_am4
+
   type(physics_input_block_type)        :: Physics_input_block
   logical, intent(in)                   :: do_edmf_mynn_diagnostic
   logical, intent(in)                   :: do_return_edmf_mynn_diff_only
@@ -6637,6 +6647,7 @@ subroutine edmf_mynn_driver ( &
     udt, vdt, tdt
   real, intent(inout), dimension(:,:,:,:) :: &
     rdt
+  !real, intent(inout), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
   real, intent(inout), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
@@ -6832,7 +6843,14 @@ subroutine edmf_mynn_driver ( &
   !--- SCM, set initflag
   if (initflag == 1) then
     initflag = 0          ! no initialization
-  endif
+  endif 
+
+!---------------------------------------------------------------------
+! recover dry variable tendencies from mynn_edmf
+!---------------------------------------------------------------------
+  call modify_mynn_edmf_tendencies(Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
+                                            size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
+                                            Output_edmf)
 
 !---------------------------------------------------------------------
 ! process the outputs from the EDMF-MYNN program
@@ -6945,6 +6963,7 @@ subroutine edmf_mynn_driver ( &
       lmask_half(:,:,1:kx) = .true.
       lmask_half(:,:,kx+1) = .false.
 
+!send_data
 !------- zonal wind stress (units: kg/m/s2) at one level -------
       if ( id_u_flux > 0) then
         used = send_data (id_u_flux, u_flux, Time_next, is, js )
@@ -7282,6 +7301,7 @@ subroutine edmf_mynn_driver ( &
       if ( id_qi_before_pdf > 0) then
         used = send_data (id_qi_before_pdf, am4_Output_edmf%qi_before_pdf, Time_next, is, js, 1 )
       endif
+!send_data
 
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
@@ -8344,7 +8364,7 @@ subroutine edmf_writeout_column ( &
   type(edmf_output_type), intent(in) :: Output_edmf
 
   type(am4_edmf_output_type), intent(in) :: am4_Output_edmf
-  !real, dimension (:,:,:,:) , intent(in) :: rdiag
+  !real, intent(inout), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
   real, intent(inout), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
@@ -9141,6 +9161,61 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   !am4_Output_edmf%rh_after_mix  (:,:,:) = am4_Output_edmf%rh_after_mix(:,:,:)*100.
 
 end subroutine convert_edmf_to_am4_array
+
+!###################################
+
+subroutine modify_mynn_edmf_tendencies (Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
+                                                 ix, jx, kx,  &
+                                                 Output_edmf)
+
+!--- input arguments
+  type(physics_input_block_type), intent(in)  :: Physics_input_block
+  type(edmf_input_type)     , intent(in)  :: Input_edmf
+  integer                   , intent(in)  :: ix, jx, kx
+  real, dimension(:,:,:,:) :: &
+    rdt_mynn_ed_am4
+
+!--- input/output arguments
+  type(edmf_output_type)    , intent(inout)  :: Output_edmf
+
+!--- local variable
+  integer i,j,k,kk
+!------------------------------------------
+
+!---------------
+! edmf_type=2, recover dry variable tendencies by approximating cloud liquid/ice tendencies
+!---------------
+
+  !******************************
+  if (edmf_type .eq. 2) then
+  !******************************
+    do i=1,ix
+    do j=1,jx
+    do k=1,kx      ! k index for full levels
+      kk=kx-k+1
+
+      Output_edmf%RQIBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqi)   ! modify qi tendency
+      Output_edmf%RQLBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nql)   ! modify ql tendency
+      Output_edmf%RCCBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqa)   ! modify qa tendency
+
+    enddo  ! end loop of i
+    enddo  ! end loop of j
+    enddo  ! end loop of k
+
+    ! modify qv tendecy, qvdt = qtdt - modified qldt & qidt
+    Output_edmf%RQVBLTEN  (:,:,:) =   Output_edmf%RQTBLTEN  (:,:,:)  &
+                                    - Output_edmf%RQLBLTEN  (:,:,:) - Output_edmf%RQIBLTEN  (:,:,:)
+
+    ! modify theta tendency accordingly, keep theta_li tendency unchanged
+    Output_edmf%RTHBLTEN  (:,:,:) =   Output_edmf%RTHLBLTEN (:,:,:)  &
+                                    + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
+
+  !******************************
+  end if  ! end if of edmf_type=3
+  !******************************
+
+end subroutine modify_mynn_edmf_tendencies
+
 
 !#############################
 ! Mellor-Yamada
