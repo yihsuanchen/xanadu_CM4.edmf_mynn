@@ -166,7 +166,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    !logical :: do_check_realizability = .true.
    logical :: do_check_realizability = .false.
 
-  integer :: edmf_type=0                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
+  integer :: edmf_type=2                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
                                                 ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
   real    :: qke_min = -1.                      ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
                                                 !   set qke_min>0 may remove energy/water away and cause water mass is not conserved
@@ -10114,6 +10114,9 @@ endif ! end if of input profile
 !write(6,*) 'rdiag(:,:,:,nSh3D)',rdiag(:,:,:,nSh3D)
 !write(6,*) 'ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl',ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl
 
+!  rdt_mynn_ed_am4(:,:,:,nql) = 1.e-9
+!print*,'rdt_mynn_ed_am4',rdt_mynn_ed_am4(:,:,:,nql)
+
   call edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
@@ -10133,6 +10136,9 @@ endif ! end if of input profile
     Physics_input_block%v = Physics_input_block%v + vdt(:,:,:)*dt
     Physics_input_block%t = Physics_input_block%t + tdt(:,:,:)*dt
     Physics_input_block%q(:,:,:,nsphum) = Physics_input_block%q(:,:,:,1) + rdt(:,:,:,nsphum)*dt
+
+
+
   enddo
 
 
