@@ -6883,9 +6883,10 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 ! recover dry variable tendencies from mynn_edmf
 !---------------------------------------------------------------------
-  call modify_mynn_edmf_tendencies(Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
-                                            size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                            Output_edmf)
+  call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next,  &
+                                    Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
+                                    size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
+                                    Output_edmf)
 
 !---------------------------------------------------------------------
 ! process the outputs from the EDMF-MYNN program
@@ -7335,31 +7336,6 @@ subroutine edmf_mynn_driver ( &
 !------- qi before_pdf to edmf_mynn (units: kg/kg) at full level -------
       if ( id_qi_before_pdf > 0) then
         used = send_data (id_qi_before_pdf, am4_Output_edmf%qi_before_pdf, Time_next, is, js, 1 )
-      endif
-
-!------- t tendency from edmf_mynn original (units: K/s) at full level -------
-      if ( id_tdt_edmf_orig > 0) then
-        used = send_data (id_tdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
-      endif
-
-!------- q tendency from edmf_mynn original (units: kg/kg/s) at full level -------
-      if ( id_qdt_edmf_orig > 0) then
-        used = send_data (id_qdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
-      endif
-
-!------- cldfra tendency from edmf_mynn original (units: 1/s) at full level -------
-      if ( id_qadt_edmf_orig > 0) then
-        used = send_data (id_qadt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
-      endif
-
-!------- qi tendency from edmf_mynn original (units: kg/kg/s) at full level -------
-      if ( id_qidt_edmf_orig > 0) then
-        used = send_data (id_qidt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
-      endif
-
-!------- ql tendency from edmf_mynn original (units: kg/kg/s) at full level -------
-      if ( id_qldt_edmf_orig > 0) then
-        used = send_data (id_qldt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
       endif
 
 !send_data
@@ -9209,27 +9185,72 @@ end subroutine convert_edmf_to_am4_array
 
 !###################################
 
-subroutine modify_mynn_edmf_tendencies (Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
-                                                 ix, jx, kx,  &
-                                                 Output_edmf)
+subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
+                                        Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
+                                        ix, jx, kx,  &
+                                        Output_edmf)
 
 !--- input arguments
+  integer, intent(in)                   :: is, ie, js, je
+  type(time_type), intent(in)           :: Time_next
   type(physics_input_block_type), intent(in)  :: Physics_input_block
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   integer                   , intent(in)  :: ix, jx, kx
-  real, dimension(:,:,:,:) :: &
+  real, dimension(:,:,:,:)  , intent(in)  :: &
     rdt_mynn_ed_am4
 
 !--- input/output arguments
   type(edmf_output_type)    , intent(inout)  :: Output_edmf
 
 !--- local variable
+  real, dimension(ix,jx,kx) :: tmp_3d
+  logical used
   integer i,j,k,kk
 !------------------------------------------
 
+!----------------------------
+! save the original mynn_edmf tendencies
+!----------------------------
+
+   !------- t tendency from edmf_mynn original (units: K/s) at full level -------
+   if ( id_tdt_edmf_orig > 0) then
+     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RTHBLTEN(:,:,:)*Input_edmf%exner(:,:,:), tmp_3d)
+     used = send_data (id_tdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+   endif
+
+   !------- q tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+   if ( id_qdt_edmf_orig > 0) then
+     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQVBLTEN(:,:,:), tmp_3d)
+     used = send_data (id_qdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+   endif
+
+   !------- cldfra tendency from edmf_mynn original (units: 1/s) at full level -------
+   if ( id_qadt_edmf_orig > 0) then
+     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RCCBLTEN(:,:,:), tmp_3d)
+     used = send_data (id_qadt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+   endif
+
+   !------- qi tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+   if ( id_qidt_edmf_orig > 0) then
+     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQIBLTEN(:,:,:), tmp_3d)
+     used = send_data (id_qidt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+   endif
+
+   !------- ql tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+   if ( id_qldt_edmf_orig > 0) then
+     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQLBLTEN(:,:,:), tmp_3d)
+     used = send_data (id_qldt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+   endif
+
+!----------------------------
+! modify mynn_edmf tendencies 
+!----------------------------
+
+   !******************************
    !---  do_option_edmf2ls_mp=1 or 2, 
    !      “evaporate/condensate” the liquid and ice water that is produced during mixing  
    !       above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
+   !******************************
    if ( do_option_edmf2ls_mp.eq.1 .or. do_option_edmf2ls_mp.eq.2 ) then
      do i=1,ix
      do j=1,jx
@@ -9243,8 +9264,10 @@ subroutine modify_mynn_edmf_tendencies (Physics_input_block, Input_edmf, rdt_myn
       enddo  ! end loop of j
    endif
 
+   !******************************
    !---  do_option_edmf2ls_mp=3 
    !      “evaporate/condensate” the liquid and ice water that is produced during mixing  
+   !******************************
    if ( do_option_edmf2ls_mp.eq.3 ) then
      Output_edmf%RQLBLTEN (:,:,:) =  0.
      Output_edmf%RQIBLTEN (:,:,:) =  0.
@@ -9253,39 +9276,65 @@ subroutine modify_mynn_edmf_tendencies (Physics_input_block, Input_edmf, rdt_myn
                                    + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
    endif
 
-!---------------
-! edmf_type=2, recover dry variable tendencies by approximating cloud liquid/ice tendencies
-!---------------
-
-  !******************************
-  if (edmf_type .eq. 2) then
-  !******************************
-    do i=1,ix
-    do j=1,jx
-    do k=1,kx      ! k index for full levels
-      kk=kx-k+1
-
-      Output_edmf%RQIBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqi)   ! modify qi tendency
-      Output_edmf%RQLBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nql)   ! modify ql tendency
-      Output_edmf%RCCBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqa)   ! modify qa tendency
-
-    enddo  ! end loop of i
-    enddo  ! end loop of j
-    enddo  ! end loop of k
-
-    ! modify qv tendecy, qvdt = qtdt - modified qldt & qidt
-    Output_edmf%RQVBLTEN  (:,:,:) =   Output_edmf%RQTBLTEN  (:,:,:)  &
-                                    - Output_edmf%RQLBLTEN  (:,:,:) - Output_edmf%RQIBLTEN  (:,:,:)
-
-    ! modify theta tendency accordingly, keep theta_li tendency unchanged
-    Output_edmf%RTHBLTEN  (:,:,:) =   Output_edmf%RTHLBLTEN (:,:,:)  &
-                                    + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
-
-  !******************************
-  end if  ! end if of edmf_type=2
-  !******************************
+   !******************************
+   !--- edmf_type=2, 
+   !      recover dry variable tendencies by approximating cloud liquid/ice tendencies
+   !******************************
+   if (edmf_type .eq. 2) then
+     do i=1,ix
+     do j=1,jx
+     do k=1,kx      ! k index for full levels
+       kk=kx-k+1
+ 
+       Output_edmf%RQIBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqi)   ! modify qi tendency
+       Output_edmf%RQLBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nql)   ! modify ql tendency
+       Output_edmf%RCCBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqa)   ! modify qa tendency
+ 
+     enddo  ! end loop of i
+     enddo  ! end loop of j
+     enddo  ! end loop of k
+ 
+     ! modify qv tendecy, qvdt = qtdt - modified qldt & qidt
+     Output_edmf%RQVBLTEN  (:,:,:) =   Output_edmf%RQTBLTEN  (:,:,:)  &
+                                     - Output_edmf%RQLBLTEN  (:,:,:) - Output_edmf%RQIBLTEN  (:,:,:)
+ 
+     ! modify theta tendency accordingly, keep theta_li tendency unchanged
+     Output_edmf%RTHBLTEN  (:,:,:) =   Output_edmf%RTHLBLTEN (:,:,:)  &
+                                     + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
+ 
+   end if  ! end if of edmf_type=2
 
 end subroutine modify_mynn_edmf_tendencies
+
+!###################################
+
+subroutine reshape_mynn_array_to_am4 (ix, jx, kx, mynn_array_3d, am4_array_3d)
+
+!--- input arguments
+  integer                   , intent(in)  :: ix, jx, kx
+  real, dimension(ix, kx, jx), intent(in) :: &
+    mynn_array_3d
+
+!--- output arguments
+  real, dimension(ix, jx, kx), intent(out) :: &
+    am4_array_3d
+
+!--- local variable
+  integer i,j,k,kk
+!----------------------------------
+
+  am4_array_3d = 0.
+
+  do i=1,ix
+  do j=1,jx
+    do k=1,kx      ! k index for full levels
+      kk=kx-k+1
+      am4_array_3d   (i,j,kk) = mynn_array_3d (i,k,j)
+    enddo  ! end loop of k, full levels
+  enddo  ! end loop of j
+  enddo  ! end loop of 1
+
+end subroutine reshape_mynn_array_to_am4
 
 !#############################
 ! Mellor-Yamada
