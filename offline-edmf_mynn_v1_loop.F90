@@ -6229,7 +6229,7 @@ subroutine edmf_mynn_driver ( &
     udt, vdt, tdt
   real, intent(inout), dimension(:,:,:,:) :: &
     rdt
-  real, intent(inout), dimension(:,:,:,:) :: &   ! Mellor-Yamada, enable this in offline mode
+  real, intent(inout), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
   !real, intent(inout), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
@@ -6277,6 +6277,11 @@ subroutine edmf_mynn_driver ( &
   real    :: tt1
   integer :: i,j,k
   integer :: ix,jx,kx
+
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,2), &
+                   size(Physics_input_block%t,3)) :: &
+          tmp_3d
 
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2), &
@@ -6430,9 +6435,10 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 ! recover dry variable tendencies from mynn_edmf
 !---------------------------------------------------------------------
-  call modify_mynn_edmf_tendencies(Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
-                                            size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                            Output_edmf)
+  call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next,  &
+                                    Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
+                                    size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
+                                    Output_edmf)
 
 !---------------------------------------------------------------------
 ! process the outputs from the EDMF-MYNN program
@@ -6537,14 +6543,15 @@ subroutine edmf_mynn_driver ( &
               rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
-!!---------------------------------------------------------------------
-!! write out fields to history files
-!!---------------------------------------------------------------------
-!
-!      !--- set up local mask for fields without surface data
-!      lmask_half(:,:,1:kx) = .true.
-!      lmask_half(:,:,kx+1) = .false.
-!
+!---------------------------------------------------------------------
+! write out fields to history files
+!---------------------------------------------------------------------
+
+      !--- set up local mask for fields without surface data
+      lmask_half(:,:,1:kx) = .true.
+      lmask_half(:,:,kx+1) = .false.
+
+!!send_data
 !!------- zonal wind stress (units: kg/m/s2) at one level -------
 !      if ( id_u_flux > 0) then
 !        used = send_data (id_u_flux, u_flux, Time_next, is, js )
@@ -6882,6 +6889,8 @@ subroutine edmf_mynn_driver ( &
 !      if ( id_qi_before_pdf > 0) then
 !        used = send_data (id_qi_before_pdf, am4_Output_edmf%qi_before_pdf, Time_next, is, js, 1 )
 !      endif
+!
+!!send_data
 
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
@@ -7944,7 +7953,7 @@ subroutine edmf_writeout_column ( &
   type(edmf_output_type), intent(in) :: Output_edmf
 
   type(am4_edmf_output_type), intent(in) :: am4_Output_edmf
-  real, intent(inout), dimension(:,:,:,:) :: &   ! Mellor-Yamada, enable this in offline mode
+  real, intent(inout), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
   !real, intent(inout), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
@@ -8561,25 +8570,25 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   enddo  ! end loop of j
   enddo  ! end loop of 1
 
-  !--- fixed pbl top for testing
-  if (do_pblh_constant) then
-    do i=1,ix
-    do j=1,jx
-      dum1 = 1.e+10
-      kk=1
-      do k=1,kx    
-        dum  = abs(Physics_input_block%z_full(i,j,k) - fixed_pblh)
-        if (dum.lt.dum1) then
-          dum1 = dum
-          kk = k
-        endif
-      enddo
-
-      am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
-      am4_Output_edmf%kpbl_edmf(i,j) = kk      
-    enddo
-    enddo
-  endif  ! end if of do_pblh_constant
+!  !--- fixed pbl top for testing
+!  if (do_pblh_constant) then
+!    do i=1,ix
+!    do j=1,jx
+!      dum1 = 1.e+10
+!      kk=1
+!      do k=1,kx    
+!        dum  = abs(Physics_input_block%z_full(i,j,k) - fixed_pblh)
+!        if (dum.lt.dum1) then
+!          dum1 = dum
+!          kk = k
+!        endif
+!      enddo
+!
+!      am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
+!      am4_Output_edmf%kpbl_edmf(i,j) = kk      
+!    enddo
+!    enddo
+!  endif  ! end if of do_pblh_constant
 
 !---------------
 ! 3D variables
@@ -8636,22 +8645,6 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       !                           am4_Output_edmf%qadt_edmf(i,j,kk)-Output_edmf%RCCBLTEN  (i,k,j)
       !endif
   
-      !--- “evaporate/condensate” the liquid and ice water that is produced during mixing when 
-      !       do_option_edmf2ls_mp=3, 
-      !       or above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
-      if (     do_option_edmf2ls_mp.eq.3     &
-          .or. kk.lt.am4_Output_edmf%kpbl_edmf(i,j) ) then
-        am4_Output_edmf%qdt_edmf  (i,j,kk) =   Output_edmf%RQVBLTEN (i,k,j)  &
-                                             + Output_edmf%RQLBLTEN (i,k,j)  &
-                                             + Output_edmf%RQIBLTEN (i,k,j) 
-        am4_Output_edmf%qidt_edmf (i,j,kk) = 0. 
-        am4_Output_edmf%qldt_edmf (i,j,kk) = 0. 
-        am4_Output_edmf%qadt_edmf (i,j,kk) = 0. 
-  
-        am4_Output_edmf%tdt_edmf  (i,j,kk) =   Input_edmf%exner (i,k,j) * Output_edmf%RTHBLTEN (i,k,j) &
-                                             - hlv/cp_air * Output_edmf%RQLBLTEN (i,k,j)  &
-                                             - hls/cp_air * Output_edmf%RQIBLTEN (i,k,j)
-      endif
   
       !--- change rdiag
       Qke       (i,j,kk) = Output_edmf%Qke       (i,k,j)
@@ -8744,57 +8737,159 @@ end subroutine convert_edmf_to_am4_array
 
 !###################################
 
-subroutine modify_mynn_edmf_tendencies (Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
-                                                 ix, jx, kx,  &
-                                                 Output_edmf)
+subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
+                                        Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
+                                        ix, jx, kx,  &
+                                        Output_edmf)
 
 !--- input arguments
+  integer, intent(in)                   :: is, ie, js, je
+  type(time_type), intent(in)           :: Time_next
   type(physics_input_block_type), intent(in)  :: Physics_input_block
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   integer                   , intent(in)  :: ix, jx, kx
-  real, dimension(:,:,:,:) :: &
+  real, dimension(:,:,:,:)  , intent(in)  :: &
     rdt_mynn_ed_am4
 
 !--- input/output arguments
   type(edmf_output_type)    , intent(inout)  :: Output_edmf
 
 !--- local variable
+  real, dimension(ix,jx,kx) :: tmp_3d
+  logical used
   integer i,j,k,kk
 !------------------------------------------
 
-!---------------
-! edmf_type=2, recover dry variable tendencies by approximating cloud liquid/ice tendencies
-!---------------
+!----------------------------
+! save the original mynn_edmf tendencies
+!----------------------------
 
-  !******************************
-  if (edmf_type .eq. 2) then
-  !******************************
-    do i=1,ix
-    do j=1,jx
-    do k=1,kx      ! k index for full levels
-      kk=kx-k+1
+!!send_data
+!   !------- t tendency from edmf_mynn original (units: K/s) at full level -------
+!   if ( id_tdt_edmf_orig > 0) then
+!     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RTHBLTEN(:,:,:)*Input_edmf%exner(:,:,:), tmp_3d)
+!     used = send_data (id_tdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+!   endif
+!
+!   !------- q tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+!   if ( id_qdt_edmf_orig > 0) then
+!     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQVBLTEN(:,:,:), tmp_3d)
+!     used = send_data (id_qdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+!   endif
+!
+!   !------- cldfra tendency from edmf_mynn original (units: 1/s) at full level -------
+!   if ( id_qadt_edmf_orig > 0) then
+!     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RCCBLTEN(:,:,:), tmp_3d)
+!     used = send_data (id_qadt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+!   endif
+!
+!   !------- qi tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+!   if ( id_qidt_edmf_orig > 0) then
+!     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQIBLTEN(:,:,:), tmp_3d)
+!     used = send_data (id_qidt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+!   endif
+!
+!   !------- ql tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+!   if ( id_qldt_edmf_orig > 0) then
+!     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQLBLTEN(:,:,:), tmp_3d)
+!     used = send_data (id_qldt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+!   endif
+!!send_data
 
-      Output_edmf%RQIBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqi)   ! modify qi tendency
-      Output_edmf%RQLBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nql)   ! modify ql tendency
-      Output_edmf%RCCBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqa)   ! modify qa tendency
+!----------------------------
+! modify mynn_edmf tendencies 
+!----------------------------
 
-    enddo  ! end loop of i
-    enddo  ! end loop of j
-    enddo  ! end loop of k
+   !******************************
+   !---  do_option_edmf2ls_mp=1 or 2, 
+   !      “evaporate/condensate” the liquid and ice water that is produced during mixing  
+   !       above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
+   !******************************
+   if ( do_option_edmf2ls_mp.eq.1 .or. do_option_edmf2ls_mp.eq.2 ) then
+     do i=1,ix
+     do j=1,jx
+       k = Output_edmf%kpbl(i,j) 
+       Output_edmf%RQLBLTEN (:,k+1:kx,:) =  0.
+       Output_edmf%RQIBLTEN (:,k+1:kx,:) =  0.
+       Output_edmf%RQVBLTEN (:,k+1:kx,:) =  Output_edmf%RQTBLTEN(:,k+1:kx,:)
+       Output_edmf%RTHBLTEN (:,k+1:kx,:) =  Output_edmf%RTHLBLTEN (:,k+1:kx,:)  &
+                                         + (hlv*Output_edmf%RQLBLTEN (:,k+1:kx,:)+hls*Output_edmf%RQIBLTEN(:,k+1:kx,:)) / cp_air / Input_edmf%exner(:,k+1:kx,:)
+      enddo  ! end loop of i
+      enddo  ! end loop of j
+   endif
 
-    ! modify qv tendecy, qvdt = qtdt - modified qldt & qidt
-    Output_edmf%RQVBLTEN  (:,:,:) =   Output_edmf%RQTBLTEN  (:,:,:)  &
-                                    - Output_edmf%RQLBLTEN  (:,:,:) - Output_edmf%RQIBLTEN  (:,:,:)
+   !******************************
+   !---  do_option_edmf2ls_mp=3 
+   !      “evaporate/condensate” the liquid and ice water that is produced during mixing  
+   !******************************
+   if ( do_option_edmf2ls_mp.eq.3 ) then
+     Output_edmf%RQLBLTEN (:,:,:) =  0.
+     Output_edmf%RQIBLTEN (:,:,:) =  0.
+     Output_edmf%RQVBLTEN (:,:,:) =  Output_edmf%RQTBLTEN(:,:,:)
+     Output_edmf%RTHBLTEN (:,:,:) =  Output_edmf%RTHLBLTEN (:,:,:)  &
+                                   + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
+   endif
 
-    ! modify theta tendency accordingly, keep theta_li tendency unchanged
-    Output_edmf%RTHBLTEN  (:,:,:) =   Output_edmf%RTHLBLTEN (:,:,:)  &
-                                    + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
-
-  !******************************
-  end if  ! end if of edmf_type=3
-  !******************************
+   !******************************
+   !--- edmf_type=2, 
+   !      recover dry variable tendencies by approximating cloud liquid/ice tendencies
+   !******************************
+   if (edmf_type .eq. 2) then
+     do i=1,ix
+     do j=1,jx
+     do k=1,kx      ! k index for full levels
+       kk=kx-k+1
+ 
+       Output_edmf%RQIBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqi)   ! modify qi tendency
+       Output_edmf%RQLBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nql)   ! modify ql tendency
+       Output_edmf%RCCBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqa)   ! modify qa tendency
+ 
+     enddo  ! end loop of i
+     enddo  ! end loop of j
+     enddo  ! end loop of k
+ 
+     ! modify qv tendecy, qvdt = qtdt - modified qldt & qidt
+     Output_edmf%RQVBLTEN  (:,:,:) =   Output_edmf%RQTBLTEN  (:,:,:)  &
+                                     - Output_edmf%RQLBLTEN  (:,:,:) - Output_edmf%RQIBLTEN  (:,:,:)
+ 
+     ! modify theta tendency accordingly, keep theta_li tendency unchanged
+     Output_edmf%RTHBLTEN  (:,:,:) =   Output_edmf%RTHLBLTEN (:,:,:)  &
+                                     + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
+ 
+   end if  ! end if of edmf_type=2
 
 end subroutine modify_mynn_edmf_tendencies
+
+!###################################
+
+subroutine reshape_mynn_array_to_am4 (ix, jx, kx, mynn_array_3d, am4_array_3d)
+
+!--- input arguments
+  integer                   , intent(in)  :: ix, jx, kx
+  real, dimension(ix, kx, jx), intent(in) :: &
+    mynn_array_3d
+
+!--- output arguments
+  real, dimension(ix, jx, kx), intent(out) :: &
+    am4_array_3d
+
+!--- local variable
+  integer i,j,k,kk
+!----------------------------------
+
+  am4_array_3d = 0.
+
+  do i=1,ix
+  do j=1,jx
+    do k=1,kx      ! k index for full levels
+      kk=kx-k+1
+      am4_array_3d   (i,j,kk) = mynn_array_3d (i,k,j)
+    enddo  ! end loop of k, full levels
+  enddo  ! end loop of j
+  enddo  ! end loop of 1
+
+end subroutine reshape_mynn_array_to_am4
+
 
 
 !#############################
