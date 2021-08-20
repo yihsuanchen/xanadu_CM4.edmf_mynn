@@ -2390,6 +2390,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
 
   if (do_writeout_column) then
         write(6,*) '-------------- i,j,',ii_write,jj_write
+        write(6,*) 'dt,dt2,alpha',dt,dt2,alpha
         write(6,*) 'lat',lat (ii_write,jj_write)
         write(6,*) 'lon',lon (ii_write,jj_write)
         write(6,*) 'tau_x_before_vdiff_down',tau_x_before_vdiff_down(ii_write,jj_write)
@@ -3106,8 +3107,8 @@ real,dimension(:,:),    intent(inout)             :: gust
        call get_time (Time_next - Time, sec, day)
        dt2 = real(sec + day*86400)
        alpha = dt2/tau_diff
-       diff_m(is:ie,js:je,:) = (diff_m(is:ie,js:je,:) +       &
-                                alpha*diff_m_vert(:,:,:))/&
+       diff_m(is:ie,js:je,:) = (diff_m(is:ie,js:je,:) +       &   ! does not consider diff_cu_mo term because this is supposed
+                                alpha*diff_m_vert(:,:,:))/&       ! be included in MYNN-EDMF
                                 (1. + alpha)
        where (diff_m(is:ie,js:je,:) < diff_min)
          diff_m(is:ie,js:je,:) = 0.0
@@ -4027,6 +4028,21 @@ subroutine physics_driver_register_restart (Restart)
   id_restart = register_restart_field(Til_restart, fname, 'diff_t',     diff_t)
   id_restart = register_restart_field(Til_restart, fname, 'diff_m',     diff_m)
   id_restart = register_restart_field(Til_restart, fname, 'convect',    r_convect) 
+
+  !<-- yhc
+  id_restart = register_restart_field(Til_restart, fname, 'option_edmf2ls_mp', option_edmf2ls_mp   ) 
+  id_restart = register_restart_field(Til_restart, fname, 'qadt_edmf', qadt_edmf  ) 
+  id_restart = register_restart_field(Til_restart, fname, 'qldt_edmf', qldt_edmf   ) 
+  id_restart = register_restart_field(Til_restart, fname, 'qidt_edmf', qidt_edmf   ) 
+  id_restart = register_restart_field(Til_restart, fname, 'diff_t_edmf', diff_t_edmf   ) 
+  id_restart = register_restart_field(Til_restart, fname, 'diff_m_edmf', diff_m_edmf      ) 
+  id_restart = register_restart_field(Til_restart, fname, 'kpbl_edmf', kpbl_edmf      ) 
+  id_restart = register_restart_field(Til_restart, fname, 'dqa_edmf', dqa_edmf      ) 
+  id_restart = register_restart_field(Til_restart, fname, 'dql_edmf', dql_edmf      ) 
+  id_restart = register_restart_field(Til_restart, fname, 'dqi_edmf', dqi_edmf      ) 
+  id_restart = register_restart_field(Til_restart, fname, 'rdt_before_vdiff_down', rdt_before_vdiff_down      ) 
+  !--> yhc
+
   if (do_clubb > 0) then
     id_restart = register_restart_field(Til_restart, fname, 'diff_t_clubb', diff_t_clubb, mandatory = .false.)
   end if
