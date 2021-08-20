@@ -9313,6 +9313,21 @@ DYCOMS RF01 case
     </input>
   </experiment>
 
+  <experiment name="rfo70b-RF01-am4p0_aerT_NOsm" inherit="rfo70a-RF01-am4p0_aerT">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = F,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ diffusion_smooth = F
+      </namelist>
+    </input>
+  </experiment>
+
+
   <experiment name="rfo71-RF01-am4p0_mynn_ED_Gmy_UWlock" inherit="rfo70a-RF01-am4p0_aerT">
     <input>
       <namelist name="vert_turb_driver_nml">
@@ -9460,6 +9475,26 @@ DYCOMS RF01 case
       </namelist>
     </input>
   </experiment>
+
+  <experiment name="rfo71e-RF01-am4p0_mynn_ED_Gmy_UWlock_SFKay_NOsm" inherit="rfo71d-RF01-am4p0_mynn_ED_Gmy_UWlock_SFKay">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 0
+ do_edmf_mynn_diffusion_smooth = F 
+ diffusion_smooth = F
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+      </namelist>
+    </input>
+  </experiment>
+
   
   <experiment name="rfo72a-RF01-am4p0_mynn_ED_Omy_UWlock" inherit="rfo71-RF01-am4p0_mynn_ED_Gmy_UWlock">
     <input>
@@ -9734,6 +9769,14 @@ DYCOMS RF01 case
   </experiment>
 
   <experiment name="rfo75a-RF01-mynn_DIFF_EDonly_M3" inherit="rfo73-RF01-am4p0_mynn_DIFF_UWlock">
+    <description>
+       use MYNN-EDMF for q_t and theta_li. Approximating q_l and q_i changes and then recover q_v and T tendency. 
+       Method 3 in Leo's notes.
+
+       code version
+         edmf_mynn.F90, d2337779f68a78fe908ef9a6ddf9b7b35355048d
+         physics_driver.F90, c6679945dc87e84c713f8d5a105c080c3017116f
+    </description>
     <input>
       <namelist name="physics_driver_nml">
  DO_EDMF_MYNN    = T,
@@ -9761,6 +9804,24 @@ DYCOMS RF01 case
  bl_mynn_stabfunc = 1
  expmf = .false.
  upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo75b-RF01-mynn_DIFF_EDonly_M3_NOsm" inherit="rfo75a-RF01-mynn_DIFF_EDonly_M3">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 6 
+ do_edmf_mynn_diffusion_smooth = F
+ do_return_edmf_mynn_diff_only = F
+ do_edmf_mynn_in_physics = "up"
       </namelist>
     </input>
   </experiment>
@@ -9943,6 +10004,20 @@ DYCOMS RF01 case
  DO_EIS_LIMITN   = F,
  DO_LTS_LIMIT    = F,
  DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b70c-BOMEX-am4p0_NOsm" inherit="b70a-BOMEX-am4p0">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = F,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ diffusion_smooth = F
       </namelist>
     </input>
   </experiment>
@@ -10229,6 +10304,25 @@ DYCOMS RF01 case
  edmf_type = 1
  do_use_tau = F
  bl_mynn_stabfunc = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b71e-BOMEX-mynn_ED_Gmy_UWlock_SFKay_NOsm" inherit="b71d-BOMEX-mynn_ED_Gmy_UWlock_SFKay">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 0
+ do_edmf_mynn_diffusion_smooth = F
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+ diffusion_smooth = F
       </namelist>
     </input>
   </experiment>
@@ -10724,6 +10818,24 @@ DYCOMS RF01 case
  bl_mynn_stabfunc = 1
  expmf = .false.
  upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b75b-BOMEX-mynn_DIFF_EDonly_M3_NOsm" inherit="b75a-BOMEX-mynn_DIFF_EDonly_M3">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 6 
+ do_edmf_mynn_diffusion_smooth = F
+ do_return_edmf_mynn_diff_only = F
+ do_edmf_mynn_in_physics = "up"
       </namelist>
     </input>
   </experiment>
