@@ -104,6 +104,16 @@ properties below.
 -->
 
   <!-- make sure to change current_date in coupler_nml accordingly -->
+
+<!--
+  <property name="EXP_AMIP_START" value="1979"/>
+  <property name="EXP_AMIP_END"   value="1979"/>
+  <property name="EXP_AMIP_LEN"   value="1"/>
+  <property name="ANA_AMIP_START" value="1980"/>
+  <property name="ANA_AMIP_END"   value="1981"/>
+  <property name="ANA_AMIP_LEN"   value="2yr"/>
+-->
+
 <!--
   <property name="EXP_AMIP_START" value="1979"/>
   <property name="EXP_AMIP_END"   value="1981"/>
@@ -115,21 +125,21 @@ properties below.
 <!--  6-year AMIP
 -->
 
-<!--
   <property name="EXP_AMIP_START" value="1979"/>
   <property name="EXP_AMIP_END"   value="1984"/>
   <property name="EXP_AMIP_LEN"   value="6"/>
   <property name="ANA_AMIP_START" value="1980"/>
   <property name="ANA_AMIP_END"   value="1984"/>
   <property name="ANA_AMIP_LEN"   value="5yr"/>
--->
 
+<!--
   <property name="EXP_AMIP_START" value="1979"/>
   <property name="EXP_AMIP_END"   value="2014"/>
   <property name="EXP_AMIP_LEN"   value="36"/>
   <property name="ANA_AMIP_START" value="1980"/>
   <property name="ANA_AMIP_END"   value="2014"/>
   <property name="ANA_AMIP_LEN"   value="35yr"/>
+-->
 
 <!--
   <property name="EXP_AMIP_START" value="2000"/>
@@ -1350,6 +1360,39 @@ $baseDate
 <!--================================-->
 <!--= LAYOUTS FOR C96 EXPERIMENTS  =-->
 <!--================================-->
+
+<!-- yhc add -->
+<freInclude name="c96_864_1thread_production">
+        <resources jobWallclock="16:00:00"
+                   segRuntime="1:50:00" >
+               <atm ranks="864" threads="1"    layout = "6,24"    io_layout = "1,4" />
+               <lnd                            layout = "6,24"    io_layout = "1,4" />
+               <ocn ranks="0"   threads="0"    layout = "144,6"   io_layout = "1,3" />
+               <ice                            layout = "144,6"   io_layout = "1,3" />
+        </resources>
+</freInclude>
+<freInclude name="c96_864_basic_1thread">  <!-- using thread /= 1 causes reproducibility problem. ranks/layout = 6 -->
+        <run days="8">
+                <resources jobWallclock="00:40:00">
+                <atm ranks="864" threads="1"    layout = "6,24"    io_layout = "1,4" />
+                <lnd                            layout = "6,24"    io_layout = "1,4" />
+                <ocn ranks="0"   threads="0"    layout = "144,6"    io_layout = "1,3" />
+                <ice                            layout = "144,6"    io_layout = "1,3" />
+                </resources>
+        </run>
+</freInclude>
+<freInclude name="c96_864_basic_1thread_30d">  <!-- using thread /= 1 causes reproducibility problem. ranks/layout = 6 -->
+        <run days="30">
+                <resources jobWallclock="00:40:00">
+                <atm ranks="864" threads="1"    layout = "6,24"    io_layout = "1,4" />
+                <lnd                            layout = "6,24"    io_layout = "1,4" />
+                <ocn ranks="0"   threads="0"    layout = "144,6"    io_layout = "1,3" />
+                <ice                            layout = "144,6"    io_layout = "1,3" />
+                </resources>
+        </run>
+</freInclude>
+<!-- yhc add end -->
+
 
 <freInclude name="c96_864_production">
         <resources jobWallclock="16:00:00"
@@ -2884,6 +2927,12 @@ Experiment name = $(name)
       </regression>
       <regression name="debug_30d">
           <xi:include xpointer="xpointer(//freInclude[@name='c96_432_debug_30d']/node())"/>
+      </regression>
+      <regression name="basic_864_1thread">
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_basic_1thread']/node())"/>
+      </regression>
+      <regression name="basic_864_1thread_30d">
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_basic_1thread_30d']/node())"/>
       </regression>
       <regression name="rts">
           <xi:include xpointer="xpointer(//freInclude[@name='c96_216_rts']/node())"/>
@@ -5137,6 +5186,103 @@ Latest code version, 01/24/2021
  GUSTMAX =   3.00000000000000     ,
  CPOOL_GUST      =   10.0000000000000     ,
  SRC_CHOICE_D    =           0
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="m14-c96L33_am4p0_mynn_diff_M3_EDonly_sfK_UWlock_ICam4p0_2000" inherit="m13-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_ICam4p0_2000">
+    <description>
+       use MYNN-EDMF for q_t and theta_li. Approximating q_l and q_i changes and then recover q_v and T tendency.
+       Method 3 in Leo's notes.
+
+       code version
+         edmf_mynn.F90, d2337779f68a78fe908ef9a6ddf9b7b35355048d
+         physics_driver.F90, c6679945dc87e84c713f8d5a105c080c3017116f       
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 6
+ do_edmf_mynn_diffusion_smooth = T
+ do_return_edmf_mynn_diff_only = F
+ do_edmf_mynn_in_physics = "up"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 0
+ edmf_type = 2
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .false.
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="m14-c96L33_am4p0_mynn_diff_M3_EDonly_sfK_UWlock" inherit="m14-c96L33_am4p0_mynn_diff_M3_EDonly_sfK_UWlock_ICam4p0_2000">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96L33_initCond']/input/node())"/>
+    </input>
+  </experiment>
+
+  <experiment name="m14a-c96L33_am4p0_mynn_diff_M3_EDonly_sfK_UWlock_NOsm" inherit="m13-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_ICam4p0_2000">
+    <description>
+       use MYNN-EDMF for q_t and theta_li. Approximating q_l and q_i changes and then recover q_v and T tendency.
+       Method 3 in Leo's notes.
+
+       code version
+         edmf_mynn.F90, d2337779f68a78fe908ef9a6ddf9b7b35355048d
+         physics_driver.F90, c6679945dc87e84c713f8d5a105c080c3017116f       
+    </description>
+    <runtime>
+      <production simTime="$(EXP_AMIP_LEN)" units="years" >
+          <segment simTime="12" units="months" />
+<!--
+yhc, 2021/08/03, use this because using c96_864_producetion will have reproducibility problems
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_432_production']/node())"/>  
+-->
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_1thread_production']/node())"/>  <!-- yhc, 2021/08/03, use this because using c96_864_producetion will have reproducibility problems -->
+      </production>
+    </runtime>
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96L33_initCond']/input/node())"/>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 6
+ do_edmf_mynn_diffusion_smooth = F
+ do_return_edmf_mynn_diff_only = F
+ do_edmf_mynn_in_physics = "up"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 0
+ edmf_type = 2
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .false.
+ upwind = 0.5
       </namelist>
     </input>
   </experiment>
