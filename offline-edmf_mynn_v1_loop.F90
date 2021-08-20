@@ -3696,7 +3696,10 @@ END SUBROUTINE mym_condensation
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
          &Qke,Tsq,Qsq,Cov
        
-         
+          ! terms to couple EDMF with Tiedtke   
+          ! Yi-Hsuan ... add INTENT(out) and output these terms 
+        REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: Q_ql,Q_qi,Q_a
+ 
 
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
          &RUBLTEN,RVBLTEN,RTHBLTEN,RQVBLTEN,RQLBLTEN,&
@@ -3765,6 +3768,9 @@ END SUBROUTINE mym_condensation
     REAL :: cpm,sqcg,flt,flq,flqv,flqc,pmz,phh,exnerg,zet,& 
               &afk,abk,ts_decay,th_sfc,ztop_shallow
     REAL :: dqcTT,lfTT,lvT
+
+
+    REAL,DIMENSION(KTS:KTE) :: Q_ql1,Q_qi1,Q_a1
 
 
 ! 0 ... default thing 
@@ -4308,7 +4314,7 @@ END SUBROUTINE mym_condensation
             CALL edmf_JPL(                            &
                &kts,kte,delt,zw,p1,                   &
                &u1,v1,th1,thl,thetav,tk1,sqw,sqv,sqc, &
-               &ex1,                              &
+               &ex1,rho1,                            &
                &ust(i,j),ps(i,j),flt,flq,PBLH(i,j),       &
                & liquid_frac,                     &
                & edmf_a1,edmf_w1,edmf_qt1,        &
@@ -4320,7 +4326,8 @@ END SUBROUTINE mym_condensation
                & s_awqke1,                        &
                & qc_bm,cldfra_bm,             &
                &ktop_shallow(i,j),ztop_shallow,   &
-               KPBL(i,j)                          &
+               & KPBL(i,j),                        &
+               & Q_ql1,Q_qi1,Q_a1                 &
             )
 
           ENDIF
@@ -4564,6 +4571,22 @@ END SUBROUTINE mym_condensation
                edmf_debug2(i,k,j)=edmf_debug21(k)
                edmf_debug3(i,k,j)=edmf_debug31(k)
                edmf_debug4(i,k,j)=edmf_debug41(k)
+               
+               
+               Q_ql(i,k,j)=Q_ql1(k)
+               Q_qi(i,k,j)=Q_qi1(k)
+               Q_a(i,k,j)=Q_a1(k)
+               
+               ELSE
+               
+                Q_ql(i,k,j)=0.
+                Q_qi(i,k,j)=0.
+                Q_a(i,k,j)=0.
+               
+                ENDIF
+               
+               
+               
                if (bl_mynn_edmf_dd > 0) THEN
                    !update downdraft properties
                    edmf_a_dd(i,k,j)=edmf_a_dd1(k)
@@ -4574,7 +4597,7 @@ END SUBROUTINE mym_condensation
                    edmf_qc_dd(i,k,j)=edmf_qc_dd1(k)
                ENDIF
 
-             ENDIF
+            
 
              !***  Begin debug prints
              IF ( debug_code ) THEN
@@ -4610,6 +4633,12 @@ END SUBROUTINE mym_condensation
        ENDDO
     ENDDO
 
+
+
+
+     print *,'Q_ql',Q_ql
+     print *,'Q_qi',Q_qi
+     print *,'Q_a',Q_a
 
 
 !print *,'qkeEND',qke
@@ -5282,7 +5311,7 @@ end subroutine condensation_edmfA
 
 SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               &u,v,th,thl,thv,tk,qt,qv,qc,   &
-              &exner,                        &
+              &exner,rho,                        &
               &ust,ps,wthl,wqt,pblh,            &
               & liquid_frac,                 &
             ! outputs - updraft properties : new implementation
@@ -5297,13 +5326,13 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
             ! in/outputs - subgrid scale clouds
               & qc_bl1d,cldfra_bl1d,         &
             ! output info
-              &ktop,ztop,kpbl)
+              &ktop,ztop,kpbl,Qql,Qqi,Qa)
 
 
 
         INTEGER, INTENT(IN) :: KTS,KTE, kpbl
         REAL,DIMENSION(KTS:KTE), INTENT(IN) :: U,V,TH,THL,TK,QT,QV,QC
-        REAL,DIMENSION(KTS:KTE), INTENT(IN) :: THV,P,exner,liquid_frac
+        REAL,DIMENSION(KTS:KTE), INTENT(IN) :: THV,P,exner,rho,liquid_frac
         ! zw .. heights of the updraft levels (edges of boxes)
         REAL,DIMENSION(KTS:KTE+1), INTENT(IN) :: ZW
         REAL, INTENT(IN) :: DT,UST,PS,WTHL,WQT,PBLH
@@ -5326,6 +5355,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
     ! outputs - variables needed for solver (s_aw - sum ai*wi, s_awphi - sum ai*wi*phii)
         REAL,DIMENSION(KTS:KTE+1) :: s_aw, s_awthl, s_awqt, s_awu, s_awv, s_awqc, s_awqv, s_awqke, s_aw2
         REAL,DIMENSION(KTS:KTE), INTENT(IN) :: qc_bl1d, cldfra_bl1d
+
+      REAL,DIMENSION(KTS:KTE), INTENT(OUT) :: Qql,Qqi,Qa 
+
 
         !INTEGER, PARAMETER :: NUP=100, debug_mf=0 !fixing number of plumes to 10
         INTEGER, PARAMETER :: debug_mf=0 !fixing number of plumes to 10, yhc - move NUP to namelist parameter
@@ -5350,7 +5382,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
                Fng,qww,alpha,beta,bb,f,pt,t,q2p,b9,satvp,rhgrid
         
         REAL,DIMENSION(kts:kte) :: ph,lfh 
-        REAL :: THVsrfF,QTsrfF,maxS,stabF  
+        REAL :: THVsrfF,QTsrfF,maxS,stabF,dz,F1,F2,CCp1,CCp0,mf,mfp1  
 
         INTEGER, DIMENSION(2) :: seedmf
     ! w parameters
@@ -5407,6 +5439,12 @@ s_awqc=0.
 s_awu=0.
 s_awv=0.
 s_awqke=0.
+
+
+ Qql=0.
+ Qqi=0. 
+ Qa=0. 
+
 
 ! This part is specific for Stratocumulus
 ! cloudflg = .false.
@@ -5722,6 +5760,40 @@ DO k=KTS,KTE+1
     ENDDO
     s_awqv(k) = s_awqt(k)  - s_awqc(k)
 ENDDO
+
+
+! compute variables for coupling with Tiedtke
+
+DO K=KTS,KTE-1
+  DO I=1,NUP
+     dz=ZW(k+1)-ZW(k)
+   
+     mfp1=UPA(K+1,I)*UPW(K+1,I)
+     mf=UPA(K,I)*UPW(K,I)
+   
+     ! for liquid and ice water
+     F1=-(mfp1*(UPQC(K+1,I)-qc(K+1))-mf*(UPQC(K,I)-qc(K)))/dz
+     F2=mf*(UPQC(K+1,I)-UPQC(K,I))/dz+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+       
+     Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)/rho(k)
+     Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)/rho(k)
+  
+  CCp1=0.
+  CCp0=0.
+  IF (UPQC(K+1,I) > 0.) CCp1=UPA(K+1,I)
+    IF (UPQC(K,I) > 0.) CCp0=UPA(K,I)
+  
+    ! for area fraction
+     F1=-(mfp1*(CCp1-cldfra_bl1d(K+1))-mf*(CCp0-cldfra_bl1d(K)) )/dz
+     F2=mf*(CCp1-CCp0)/dz+ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
+  
+     Qa(k)=Qa(k)+(F1+F2)/rho(k)
+  
+  
+  
+  ENDDO
+ENDDO  
+
 
 !
 ! make sure that the mass-flux does not exceed CFL criteria, and if it does scale it back
