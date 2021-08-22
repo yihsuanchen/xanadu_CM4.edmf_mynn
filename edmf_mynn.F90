@@ -123,6 +123,7 @@ type edmf_output_type
     RCCBLTEN, RTHLBLTEN, RQTBLTEN,   &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc, edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd, &
     edmf_debug1,edmf_debug2,edmf_debug3,edmf_debug4, &
+    Q_ql, Q_qi, Q_qa, &
     mynn_ql, qc_bl, cldfra_bl, el_pbl, Sh3D
 
   real, dimension(:,:),   allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,JMS:JME)
@@ -148,6 +149,7 @@ type am4_edmf_output_type
     qtdt_edmf, thldt_edmf, &
     diff_t_edmf, diff_m_edmf, &
     cldfra_bl, qc_bl, el_edmf, &
+    Q_ql, Q_qi, Q_qa, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
   real, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
