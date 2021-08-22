@@ -231,6 +231,7 @@ type edmf_output_type
     RCCBLTEN, RTHLBLTEN, RQTBLTEN,   &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc, edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd, &
     edmf_debug1,edmf_debug2,edmf_debug3,edmf_debug4, &
+    Q_ql, Q_qi, Q_qa, &
     mynn_ql, qc_bl, cldfra_bl, el_pbl, Sh3D
 
   real, dimension(:,:),   allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,JMS:JME)
@@ -256,6 +257,7 @@ type am4_edmf_output_type
     qtdt_edmf, thldt_edmf, &
     diff_t_edmf, diff_m_edmf, &
     cldfra_bl, qc_bl, el_edmf, &
+    Q_ql, Q_qi, Q_qa, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
   real, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
@@ -7426,6 +7428,9 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%qa_before_pdf   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qa_before_pdf   = 0.
   allocate (Output_edmf%ql_before_pdf   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%ql_before_pdf   = 0.
   allocate (Output_edmf%qi_before_pdf   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%qi_before_pdf   = 0.
+  allocate (Output_edmf%Q_ql            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_ql = 0.
+  allocate (Output_edmf%Q_qi            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qi = 0.
+  allocate (Output_edmf%Q_qa            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qa = 0.
   !allocate (Output_edmf%(IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf% = 0.
 
 !**********************
@@ -7492,6 +7497,9 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qa_before_pdf   (ix,jx,kx))  ; am4_Output_edmf%qa_before_pdf   = 0.
   allocate (am4_Output_edmf%ql_before_pdf   (ix,jx,kx))  ; am4_Output_edmf%ql_before_pdf   = 0.
   allocate (am4_Output_edmf%qi_before_pdf   (ix,jx,kx))  ; am4_Output_edmf%qi_before_pdf   = 0.
+  allocate (am4_Output_edmf%Q_ql            (ix,jx,kx))  ; am4_Output_edmf%Q_ql            = 0.
+  allocate (am4_Output_edmf%Q_qi            (ix,jx,kx))  ; am4_Output_edmf%Q_qi            = 0.
+  allocate (am4_Output_edmf%Q_qa            (ix,jx,kx))  ; am4_Output_edmf%Q_qa            = 0.
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
@@ -7919,6 +7927,9 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%qa_before_pdf   )
   deallocate (Output_edmf%ql_before_pdf   )
   deallocate (Output_edmf%qi_before_pdf   )
+  deallocate (Output_edmf%Q_ql            )
+  deallocate (Output_edmf%Q_qi            )
+  deallocate (Output_edmf%Q_qa            )
 
 !**********************
 !--- am4 Output_edmf
@@ -7952,6 +7963,9 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%diff_m_edmf )  
   deallocate (am4_Output_edmf%kpbl_edmf   )  
   deallocate (am4_Output_edmf%el_edmf     )  
+  deallocate (am4_Output_edmf%Q_ql        )  
+  deallocate (am4_Output_edmf%Q_qi        )  
+  deallocate (am4_Output_edmf%Q_qa        )  
   !deallocate (am4_Output_edmf%         )  
 
   deallocate (am4_Output_edmf%t_input         )
