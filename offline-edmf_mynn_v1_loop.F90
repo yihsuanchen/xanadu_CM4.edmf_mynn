@@ -255,6 +255,7 @@ type am4_edmf_output_type
     thl_edmf, qt_edmf,  & ! diagnostic purpose
     tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, qadt_edmf, &  ! outputs from EDMF-MYNN scheme
     qtdt_edmf, thldt_edmf, &
+    !qldt_edmf_ED, qldt_edmf_MF, qidt_edmf_ED, qidt_edmf_MF, qadt_edmf_ED, qadt_edmf_MF, &
     diff_t_edmf, diff_m_edmf, &
     cldfra_bl, qc_bl, el_edmf, &
     Q_ql, Q_qi, Q_qa, &
@@ -4640,9 +4641,9 @@ END SUBROUTINE mym_condensation
 
 
 
-     print *,'Q_ql',Q_ql
-     print *,'Q_qi',Q_qi
-     print *,'Q_a',Q_a
+     !print *,'Q_ql',Q_ql
+     !print *,'Q_qi',Q_qi
+     !print *,'Q_a',Q_a
 
 
 !print *,'qkeEND',qke
