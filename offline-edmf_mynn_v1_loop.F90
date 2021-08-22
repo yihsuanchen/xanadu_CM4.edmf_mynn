@@ -8932,9 +8932,9 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
      do k=1,kx      ! k index for full levels
        kk=kx-k+1
  
-       Output_edmf%RQIBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqi)   ! modify qi tendency
-       Output_edmf%RQLBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nql)   ! modify ql tendency
-       Output_edmf%RCCBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqa)   ! modify qa tendency
+       Output_edmf%RQIBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqi) + Output_edmf%Q_qi(i,k,j)  ! modify qi tendency
+       Output_edmf%RQLBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nql) + Output_edmf%Q_ql(i,k,j)  ! modify ql tendency
+       Output_edmf%RCCBLTEN  (i,k,j) = rdt_mynn_ed_am4(i,j,kk,nqa) + Output_edmf%Q_qa(i,k,j)  ! modify qa tendency
  
      enddo  ! end loop of i
      enddo  ! end loop of j
