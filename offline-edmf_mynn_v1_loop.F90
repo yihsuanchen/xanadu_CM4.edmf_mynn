@@ -3626,6 +3626,7 @@ END SUBROUTINE mym_condensation
        &qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &  ! yhc_mynn add
        &qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix,       &  ! yhc_mynn add
        &qa_before_pdf, ql_before_pdf, qi_before_pdf,                                               &  ! yhc_mynn add
+       &Q_ql,Q_qi,Q_a,                                                                             &  ! yhc_mynn add
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -3700,7 +3701,8 @@ END SUBROUTINE mym_condensation
        
           ! terms to couple EDMF with Tiedtke   
           ! Yi-Hsuan ... add INTENT(out) and output these terms 
-        REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: Q_ql,Q_qi,Q_a
+        !REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: Q_ql,Q_qi,Q_a
+        REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: Q_ql,Q_qi,Q_a
  
 
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
@@ -6474,6 +6476,7 @@ subroutine edmf_mynn_driver ( &
        &qa_before_mix=Output_edmf%qa_before_mix, ql_before_mix=Output_edmf%ql_before_mix, qi_before_mix=Output_edmf%qi_before_mix, thl_before_mix=Output_edmf%thl_before_mix, qt_before_mix=Output_edmf%qt_before_mix, th_before_mix=Output_edmf%th_before_mix, &      ! yhc_mynn add
        &qa_after_mix=Output_edmf%qa_after_mix, ql_after_mix=Output_edmf%ql_after_mix, qi_after_mix=Output_edmf%qi_after_mix, thl_after_mix=Output_edmf%thl_after_mix, qt_after_mix=Output_edmf%qt_after_mix, th_after_mix=Output_edmf%th_after_mix,        &      ! yhc_mynn add
         &qa_before_pdf=Output_edmf%qa_before_pdf, ql_before_pdf=Output_edmf%ql_before_pdf, qi_before_pdf=Output_edmf%qi_before_pdf, & ! yhc_mynn add
+       &Q_ql=Output_edmf%Q_ql, Q_qi=Output_edmf%Q_qi, Q_a=Output_edmf%Q_qa,   &  ! yhc_mynn add
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
