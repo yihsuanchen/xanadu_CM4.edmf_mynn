@@ -8724,6 +8724,9 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       am4_Output_edmf%cldfra_bl   (i,j,kk) = Output_edmf%cldfra_bl (i,k,j)
       am4_Output_edmf%qc_bl       (i,j,kk) = Output_edmf%qc_bl     (i,k,j)
       am4_Output_edmf%el_edmf     (i,j,kk) = Output_edmf%el_pbl    (i,k,j)
+      am4_Output_edmf%Q_ql        (i,j,kk) = Output_edmf%Q_ql      (i,k,j)
+      am4_Output_edmf%Q_qi        (i,j,kk) = Output_edmf%Q_qi      (i,k,j)
+      am4_Output_edmf%Q_qa        (i,j,kk) = Output_edmf%Q_qa      (i,k,j)
       !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
   
       !--- if needed, modify am4_Output_edmf tendencies to make sure the updated qa, ql, qc, qi, qnd qt are larger than zero
