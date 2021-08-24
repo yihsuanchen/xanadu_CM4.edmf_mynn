@@ -8887,16 +8887,49 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
 !     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQLBLTEN(:,:,:), tmp_3d)
 !     used = send_data (id_qldt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
 !   endif
+!
+!!------- ql tendency from edmf_mynn, ED (units: kg/kg/s) at full level -------
+!    if ( id_qldt_edmf_ED > 0) then
+!      used = send_data (id_qldt_edmf_ED, rdt_mynn_ed_am4(:,:,:,nql), Time_next, is, js, 1 )
+!    endif
+!
+!!------- ql tendency from edmf_mynn, MF (units: kg/kg/s) at full level -------
+!    if ( id_qldt_edmf_MF > 0) then
+!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql(:,:,:), tmp_3d)
+!      used = send_data (id_qldt_edmf_MF, tmp_3d, Time_next, is, js, 1 )
+!    endif
+!
+!!------- qi tendency from edmf_mynn, ED (units: kg/kg/s) at full level -------
+!    if ( id_qidt_edmf_ED > 0) then
+!      used = send_data (id_qidt_edmf_ED, rdt_mynn_ed_am4(:,:,:,nqi), Time_next, is, js, 1 )
+!    endif
+!
+!!------- qi tendency from edmf_mynn, MF (units: kg/kg/s) at full level -------
+!    if ( id_qidt_edmf_MF > 0) then
+!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi(:,:,:), tmp_3d)
+!      used = send_data (id_qidt_edmf_MF, tmp_3d, Time_next, is, js, 1 )
+!    endif
+!
+!!------- qa tendency from edmf_mynn, ED (units: 1/s) at full level -------
+!    if ( id_qadt_edmf_ED > 0) then
+!      used = send_data (id_qadt_edmf_ED, rdt_mynn_ed_am4(:,:,:,nqa), Time_next, is, js, 1 )
+!    endif
+!
+!!------- qa tendency from edmf_mynn, MF (units: 1/s) at full level -------
+!    if ( id_qadt_edmf_MF > 0) then
+!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa(:,:,:), tmp_3d)
+!      used = send_data (id_qadt_edmf_MF, tmp_3d, Time_next, is, js, 1 )
+!    endif
 !!send_data
-
-!----------------------------
-! modify mynn_edmf tendencies 
-!----------------------------
-
-   !******************************
-   !---  do_option_edmf2ls_mp=1 or 2, 
-   !      “evaporate/condensate” the liquid and ice water that is produced during mixing  
-   !       above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
+!
+!!----------------------------
+!! modify mynn_edmf tendencies 
+!!----------------------------
+!
+!   !******************************
+!   !---  do_option_edmf2ls_mp=1 or 2, 
+!   !      “evaporate/condensate” the liquid and ice water that is produced during mixing  
+!   !       above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
    !******************************
    if ( do_option_edmf2ls_mp.eq.1 .or. do_option_edmf2ls_mp.eq.2 ) then
      do i=1,ix
@@ -8982,7 +9015,6 @@ subroutine reshape_mynn_array_to_am4 (ix, jx, kx, mynn_array_3d, am4_array_3d)
   enddo  ! end loop of 1
 
 end subroutine reshape_mynn_array_to_am4
-
 
 
 !#############################
