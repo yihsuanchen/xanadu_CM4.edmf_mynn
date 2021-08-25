@@ -125,12 +125,14 @@ properties below.
 <!--  6-year AMIP
 -->
 
+<!--
   <property name="EXP_AMIP_START" value="1979"/>
   <property name="EXP_AMIP_END"   value="1984"/>
   <property name="EXP_AMIP_LEN"   value="6"/>
   <property name="ANA_AMIP_START" value="1980"/>
   <property name="ANA_AMIP_END"   value="1984"/>
   <property name="ANA_AMIP_LEN"   value="5yr"/>
+-->
 
 <!--
   <property name="EXP_AMIP_START" value="1979"/>
@@ -150,14 +152,12 @@ properties below.
   <property name="ANA_AMIP_LEN"   value="5yr"/>
 -->
 
-<!--
   <property name="EXP_AMIP_START" value="2000"/>
   <property name="EXP_AMIP_END"   value="2014"/>
   <property name="EXP_AMIP_LEN"   value="15"/>
   <property name="ANA_AMIP_START" value="2001"/>
   <property name="ANA_AMIP_END"   value="2014"/>
   <property name="ANA_AMIP_LEN"   value="14yr"/>
--->
 
   <property name="CVDP_startyear" value="$(EXP_AMIP_START)"/>
 
@@ -5345,6 +5345,21 @@ yhc, 2021/08/03, use this because using c96_864_producetion will have reproducib
   <experiment name="m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_rdpI0.4" inherit="m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_ICam4p0_2000_rdpI0.4">
     <input>
       <xi:include xpointer="xpointer(//freInclude[@name='c96L33_initCond']/input/node())"/>
+    </input>
+  </experiment>
+
+  <experiment name="m13b2a-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_rdpI0.4_NOsm" inherit="m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_rdpI0.4">
+    <input>
+      <namelist name="physics_driver_nml">
+ diffusion_smooth = F
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC = F,
+ DO_TRACERS_IN_EDMF_MYNN = F,
+ DO_TRACERS_SELECTIVE    =           0,
+ DO_EDMF_MYNN_DIFFUSION_SMOOTH   = F,
+ DO_RETURN_EDMF_MYNN_DIFF_ONLY   = T,
+ DO_EDMF_MYNN_IN_PHYSICS = down ,
+      </namelist>
     </input>
   </experiment>
 
