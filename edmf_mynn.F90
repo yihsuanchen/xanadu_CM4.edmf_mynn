@@ -431,7 +431,7 @@ end type edmf_ls_mp_type
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
-                            ! tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, &  for testing, no need any more 2021-08-04
+                            tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, &  ! for testing, no need any more 2021-08-04
                             do_option_edmf2ls_mp, do_use_tau, &
                             do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
 
@@ -666,7 +666,7 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  missing_value=missing_value )
 
   id_qldt_edmf = register_diag_field (mod_name, 'qldt_edmf', axes(full), Time, &
-                 'qc tendency from edmf_mynn', 'kg/kg/s' , &
+                 'ql tendency from edmf_mynn', 'kg/kg/s' , &
                  missing_value=missing_value )
 
   id_edmf_a = register_diag_field (mod_name, 'edmf_a', axes(full), Time, &
@@ -6986,6 +6986,7 @@ subroutine edmf_mynn_driver ( &
 ! recover dry variable tendencies from mynn_edmf
 !---------------------------------------------------------------------
   call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next,  &
+                                    do_writeout_column,         &
                                     Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                     size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
                                     Output_edmf)
@@ -9303,6 +9304,7 @@ end subroutine convert_edmf_to_am4_array
 !###################################
 
 subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
+                                        do_writeout_column, &
                                         Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                         ix, jx, kx,  &
                                         Output_edmf)
@@ -9315,6 +9317,7 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
   integer                   , intent(in)  :: ix, jx, kx
   real, dimension(:,:,:,:)  , intent(in)  :: &
     rdt_mynn_ed_am4
+  logical, intent(in) :: do_writeout_column
 
 !--- input/output arguments
   type(edmf_output_type)    , intent(inout)  :: Output_edmf
@@ -9455,6 +9458,27 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
                                      + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
  
    end if  ! end if of edmf_type=2
+
+!----------------------------
+! printout statements 
+!----------------------------
+   if (do_writeout_column) then
+     write(6,*) '; i,j,',ii_write,jj_write
+     !--- qa
+     write(6,*) 'rdt_mynn_ed_am4, qa',rdt_mynn_ed_am4(ii_write,jj_write,:,nqa)
+     write(6,*) 'Output_edmf%Q_qa',Output_edmf%Q_qa(ii_write,:,jj_write)
+     write(6,*) 'Output_edmf%RCCBLTEN',Output_edmf%RCCBLTEN(ii_write,:,jj_write)
+
+     !--- ql
+     write(6,*) 'rdt_mynn_ed_am4, ql',rdt_mynn_ed_am4(ii_write,jj_write,:,nql)
+     write(6,*) 'Output_edmf%Q_ql',Output_edmf%Q_ql(ii_write,:,jj_write)
+     write(6,*) 'Output_edmf%RQLBLTEN',Output_edmf%RQLBLTEN(ii_write,:,jj_write)
+
+     !--- qi
+     write(6,*) 'rdt_mynn_ed_am4, qi',rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
+     write(6,*) 'Output_edmf%Q_qi',Output_edmf%Q_qi(ii_write,:,jj_write)
+     write(6,*) 'Output_edmf%RQIBLTEN',Output_edmf%RQIBLTEN(ii_write,:,jj_write)
+   end if
 
 end subroutine modify_mynn_edmf_tendencies
 
