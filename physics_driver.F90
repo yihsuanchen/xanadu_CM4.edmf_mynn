@@ -1143,7 +1143,8 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       allocate ( r_convect  (id, jd) )     ; r_convect   = 0.0
       allocate ( diff_t_clubb(id, jd, kd) ); diff_t_clubb = 0.0
 
-      !<--- yhc
+      !<--- yhc, `id` and `jd` correspond to the whole grid
+      !          `is,ie,js,je` get allocated based on each thread's section of the grid.
       allocate (  option_edmf2ls_mp )          ; option_edmf2ls_mp = 0  
       allocate (  qadt_edmf (id, jd, kd))  ; qadt_edmf = 0.0  
       allocate (  qldt_edmf (id, jd, kd))  ; qldt_edmf = 0.0  
@@ -2209,7 +2210,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                rdt_mynn_ed_am4,  &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
-               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf, &
+               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf(is:ie,js:je), &
                z_pbl, udt, vdt, tdt, rdt, rdiag)
 
     !--- yhc note, 2021-05-03
@@ -2336,7 +2337,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       udt_before_vdiff_down(:,:,:) = udt(:,:,:)
       vdt_before_vdiff_down(:,:,:) = vdt(:,:,:)
       tdt_before_vdiff_down(:,:,:) = tdt(:,:,:)
-      rdt_before_vdiff_down(:,:,:,:) = rdt(:,:,:,:)
+      rdt_before_vdiff_down(is:ie,js:je,:,:) = rdt(:,:,:,:)
       tau_x_before_vdiff_down(:,:) = tau_x(:,:)
       tau_y_before_vdiff_down(:,:) = tau_y(:,:)
       !--> yhc
@@ -2413,7 +2414,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
           udt(:,:,:) = udt_before_vdiff_down(:,:,:)  ! yhc, even diff_m=0., udt and vdt at the lowest atm loevel are still changed.
           vdt(:,:,:) = vdt_before_vdiff_down(:,:,:)  !      make sure udt and vdt are reset to the values before vdiff_down
           tdt(:,:,:) = tdt_before_vdiff_down(:,:,:)
-          rdt(:,:,:,nsphum) = rdt_before_vdiff_down(:,:,:,nsphum)
+          rdt(:,:,:,nsphum) = rdt_before_vdiff_down(is:ie,js:je,:,nsphum)
           tau_x(:,:) = tau_x_before_vdiff_down(:,:)  !      reset tau_x, tau_y, surf_diff%delta_u, and surf_diff%delta_v
           tau_y(:,:) = tau_y_before_vdiff_down(:,:) 
           surf_diff%delta_u(:,:) = 0.
@@ -2423,35 +2424,35 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         !--- select which tracers would be updated by vert_diff_driver_down. 
         !    The tracers considered here are qn, qni, and others such as dust, sea salt, etc
         if (do_tracers_in_edmf_mynn) then     ! do all tracers in edmf_mynn so setting all rdt to pre-vert_diff values
-          rdt(:,:,:,:)   = rdt_before_vdiff_down(:,:,:,:)
+          rdt(:,:,:,:)   = rdt_before_vdiff_down(is:ie,js:je,:,:)
 
         else  ! some tracers are handled by vert_diff
           if     (do_tracers_selective.eq.1) then      ! process all tracers except qn and qni
-            if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(:,:,:,nqn)
-            if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(:,:,:,nqni)
+            if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(is:ie,js:je,:,nqn)
+            if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(is:ie,js:je,:,nqni)
   
           elseif (do_tracers_selective.eq.2) then      ! do not process any tracers
-            rdt(:,:,:,:)   = rdt_before_vdiff_down(:,:,:,:)
+            rdt(:,:,:,:)   = rdt_before_vdiff_down(is:ie,js:je,:,:)
   
           elseif (do_tracers_selective.eq.3) then      ! only process qn and qni
             if (nqn  > 0) rdt_dum1 (:,:,:) = rdt(:,:,:,nqn)
             if (nqni > 0) rdt_dum2 (:,:,:) = rdt(:,:,:,nqni)
   
-            rdt(:,:,:,:)    = rdt_before_vdiff_down(:,:,:,:)
+            rdt(:,:,:,:)    = rdt_before_vdiff_down(is:ie,js:je,:,:)
             if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_dum1(:,:,:)
             if (nqni > 0) rdt(:,:,:,nqni) = rdt_dum2(:,:,:)
 
           elseif (do_tracers_selective.eq.4) then      ! process all tracers except cloud fields: qa,ql,qi,nqn,nqi
-            if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(:,:,:,nqa)
-            if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(:,:,:,nql)
-            if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(:,:,:,nqi)
-            if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(:,:,:,nqn)
-            if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(:,:,:,nqni)
+            if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(is:ie,js:je,:,nqa)
+            if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(is:ie,js:je,:,nql)
+            if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(is:ie,js:je,:,nqi)
+            if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(is:ie,js:je,:,nqn)
+            if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(is:ie,js:je,:,nqni)
 
           elseif (do_tracers_selective.eq.5) then      ! process all tracers except cloud fraction and specific humidity qa,ql,qi. Cloud number are processed by vert_diff
-            if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(:,:,:,nqa)
-            if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(:,:,:,nql)
-            if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(:,:,:,nqi)
+            if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(is:ie,js:je,:,nqa)
+            if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(is:ie,js:je,:,nql)
+            if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(is:ie,js:je,:,nqi)
 
           elseif (do_tracers_selective.eq.6) then      ! process all tracers and qa,ql,qi would be changed in mynn_edmf 
             rdt_dum1 = 0.
@@ -2477,17 +2478,17 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         !--- select which tracers would be updated by vert_diff_driver_down. 
         !    The tracers considered here are qn, qni, and others such as dust, sea salt, etc
         if     (do_tracers_selective.eq.1) then      ! process all tracers except qn and qni
-          if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(:,:,:,nqn)
-          if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(:,:,:,nqni)
+          if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(is:ie,js:je,:,nqn)
+          if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(is:ie,js:je,:,nqni)
 
         elseif (do_tracers_selective.eq.2) then      ! do not process any tracers
-          rdt(:,:,:,:)   = rdt_before_vdiff_down(:,:,:,:)
+          rdt(:,:,:,:)   = rdt_before_vdiff_down(is:ie,js:je,:,:)
 
         elseif (do_tracers_selective.eq.3) then      ! only process qn and qni
           if (nqn  > 0) rdt_dum1 (:,:,:) = rdt(:,:,:,nqn)
           if (nqni > 0) rdt_dum2 (:,:,:) = rdt(:,:,:,nqni)
 
-          rdt(:,:,:,:)    = rdt_before_vdiff_down(:,:,:,:)
+          rdt(:,:,:,:)    = rdt_before_vdiff_down(is:ie,js:je,:,:)
           if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_dum1(:,:,:)
           if (nqni > 0) rdt(:,:,:,nqni) = rdt_dum2(:,:,:)
         endif
@@ -2996,9 +2997,9 @@ real,dimension(:,:),    intent(inout)             :: gust
       endif
 
       if (do_tracers_selective.eq.6) then
-        if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(:,:,:,nqa)
-        if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(:,:,:,nql)
-        if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(:,:,:,nqi)
+        if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(is:ie,js:je,:,nqa)
+        if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(is:ie,js:je,:,nql)
+        if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(is:ie,js:je,:,nqi)
       endif
 !--> yhc
 
@@ -3082,7 +3083,7 @@ real,dimension(:,:),    intent(inout)             :: gust
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
                rdt_mynn_ed_am4,  &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
-               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf, &
+               option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf(is:ie,js:je), &
                z_pbl, udt, vdt, tdt, rdt, rdiag)
                !pbltop, udt, vdt, tdt, rdt, rdiag)  ! if using pbltop, amip4 run will fail and such failure happen any time and is not reproducible, yhc 2021-04-21
 
@@ -3125,8 +3126,8 @@ real,dimension(:,:),    intent(inout)             :: gust
      end if  ! end if of do_edmf_mynn_diffusion_smooth
 
      !--- save updated diff_t,m into diff_t,m_edmf
-     diff_t_edmf(is:ie,js:je,:) = diff_t
-     diff_m_edmf(is:ie,js:je,:) = diff_m 
+     diff_t_edmf(is:ie,js:je,:) = diff_t(is:ie,js:je,:)
+     diff_m_edmf(is:ie,js:je,:) = diff_m(is:ie,js:je,:)
   endif
 
   if (do_writeout_column) then
@@ -3230,7 +3231,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         Phys_mp_exch%kpbl_edmf      =>    kpbl_edmf(is:ie,js:je)   
 
         if (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
-          Phys_mp_exch%diff_t => diff_t
+          Phys_mp_exch%diff_t => diff_t(is:ie,js:je,:)
         endif
         !--> yhc
 
