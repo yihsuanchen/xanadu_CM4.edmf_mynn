@@ -2372,8 +2372,8 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
 
         !--- check tracers
         if (do_tracers_in_edmf_mynn) then     ! do all tracers in edmf_mynn so setting diff_m and diff_t to zeros
-          diff_m = 0.                         ! vert_diff_driver_down still process variables that would be used in surface-atmosphere coupling
-          diff_t = 0.
+          diff_m(is:ie,js:je,:) = 0.          ! vert_diff_driver_down still process variables that would be used in surface-atmosphere coupling
+          diff_t(is:ie,js:je,:) = 0.
         elseif (do_edmf_mynn_in_physics.eq."up") then   ! let vert_diff_driver_down process eddy diffusion,
                                                         ! using edmf_mynn diffusion coefficients computed in physics_up
           diff_m(is:ie,js:je,:) = diff_m_edmf(is:ie,js:je,:)
@@ -3121,8 +3121,8 @@ real,dimension(:,:),    intent(inout)             :: gust
          diff_t(is:ie,js:je,:) = 0.0
        end where
      else
-       diff_t(is:ie,js:je,:) = diff_t_vert
-       diff_m(is:ie,js:je,:) = diff_m_vert 
+       diff_t(is:ie,js:je,:) = diff_t_vert(:,:,:)
+       diff_m(is:ie,js:je,:) = diff_m_vert(:,:,:)
      end if  ! end if of do_edmf_mynn_diffusion_smooth
 
      !--- save updated diff_t,m into diff_t,m_edmf
