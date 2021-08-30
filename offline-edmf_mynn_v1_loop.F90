@@ -160,8 +160,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    logical :: do_limit_tdt = .false.
    real    :: tdt_limit =   200. ! K/day
 
-   logical :: do_check_consrv = .true.
-   !logical :: do_check_consrv = .false.
+   !logical :: do_check_consrv = .true.
+   logical :: do_check_consrv = .false.
 
    !logical :: do_check_realizability = .true.
    logical :: do_check_realizability = .false.
@@ -172,7 +172,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
                                                 !   set qke_min>0 may remove energy/water away and cause water mass is not conserved
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
                                                 ! 1.E-10 is same as qmin in lscloud_driver
-  integer :: do_option_edmf2ls_mp = 3           ! option to include EDMF cloud tendencies terms into Tiedtke
+  integer :: do_option_edmf2ls_mp = 0           ! option to include EDMF cloud tendencies terms into Tiedtke
                                                 ! =0, add EDMF terms to accumulated ql and qi tendnecies
                                                 ! =1, add EDMF terms to Tiedtke and keep Tiedtke terms except turbulence heating
                                                 ! =2, add EDMF terms to Tiedtke and remove large-scale and coud erosion terms
@@ -6514,6 +6514,7 @@ subroutine edmf_mynn_driver ( &
 ! recover dry variable tendencies from mynn_edmf
 !---------------------------------------------------------------------
   call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next,  &
+                                    do_writeout_column,         &
                                     Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                     size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
                                     Output_edmf)
@@ -8831,6 +8832,7 @@ end subroutine convert_edmf_to_am4_array
 !###################################
 
 subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
+                                        do_writeout_column, &
                                         Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                         ix, jx, kx,  &
                                         Output_edmf)
@@ -8843,6 +8845,7 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
   integer                   , intent(in)  :: ix, jx, kx
   real, dimension(:,:,:,:)  , intent(in)  :: &
     rdt_mynn_ed_am4
+  logical, intent(in) :: do_writeout_column
 
 !--- input/output arguments
   type(edmf_output_type)    , intent(inout)  :: Output_edmf
@@ -8921,15 +8924,15 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
 !      used = send_data (id_qadt_edmf_MF, tmp_3d, Time_next, is, js, 1 )
 !    endif
 !!send_data
-!
-!!----------------------------
-!! modify mynn_edmf tendencies 
-!!----------------------------
-!
-!   !******************************
-!   !---  do_option_edmf2ls_mp=1 or 2, 
-!   !      “evaporate/condensate” the liquid and ice water that is produced during mixing  
-!   !       above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
+
+!----------------------------
+! modify mynn_edmf tendencies 
+!----------------------------
+
+   !******************************
+   !---  do_option_edmf2ls_mp=1 or 2, 
+   !      “evaporate/condensate” the liquid and ice water that is produced during mixing  
+   !       above PBL to prevent EDMF produce weird cloud tendencies (e.g. EDMF sometime produces ~0.5 cloud fraction at ~200 hPa)
    !******************************
    if ( do_option_edmf2ls_mp.eq.1 .or. do_option_edmf2ls_mp.eq.2 ) then
      do i=1,ix
@@ -8983,6 +8986,27 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
                                      + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
  
    end if  ! end if of edmf_type=2
+
+!----------------------------
+! printout statements 
+!----------------------------
+   if (do_writeout_column) then
+     write(6,*) '; i,j,',ii_write,jj_write
+     !--- qa
+     write(6,*) 'rdt_mynn_ed_am4, qa',rdt_mynn_ed_am4(ii_write,jj_write,:,nqa)
+     write(6,*) 'Output_edmf%Q_qa',Output_edmf%Q_qa(ii_write,:,jj_write)
+     write(6,*) 'Output_edmf%RCCBLTEN',Output_edmf%RCCBLTEN(ii_write,:,jj_write)
+
+     !--- ql
+     write(6,*) 'rdt_mynn_ed_am4, ql',rdt_mynn_ed_am4(ii_write,jj_write,:,nql)
+     write(6,*) 'Output_edmf%Q_ql',Output_edmf%Q_ql(ii_write,:,jj_write)
+     write(6,*) 'Output_edmf%RQLBLTEN',Output_edmf%RQLBLTEN(ii_write,:,jj_write)
+
+     !--- qi
+     write(6,*) 'rdt_mynn_ed_am4, qi',rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
+     write(6,*) 'Output_edmf%Q_qi',Output_edmf%Q_qi(ii_write,:,jj_write)
+     write(6,*) 'Output_edmf%RQIBLTEN',Output_edmf%RQIBLTEN(ii_write,:,jj_write)
+   end if
 
 end subroutine modify_mynn_edmf_tendencies
 
@@ -10334,8 +10358,8 @@ endif ! end if of input profile
 !write(6,*) 'rdiag(:,:,:,nSh3D)',rdiag(:,:,:,nSh3D)
 !write(6,*) 'ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl',ntp,nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl
 
-!  rdt_mynn_ed_am4(:,:,:,nql) = 1.e-9
-!print*,'rdt_mynn_ed_am4',rdt_mynn_ed_am4(:,:,:,nql)
+  !rdt_mynn_ed_am4(:,:,:,nql) = 1.e-9
+  !print*,'rdt_mynn_ed_am4',rdt_mynn_ed_am4(:,:,:,nql)
 
   call edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
