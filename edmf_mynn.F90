@@ -7090,7 +7090,7 @@ subroutine edmf_mynn_driver ( &
   call edmf_writeout_column ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4,  &
               rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
@@ -8497,7 +8497,7 @@ end subroutine edmf_dealloc
 subroutine edmf_writeout_column ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, &
               Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 !---------------------------------------------------------------------
@@ -8522,9 +8522,12 @@ subroutine edmf_writeout_column ( &
   type(edmf_output_type), intent(in) :: Output_edmf
 
   type(am4_edmf_output_type), intent(in) :: am4_Output_edmf
-  !real, intent(inout), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
-  real, intent(inout), dimension(:,:,:,ntp+1:) :: &
+  !real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
+  real, intent(in), dimension(:,:,:,ntp+1:) :: &
     rdiag
+
+  real, intent(in), dimension(:,:,:,:) :: &
+    rdt_mynn_ed_am4
 
   logical, intent(in) :: do_writeout_column
 
@@ -8806,6 +8809,15 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ' '
         write(6,*)    '; rdiag(1,1,:,nqc_bl), input'
         write(6,3002) '  rdiag(1,1,:,nqc_bl) = (/'    ,Input_edmf%qc_bl(ii_write,:,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nql)'
+        write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nql) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nql)
+        write(6,*)    ''
+        write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nqa)'
+        write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nqa) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqa)
+        write(6,*)    ''
+        write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nqi)'
+        write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nqi) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
         write(6,*)    ''
         write(6,*)    '----- end of fieles needed by the offline program ---'
         write(6,*)    ''
