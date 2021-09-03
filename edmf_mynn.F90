@@ -7201,37 +7201,37 @@ subroutine edmf_mynn_driver ( &
 !------- updraft area (units: none) at half level -------
       if ( id_edmf_a > 0) then
         call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_a, diag_half)
-        used = send_data (id_edmf_a, diag_half, Time_next, is, js, 1, mask=lmask_half )
+        used = send_data (id_edmf_a, diag_half, Time_next, is, js, 1 )
       endif
 
 !------- vertical velocity of updrafts (units: m/s) at half level -------
       if ( id_edmf_w > 0) then
         call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_w, diag_half)
-        used = send_data (id_edmf_w, diag_half, Time_next, is, js, 1, mask=lmask_half )
+        used = send_data (id_edmf_w, diag_half, Time_next, is, js, 1 )
       endif
 
 !------- qt in updrafts (units: kg/kg) at half level -------
       if ( id_edmf_qt > 0) then
         call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qt, diag_half)
-        used = send_data (id_edmf_qt, diag_half, Time_next, is, js, 1, mask=lmask_half )
+        used = send_data (id_edmf_qt, diag_half, Time_next, is, js, 1 )
       endif
 
 !------- thl in updrafts (units: K) at half level -------
       if ( id_edmf_thl > 0) then
         call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_thl, diag_half)
-        used = send_data (id_edmf_thl, diag_half, Time_next, is, js, 1, mask=lmask_half )
+        used = send_data (id_edmf_thl, diag_half, Time_next, is, js, 1 )
       endif
 
 !------- entrainment in updrafts (units: 1/m) at half level -------
       if ( id_edmf_ent > 0) then
         call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_ent, diag_half)
-        used = send_data (id_edmf_ent, diag_half, Time_next, is, js, 1, mask=lmask_half )
+        used = send_data (id_edmf_ent, diag_half, Time_next, is, js, 1 )
       endif
 
 !------- qc in updrafts (units: kg/kg) at half level -------
       if ( id_edmf_qc > 0) then
         call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qc, diag_half)
-        used = send_data (id_edmf_qc, diag_half, Time_next, is, js, 1, mask=lmask_half )
+        used = send_data (id_edmf_qc, diag_half, Time_next, is, js, 1 )
       endif
 
 !------- theta_li in edmf_mynn (units: K) at full level -------
