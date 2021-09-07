@@ -151,8 +151,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    real    :: lat_range = 0.001
    real    :: lon_range = 0.001
-   !logical :: do_writeout_column_nml = .true.
-   logical :: do_writeout_column_nml = .false.
+   logical :: do_writeout_column_nml = .true.
+   !logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
    logical :: do_edmf2ls_mp = .true.
@@ -6620,7 +6620,7 @@ subroutine edmf_mynn_driver ( &
   call edmf_writeout_column ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4,  &
               rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
@@ -6728,34 +6728,40 @@ subroutine edmf_mynn_driver ( &
 !        used = send_data (id_qadt_edmf, am4_Output_edmf%qadt_edmf, Time_next, is, js, 1 )
 !      endif
 !
-!!------- updraft area (units: none) at full level -------
+!!------- updraft area (units: none) at half level -------
 !      if ( id_edmf_a > 0) then
-!        used = send_data (id_edmf_a, am4_Output_edmf%edmf_a, Time_next, is, js, 1 )
+!        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_a, diag_half)
+!        used = send_data (id_edmf_a, diag_half, Time_next, is, js, 1 )
 !      endif
 !
-!!------- vertical velocity of updrafts (units: m/s) at full level -------
+!!------- vertical velocity of updrafts (units: m/s) at half level -------
 !      if ( id_edmf_w > 0) then
-!        used = send_data (id_edmf_w, am4_Output_edmf%edmf_w, Time_next, is, js, 1 )
+!        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_w, diag_half)
+!        used = send_data (id_edmf_w, diag_half, Time_next, is, js, 1 )
 !      endif
 !
-!!------- qt in updrafts (units: kg/kg) at full level -------
+!!------- qt in updrafts (units: kg/kg) at half level -------
 !      if ( id_edmf_qt > 0) then
-!        used = send_data (id_edmf_qt, am4_Output_edmf%edmf_qt, Time_next, is, js, 1 )
+!        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qt, diag_half)
+!        used = send_data (id_edmf_qt, diag_half, Time_next, is, js, 1 )
 !      endif
 !
-!!------- thl in updrafts (units: K) at full level -------
+!!------- thl in updrafts (units: K) at half level -------
 !      if ( id_edmf_thl > 0) then
-!        used = send_data (id_edmf_thl, am4_Output_edmf%edmf_thl, Time_next, is, js, 1 )
+!        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_thl, diag_half)
+!        used = send_data (id_edmf_thl, diag_half, Time_next, is, js, 1 )
 !      endif
 !
-!!------- entrainment in updrafts (units: 1/m) at full level -------
+!!------- entrainment in updrafts (units: 1/m) at half level -------
 !      if ( id_edmf_ent > 0) then
-!        used = send_data (id_edmf_ent, am4_Output_edmf%edmf_ent, Time_next, is, js, 1 )
+!        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_ent, diag_half)
+!        used = send_data (id_edmf_ent, diag_half, Time_next, is, js, 1 )
 !      endif
 !
-!!------- qc in updrafts (units: kg/kg) at full level -------
+!!------- qc in updrafts (units: kg/kg) at half level -------
 !      if ( id_edmf_qc > 0) then
-!        used = send_data (id_edmf_qc, am4_Output_edmf%edmf_qc, Time_next, is, js, 1 )
+!        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qc, diag_half)
+!        used = send_data (id_edmf_qc, diag_half, Time_next, is, js, 1 )
 !      endif
 !
 !!------- theta_li in edmf_mynn (units: K) at full level -------
@@ -8021,7 +8027,7 @@ end subroutine edmf_dealloc
 subroutine edmf_writeout_column ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, &
               Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 !---------------------------------------------------------------------
@@ -8046,9 +8052,12 @@ subroutine edmf_writeout_column ( &
   type(edmf_output_type), intent(in) :: Output_edmf
 
   type(am4_edmf_output_type), intent(in) :: am4_Output_edmf
-  real, intent(inout), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
-  !real, intent(inout), dimension(:,:,:,ntp+1:) :: &
+  real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
+  !real, intent(in), dimension(:,:,:,ntp+1:) :: &
     rdiag
+
+  real, intent(in), dimension(:,:,:,:) :: &
+    rdt_mynn_ed_am4
 
   logical, intent(in) :: do_writeout_column
 
@@ -8330,6 +8339,15 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ' '
         write(6,*)    '; rdiag(1,1,:,nqc_bl), input'
         write(6,3002) '  rdiag(1,1,:,nqc_bl) = (/'    ,Input_edmf%qc_bl(ii_write,:,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nql)'
+        write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nql) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nql)
+        write(6,*)    ''
+        write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nqa)'
+        write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nqa) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqa)
+        write(6,*)    ''
+        write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nqi)'
+        write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nqi) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
         write(6,*)    ''
         write(6,*)    '----- end of fieles needed by the offline program ---'
         write(6,*)    ''
@@ -8695,16 +8713,16 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
     do k=2,kx      ! k index for half levels. Skip k=1 because k=1 in MYNN is right at the surface
       kk=kx-k+2
 
-      !--- set am4_Output_edmf, on GFDL half levels
-      !      may need to reset edmf_* variables on half levels to avoid confusion, yhc, 03-24
-      am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a    (i,k,j)
-      am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w    (i,k,j)
-      am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
-      am4_Output_edmf%edmf_thl    (i,j,kk) = Output_edmf%edmf_thl  (i,k,j)
-      am4_Output_edmf%edmf_ent    (i,j,kk) = Output_edmf%edmf_ent  (i,k,j)
-      am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
-      am4_Output_edmf%edmf_qc     (i,j,kk) = Output_edmf%edmf_qc   (i,k,j) 
- 
+      !--- edmf_* variables are written out to history files, no need to convert to am4_Output_edmf variables
+      !    also note that although edmf_* dimension is nlev, but they are on half levels (nlev+1)
+      !am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a    (i,k,j)
+      !am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w    (i,k,j)
+      !am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
+      !am4_Output_edmf%edmf_thl    (i,j,kk) = Output_edmf%edmf_thl  (i,k,j)
+      !am4_Output_edmf%edmf_ent    (i,j,kk) = Output_edmf%edmf_ent  (i,k,j)
+      !am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
+      !am4_Output_edmf%edmf_qc     (i,j,kk) = Output_edmf%edmf_qc   (i,k,j)
+  
       am4_Output_edmf%diff_t_edmf (i,j,kk) = Output_edmf%exch_h    (i,k,j)
       am4_Output_edmf%diff_m_edmf (i,j,kk) = Output_edmf%exch_m    (i,k,j)
     enddo          ! end loop of k, half levels
@@ -8966,9 +8984,6 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
    !--- edmf_type=2, 
    !      recover dry variable tendencies by approximating cloud liquid/ice tendencies
    !******************************
-   print*,'pp11, Input_edmf%qa,',Input_edmf%qa
-   print*,'pp11, Output_edmf%Q_qa,',Output_edmf%Q_qa
-
    if (edmf_type .eq. 2) then
      do i=1,ix
      do j=1,jx
@@ -9045,6 +9060,36 @@ subroutine reshape_mynn_array_to_am4 (ix, jx, kx, mynn_array_3d, am4_array_3d)
   enddo  ! end loop of 1
 
 end subroutine reshape_mynn_array_to_am4
+
+!###################################
+
+subroutine reshape_mynn_array_to_am4_half (ix, jx, kx, mynn_array_3d, am4_array_3d)
+
+!--- input arguments
+  integer                   , intent(in)  :: ix, jx, kx
+  real, dimension(ix, kx, jx), intent(in) :: &
+    mynn_array_3d
+
+!--- output arguments
+  real, dimension(ix, jx, kx+1), intent(out) :: &
+    am4_array_3d
+
+!--- local variable
+  integer i,j,k,kk
+!----------------------------------
+
+  am4_array_3d = 0.
+
+  do i=1,ix
+  do j=1,jx
+    do k=1,kx      ! k index for full levels
+      kk=kx+2-k
+      am4_array_3d   (i,j,kk) = mynn_array_3d (i,k,j)
+    enddo  ! end loop of k, full levels
+  enddo  ! end loop of j
+  enddo  ! end loop of 1
+
+end subroutine reshape_mynn_array_to_am4_half
 
 
 !#############################
@@ -10550,6 +10595,9 @@ endif ! end if of input profile
   !rdt_mynn_ed_am4(:,:,:,nql) = 1.e-9
   !print*,'rdt_mynn_ed_am4',rdt_mynn_ed_am4(:,:,:,nql)
   rdt_mynn_ed_am4(:,:,:,:) = 0.
+  rdt_mynn_ed_am4(:,:,:,nql) = 1.
+  rdt_mynn_ed_am4(:,:,:,nqa) = 2.
+  rdt_mynn_ed_am4(:,:,:,nqi) = 3.
 
   call edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
