@@ -130,7 +130,7 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
   real    :: upwind = 1.                 ! upwind=1. ... use upwind approximation for mass-flux calculation
                                          ! upwind=0.5 ... use centered difference for mass-flux calculation
   real :: L0 = 100.                      ! entrainemnt rate parameter
-  integer :: NUP=100                     ! the number of updrafts
+  integer :: NUP=10                      ! the number of updrafts
   REAL :: UPSTAB=1.            ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
   INTEGER :: bl_mynn_stabfunc  = 1       !  option for stability function. 0 - MYNN, 1 - Suselj et al. (2019)
 
@@ -5851,27 +5851,25 @@ DO K=KTS,KTE-1
     IF(I > NUP) exit
 
     if (UPQC(K,I) > 0.) then   ! sum of individual moist updrafts
-      a_moist_half  (K) = a_moist_half  (K) + UPA(K+1,I) 
-      mf_moist_half (K) = mf_moist_half (K) + UPA(K+1,I)*rho(K)*UPW(K+1,I)
-      qv_moist_half (K) = qv_moist_half (K) + UPA(K+1,I)*(UPQT(K+1,I)-UPQC(K+1,I))  
+      a_moist_half  (K) = a_moist_half  (K) + UPA(K,I) 
+      mf_moist_half (K) = mf_moist_half (K) + UPA(K,I)*rho(K)*UPW(K,I)
+      qv_moist_half (K) = qv_moist_half (K) + UPA(K,I)*(UPQT(K,I)-UPQC(K,I))  
 
     else                       ! sum of individual dry updrafts
-      a_dry_half    (K) = a_dry_half  (K) + UPA(K+1,I) 
-      mf_dry_half   (K) = mf_dry_half (K) + UPA(K+1,I)*rho(K)*UPW(K+1,I)
-      qv_dry_half   (K) = qv_dry_half (K) + UPA(K+1,I)*(UPQT(K+1,I)-UPQC(K+1,I))        
+      a_dry_half    (K) = a_dry_half  (K) + UPA(K,I) 
+      mf_dry_half   (K) = mf_dry_half (K) + UPA(K,I)*rho(K)*UPW(K,I)
+      qv_dry_half   (K) = qv_dry_half (K) + UPA(K,I)*(UPQT(K,I)-UPQC(K,I))        
     endif
-
-    if (a_moist_half(K)>0.) then
-      qv_moist_half (K) = qv_moist_half (K) / a_moist_half (K)
-    end if
-
-    if (a_dry_half(K)>0.) then
-      qv_dry_half   (K) = qv_dry_half   (K) / a_dry_half (K)
-    end if
-
   ENDDO  ! end loop of i
-ENDDO    ! end loop of k
 
+  if (a_moist_half(K) > 0.) then
+    qv_moist_half (K) = qv_moist_half (K) / a_moist_half (K)
+  end if
+
+  if (a_dry_half  (K) > 0.) then
+    qv_dry_half   (K) = qv_dry_half   (K) / a_dry_half (K)
+  end if
+ENDDO    ! end loop of k
 
 !--- interpolate mf and qv on half levels to full levels
 DO K=KTS,KTE-1
