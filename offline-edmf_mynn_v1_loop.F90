@@ -5808,22 +5808,53 @@ DO K=KTS,KTE-1
        
      Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)/rho(k)
      Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)/rho(k)
+
+
+!<--- yhc 2021-09-08
+!<--- yhc: this Qa recovery code is not correct  
+!  CCp1=0.
+!  CCp0=0.
+!  IF (UPQC(K+1,I) > 0.) CCp1=UPA(K+1,I)
+!    IF (UPQC(K,I) > 0.) CCp0=UPA(K,I)
+!  
+!    ! for area fraction
+!     F1=-(mfp1*(CCp1-cldfra_bl1d(K+1))-mf*(CCp0-cldfra_bl1d(K)) )/dz
+!     F2=mf*(CCp1-CCp0)/dz+ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
+!  
+!     Qa(k)=Qa(k)+(F1+F2)/rho(k)
+!--->  
   
   CCp1=0.
   CCp0=0.
-  IF (UPQC(K+1,I) > 0.) CCp1=UPA(K+1,I)
-    IF (UPQC(K,I) > 0.) CCp0=UPA(K,I)
+  IF (UPQC(K+1,I) > 0.) THEN
+    CCp1=1.
+  ELSE
+    CCp1=0.
+  ENDIF
+
+  IF (UPQC(K,I) > 0.) THEN
+    CCp0=1.
+  ELSE
+    CCp0=0.
+  ENDIF
+
+  IF (UPQC(K,I) <= 0. .and. UPQC(K+1,I) > 0.) then
+    F0 = UPA(K,I)*UPW(K,I)/dz
+  ELSEIF (UPQC(K,I) > 0. .and. UPQC(K+1,I) <= 0.) then
+    F0 = -1.*UPA(K,I)*UPW(K,I)/dz
+  ELSE
+    F0 = 0.
+  ENDIF
   
     ! for area fraction
      F1=-(mfp1*(CCp1-cldfra_bl1d(K+1))-mf*(CCp0-cldfra_bl1d(K)) )/dz
-     F2=mf*(CCp1-CCp0)/dz+ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
+     F2=F0 + ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
   
      Qa(k)=Qa(k)+(F1+F2)/rho(k)
-  
-  
-  
+ 
   ENDDO
 ENDDO  
+!---> yhc 2021-09-08
 
 !<--- yhc 2021-09-08
 
