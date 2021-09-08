@@ -151,8 +151,8 @@ real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of d
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    real    :: lat_range = 0.001
    real    :: lon_range = 0.001
-   logical :: do_writeout_column_nml = .true.
-   !logical :: do_writeout_column_nml = .false.
+   !logical :: do_writeout_column_nml = .true.
+   logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
    logical :: do_edmf2ls_mp = .true.
@@ -5404,6 +5404,30 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
        ! maximum wind speed in updraft
        REAL,PARAMETER :: MAXW=2.  
 
+    !<--- yhc 2021-09-08
+    !  naming convention: 
+    !     a: fractional area (none)
+    !    mf: mass flux (kg/m2/s)
+    !    qv: specific humifity (kg/kg)
+    !    moist/dry/all: moist updrafts, dry updrafts, or combined (moist+dry) updrafts
+    !    full/half: on full levels (where T,q are defined) to half levels (those levels in between full levels)
+       REAL,DIMENSION(kts:kte+1) :: & 
+         a_moist_half , &   
+         a_dry_half   , &        
+         mf_moist_half, &     
+         mf_dry_half  , &
+         mf_all_half  , & 
+         qv_moist_half, &     
+         qv_dry_half  
+
+       REAL,DIMENSION(kts:kte) :: & 
+         mf_moist_full,  &
+         mf_dry_full  ,  & 
+         mf_all_full  , & 
+         qv_moist_full,  & 
+         qv_dry_full    
+    !---> yhc 2021-09-08 
+
 ! stability parameter for massflux
 ! (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
 !       REAL,PARAMETER :: UPSTAB=1.   ! yhc - move UPSTAB to namelist parameter
@@ -5800,6 +5824,69 @@ DO K=KTS,KTE-1
   
   ENDDO
 ENDDO  
+
+!<--- yhc 2021-09-08
+
+!--- initial variables
+  a_moist_half  = 0.    
+  mf_moist_half = 0.    
+  mf_moist_full = 0.
+  qv_moist_half = 0.    
+  qv_moist_full = 0.
+
+  a_dry_half    = 0.    
+  mf_dry_half   = 0.
+  mf_dry_full   = 0.
+  qv_dry_half   = 0.
+  qv_dry_full   = 0.
+
+  mf_all_half   = 0.
+  mf_all_full   = 0.
+
+!--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
+DO K=KTS,KTE-1
+  IF(k > KTOP) exit
+
+  DO I=1,NUP
+    IF(I > NUP) exit
+
+    if (UPQC(K,I) > 0.) then   ! sum of individual moist updrafts
+      a_moist_half  (K) = a_moist_half  (K) + UPA(K+1,I) 
+      mf_moist_half (K) = mf_moist_half (K) + UPA(K+1,I)*rho(K)*UPW(K+1,I)
+      qv_moist_half (K) = qv_moist_half (K) + UPA(K+1,I)*(UPQT(K+1,I)-UPQC(K+1,I))  
+
+    else                       ! sum of individual dry updrafts
+      a_dry_half    (K) = a_dry_half  (K) + UPA(K+1,I) 
+      mf_dry_half   (K) = mf_dry_half (K) + UPA(K+1,I)*rho(K)*UPW(K+1,I)
+      qv_dry_half   (K) = qv_dry_half (K) + UPA(K+1,I)*(UPQT(K+1,I)-UPQC(K+1,I))        
+    endif
+
+    if (a_moist_half(K)>0.) then
+      qv_moist_half (K) = qv_moist_half (K) / a_moist_half (K)
+    end if
+
+    if (a_dry_half(K)>0.) then
+      qv_dry_half   (K) = qv_dry_half   (K) / a_dry_half (K)
+    end if
+
+  ENDDO  ! end loop of i
+ENDDO    ! end loop of k
+
+
+!--- interpolate mf and qv on half levels to full levels
+DO K=KTS,KTE-1
+  mf_moist_full (K) = 0.5 * (mf_moist_half (K)+mf_moist_half (K+1))
+  qv_moist_full (K) = 0.5 * (qv_moist_half (K)+qv_moist_half (K+1))
+
+  mf_dry_full   (K) = 0.5 * (mf_dry_half   (K)+mf_dry_half   (K+1))
+  qv_dry_full   (K) = 0.5 * (qv_dry_half   (K)+qv_dry_half   (K+1))
+ENDDO    ! end loop of k
+
+! moist+dry mass flux
+  mf_all_half (:) = mf_moist_half (:) + mf_dry_half (:)
+  mf_all_full (:) = mf_moist_full (:) + mf_dry_full (:)
+
+!---> yhc 2021-09-08
 
 
 !
