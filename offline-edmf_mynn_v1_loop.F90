@@ -244,7 +244,7 @@ type edmf_output_type
     qWT, qSHEAR, qBUOY, qDISS, dqke
 
   real, dimension(:,:,:), allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
-    a_moist_half, mf_moist_half, qv_moist_half, mf_moist_full, qv_moist_full, &
+    a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &
     a_dry_half, mf_dry_half, qv_dry_half, mf_dry_full, qv_dry_full, &
     mf_all_half, mf_all_full
 
@@ -269,7 +269,7 @@ type am4_edmf_output_type
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
 
   real, dimension(:,:,:), allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull/nhalf)
-    a_moist_half, mf_moist_half, qv_moist_half, mf_moist_full, qv_moist_full, &
+    a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &
     a_dry_half, mf_dry_half, qv_dry_half, mf_dry_full, qv_dry_full, &
     mf_all_half, mf_all_full
 
@@ -3799,7 +3799,8 @@ END SUBROUTINE mym_condensation
       qv_moist_half, &
       qv_dry_half
 
-    REAL, DIMENSION(IMS:IME,KMS:KME+1,JMS:JME) :: &
+    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+      a_moist_full , &
       mf_moist_full,  &
       mf_dry_full  ,  &
       mf_all_full  , &
@@ -3816,6 +3817,7 @@ END SUBROUTINE mym_condensation
       qv_dry_half1
 
     REAL,DIMENSION(KTS:KTE) :: &
+      a_moist_full1 ,  &
       mf_moist_full1,  &
       mf_dry_full1  ,  &
       mf_all_full1  , &
@@ -4375,7 +4377,7 @@ END SUBROUTINE mym_condensation
                & s_awqv1,s_awqc1,s_awu1,s_awv1,   &
                & s_awqke1,                        &
                & qc_bm,cldfra_bm,             &
-               & a_moist_half1, mf_moist_half1, qv_moist_half1, mf_moist_full1, qv_moist_full1, &  ! yhc 2021-09-08
+               & a_moist_half1, mf_moist_half1, qv_moist_half1, a_moist_full1, mf_moist_full1, qv_moist_full1, &  ! yhc 2021-09-08
                & a_dry_half1, mf_dry_half1, qv_dry_half1, mf_dry_full1, qv_dry_full1, &            ! yhc 2021-09-08
                & mf_all_half1, mf_all_full1, &                                                     ! yhc 2021-09-08
                &ktop_shallow(i,j),ztop_shallow,   &
@@ -5396,7 +5398,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
             ! in/outputs - subgrid scale clouds
               & qc_bl1d,cldfra_bl1d,         &
             ! output info
-              & a_moist_half, mf_moist_half, qv_moist_half, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
+              & a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
               & a_dry_half, mf_dry_half, qv_dry_half, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
               & mf_all_half, mf_all_full, &                                                  ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa)
@@ -5487,6 +5489,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          qv_dry_half  
 
        REAL,DIMENSION(kts:kte), INTENT(OUT) :: & 
+         a_moist_full ,  &
          mf_moist_full,  &
          mf_dry_full  ,  & 
          mf_all_full  , & 
@@ -5926,6 +5929,7 @@ ENDDO
 
 !--- initial variables
   a_moist_half  = 0.    
+  a_moist_full  = 0.
   mf_moist_half = 0.    
   mf_moist_full = 0.
   qv_moist_half = 0.    
@@ -5970,6 +5974,7 @@ ENDDO    ! end loop of k
 
 !--- interpolate mf and qv on half levels to full levels
 DO K=KTS,KTE-1
+  a_moist_full  (K) = 0.5 * (a_moist_half  (K)+a_moist_half  (K+1))
   mf_moist_full (K) = 0.5 * (mf_moist_half (K)+mf_moist_half (K+1))
   qv_moist_full (K) = 0.5 * (qv_moist_half (K)+qv_moist_half (K+1))
 
@@ -7629,8 +7634,9 @@ subroutine edmf_alloc ( &
 
   allocate (Output_edmf%a_moist_half    (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%a_moist_half  = 0.
   allocate (Output_edmf%mf_moist_half   (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%mf_moist_half = 0.
-  allocate (Output_edmf%mf_moist_full   (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%mf_moist_full = 0.
   allocate (Output_edmf%qv_moist_half   (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%qv_moist_half = 0.
+  allocate (Output_edmf%a_moist_full    (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%a_moist_full  = 0.
+  allocate (Output_edmf%mf_moist_full   (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%mf_moist_full = 0.
   allocate (Output_edmf%qv_moist_full   (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%qv_moist_full = 0.
 
   allocate (Output_edmf%a_dry_half      (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%a_dry_half    = 0.
@@ -7712,8 +7718,9 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%Q_qa            (ix,jx,kx))  ; am4_Output_edmf%Q_qa            = 0.
   allocate (am4_Output_edmf%a_moist_half    (ix,jx,kx+1))  ; am4_Output_edmf%a_moist_half  = 0.
   allocate (am4_Output_edmf%mf_moist_half   (ix,jx,kx+1))  ; am4_Output_edmf%mf_moist_half = 0.
-  allocate (am4_Output_edmf%mf_moist_full   (ix,jx,kx))    ; am4_Output_edmf%mf_moist_full = 0.
   allocate (am4_Output_edmf%qv_moist_half   (ix,jx,kx+1))  ; am4_Output_edmf%qv_moist_half = 0.
+  allocate (am4_Output_edmf%a_moist_full    (ix,jx,kx))    ; am4_Output_edmf%a_moist_full  = 0.
+  allocate (am4_Output_edmf%mf_moist_full   (ix,jx,kx))    ; am4_Output_edmf%mf_moist_full = 0.
   allocate (am4_Output_edmf%qv_moist_full   (ix,jx,kx))    ; am4_Output_edmf%qv_moist_full = 0.
 
   allocate (am4_Output_edmf%a_dry_half      (ix,jx,kx+1))  ; am4_Output_edmf%a_dry_half    = 0.
@@ -8961,6 +8968,15 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       am4_Output_edmf%Q_ql        (i,j,kk) = Output_edmf%Q_ql      (i,k,j)
       am4_Output_edmf%Q_qi        (i,j,kk) = Output_edmf%Q_qi      (i,k,j)
       am4_Output_edmf%Q_qa        (i,j,kk) = Output_edmf%Q_qa      (i,k,j)
+
+      am4_Output_edmf%a_moist_full   (i,j,kk) = Output_edmf%a_moist_full   (i,k,j)
+      am4_Output_edmf%mf_moist_full  (i,j,kk) = Output_edmf%mf_moist_full  (i,k,j)
+      am4_Output_edmf%qv_moist_full  (i,j,kk) = Output_edmf%qv_moist_full  (i,k,j)
+
+      am4_Output_edmf%mf_dry_full    (i,j,kk) = Output_edmf%mf_dry_full  (i,k,j)
+      am4_Output_edmf%qv_dry_full    (i,j,kk) = Output_edmf%qv_dry_full  (i,k,j)
+ 
+      am4_Output_edmf%mf_all_full    (i,j,kk) = Output_edmf%mf_all_full  (i,k,j)
       !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
   
       !--- if needed, modify am4_Output_edmf tendencies to make sure the updated qa, ql, qc, qi, qnd qt are larger than zero
@@ -9003,6 +9019,20 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       !endif
   
     enddo  ! end loop of k, full levels
+
+    !======================
+    do k=1,kx+1      ! k index for half levels
+      kk=kx-k+2
+      am4_Output_edmf%a_moist_half   (i,j,kk) = Output_edmf%a_moist_half   (i,k,j)
+      am4_Output_edmf%mf_moist_half  (i,j,kk) = Output_edmf%mf_moist_half  (i,k,j)
+      am4_Output_edmf%qv_moist_half  (i,j,kk) = Output_edmf%qv_moist_half  (i,k,j)
+
+      am4_Output_edmf%a_dry_half     (i,j,kk) = Output_edmf%a_dry_half   (i,k,j)
+      am4_Output_edmf%mf_dry_half    (i,j,kk) = Output_edmf%mf_dry_half  (i,k,j)
+      am4_Output_edmf%qv_dry_half    (i,j,kk) = Output_edmf%qv_dry_half  (i,k,j)
+ 
+      am4_Output_edmf%mf_all_half    (i,j,kk) = Output_edmf%mf_all_half  (i,k,j)
+    enddo  ! end loop of k, half levels
 
   enddo  ! end loop of j
   enddo  ! end loop of 1
