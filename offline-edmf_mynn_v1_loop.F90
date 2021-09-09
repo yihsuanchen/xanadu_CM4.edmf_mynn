@@ -243,6 +243,11 @@ type edmf_output_type
     exch_h, exch_m, &
     qWT, qSHEAR, qBUOY, qDISS, dqke
 
+  real, dimension(:,:,:), allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
+    a_moist_half, mf_moist_half, qv_moist_half, mf_moist_full, qv_moist_full, &
+    a_dry_half, mf_dry_half, qv_dry_half, mf_dry_full, qv_dry_full, &
+    mf_all_half, mf_all_full
+
   real, dimension(:,:,:), allocatable :: &   ! diagnostic purpose, not used by mynn 
     t_before_mix, q_before_mix, qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, rh_before_mix, th_before_mix, &
     qa_before_pdf, ql_before_pdf, qi_before_pdf, &
@@ -262,6 +267,11 @@ type am4_edmf_output_type
     cldfra_bl, qc_bl, el_edmf, &
     Q_ql, Q_qi, Q_qa, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
+
+  real, dimension(:,:,:), allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull/nhalf)
+    a_moist_half, mf_moist_half, qv_moist_half, mf_moist_full, qv_moist_full, &
+    a_dry_half, mf_dry_half, qv_dry_half, mf_dry_full, qv_dry_full, &
+    mf_all_half, mf_all_full
 
   real, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
     pbltop
@@ -7616,6 +7626,21 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%Q_ql            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_ql = 0.
   allocate (Output_edmf%Q_qi            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qi = 0.
   allocate (Output_edmf%Q_qa            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qa = 0.
+
+  allocate (Output_edmf%a_moist_half    (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%a_moist_half  = 0.
+  allocate (Output_edmf%mf_moist_half   (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%mf_moist_half = 0.
+  allocate (Output_edmf%mf_moist_full   (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%mf_moist_full = 0.
+  allocate (Output_edmf%qv_moist_half   (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%qv_moist_half = 0.
+  allocate (Output_edmf%qv_moist_full   (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%qv_moist_full = 0.
+
+  allocate (Output_edmf%a_dry_half      (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%a_dry_half    = 0.
+  allocate (Output_edmf%mf_dry_half     (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%mf_dry_half   = 0.
+  allocate (Output_edmf%mf_dry_full     (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%mf_dry_full   = 0.
+  allocate (Output_edmf%qv_dry_half     (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%qv_dry_half   = 0.
+  allocate (Output_edmf%qv_dry_full     (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%qv_dry_full   = 0.
+
+  allocate (Output_edmf%mf_all_half     (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%mf_all_half   = 0.
+  allocate (Output_edmf%mf_all_full     (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%mf_all_full   = 0.
   !allocate (Output_edmf%(IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf% = 0.
 
 !**********************
@@ -7685,6 +7710,20 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%Q_ql            (ix,jx,kx))  ; am4_Output_edmf%Q_ql            = 0.
   allocate (am4_Output_edmf%Q_qi            (ix,jx,kx))  ; am4_Output_edmf%Q_qi            = 0.
   allocate (am4_Output_edmf%Q_qa            (ix,jx,kx))  ; am4_Output_edmf%Q_qa            = 0.
+  allocate (am4_Output_edmf%a_moist_half    (ix,jx,kx+1))  ; am4_Output_edmf%a_moist_half  = 0.
+  allocate (am4_Output_edmf%mf_moist_half   (ix,jx,kx+1))  ; am4_Output_edmf%mf_moist_half = 0.
+  allocate (am4_Output_edmf%mf_moist_full   (ix,jx,kx))    ; am4_Output_edmf%mf_moist_full = 0.
+  allocate (am4_Output_edmf%qv_moist_half   (ix,jx,kx+1))  ; am4_Output_edmf%qv_moist_half = 0.
+  allocate (am4_Output_edmf%qv_moist_full   (ix,jx,kx))    ; am4_Output_edmf%qv_moist_full = 0.
+
+  allocate (am4_Output_edmf%a_dry_half      (ix,jx,kx+1))  ; am4_Output_edmf%a_dry_half    = 0.
+  allocate (am4_Output_edmf%mf_dry_half     (ix,jx,kx+1))  ; am4_Output_edmf%mf_dry_half   = 0.
+  allocate (am4_Output_edmf%mf_dry_full     (ix,jx,kx))    ; am4_Output_edmf%mf_dry_full   = 0.
+  allocate (am4_Output_edmf%qv_dry_half     (ix,jx,kx+1))  ; am4_Output_edmf%qv_dry_half   = 0.
+  allocate (am4_Output_edmf%qv_dry_full     (ix,jx,kx))    ; am4_Output_edmf%qv_dry_full   = 0.
+
+  allocate (am4_Output_edmf%mf_all_half     (ix,jx,kx+1))  ; am4_Output_edmf%mf_all_half   = 0.
+  allocate (am4_Output_edmf%mf_all_full     (ix,jx,kx))    ; am4_Output_edmf%mf_all_full   = 0.
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
