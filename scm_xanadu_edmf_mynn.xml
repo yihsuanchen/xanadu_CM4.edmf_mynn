@@ -9327,6 +9327,37 @@ DYCOMS RF01 case
     </input>
   </experiment>
 
+  <experiment name="rfo70d-RF01-am4p0_aerT_DIAG_mynn_edmf" inherit="rfo70a-RF01-am4p0_aerT">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 6
+ do_edmf_mynn_diffusion_smooth = T
+ do_return_edmf_mynn_diff_only = F
+ do_edmf_mynn_in_physics = "up"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3 
+ do_option_edmf2ls_mp = 0 
+ edmf_type = 2 
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .false.
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
 
   <experiment name="rfo71-RF01-am4p0_mynn_ED_Gmy_UWlock" inherit="rfo70a-RF01-am4p0_aerT">
     <input>
@@ -9826,6 +9857,147 @@ DYCOMS RF01 case
     </input>
   </experiment>
 
+  <experiment name="rfo75c-RF01-mynn_DIFF_EDonly_M3_NOsm_noSH" inherit="rfo75a-RF01-mynn_DIFF_EDonly_M3">
+    <input>
+      <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   -100000.     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000     
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo76a-RF01-mynn_DIFF_M3_EDMFexpUP_NOsm" inherit="rfo75c-RF01-mynn_DIFF_EDonly_M3_NOsm_noSH">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 6
+ do_edmf_mynn_diffusion_smooth = F
+ do_return_edmf_mynn_diff_only = F
+ do_edmf_mynn_in_physics = "up"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 0
+ edmf_type = 2
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .true.
+ upwind = 1.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="rfo76b-RF01-mynn_DIFF_M3_EDMFimpCD_NOsm" inherit="rfo75c-RF01-mynn_DIFF_EDonly_M3_NOsm_noSH">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 0
+ edmf_type = 2
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = F
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
 
   <experiment name="rfo71ab-RF01-am4p0_mynn_ED_Gmy_UWlock_rdpI0.45" inherit="rfo71aa-RF01-am4p0_mynn_ED_Gmy_UWlock">
     <input>
@@ -10018,6 +10190,38 @@ DYCOMS RF01 case
  JJ_WRITE        =        0,
  DO_STOP_RUN     = F,
  diffusion_smooth = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b70d-BOMEX-am4p0_DIAG_mynn_edmf" inherit="b70a-BOMEX-am4p0">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 6
+ do_edmf_mynn_diffusion_smooth = F 
+ do_return_edmf_mynn_diff_only = F
+ do_edmf_mynn_in_physics = "up"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3 
+ do_option_edmf2ls_mp = 0 
+ edmf_type = 2 
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .false.
+ upwind = 0.5
       </namelist>
     </input>
   </experiment>
@@ -10840,6 +11044,57 @@ DYCOMS RF01 case
     </input>
   </experiment>
 
+  <experiment name="b76a-BOMEX-mynn_DIFF_M3_EDMFexpUP_NOsm" inherit="b73-BOMEX-mynn_DIFF_Gmy_UWlock_SFKay_noSH">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 6
+ do_edmf_mynn_diffusion_smooth = F
+ do_return_edmf_mynn_diff_only = F
+ do_edmf_mynn_in_physics = "up"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 0
+ edmf_type = 2
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .true.
+ upwind = 1.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="b76b-BOMEX-mynn_DIFF_M3_EDMFimpCD_NOsm" inherit="b73-BOMEX-mynn_DIFF_Gmy_UWlock_SFKay_noSH">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ OPTION_SURFACE_FLUX     = updated
+ bl_mynn_edmf = 3
+ do_option_edmf2ls_mp = 0
+ edmf_type = 2
+ do_use_tau = F
+ bl_mynn_stabfunc = 1
+ expmf = .false.
+ upwind = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="x01-b71a-BOMEX-mynn_ED_Gmy_UWlock" inherit="b71a-BOMEX-mynn_ED_Gmy_UWlock">
     <input>
       <namelist name="edmf_mynn_nml">
@@ -10892,6 +11147,12 @@ DYCOMS RF01 case
        test Kay's stability function, 
          offline code, 281eaa4853d563bba5ea8a4be909d7a48733ea8d
     </description>
+  </experiment>
+
+  <experiment name="x01-b76a-BOMEX-mynn_DIFF_M3_EDMFexpUP_NOsm" inherit="b76a-BOMEX-mynn_DIFF_M3_EDMFexpUP_NOsm">
+  </experiment>
+
+  <experiment name="x01-rfo76a-RF01-mynn_DIFF_M3_EDMFexpUP_NOsm" inherit="rfo76a-RF01-mynn_DIFF_M3_EDMFexpUP_NOsm">
   </experiment>
   
 
