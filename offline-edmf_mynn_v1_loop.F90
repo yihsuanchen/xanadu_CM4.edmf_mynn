@@ -3779,6 +3779,23 @@ END SUBROUTINE mym_condensation
 
     REAL,DIMENSION(KTS:KTE) :: Q_ql1,Q_qi1,Q_a1
 
+    !<--- yhc
+    REAL,DIMENSION(KTS:KTE+1) :: &
+      a_moist_half1 , &
+      a_dry_half1   , &
+      mf_moist_half1, &
+      mf_dry_half1  , &
+      mf_all_half1  , &
+      qv_moist_half1, &
+      qv_dry_half1
+
+    REAL,DIMENSION(KTS:KTE) :: &
+      mf_moist_full1,  &
+      mf_dry_full1  ,  &
+      mf_all_full1  , &
+      qv_moist_full1,  &
+      qv_dry_full1
+    !---> yhc
 
 ! 0 ... default thing 
 ! 1 ... new solver
@@ -4332,6 +4349,9 @@ END SUBROUTINE mym_condensation
                & s_awqv1,s_awqc1,s_awu1,s_awv1,   &
                & s_awqke1,                        &
                & qc_bm,cldfra_bm,             &
+               & a_moist_half1, mf_moist_half1, qv_moist_half1, mf_moist_full1, qv_moist_full1, &  ! yhc
+               & a_dry_half1, mf_dry_half1, qv_dry_half1, mf_dry_full1, qv_dry_full1, &            ! yhc
+               & mf_all_half1, mf_all_full1, &                                                  ! yhc
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1                 &
@@ -4583,7 +4603,11 @@ END SUBROUTINE mym_condensation
                Q_ql(i,k,j)=Q_ql1(k)
                Q_qi(i,k,j)=Q_qi1(k)
                Q_a(i,k,j)=Q_a1(k)
-               
+
+               !<--- yhc
+
+               !---> yhc
+
                ELSE
                
                 Q_ql(i,k,j)=0.
@@ -5333,6 +5357,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
             ! in/outputs - subgrid scale clouds
               & qc_bl1d,cldfra_bl1d,         &
             ! output info
+              & a_moist_half, mf_moist_half, qv_moist_half, mf_moist_full, qv_moist_full, &  ! yhc
+              & a_dry_half, mf_dry_half, qv_dry_half, mf_dry_full, qv_dry_full, &            ! yhc
+              & mf_all_half, mf_all_full, &                                                  ! yhc
               &ktop,ztop,kpbl,Qql,Qqi,Qa)
 
 
@@ -5389,7 +5416,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
                Fng,qww,alpha,beta,bb,f,pt,t,q2p,b9,satvp,rhgrid
         
         REAL,DIMENSION(kts:kte) :: ph,lfh 
-        REAL :: THVsrfF,QTsrfF,maxS,stabF,dz,F1,F2,CCp1,CCp0,mf,mfp1  
+        REAL :: THVsrfF,QTsrfF,maxS,stabF,dz,F0,F1,F2,CCp1,CCp0,mf,mfp1  
 
         INTEGER, DIMENSION(2) :: seedmf
     ! w parameters
@@ -5411,7 +5438,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
     !    qv: specific humifity (kg/kg)
     !    moist/dry/all: moist updrafts, dry updrafts, or combined (moist+dry) updrafts
     !    full/half: on full levels (where T,q are defined) to half levels (those levels in between full levels)
-       REAL,DIMENSION(kts:kte+1) :: & 
+       REAL,DIMENSION(kts:kte+1), INTENT(OUT) :: & 
          a_moist_half , &   
          a_dry_half   , &        
          mf_moist_half, &     
@@ -5420,7 +5447,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          qv_moist_half, &     
          qv_dry_half  
 
-       REAL,DIMENSION(kts:kte) :: & 
+       REAL,DIMENSION(kts:kte), INTENT(OUT) :: & 
          mf_moist_full,  &
          mf_dry_full  ,  & 
          mf_all_full  , & 
