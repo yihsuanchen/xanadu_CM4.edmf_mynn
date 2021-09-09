@@ -105,14 +105,12 @@ properties below.
 
   <!-- make sure to change current_date in coupler_nml accordingly -->
 
-<!--
   <property name="EXP_AMIP_START" value="1979"/>
-  <property name="EXP_AMIP_END"   value="1979"/>
-  <property name="EXP_AMIP_LEN"   value="1"/>
+  <property name="EXP_AMIP_END"   value="1980"/>
+  <property name="EXP_AMIP_LEN"   value="2"/>
   <property name="ANA_AMIP_START" value="1980"/>
-  <property name="ANA_AMIP_END"   value="1981"/>
-  <property name="ANA_AMIP_LEN"   value="2yr"/>
--->
+  <property name="ANA_AMIP_END"   value="1984"/>
+  <property name="ANA_AMIP_LEN"   value="5yr"/>
 
 <!--
   <property name="EXP_AMIP_START" value="1979"/>
@@ -122,6 +120,7 @@ properties below.
   <property name="ANA_AMIP_END"   value="1981"/>
   <property name="ANA_AMIP_LEN"   value="2yr"/>
 -->
+
 <!--  6-year AMIP
 -->
 
@@ -152,12 +151,14 @@ properties below.
   <property name="ANA_AMIP_LEN"   value="5yr"/>
 -->
 
+<!--
   <property name="EXP_AMIP_START" value="2000"/>
   <property name="EXP_AMIP_END"   value="2014"/>
   <property name="EXP_AMIP_LEN"   value="15"/>
   <property name="ANA_AMIP_START" value="2001"/>
   <property name="ANA_AMIP_END"   value="2014"/>
   <property name="ANA_AMIP_LEN"   value="14yr"/>
+-->
 
   <property name="CVDP_startyear" value="$(EXP_AMIP_START)"/>
 
@@ -5385,6 +5386,9 @@ yhc, 2021/08/03, use this because using c96_864_producetion will have reproducib
   <experiment name="x01-m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_ICam4p0_2000_rdpI0.4" inherit="m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_ICam4p0_2000_rdpI0.4">
   </experiment>
 
+  <experiment name="x01-m14a-c96L33_am4p0_mynn_diff_M3_EDonly_sfK_UWlock_NOsm" inherit="m14a-c96L33_am4p0_mynn_diff_M3_EDonly_sfK_UWlock_NOsm">
+  </experiment>
+
   <experiment name="x01-m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_rdpI0.4" inherit="m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_ICam4p0_2000_rdpI0.4">
     <input>
       <xi:include xpointer="xpointer(//freInclude[@name='c96L33_initCond']/input/node())"/>
@@ -5505,7 +5509,7 @@ yhc, 2021/08/03, use this because using c96_864_producetion will have reproducib
     physics_driver.F90, 8c684f99585f31773c3ec5c1ce68633a3a35b55c
 -->
 
-  <experiment name="m20-c96L33_am4p0_MYNN_ED_dPG_864x1a" inherit="a00-c96L33_am4p0_donner">
+  <experiment name="m20-c96L33_am4p0_MYNN_ED_dPG" inherit="a00-c96L33_am4p0_donner">
     <description>
        MYNN only returns the diffusion coefficients to AM4 and diffusion is handled by the vertical diffusion program. This configuration is similar to Lock: MYNN is put in physics_driver_down and see the updated state by radiation and GWD.
 
@@ -5644,19 +5648,17 @@ yhc, 2021/08/03, use this because using c96_864_producetion will have reproducib
       <!--xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess']/postProcess/node())"/-->
       <xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess_EDMF']/postProcess/node())"/>
     </postProcess>
+<!--
     <runtime>
       <production simTime="$(EXP_AMIP_LEN)" units="years" >
           <segment simTime="12" units="months" />
-<!--
-yhc, 2021/08/03, use this because using c96_864_producetion will have reproducibility problems
-          <xi:include xpointer="xpointer(//freInclude[@name='c96_432_production']/node())"/>  
--->
-          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_1thread_production']/node())"/>  <!-- yhc, 2021/08/03, use this because using c96_864_producetion will have reproducibility problems -->
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_1thread_production']/node())"/>  
       </production>
     </runtime>
+-->
   </experiment>
 
-  <experiment name="m23-c96L33_am4p0_MYNN_ED_sfK_dPG" inherit="m20-c96L33_am4p0_MYNN_ED_dPG_864x1a">
+  <experiment name="m23-c96L33_am4p0_MYNN_ED_sfK_dPG" inherit="m20-c96L33_am4p0_MYNN_ED_dPG">
     <description>
        MYNN only returns the diffusion coefficients to AM4 and diffusion is handled by the vertical diffusion program. This configuration is similar to Lock: MYNN is put in physics_driver_down and see the updated state by radiation and GWD.
 
@@ -5772,6 +5774,21 @@ yhc, 2021/08/03, use this because using c96_864_producetion will have reproducib
  expmf = .false.
  upwind = 0.5
       </namelist>
+    </input>
+  </experiment>   
+
+  <experiment name="y3seq_m23-c96L33_am4p0_MYNN_ED_sfK_dPG" inherit="m23-c96L33_am4p0_MYNN_ED_sfK_dPG">
+  </experiment>   
+
+  <experiment name="y3seq_m23a-c96L33_am4p0_MYNN_ED_sfK_dPG_NOsm" inherit="m23a-c96L33_am4p0_MYNN_ED_sfK_dPG_NOsm">
+  </experiment>   
+
+  <experiment name="y3seq_m24a-c96L33_am4p0_MYNN_M3_sfK_dPG_NOsm" inherit="m24a-c96L33_am4p0_MYNN_M3_sfK_dPG_NOsm">
+  </experiment>   
+
+  <experiment name="m20-c96L33_am4p0_MYNN_ED_dPG_ICam4p0_2000" inherit="m20-c96L33_am4p0_MYNN_ED_dPG">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96L33_initCond_am4p0_yr2000']/input/node())"/>
     </input>
   </experiment>   
 
