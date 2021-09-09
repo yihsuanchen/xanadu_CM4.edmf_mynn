@@ -531,7 +531,8 @@ real,    dimension(:,:,:), allocatable        :: temp_last, q_last
 real,    dimension(:,:,:), allocatable,target :: &  ! yhc, the description of these variables is in edmf_ls_mp_type, edmf_mynn_mod
   qadt_edmf, qldt_edmf, qidt_edmf, &
   diff_t_edmf, diff_m_edmf, &
-  dqa_edmf,  dql_edmf, dqi_edmf
+  dqa_edmf,  dql_edmf, dqi_edmf, &
+  edmf_mc_full, edmf_mc_half, edmf_humidity_area, edmf_humidity_ratio
 
 real,    dimension(:,:,:,:), allocatable,target :: & 
   rdt_before_vdiff_down
@@ -1156,7 +1157,10 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       allocate (  diff_m_edmf(id, jd, kd)) ; diff_m_edmf = 0.0  
       allocate (  kpbl_edmf  (id, jd))  ;  ; kpbl_edmf= 0     
       allocate (  rdt_before_vdiff_down  (id, jd, kd, ntp))  ;  rdt_before_vdiff_down= 0     
-      !allocate (  (id, jd, kd))  ;  = 0.0  
+      allocate (  edmf_mc_full (id, jd, kd))  ;  edmf_mc_full = 0.0  
+      allocate (  edmf_mc_half (id, jd, kd))  ;  edmf_mc_half = 0.0  
+      allocate (  edmf_humidity_area (id, jd, kd))  ;  edmf_humidity_area = 0.0  
+      allocate (  edmf_humidity_ratio (id, jd, kd))  ; edmf_humidity_ratio = 0.0  
       !---> yhc
 
       if (do_cosp) then
@@ -3229,6 +3233,10 @@ real,dimension(:,:),    intent(inout)             :: gust
         Phys_mp_exch%dql_edmf       =>    dql_edmf(is:ie,js:je,:)   
         Phys_mp_exch%dqi_edmf       =>    dqi_edmf(is:ie,js:je,:)   
         Phys_mp_exch%kpbl_edmf      =>    kpbl_edmf(is:ie,js:je)   
+        Phys_mp_exch%edmf_mc_full         =>    edmf_mc_full(is:ie,js:je,:)   
+        Phys_mp_exch%edmf_mc_half         =>    edmf_mc_half(is:ie,js:je,:)   
+        Phys_mp_exch%edmf_humidity_area   =>    edmf_humidity_area(is:ie,js:je,:)   
+        Phys_mp_exch%edmf_humidity_ratio  =>    edmf_humidity_ratio(is:ie,js:je,:)   
 
         if (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
           Phys_mp_exch%diff_t => diff_t(is:ie,js:je,:)
