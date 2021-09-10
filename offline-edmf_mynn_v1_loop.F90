@@ -3640,6 +3640,9 @@ END SUBROUTINE mym_condensation
        &qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix,       &  ! yhc_mynn add
        &qa_before_pdf, ql_before_pdf, qi_before_pdf,                                               &  ! yhc_mynn add
        &Q_ql,Q_qi,Q_a,                                                                             &  ! yhc_mynn add
+       &a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
+       &a_dry_half, mf_dry_half, qv_dry_half, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
+       &mf_all_half, mf_all_full, &                                                     ! yhc 2021-09-08
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -3790,7 +3793,7 @@ END SUBROUTINE mym_condensation
     REAL,DIMENSION(KTS:KTE) :: Q_ql1,Q_qi1,Q_a1
 
     !<--- yhc 2021-09-08 
-    REAL, DIMENSION(IMS:IME,KMS:KME+1,JMS:JME) :: &
+    REAL, DIMENSION(IMS:IME,KMS:KME+1,JMS:JME), INTENT(out) :: &
       a_moist_half , &
       a_dry_half   , &
       mf_moist_half, &
@@ -3799,7 +3802,7 @@ END SUBROUTINE mym_condensation
       qv_moist_half, &
       qv_dry_half
 
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
       a_moist_full , &
       mf_moist_full,  &
       mf_dry_full  ,  &
@@ -4634,6 +4637,7 @@ END SUBROUTINE mym_condensation
 
                !<--- yhc 2021-09-08
                a_moist_half  (i,k,j) = a_moist_half1(k)    
+               a_moist_full  (i,k,j) = a_moist_full1(k)    
                mf_moist_half (i,k,j) = mf_moist_half1(k)    
                mf_moist_full (i,k,j) = mf_moist_full1(k)
                qv_moist_half (i,k,j) = qv_moist_half1(k)    
@@ -6667,6 +6671,9 @@ subroutine edmf_mynn_driver ( &
        &qa_after_mix=Output_edmf%qa_after_mix, ql_after_mix=Output_edmf%ql_after_mix, qi_after_mix=Output_edmf%qi_after_mix, thl_after_mix=Output_edmf%thl_after_mix, qt_after_mix=Output_edmf%qt_after_mix, th_after_mix=Output_edmf%th_after_mix,        &      ! yhc_mynn add
         &qa_before_pdf=Output_edmf%qa_before_pdf, ql_before_pdf=Output_edmf%ql_before_pdf, qi_before_pdf=Output_edmf%qi_before_pdf, & ! yhc_mynn add
        &Q_ql=Output_edmf%Q_ql, Q_qi=Output_edmf%Q_qi, Q_a=Output_edmf%Q_qa,   &  ! yhc_mynn add
+       &a_moist_half=Output_edmf%a_moist_half, mf_moist_half=Output_edmf%mf_moist_half, qv_moist_half=Output_edmf%qv_moist_half, a_moist_full=Output_edmf%a_moist_full, mf_moist_full=Output_edmf%mf_moist_full, qv_moist_full=Output_edmf%qv_moist_full, &  ! yhc 2021-09-08
+       &a_dry_half=Output_edmf%a_dry_half, mf_dry_half=Output_edmf%mf_dry_half, qv_dry_half=Output_edmf%qv_dry_half, mf_dry_full=Output_edmf%mf_dry_full, qv_dry_full=Output_edmf%qv_dry_full, &            ! yhc 2021-09-08
+       &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
