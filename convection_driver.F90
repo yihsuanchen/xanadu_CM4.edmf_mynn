@@ -2893,6 +2893,7 @@ integer, dimension(:,:), intent(in), optional :: kbot
                       Moist_clouds_block%cloud_data(i_shallow)%cloud_area, &
                    cell_cld_frac=    &
                       Moist_clouds_block%cloud_data(i_cell)%cloud_area)
+
         else if (do_donner_deep) then
           call compute_convective_area     &
                   (Input_mp%tin, Input_mp%pfull, Input_mp%qin, do_uw_conv, &
@@ -2910,7 +2911,8 @@ integer, dimension(:,:), intent(in), optional :: kbot
                    C2ls_mp%convective_humidity_ratio, &
                    C2ls_mp%convective_humidity_area,   &
                    shallow_cloud_area=   &
-                      Moist_clouds_block%cloud_data(i_shallow)%cloud_area)
+                      Moist_clouds_block%cloud_data(i_shallow)%cloud_area, C2ls_mp = C2ls_mp)  ! yhc 2021-09-13
+                      !Moist_clouds_block%cloud_data(i_shallow)%cloud_area)
         else
           call compute_convective_area     &
                   (Input_mp%tin, Input_mp%pfull, Input_mp%qin, do_uw_conv, &
@@ -3914,7 +3916,7 @@ end subroutine prevent_neg_precip_fluxes
 subroutine compute_convective_area     &
           (t, pfull, q, do_uw_conv, do_donner_deep, donner_humidity_area,&
            donner_humidity_factor, max_cnv_frac, humidity_ratio,   &
-           convective_area, shallow_cloud_area, cell_cld_frac)
+           convective_area, shallow_cloud_area, cell_cld_frac, C2ls_mp)
 
 !-------------------------------------------------------------------------
 !    subroutine compute_convective_area defines the grid box area affected
@@ -3933,11 +3935,14 @@ real, dimension(:,:,:), intent(out)         :: humidity_ratio,  &
 real, dimension(:,:,:), intent(in),optional :: shallow_cloud_area, &
                                                cell_cld_frac
 
+type(mp_conv2ls_type),  intent(in), optional :: C2ls_mp   ! yhc
+
 !------------------------------------------------------------------------
 !   local variables:
 !
 
       real, dimension(size(t,1), size(t,2), size(t,3)) :: qs, qrf, &
+                                                          conv_qv,  &  ! yhc 2021-09-13
                                                           env_fraction, &
                                                           env_qv
       integer :: i,j,k
@@ -4029,6 +4034,39 @@ real, dimension(:,:,:), intent(in),optional :: shallow_cloud_area, &
       end do
 
 !------------------------------------------------------------------------
+
+  !<--- yhc 2021-09-13
+  !       include edmf contributions to convective_area and env_qv
+  if (C2ls_mp%option_edmf2ls_mp.eq.5) then
+    convective_area = convective_area + C2ls_mp%edmf_moist_area(:,:,:)
+    conv_qv = qrf - env_qv    ! convective qv other than edmf 
+    env_qv  = qrf - conv_qv   &
+                  - C2ls_mp%edmf_moist_area*C2ls_mp%edmf_moist_humidity   &
+                  - C2ls_mp%edmf_dry_area  *C2ls_mp%edmf_dry_humidity   
+
+      do k=1, kx
+        do j=1,jx
+          do i=1,ix
+            convective_area(i,j,k) = min (convective_area(i,j,k), &
+                                                             max_cnv_frac)
+            env_fraction(i,j,k) = 1.0 - convective_area(i,j,k)
+
+            if (qrf(i,j,k) /= 0.0 .and. env_qv(i,j,k) > 0.0) then
+              if (env_fraction(i,j,k) > 0.0) then
+                humidity_ratio(i,j,k) =    &
+                   MAX (qrf(i,j,k)*env_fraction(i,j,k)/env_qv(i,j,k), 1.0)
+              else
+                humidity_ratio(i,j,k) = -10.0
+              endif
+
+            else
+              humidity_ratio(i,j,k) = 1.0
+            endif
+          end do
+        end do
+      end do
+  endif
+  !---> yhc 2021-09-13
 
 
 end subroutine compute_convective_area
