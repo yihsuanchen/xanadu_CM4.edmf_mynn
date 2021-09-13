@@ -532,7 +532,7 @@ real,    dimension(:,:,:), allocatable,target :: &  ! yhc, the description of th
   qadt_edmf, qldt_edmf, qidt_edmf, &
   diff_t_edmf, diff_m_edmf, &
   dqa_edmf,  dql_edmf, dqi_edmf, &
-  edmf_mc_full, edmf_mc_half, edmf_humidity_area, edmf_humidity_ratio
+  edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity
 
 real,    dimension(:,:,:,:), allocatable,target :: & 
   rdt_before_vdiff_down
@@ -1157,10 +1157,13 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       allocate (  diff_m_edmf(id, jd, kd)) ; diff_m_edmf = 0.0  
       allocate (  kpbl_edmf  (id, jd))  ;  ; kpbl_edmf= 0     
       allocate (  rdt_before_vdiff_down  (id, jd, kd, ntp))  ;  rdt_before_vdiff_down= 0     
-      allocate (  edmf_mc_full (id, jd, kd))  ;  edmf_mc_full = 0.0  
-      allocate (  edmf_mc_half (id, jd, kd))  ;  edmf_mc_half = 0.0  
-      allocate (  edmf_humidity_area (id, jd, kd))  ;  edmf_humidity_area = 0.0  
-      allocate (  edmf_humidity_ratio (id, jd, kd))  ; edmf_humidity_ratio = 0.0  
+      allocate (  edmf_mc_full       (id, jd, kd))    ;  edmf_mc_full = 0.0  
+      allocate (  edmf_mc_half       (id, jd, kd+1))  ;  edmf_mc_half = 0.0  
+      allocate (  edmf_moist_area    (id, jd, kd))    ;  edmf_moist_area = 0.0  
+      allocate (  edmf_dry_area      (id, jd, kd))    ;  edmf_dry_area = 0.0  
+      allocate (  edmf_moist_humidity(id, jd, kd))    ;  edmf_moist_humidity = 0.0  
+      allocate (  edmf_dry_humidity  (id, jd, kd))    ;  edmf_dry_humidity = 0.0  
+      !allocate (  (id, jd, kd))  ;  = 0.0  
       !---> yhc
 
       if (do_cosp) then
@@ -3233,10 +3236,12 @@ real,dimension(:,:),    intent(inout)             :: gust
         Phys_mp_exch%dql_edmf       =>    dql_edmf(is:ie,js:je,:)   
         Phys_mp_exch%dqi_edmf       =>    dqi_edmf(is:ie,js:je,:)   
         Phys_mp_exch%kpbl_edmf      =>    kpbl_edmf(is:ie,js:je)   
-        Phys_mp_exch%edmf_mc_full         =>    edmf_mc_full(is:ie,js:je,:)   
-        Phys_mp_exch%edmf_mc_half         =>    edmf_mc_half(is:ie,js:je,:)   
-        Phys_mp_exch%edmf_humidity_area   =>    edmf_humidity_area(is:ie,js:je,:)   
-        Phys_mp_exch%edmf_humidity_ratio  =>    edmf_humidity_ratio(is:ie,js:je,:)   
+        Phys_mp_exch%edmf_mc_full         =>    edmf_mc_full        (is:ie,js:je,:)   
+        Phys_mp_exch%edmf_mc_half         =>    edmf_mc_half        (is:ie,js:je,:)   
+        Phys_mp_exch%edmf_moist_area      =>    edmf_moist_area     (is:ie,js:je,:)   
+        Phys_mp_exch%edmf_moist_humidity  =>    edmf_moist_humidity (is:ie,js:je,:)   
+        Phys_mp_exch%edmf_dry_area        =>    edmf_dry_area       (is:ie,js:je,:)   
+        Phys_mp_exch%edmf_dry_humidity    =>    edmf_dry_humidity   (is:ie,js:je,:)   
 
         if (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
           Phys_mp_exch%diff_t => diff_t(is:ie,js:je,:)
@@ -3561,14 +3566,22 @@ real,dimension(:,:),    intent(inout)             :: gust
       Phys_mp_exch%cin_prev   => null()
       Phys_mp_exch%tke_prev   => null()
 
-      Phys_mp_exch%option_edmf2ls_mp  => null()  ! yhc
-      Phys_mp_exch%qadt_edmf      => null()  ! yhc
-      Phys_mp_exch%qldt_edmf      => null()  ! yhc
-      Phys_mp_exch%qidt_edmf      => null()  ! yhc
-      Phys_mp_exch%dqa_edmf       => null()  ! yhc
-      Phys_mp_exch%dql_edmf       => null()  ! yhc
-      Phys_mp_exch%dqi_edmf       => null()  ! yhc
-      Phys_mp_exch%kpbl_edmf      => null()  ! yhc
+      !<--- yhc
+      Phys_mp_exch%option_edmf2ls_mp    => null()  
+      Phys_mp_exch%qadt_edmf            => null()  
+      Phys_mp_exch%qldt_edmf            => null()  
+      Phys_mp_exch%qidt_edmf            => null()  
+      Phys_mp_exch%dqa_edmf             => null()  
+      Phys_mp_exch%dql_edmf             => null()  
+      Phys_mp_exch%dqi_edmf             => null()  
+      Phys_mp_exch%kpbl_edmf            => null()  
+      Phys_mp_exch%edmf_mc_full         => null()
+      Phys_mp_exch%edmf_mc_half         => null()
+      Phys_mp_exch%edmf_moist_area      => null()
+      Phys_mp_exch%edmf_moist_humidity  => null()
+      Phys_mp_exch%edmf_dry_area        => null()
+      Phys_mp_exch%edmf_dry_humidity    => null()
+      !---> yhc
 !-----------------------------------------------------------------------
 
 
@@ -3760,7 +3773,8 @@ integer :: moist_processes_term_clock, damping_term_clock, turb_term_clock, &
                   pblht_prev, hlsrc_prev, qtsrc_prev, cape_prev, cin_prev, tke_prev, & !h1g, 2017-01-31
                   option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &  !yhc
                   dqa_edmf, dql_edmf, dqi_edmf, & ! yhc
-                  rdt_before_vdiff_down, &
+                  edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, & ! yhc
+                  rdt_before_vdiff_down, &  ! yhc
                   convect, radturbten, r_convect)
 
       if (do_cosp) then
@@ -4050,6 +4064,12 @@ subroutine physics_driver_register_restart (Restart)
   id_restart = register_restart_field(Til_restart, fname, 'dql_edmf', dql_edmf      ) 
   id_restart = register_restart_field(Til_restart, fname, 'dqi_edmf', dqi_edmf      ) 
   id_restart = register_restart_field(Til_restart, fname, 'rdt_before_vdiff_down', rdt_before_vdiff_down      ) 
+  id_restart = register_restart_field(Til_restart, fname, 'edmf_mc_full', edmf_mc_full      ) 
+  id_restart = register_restart_field(Til_restart, fname, 'edmf_mc_half', edmf_mc_half      ) 
+  id_restart = register_restart_field(Til_restart, fname, 'edmf_moist_area', edmf_moist_area      ) 
+  id_restart = register_restart_field(Til_restart, fname, 'edmf_moist_humidity', edmf_moist_humidity      ) 
+  id_restart = register_restart_field(Til_restart, fname, 'edmf_dry_area', edmf_dry_area      ) 
+  id_restart = register_restart_field(Til_restart, fname, 'edmf_dry_humidity', edmf_dry_humidity      ) 
   !--> yhc
 
   if (do_clubb > 0) then
