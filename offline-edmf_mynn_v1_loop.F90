@@ -6790,7 +6790,7 @@ subroutine edmf_mynn_driver ( &
     !--- set edmf to ls_mp
     option_edmf2ls_mp = do_option_edmf2ls_mp
 
-    ! accumulate EDMF cloud tendencies to the model tendencies
+    ! accumulate EDMF cloud tendencies to the model tendencies. No variables are passed to Tiedtke.
     if (option_edmf2ls_mp.eq.0) then
       rdt(:,:,:,nqa)  = rdt(:,:,:,nqa) + am4_Output_edmf%qadt_edmf(:,:,:)  
       rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
@@ -6808,6 +6808,15 @@ subroutine edmf_mynn_driver ( &
       qadt_edmf   = 0.
       qldt_edmf   = 0.
       qidt_edmf   = 0.
+    
+    ! accumulate EDMF cloud tendencies to the model tendencies. Pass MF mass flux to Tiedtke
+    elseif (option_edmf2ls_mp.eq.4) then 
+      rdt(:,:,:,nqa)  = rdt(:,:,:,nqa) + am4_Output_edmf%qadt_edmf(:,:,:)  
+      rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
+      rdt(:,:,:,nqi)  = rdt(:,:,:,nqi) + am4_Output_edmf%qidt_edmf(:,:,:)
+
+      edmf_mc_full (:,:,:) = am4_Output_edmf%mf_all_half (:,:,:)
+      edmf_mc_half (:,:,:) = am4_Output_edmf%mf_all_full (:,:,:)
 
     ! set to zeros if option_edmf2ls_mp is not supported
     else
