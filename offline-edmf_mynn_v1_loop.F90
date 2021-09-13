@@ -6443,6 +6443,7 @@ subroutine edmf_mynn_driver ( &
               rdt_mynn_ed_am4, &
               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
+              edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
@@ -6511,28 +6512,34 @@ subroutine edmf_mynn_driver ( &
 !
 !   pbltop 		- PBL depth (m)								, dimension (nlon, nlat) 
 !   kpbl_edmf 		- vertical index of PBL top (none)					, dimension (nlon, nlat) 
-!   qadt_edmf 		- cloud fraction tendency from edmf_mynn (1/s), 		  	, dimension (nlon,nlat,nlev)
-!   qldt_edmf 		- cloud liquid specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlev)
-!   qidt_edmf 		- cloud ice    specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlev)
-!   diff_t_edmf		- eddy diffusion coefficient for heat (K m/s)			  	, dimension (nlon,nlat,nlev)
-!   diff_m_edmf		- eddy diffusion coefficient for momentum (m2/s)		  	, dimension (nlon,nlat,nlev)
+!   qadt_edmf 		- cloud fraction tendency from edmf_mynn (1/s), 		  	, dimension (nlon,nlat,nlay)
+!   qldt_edmf 		- cloud liquid specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlay)
+!   qidt_edmf 		- cloud ice    specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlay)
+!   diff_t_edmf		- eddy diffusion coefficient for heat (K m/s)			  	, dimension (nlon,nlat,nlay)
+!   diff_m_edmf		- eddy diffusion coefficient for momentum (m2/s)		  	, dimension (nlon,nlat,nlay)
 !   option_edmf2ls_mp 	- options for linkage to Tiedtke, same as "do_option_edmf2ls_mp" in the namelist
 !
 !   Note
-!     1. diff_t_edmf is at half levels, although AM4 use dimension of nlev instead of nlev+1
+!     1. diff_t_edmf is at half levels, although AM4 use dimension of nlay instead of nlay+1
 !        k=1 is at 1/2 level and k=N is at N-1/2 level 
 !---------------------------------------------------------------------
 
-  integer, intent(out), dimension(:,:) :: &
+  integer, intent(out), dimension(:,:) :: &  ! (lon, lat)
     kpbl_edmf
-
-  real, intent(out), dimension(:,:,:) :: &
+ 
+  real, intent(out), dimension(:,:,:) :: &   ! (lon, lat, nlay)
     qadt_edmf, qldt_edmf, qidt_edmf, &   
     dqa_edmf,  dql_edmf, dqi_edmf,  &
     diff_t_edmf, diff_m_edmf
 
   integer, intent(out) :: &
     option_edmf2ls_mp
+
+  real, intent(out), dimension(:,:,:) :: &  ! (lon, lat, nlay+1)
+    edmf_mc_half
+
+  real, intent(out), dimension(:,:,:) :: &  ! (lon, lat, nlay)
+    edmf_mc_full, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -6748,6 +6755,12 @@ subroutine edmf_mynn_driver ( &
   dqi_edmf    = 0.
   diff_t_edmf = 0.
   diff_m_edmf = 0.
+  edmf_mc_full         = 0.
+  edmf_mc_half         = 0.
+  edmf_moist_area      = 0.
+  edmf_moist_humidity  = 0.
+  edmf_dry_area        = 0.
+  edmf_dry_humidity    = 0.
 
   if (.not.do_edmf_mynn_diagnostic) then
 
@@ -7264,9 +7277,9 @@ subroutine edmf_alloc ( &
   real, intent(in), dimension(:,:,:,:)  :: rdiag
   real, intent(in), dimension(:,:,:)    :: &
     Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
-  real, intent(in), dimension(:,:,:)    :: &  ! (nlon,nlat,nlev)
+  real, intent(in), dimension(:,:,:)    :: &  ! (nlon,nlat,nlay)
     udt, vdt, tdt  
-  real, intent(in), dimension(:,:,:,:)  :: &  ! (nlon,nlat,nlev,ntracers)
+  real, intent(in), dimension(:,:,:,:)  :: &  ! (nlon,nlat,nlay,ntracers)
     rdt
 
 !---------------------------------------------------------------------
@@ -8934,12 +8947,12 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   do j=1,jx
 
     !======================
-    !  diff_t_edmf and diff_m_edmf are on half levels but the dimension is nlev, instead of nlev+1
+    !  diff_t_edmf and diff_m_edmf are on half levels but the dimension is nlay, instead of nlay+1
     do k=2,kx      ! k index for half levels. Skip k=1 because k=1 in MYNN is right at the surface
       kk=kx-k+2
 
       !--- edmf_* variables are written out to history files, no need to convert to am4_Output_edmf variables
-      !    also note that although edmf_* dimension is nlev, but they are on half levels (nlev+1)
+      !    also note that although edmf_* dimension is nlay, but they are on half levels (nlay+1)
       !am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a    (i,k,j)
       !am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w    (i,k,j)
       !am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
@@ -9436,6 +9449,12 @@ program test111
   real,    dimension(ni,nj,nfull) :: udt, vdt, tdt
   real,    dimension(ni,nj,nfull,tr) :: rdt 
   real,    dimension(ni,nj,nfull,tr) :: rdt_mynn_ed_am4 
+
+  real,    dimension(ni,nj,nfull) ::  &
+    edmf_mc_full, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity
+
+  real,    dimension(ni,nj,nhalf) ::  &
+    edmf_mc_half
   
   integer mm
 
@@ -10814,6 +10833,10 @@ endif ! end if of input profile
   Physics_input_block%q(:,:,:,nqi) = qi
   Physics_input_block%q(:,:,:,nqa) = qa
 
+  !Physics_input_block%q(:,:,:,nql) = 0.
+  !Physics_input_block%q(:,:,:,nqi) = 0.
+  !Physics_input_block%q(:,:,:,nqa) = 0.
+
   do mm = 1,loop_times
     ! set tendencies to zeros
     udt = 0. ; vdt = 0. ; tdt = 0.; rdt = 0.   
@@ -10853,6 +10876,7 @@ endif ! end if of input profile
               rdt_mynn_ed_am4,  & 
               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
+              edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
               !is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
