@@ -463,6 +463,8 @@ integer :: id_t_input, id_q_input, id_qa_input, id_ql_input, id_qi_input, id_thl
 integer :: id_tdt_edmf_orig, id_qdt_edmf_orig, id_qadt_edmf_orig, id_qidt_edmf_orig, id_qldt_edmf_orig
 
 integer :: id_qldt_edmf_ED, id_qldt_edmf_MF, id_qidt_edmf_ED, id_qidt_edmf_MF, id_qadt_edmf_ED, id_qadt_edmf_MF
+
+integer :: id_a_moist_half, id_a_moist_full, id_mf_moist_half, id_mf_moist_full, id_qv_moist_half, id_qv_moist_full, id_a_dry_half, id_a_dry_full, id_mf_dry_half, id_mf_dry_full, id_qv_dry_half, id_qv_dry_full, id_mf_all_half, id_mf_all_full
 !---------------------------------------------------------------------
 
   contains
@@ -909,6 +911,62 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_qadt_edmf_MF = register_diag_field (mod_name, 'qadt_edmf_MF', axes(full), Time, &
                  'qa tendency from edmf_mynn, MF', '1/s' , &
+                 missing_value=missing_value )
+
+  id_a_moist_half = register_diag_field (mod_name, 'a_moist_half', axes(half), Time, &
+                 'moist updraft area on phalf', 'none' , &
+                 missing_value=missing_value )
+
+  id_a_moist_full = register_diag_field (mod_name, 'a_moist_full', axes(full), Time, &
+                 'moist updraft area on pfull', 'none' , &
+                 missing_value=missing_value )
+
+  id_mf_moist_half = register_diag_field (mod_name, 'mf_moist_half', axes(half), Time, &
+                 'moist updraft mass flux on phalf', 'kg/m2/s' , &
+                 missing_value=missing_value )
+
+  id_mf_moist_full = register_diag_field (mod_name, 'mf_moist_full', axes(full), Time, &
+                 'moist updraft mass flux on pfull', 'kg/m2/s' , &
+                 missing_value=missing_value )
+
+  id_qv_moist_half = register_diag_field (mod_name, 'qv_moist_half', axes(half), Time, &
+                 'spec humid of moist updraft on phalf', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_qv_moist_full = register_diag_field (mod_name, 'qv_moist_full', axes(full), Time, &
+                 'spec humid of moist updraft on pfull', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_a_dry_half = register_diag_field (mod_name, 'a_dry_half', axes(half), Time, &
+                 'dry updraft area on phalf', 'none' , &
+                 missing_value=missing_value )
+
+  id_a_dry_full = register_diag_field (mod_name, 'a_dry_full', axes(full), Time, &
+                 'dry updraft area on pfull', 'none' , &
+                 missing_value=missing_value )
+
+  id_mf_dry_half = register_diag_field (mod_name, 'mf_dry_half', axes(half), Time, &
+                 'dry updraft mass flux on phalf', 'kg/m2/s' , &
+                 missing_value=missing_value )
+
+  id_mf_dry_full = register_diag_field (mod_name, 'mf_dry_full', axes(full), Time, &
+                 'dry updraft mass flux on pfull', 'kg/m2/s' , &
+                 missing_value=missing_value )
+
+  id_qv_dry_half = register_diag_field (mod_name, 'qv_dry_half', axes(half), Time, &
+                 'spec humid of dry updraft on phalf', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_qv_dry_full = register_diag_field (mod_name, 'qv_dry_full', axes(full), Time, &
+                 'spec humid of dry updraft on pfull', 'kg/kg' , &
+                 missing_value=missing_value )
+
+  id_mf_all_half = register_diag_field (mod_name, 'mf_all_half', axes(half), Time, &
+                 'updraft mass flux on phalf', 'kg/m2/s' , &
+                 missing_value=missing_value )
+
+  id_mf_all_full = register_diag_field (mod_name, 'mf_all_full', axes(full), Time, &
+                 'updraft mass flux on pfull', 'kg/m2/s' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -7709,6 +7767,77 @@ subroutine edmf_mynn_driver ( &
       if ( id_qi_before_pdf > 0) then
         used = send_data (id_qi_before_pdf, am4_Output_edmf%qi_before_pdf, Time_next, is, js, 1 )
       endif
+
+!------- moist updraft area on phalf (units: none) at half level -------
+      if ( id_a_moist_half > 0) then
+        used = send_data (id_a_moist_half, am4_Output_edmf%a_moist_half, Time_next, is, js, 1 )
+      endif
+
+!------- moist updraft area on pfull (units: none) at full level -------
+      if ( id_a_moist_full > 0) then
+        used = send_data (id_a_moist_full, am4_Output_edmf%a_moist_full, Time_next, is, js, 1 )
+      endif
+
+!------- moist updraft mass flux on phalf (units: kg/m2/s) at half level -------
+      if ( id_mf_moist_half > 0) then
+        used = send_data (id_mf_moist_half, am4_Output_edmf%mf_moist_half, Time_next, is, js, 1 )
+      endif
+
+!------- moist updraft mass flux on pfull (units: kg/m2/s) at full level -------
+      if ( id_mf_moist_full > 0) then
+        used = send_data (id_mf_moist_full, am4_Output_edmf%mf_moist_full, Time_next, is, js, 1 )
+      endif
+
+!------- spec humid of moist updraft on phalf (units: kg/kg) at half level -------
+      if ( id_qv_moist_half > 0) then
+        used = send_data (id_qv_moist_half, am4_Output_edmf%qv_moist_half, Time_next, is, js, 1 )
+      endif
+
+!------- spec humid of moist updraft on pfull (units: kg/kg) at full level -------
+      if ( id_qv_moist_full > 0) then
+        used = send_data (id_qv_moist_full, am4_Output_edmf%qv_moist_full, Time_next, is, js, 1 )
+      endif
+
+!------- dry updraft area on phalf (units: none) at half level -------
+      if ( id_a_dry_half > 0) then
+        used = send_data (id_a_dry_half, am4_Output_edmf%a_dry_half, Time_next, is, js, 1 )
+      endif
+
+!------- dry updraft area on pfull (units: none) at full level -------
+      if ( id_a_dry_full > 0) then
+        used = send_data (id_a_dry_full, am4_Output_edmf%a_dry_full, Time_next, is, js, 1 )
+      endif
+
+!------- dry updraft mass flux on phalf (units: kg/m2/s) at half level -------
+      if ( id_mf_dry_half > 0) then
+        used = send_data (id_mf_dry_half, am4_Output_edmf%mf_dry_half, Time_next, is, js, 1 )
+      endif
+
+!------- dry updraft mass flux on pfull (units: kg/m2/s) at full level -------
+      if ( id_mf_dry_full > 0) then
+        used = send_data (id_mf_dry_full, am4_Output_edmf%mf_dry_full, Time_next, is, js, 1 )
+      endif
+
+!------- spec humid of dry updraft on phalf (units: kg/kg) at half level -------
+      if ( id_qv_dry_half > 0) then
+        used = send_data (id_qv_dry_half, am4_Output_edmf%qv_dry_half, Time_next, is, js, 1 )
+      endif
+
+!------- spec humid of dry updraft on pfull (units: kg/kg) at full level -------
+      if ( id_qv_dry_full > 0) then
+        used = send_data (id_qv_dry_full, am4_Output_edmf%qv_dry_full, Time_next, is, js, 1 )
+      endif
+
+!------- updraft mass flux on phalf (units: kg/m2/s) at half level -------
+      if ( id_mf_all_half > 0) then
+        used = send_data (id_mf_all_half, am4_Output_edmf%mf_all_half, Time_next, is, js, 1 )
+      endif
+
+!------- updraft mass flux on pfull (units: kg/m2/s) at full level -------
+      if ( id_mf_all_full > 0) then
+        used = send_data (id_mf_all_full, am4_Output_edmf%mf_all_full, Time_next, is, js, 1 )
+      endif
+
 
 !send_data
 
