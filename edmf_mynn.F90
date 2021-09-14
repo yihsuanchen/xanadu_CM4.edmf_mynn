@@ -133,6 +133,11 @@ type edmf_output_type
     exch_h, exch_m, &
     qWT, qSHEAR, qBUOY, qDISS, dqke
 
+  real, dimension(:,:,:), allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
+    a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &
+    a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &
+    mf_all_half, mf_all_full
+
   real, dimension(:,:,:), allocatable :: &   ! diagnostic purpose, not used by mynn 
     t_before_mix, q_before_mix, qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, rh_before_mix, th_before_mix, &
     qa_before_pdf, ql_before_pdf, qi_before_pdf, &
@@ -151,6 +156,11 @@ type am4_edmf_output_type
     cldfra_bl, qc_bl, el_edmf, &
     Q_ql, Q_qi, Q_qa, &
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
+
+  real, dimension(:,:,:), allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull/nhalf)
+    a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &
+    a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &
+    mf_all_half, mf_all_full
 
   real, dimension(:,:),     allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat)
     pbltop
@@ -4100,6 +4110,9 @@ END SUBROUTINE mym_condensation
        &qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix,       &  ! yhc_mynn add
        &qa_before_pdf, ql_before_pdf, qi_before_pdf,                                               &  ! yhc_mynn add
        &Q_ql,Q_qi,Q_a,                                                                             &  ! yhc_mynn add
+       &a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
+       &a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
+       &mf_all_half, mf_all_full, &                                                     ! yhc 2021-09-08
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -4249,6 +4262,43 @@ END SUBROUTINE mym_condensation
 
     REAL,DIMENSION(KTS:KTE) :: Q_ql1,Q_qi1,Q_a1
 
+    !<--- yhc 2021-09-08 
+    REAL, DIMENSION(IMS:IME,KMS:KME+1,JMS:JME), INTENT(out) :: &
+      a_moist_half , &
+      a_dry_half   , &
+      mf_moist_half, &
+      mf_dry_half  , &
+      mf_all_half  , &
+      qv_moist_half, &
+      qv_dry_half
+
+    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
+      a_moist_full , &
+      a_dry_full , &
+      mf_moist_full,  &
+      mf_dry_full  ,  &
+      mf_all_full  , &
+      qv_moist_full,  &
+      qv_dry_full
+
+    REAL,DIMENSION(KTS:KTE+1) :: &
+      a_moist_half1 , &
+      a_dry_half1   , &
+      mf_moist_half1, &
+      mf_dry_half1  , &
+      mf_all_half1  , &
+      qv_moist_half1, &
+      qv_dry_half1
+
+    REAL,DIMENSION(KTS:KTE) :: &
+      a_moist_full1 ,  &
+      a_dry_full1 ,  &
+      mf_moist_full1,  &
+      mf_dry_full1  ,  &
+      mf_all_full1  , &
+      qv_moist_full1,  &
+      qv_dry_full1
+    !---> yhc 2021-09-08
 
 ! 0 ... default thing 
 ! 1 ... new solver
@@ -4802,6 +4852,9 @@ END SUBROUTINE mym_condensation
                & s_awqv1,s_awqc1,s_awu1,s_awv1,   &
                & s_awqke1,                        &
                & qc_bm,cldfra_bm,             &
+               & a_moist_half1, mf_moist_half1, qv_moist_half1, a_moist_full1, mf_moist_full1, qv_moist_full1, &  ! yhc 2021-09-08
+               & a_dry_half1, mf_dry_half1, qv_dry_half1, a_dry_full1, mf_dry_full1, qv_dry_full1, &            ! yhc 2021-09-08
+               & mf_all_half1, mf_all_full1, &                                                     ! yhc 2021-09-08
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1                 &
@@ -5053,7 +5106,26 @@ END SUBROUTINE mym_condensation
                Q_ql(i,k,j)=Q_ql1(k)
                Q_qi(i,k,j)=Q_qi1(k)
                Q_a(i,k,j)=Q_a1(k)
-               
+
+               !<--- yhc 2021-09-08
+               a_moist_half  (i,k,j) = a_moist_half1(k)    
+               a_moist_full  (i,k,j) = a_moist_full1(k)    
+               mf_moist_half (i,k,j) = mf_moist_half1(k)    
+               mf_moist_full (i,k,j) = mf_moist_full1(k)
+               qv_moist_half (i,k,j) = qv_moist_half1(k)    
+               qv_moist_full (i,k,j) = qv_moist_full1(k)
+             
+               a_dry_half    (i,k,j) = a_dry_half1(k)    
+               a_dry_full    (i,k,j) = a_dry_full1(k)    
+               mf_dry_half   (i,k,j) = mf_dry_half1(k)
+               mf_dry_full   (i,k,j) = mf_dry_full1(k)
+               qv_dry_half   (i,k,j) = qv_dry_half1(k)
+               qv_dry_full   (i,k,j) = qv_dry_full1(k)
+             
+               mf_all_half   (i,k,j) = mf_all_half1(k)
+               mf_all_full   (i,k,j) = mf_all_full1(k)
+               !---> yhc 2021-09-08
+
                ELSE
                
                 Q_ql(i,k,j)=0.
@@ -5803,6 +5875,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
             ! in/outputs - subgrid scale clouds
               & qc_bl1d,cldfra_bl1d,         &
             ! output info
+              & a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
+              & a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
+              & mf_all_half, mf_all_full, &                                                  ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa)
 
 
@@ -5859,7 +5934,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
                Fng,qww,alpha,beta,bb,f,pt,t,q2p,b9,satvp,rhgrid
         
         REAL,DIMENSION(kts:kte) :: ph,lfh 
-        REAL :: THVsrfF,QTsrfF,maxS,stabF,dz,F1,F2,CCp1,CCp0,mf,mfp1  
+        REAL :: THVsrfF,QTsrfF,maxS,stabF,dz,F0,F1,F2,CCp1,CCp0,mf,mfp1  
 
         INTEGER, DIMENSION(2) :: seedmf
     ! w parameters
@@ -5873,6 +5948,32 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         & ENT0=0.2
        ! maximum wind speed in updraft
        REAL,PARAMETER :: MAXW=2.  
+
+    !<--- yhc 2021-09-08
+    !  naming convention: 
+    !     a: fractional area (none)
+    !    mf: mass flux (kg/m2/s)
+    !    qv: specific humifity (kg/kg)
+    !    moist/dry/all: moist updrafts, dry updrafts, or combined (moist+dry) updrafts
+    !    full/half: on full levels (where T,q are defined) to half levels (those levels in between full levels)
+       REAL,DIMENSION(kts:kte+1), INTENT(OUT) :: & 
+         a_moist_half , &   
+         a_dry_half   , &        
+         mf_moist_half, &     
+         mf_dry_half  , &
+         mf_all_half  , & 
+         qv_moist_half, &     
+         qv_dry_half  
+
+       REAL,DIMENSION(kts:kte), INTENT(OUT) :: & 
+         a_moist_full ,  &
+         a_dry_full ,  &
+         mf_moist_full,  &
+         mf_dry_full  ,  & 
+         mf_all_full  , & 
+         qv_moist_full,  & 
+         qv_dry_full    
+    !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
 ! (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
@@ -6254,22 +6355,146 @@ DO K=KTS,KTE-1
        
      Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)/rho(k)
      Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)/rho(k)
+
+
+!<--- yhc 2021-09-08
+!<--- yhc: this Qa recovery code is not correct  
+!  CCp1=0.
+!  CCp0=0.
+!  IF (UPQC(K+1,I) > 0.) CCp1=UPA(K+1,I)
+!    IF (UPQC(K,I) > 0.) CCp0=UPA(K,I)
+!  
+!    ! for area fraction
+!     F1=-(mfp1*(CCp1-cldfra_bl1d(K+1))-mf*(CCp0-cldfra_bl1d(K)) )/dz
+!     F2=mf*(CCp1-CCp0)/dz+ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
+!  
+!     Qa(k)=Qa(k)+(F1+F2)/rho(k)
+!--->  
   
   CCp1=0.
   CCp0=0.
-  IF (UPQC(K+1,I) > 0.) CCp1=UPA(K+1,I)
-    IF (UPQC(K,I) > 0.) CCp0=UPA(K,I)
+  IF (UPQC(K+1,I) > 0.) THEN
+    CCp1=1.
+  ELSE
+    CCp1=0.
+  ENDIF
+
+  IF (UPQC(K,I) > 0.) THEN
+    CCp0=1.
+  ELSE
+    CCp0=0.
+  ENDIF
+
+  IF (UPQC(K,I) <= 0. .and. UPQC(K+1,I) > 0.) then
+    F0 = UPA(K,I)*UPW(K,I)/dz
+  ELSEIF (UPQC(K,I) > 0. .and. UPQC(K+1,I) <= 0.) then
+    F0 = -1.*UPA(K,I)*UPW(K,I)/dz
+  ELSE
+    F0 = 0.
+  ENDIF
   
     ! for area fraction
      F1=-(mfp1*(CCp1-cldfra_bl1d(K+1))-mf*(CCp0-cldfra_bl1d(K)) )/dz
-     F2=mf*(CCp1-CCp0)/dz+ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
+     F2=F0 + ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
   
      Qa(k)=Qa(k)+(F1+F2)/rho(k)
-  
-  
-  
+ 
   ENDDO
 ENDDO  
+!---> yhc 2021-09-08
+
+!<--- yhc 2021-09-08
+
+!--- initial variables
+  a_moist_half  = 0.    
+  a_moist_full  = 0.
+  mf_moist_half = 0.    
+  mf_moist_full = 0.
+  qv_moist_half = 0.    
+  qv_moist_full = 0.
+
+  a_dry_half    = 0.    
+  a_dry_full    = 0.    
+  mf_dry_half   = 0.
+  mf_dry_full   = 0.
+  qv_dry_half   = 0.
+  qv_dry_full   = 0.
+
+  mf_all_half   = 0.
+  mf_all_full   = 0.
+
+!--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
+DO K=KTS,KTE-1
+  IF(k > KTOP) exit
+
+  DO I=1,NUP
+    IF(I > NUP) exit
+
+    if (UPQC(K,I) > 0.) then   ! sum of individual moist updrafts
+      a_moist_half  (K) = a_moist_half  (K) + UPA(K,I) 
+      mf_moist_half (K) = mf_moist_half (K) + UPA(K,I)*rho(K)*UPW(K,I)
+      qv_moist_half (K) = qv_moist_half (K) + UPA(K,I)*(UPQT(K,I)-UPQC(K,I))  
+
+    else                       ! sum of individual dry updrafts
+      a_dry_half    (K) = a_dry_half  (K) + UPA(K,I) 
+      mf_dry_half   (K) = mf_dry_half (K) + UPA(K,I)*rho(K)*UPW(K,I)
+      qv_dry_half   (K) = qv_dry_half (K) + UPA(K,I)*(UPQT(K,I)-UPQC(K,I))        
+    endif
+  ENDDO  ! end loop of i
+
+  if (a_moist_half(K) > 0.) then
+    qv_moist_half (K) = qv_moist_half (K) / a_moist_half (K)
+  end if
+
+  if (a_dry_half  (K) > 0.) then
+    qv_dry_half   (K) = qv_dry_half   (K) / a_dry_half (K)
+  end if
+ENDDO    ! end loop of k
+
+!--- interpolate a, mf, qv from half levels to full levels
+!      interpolate from the updraft base. Right above the updraft top (KTOP, mf>0), using upwind approximation
+
+  !--- updraft top
+  a_moist_full  (KTOP) = a_moist_half  (KTOP)
+  mf_moist_full (KTOP) = mf_moist_half (KTOP)
+  qv_moist_full (KTOP) = qv_moist_half (KTOP)
+
+  a_dry_full    (KTOP) = a_dry_half    (KTOP)
+  mf_dry_full   (KTOP) = mf_dry_half   (KTOP)
+  qv_dry_full   (KTOP) = qv_dry_half   (KTOP)
+
+DO K=KTS,KTOP-1
+  if (mf_moist_half (K) > 0.) then
+    a_moist_full  (K) = 0.5 * (a_moist_half  (K)+a_moist_half  (K+1))
+    mf_moist_full (K) = 0.5 * (mf_moist_half (K)+mf_moist_half (K+1))
+    qv_moist_full (K) = 0.5 * (qv_moist_half (K)+qv_moist_half (K+1))
+  endif
+
+  if (mf_dry_half (K) > 0.) then
+    a_dry_full  (K) = 0.5 * (a_dry_half  (K)+a_dry_half  (K+1))
+    mf_dry_full (K) = 0.5 * (mf_dry_half (K)+mf_dry_half (K+1))
+    qv_dry_full (K) = 0.5 * (qv_dry_half (K)+qv_dry_half (K+1))
+  endif
+ENDDO
+
+!print*,'a_dry_full',a_dry_full
+!print*,'a_dry_half',a_dry_half
+!print*,'mf_dry_full',mf_dry_full
+!print*,'mf_dry_half',mf_dry_half
+!print*,'qv_dry_full',qv_dry_full
+!print*,'qv_dry_half',qv_dry_half
+!
+!print*,'a_moist_full',a_moist_full
+!print*,'a_moist_half',a_moist_half
+!print*,'mf_moist_full',mf_moist_full
+!print*,'mf_moist_half',mf_moist_half
+!print*,'qv_moist_full',qv_moist_full
+!print*,'qv_moist_half',qv_moist_half
+
+! moist+dry mass flux
+  mf_all_half (:) = mf_moist_half (:) + mf_dry_half (:)
+  mf_all_full (:) = mf_moist_full (:) + mf_dry_full (:)
+!---> yhc 2021-09-08
 
 
 !
@@ -6722,6 +6947,7 @@ subroutine edmf_mynn_driver ( &
               rdt_mynn_ed_am4, &
               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
+              edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
 
 !---------------------------------------------------------------------
@@ -6790,28 +7016,34 @@ subroutine edmf_mynn_driver ( &
 !
 !   pbltop 		- PBL depth (m)								, dimension (nlon, nlat) 
 !   kpbl_edmf 		- vertical index of PBL top (none)					, dimension (nlon, nlat) 
-!   qadt_edmf 		- cloud fraction tendency from edmf_mynn (1/s), 		  	, dimension (nlon,nlat,nlev)
-!   qldt_edmf 		- cloud liquid specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlev)
-!   qidt_edmf 		- cloud ice    specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlev)
-!   diff_t_edmf		- eddy diffusion coefficient for heat (K m/s)			  	, dimension (nlon,nlat,nlev)
-!   diff_m_edmf		- eddy diffusion coefficient for momentum (m2/s)		  	, dimension (nlon,nlat,nlev)
+!   qadt_edmf 		- cloud fraction tendency from edmf_mynn (1/s), 		  	, dimension (nlon,nlat,nlay)
+!   qldt_edmf 		- cloud liquid specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlay)
+!   qidt_edmf 		- cloud ice    specific humidity tendency from edmf_mynn (kg/kg/s)	, dimension (nlon,nlat,nlay)
+!   diff_t_edmf		- eddy diffusion coefficient for heat (K m/s)			  	, dimension (nlon,nlat,nlay)
+!   diff_m_edmf		- eddy diffusion coefficient for momentum (m2/s)		  	, dimension (nlon,nlat,nlay)
 !   option_edmf2ls_mp 	- options for linkage to Tiedtke, same as "do_option_edmf2ls_mp" in the namelist
 !
 !   Note
-!     1. diff_t_edmf is at half levels, although AM4 use dimension of nlev instead of nlev+1
+!     1. diff_t_edmf is at half levels, although AM4 use dimension of nlay instead of nlay+1
 !        k=1 is at 1/2 level and k=N is at N-1/2 level 
 !---------------------------------------------------------------------
 
-  integer, intent(out), dimension(:,:) :: &
+  integer, intent(out), dimension(:,:) :: &  ! (lon, lat)
     kpbl_edmf
-
-  real, intent(out), dimension(:,:,:) :: &
+ 
+  real, intent(out), dimension(:,:,:) :: &   ! (lon, lat, nlay)
     qadt_edmf, qldt_edmf, qidt_edmf, &   
     dqa_edmf,  dql_edmf, dqi_edmf,  &
     diff_t_edmf, diff_m_edmf
 
   integer, intent(out) :: &
     option_edmf2ls_mp
+
+  real, intent(out), dimension(:,:,:) :: &  ! (lon, lat, nlay+1)
+    edmf_mc_half
+
+  real, intent(out), dimension(:,:,:) :: &  ! (lon, lat, nlay)
+    edmf_mc_full, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity
 
 !---------------------------------------------------------------------
 ! local variables  
@@ -6950,6 +7182,9 @@ subroutine edmf_mynn_driver ( &
        &qa_after_mix=Output_edmf%qa_after_mix, ql_after_mix=Output_edmf%ql_after_mix, qi_after_mix=Output_edmf%qi_after_mix, thl_after_mix=Output_edmf%thl_after_mix, qt_after_mix=Output_edmf%qt_after_mix, th_after_mix=Output_edmf%th_after_mix,        &      ! yhc_mynn add
         &qa_before_pdf=Output_edmf%qa_before_pdf, ql_before_pdf=Output_edmf%ql_before_pdf, qi_before_pdf=Output_edmf%qi_before_pdf, & ! yhc_mynn add
        &Q_ql=Output_edmf%Q_ql, Q_qi=Output_edmf%Q_qi, Q_a=Output_edmf%Q_qa,   &  ! yhc_mynn add
+       &a_moist_half=Output_edmf%a_moist_half, mf_moist_half=Output_edmf%mf_moist_half, qv_moist_half=Output_edmf%qv_moist_half, a_moist_full=Output_edmf%a_moist_full, mf_moist_full=Output_edmf%mf_moist_full, qv_moist_full=Output_edmf%qv_moist_full, &  ! yhc 2021-09-08
+       &a_dry_half=Output_edmf%a_dry_half, mf_dry_half=Output_edmf%mf_dry_half, qv_dry_half=Output_edmf%qv_dry_half, a_dry_full=Output_edmf%a_dry_full, mf_dry_full=Output_edmf%mf_dry_full, qv_dry_full=Output_edmf%qv_dry_full, &            ! yhc 2021-09-08
+       &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
@@ -7024,6 +7259,12 @@ subroutine edmf_mynn_driver ( &
   dqi_edmf    = 0.
   diff_t_edmf = 0.
   diff_m_edmf = 0.
+  edmf_mc_full         = 0.
+  edmf_mc_half         = 0.
+  edmf_moist_area      = 0.
+  edmf_moist_humidity  = 0.
+  edmf_dry_area        = 0.
+  edmf_dry_humidity    = 0.
 
   if (.not.do_edmf_mynn_diagnostic) then
 
@@ -7053,7 +7294,7 @@ subroutine edmf_mynn_driver ( &
     !--- set edmf to ls_mp
     option_edmf2ls_mp = do_option_edmf2ls_mp
 
-    ! accumulate EDMF cloud tendencies to the model tendencies
+    ! accumulate EDMF cloud tendencies to the model tendencies. No variables are passed to Tiedtke.
     if (option_edmf2ls_mp.eq.0) then
       rdt(:,:,:,nqa)  = rdt(:,:,:,nqa) + am4_Output_edmf%qadt_edmf(:,:,:)  
       rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
@@ -7071,6 +7312,28 @@ subroutine edmf_mynn_driver ( &
       qadt_edmf   = 0.
       qldt_edmf   = 0.
       qidt_edmf   = 0.
+    
+    ! accumulate EDMF cloud tendencies to the model tendencies. Pass MF mass flux to Tiedtke
+    elseif (option_edmf2ls_mp.eq.4) then 
+      rdt(:,:,:,nqa)  = rdt(:,:,:,nqa) + am4_Output_edmf%qadt_edmf(:,:,:)  
+      rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
+      rdt(:,:,:,nqi)  = rdt(:,:,:,nqi) + am4_Output_edmf%qidt_edmf(:,:,:)
+
+      edmf_mc_full (:,:,:) = am4_Output_edmf%mf_all_half (:,:,:)
+      edmf_mc_half (:,:,:) = am4_Output_edmf%mf_all_full (:,:,:)
+
+    ! accumulate EDMF cloud tendencies to the model tendencies. Pass MF mass flux, moist area and humidity to Tiedtke
+    elseif (option_edmf2ls_mp.eq.5) then 
+      rdt(:,:,:,nqa)  = rdt(:,:,:,nqa) + am4_Output_edmf%qadt_edmf(:,:,:)  
+      rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
+      rdt(:,:,:,nqi)  = rdt(:,:,:,nqi) + am4_Output_edmf%qidt_edmf(:,:,:)
+
+      edmf_mc_full        (:,:,:) = am4_Output_edmf%mf_all_half  (:,:,:)
+      edmf_mc_half        (:,:,:) = am4_Output_edmf%mf_all_full  (:,:,:)
+      edmf_moist_area     (:,:,:) = am4_Output_edmf%a_moist_full (:,:,:)
+      edmf_moist_humidity (:,:,:) = am4_Output_edmf%qv_moist_full(:,:,:)
+      edmf_dry_area       (:,:,:) = am4_Output_edmf%a_dry_full   (:,:,:)
+      edmf_dry_humidity   (:,:,:) = am4_Output_edmf%qv_dry_full  (:,:,:)
 
     ! set to zeros if option_edmf2ls_mp is not supported
     else
@@ -7540,9 +7803,9 @@ subroutine edmf_alloc ( &
   real, intent(in), dimension(:,:,:,:)  :: rdiag
   real, intent(in), dimension(:,:,:)    :: &
     Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
-  real, intent(in), dimension(:,:,:)    :: &  ! (nlon,nlat,nlev)
+  real, intent(in), dimension(:,:,:)    :: &  ! (nlon,nlat,nlay)
     udt, vdt, tdt  
-  real, intent(in), dimension(:,:,:,:)  :: &  ! (nlon,nlat,nlev,ntracers)
+  real, intent(in), dimension(:,:,:,:)  :: &  ! (nlon,nlat,nlay,ntracers)
     rdt
 
 !---------------------------------------------------------------------
@@ -7914,6 +8177,23 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%Q_ql            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_ql = 0.
   allocate (Output_edmf%Q_qi            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qi = 0.
   allocate (Output_edmf%Q_qa            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qa = 0.
+
+  allocate (Output_edmf%a_moist_half    (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%a_moist_half  = 0.
+  allocate (Output_edmf%mf_moist_half   (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%mf_moist_half = 0.
+  allocate (Output_edmf%qv_moist_half   (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%qv_moist_half = 0.
+  allocate (Output_edmf%a_moist_full    (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%a_moist_full  = 0.
+  allocate (Output_edmf%mf_moist_full   (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%mf_moist_full = 0.
+  allocate (Output_edmf%qv_moist_full   (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%qv_moist_full = 0.
+
+  allocate (Output_edmf%a_dry_half      (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%a_dry_half    = 0.
+  allocate (Output_edmf%a_dry_full      (IMS:IME,KMS:KME,  JMS:JME))  ; Output_edmf%a_dry_full    = 0.
+  allocate (Output_edmf%mf_dry_half     (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%mf_dry_half   = 0.
+  allocate (Output_edmf%mf_dry_full     (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%mf_dry_full   = 0.
+  allocate (Output_edmf%qv_dry_half     (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%qv_dry_half   = 0.
+  allocate (Output_edmf%qv_dry_full     (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%qv_dry_full   = 0.
+
+  allocate (Output_edmf%mf_all_half     (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%mf_all_half   = 0.
+  allocate (Output_edmf%mf_all_full     (IMS:IME,KMS:KME  ,JMS:JME))  ; Output_edmf%mf_all_full   = 0.
   !allocate (Output_edmf%(IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf% = 0.
 
 !**********************
@@ -7983,6 +8263,22 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%Q_ql            (ix,jx,kx))  ; am4_Output_edmf%Q_ql            = 0.
   allocate (am4_Output_edmf%Q_qi            (ix,jx,kx))  ; am4_Output_edmf%Q_qi            = 0.
   allocate (am4_Output_edmf%Q_qa            (ix,jx,kx))  ; am4_Output_edmf%Q_qa            = 0.
+  allocate (am4_Output_edmf%a_moist_half    (ix,jx,kx+1))  ; am4_Output_edmf%a_moist_half  = 0.
+  allocate (am4_Output_edmf%mf_moist_half   (ix,jx,kx+1))  ; am4_Output_edmf%mf_moist_half = 0.
+  allocate (am4_Output_edmf%qv_moist_half   (ix,jx,kx+1))  ; am4_Output_edmf%qv_moist_half = 0.
+  allocate (am4_Output_edmf%a_moist_full    (ix,jx,kx))    ; am4_Output_edmf%a_moist_full  = 0.
+  allocate (am4_Output_edmf%mf_moist_full   (ix,jx,kx))    ; am4_Output_edmf%mf_moist_full = 0.
+  allocate (am4_Output_edmf%qv_moist_full   (ix,jx,kx))    ; am4_Output_edmf%qv_moist_full = 0.
+
+  allocate (am4_Output_edmf%a_dry_half      (ix,jx,kx+1))  ; am4_Output_edmf%a_dry_half    = 0.
+  allocate (am4_Output_edmf%a_dry_full      (ix,jx,kx))    ; am4_Output_edmf%a_dry_full    = 0.
+  allocate (am4_Output_edmf%mf_dry_half     (ix,jx,kx+1))  ; am4_Output_edmf%mf_dry_half   = 0.
+  allocate (am4_Output_edmf%mf_dry_full     (ix,jx,kx))    ; am4_Output_edmf%mf_dry_full   = 0.
+  allocate (am4_Output_edmf%qv_dry_half     (ix,jx,kx+1))  ; am4_Output_edmf%qv_dry_half   = 0.
+  allocate (am4_Output_edmf%qv_dry_full     (ix,jx,kx))    ; am4_Output_edmf%qv_dry_full   = 0.
+
+  allocate (am4_Output_edmf%mf_all_half     (ix,jx,kx+1))  ; am4_Output_edmf%mf_all_half   = 0.
+  allocate (am4_Output_edmf%mf_all_full     (ix,jx,kx))    ; am4_Output_edmf%mf_all_full   = 0.
   !allocate (am4_Output_edmf%         (ix,jx,kx))  ; am4_Output_edmf%         = 0.
 
 !-------------------------------------------------------------------------
@@ -8413,6 +8709,20 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%Q_ql            )
   deallocate (Output_edmf%Q_qi            )
   deallocate (Output_edmf%Q_qa            )
+  deallocate (Output_edmf%a_moist_half    )
+  deallocate (Output_edmf%mf_moist_half   )
+  deallocate (Output_edmf%qv_moist_half   )
+  deallocate (Output_edmf%a_moist_full    )
+  deallocate (Output_edmf%mf_moist_full   )
+  deallocate (Output_edmf%qv_moist_full   )
+  deallocate (Output_edmf%a_dry_half      )
+  deallocate (Output_edmf%a_dry_full      )
+  deallocate (Output_edmf%mf_dry_half     )
+  deallocate (Output_edmf%mf_dry_full     )
+  deallocate (Output_edmf%qv_dry_half     )
+  deallocate (Output_edmf%qv_dry_full     )
+  deallocate (Output_edmf%mf_all_half     )
+  deallocate (Output_edmf%mf_all_full     )
 
 !**********************
 !--- am4 Output_edmf
@@ -8481,6 +8791,20 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qa_before_pdf   )
   deallocate (am4_Output_edmf%ql_before_pdf   )
   deallocate (am4_Output_edmf%qi_before_pdf   )
+  deallocate (am4_Output_edmf%a_moist_half    )
+  deallocate (am4_Output_edmf%mf_moist_half   )
+  deallocate (am4_Output_edmf%qv_moist_half   )
+  deallocate (am4_Output_edmf%a_moist_full    )
+  deallocate (am4_Output_edmf%mf_moist_full   )
+  deallocate (am4_Output_edmf%qv_moist_full   )
+  deallocate (am4_Output_edmf%a_dry_half      )
+  deallocate (am4_Output_edmf%a_dry_full      )
+  deallocate (am4_Output_edmf%mf_dry_half     )
+  deallocate (am4_Output_edmf%mf_dry_full     )
+  deallocate (am4_Output_edmf%qv_dry_half     )
+  deallocate (am4_Output_edmf%qv_dry_full     )
+  deallocate (am4_Output_edmf%mf_all_half     )
+  deallocate (am4_Output_edmf%mf_all_full     )
 
 !--------------------
 !---  vi command  ---
@@ -9179,12 +9503,12 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   do j=1,jx
 
     !======================
-    !  diff_t_edmf and diff_m_edmf are on half levels but the dimension is nlev, instead of nlev+1
+    !  diff_t_edmf and diff_m_edmf are on half levels but the dimension is nlay, instead of nlay+1
     do k=2,kx      ! k index for half levels. Skip k=1 because k=1 in MYNN is right at the surface
       kk=kx-k+2
 
       !--- edmf_* variables are written out to history files, no need to convert to am4_Output_edmf variables
-      !    also note that although edmf_* dimension is nlev, but they are on half levels (nlev+1)
+      !    also note that although edmf_* dimension is nlay, but they are on half levels (nlay+1)
       !am4_Output_edmf%edmf_a      (i,j,kk) = Output_edmf%edmf_a    (i,k,j)
       !am4_Output_edmf%edmf_w      (i,j,kk) = Output_edmf%edmf_w    (i,k,j)
       !am4_Output_edmf%edmf_qt     (i,j,kk) = Output_edmf%edmf_qt   (i,k,j)
@@ -9220,6 +9544,16 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       am4_Output_edmf%Q_ql        (i,j,kk) = Output_edmf%Q_ql      (i,k,j)
       am4_Output_edmf%Q_qi        (i,j,kk) = Output_edmf%Q_qi      (i,k,j)
       am4_Output_edmf%Q_qa        (i,j,kk) = Output_edmf%Q_qa      (i,k,j)
+
+      am4_Output_edmf%a_moist_full   (i,j,kk) = Output_edmf%a_moist_full   (i,k,j)
+      am4_Output_edmf%mf_moist_full  (i,j,kk) = Output_edmf%mf_moist_full  (i,k,j)
+      am4_Output_edmf%qv_moist_full  (i,j,kk) = Output_edmf%qv_moist_full  (i,k,j)
+
+      am4_Output_edmf%a_dry_full     (i,j,kk) = Output_edmf%a_dry_full   (i,k,j)
+      am4_Output_edmf%mf_dry_full    (i,j,kk) = Output_edmf%mf_dry_full  (i,k,j)
+      am4_Output_edmf%qv_dry_full    (i,j,kk) = Output_edmf%qv_dry_full  (i,k,j)
+ 
+      am4_Output_edmf%mf_all_full    (i,j,kk) = Output_edmf%mf_all_full  (i,k,j)
       !!! am4_Output_edmf% (i,j,kk) = Output_edmf% (i,k,j)
   
       !--- if needed, modify am4_Output_edmf tendencies to make sure the updated qa, ql, qc, qi, qnd qt are larger than zero
@@ -9262,6 +9596,20 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
       !endif
   
     enddo  ! end loop of k, full levels
+
+    !======================
+    do k=1,kx+1      ! k index for half levels
+      kk=kx-k+2
+      am4_Output_edmf%a_moist_half   (i,j,kk) = Output_edmf%a_moist_half   (i,k,j)
+      am4_Output_edmf%mf_moist_half  (i,j,kk) = Output_edmf%mf_moist_half  (i,k,j)
+      am4_Output_edmf%qv_moist_half  (i,j,kk) = Output_edmf%qv_moist_half  (i,k,j)
+
+      am4_Output_edmf%a_dry_half     (i,j,kk) = Output_edmf%a_dry_half   (i,k,j)
+      am4_Output_edmf%mf_dry_half    (i,j,kk) = Output_edmf%mf_dry_half  (i,k,j)
+      am4_Output_edmf%qv_dry_half    (i,j,kk) = Output_edmf%qv_dry_half  (i,k,j)
+ 
+      am4_Output_edmf%mf_all_half    (i,j,kk) = Output_edmf%mf_all_half  (i,k,j)
+    enddo  ! end loop of k, half levels
 
   enddo  ! end loop of j
   enddo  ! end loop of 1
