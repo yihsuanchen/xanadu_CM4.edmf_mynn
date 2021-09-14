@@ -5981,21 +5981,49 @@ DO K=KTS,KTE-1
   end if
 ENDDO    ! end loop of k
 
-!--- interpolate mf and qv on half levels to full levels
-DO K=KTS,KTE-1
-  a_moist_full  (K) = 0.5 * (a_moist_half  (K)+a_moist_half  (K+1))
-  mf_moist_full (K) = 0.5 * (mf_moist_half (K)+mf_moist_half (K+1))
-  qv_moist_full (K) = 0.5 * (qv_moist_half (K)+qv_moist_half (K+1))
+!--- interpolate a, mf, qv from half levels to full levels
+!      interpolate from the updraft base. Right above the updraft top (KTOP, mf>0), using upwind approximation
 
-  a_dry_full    (K) = 0.5 * (a_dry_half    (K)+a_dry_half    (K+1))
-  mf_dry_full   (K) = 0.5 * (mf_dry_half   (K)+mf_dry_half   (K+1))
-  qv_dry_full   (K) = 0.5 * (qv_dry_half   (K)+qv_dry_half   (K+1))
-ENDDO    ! end loop of k
+  !--- updraft top
+  a_moist_full  (KTOP) = a_moist_half  (KTOP)
+  mf_moist_full (KTOP) = mf_moist_half (KTOP)
+  qv_moist_full (KTOP) = qv_moist_half (KTOP)
+
+  a_dry_full    (KTOP) = a_dry_half    (KTOP)
+  mf_dry_full   (KTOP) = mf_dry_half   (KTOP)
+  qv_dry_full   (KTOP) = qv_dry_half   (KTOP)
+
+DO K=KTS,KTOP-1
+  if (mf_moist_half (K) > 0.) then
+    a_moist_full  (K) = 0.5 * (a_moist_half  (K)+a_moist_half  (K+1))
+    mf_moist_full (K) = 0.5 * (mf_moist_half (K)+mf_moist_half (K+1))
+    qv_moist_full (K) = 0.5 * (qv_moist_half (K)+qv_moist_half (K+1))
+  endif
+
+  if (mf_dry_half (K) > 0.) then
+    a_dry_full  (K) = 0.5 * (a_dry_half  (K)+a_dry_half  (K+1))
+    mf_dry_full (K) = 0.5 * (mf_dry_half (K)+mf_dry_half (K+1))
+    qv_dry_full (K) = 0.5 * (qv_dry_half (K)+qv_dry_half (K+1))
+  endif
+ENDDO
+
+!print*,'a_dry_full',a_dry_full
+!print*,'a_dry_half',a_dry_half
+!print*,'mf_dry_full',mf_dry_full
+!print*,'mf_dry_half',mf_dry_half
+!print*,'qv_dry_full',qv_dry_full
+!print*,'qv_dry_half',qv_dry_half
+!
+!print*,'a_moist_full',a_moist_full
+!print*,'a_moist_half',a_moist_half
+!print*,'mf_moist_full',mf_moist_full
+!print*,'mf_moist_half',mf_moist_half
+!print*,'qv_moist_full',qv_moist_full
+!print*,'qv_moist_half',qv_moist_half
 
 ! moist+dry mass flux
   mf_all_half (:) = mf_moist_half (:) + mf_dry_half (:)
   mf_all_full (:) = mf_moist_full (:) + mf_dry_full (:)
-
 !---> yhc 2021-09-08
 
 
