@@ -6408,7 +6408,13 @@ DO K=KTS,KTE-1
      mf=UPA(K,I)*UPW(K,I)
    
      ! for liquid and ice water
-     F1=-(mfp1*(UPQC(K+1,I)-qc(K+1))-mf*(UPQC(K,I)-qc(K)))/dz
+     !F1=-(mfp1*(UPQC(K+1,I)-qc(K+1))-mf*(UPQC(K,I)-qc(K)))/dz
+     if (K.eq.1) then
+       F1=-(mfp1*(UPQC(K+1,I)-qc(K))-mf*(UPQC(K,I)-0.))/dz     ! qc(K-1)=qc(0)=0.
+     else
+       F1=-(mfp1*(UPQC(K+1,I)-qc(K))-mf*(UPQC(K,I)-qc(K-1)))/dz
+     endif
+
      F2=mf*(UPQC(K+1,I)-UPQC(K,I))/dz+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
        
      Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)/rho(k)
@@ -6452,7 +6458,12 @@ DO K=KTS,KTE-1
   ENDIF
   
     ! for area fraction
-     F1=-(mfp1*(CCp1-cldfra_bl1d(K+1))-mf*(CCp0-cldfra_bl1d(K)) )/dz
+     if (K.eq.1) then
+       F1=-(mfp1*(CCp1-cldfra_bl1d(K))-mf*(CCp0-0.) )/dz   ! cldfra_bl1d(0) = 0.
+     else
+       F1=-(mfp1*(CCp1-cldfra_bl1d(K))-mf*(CCp0-cldfra_bl1d(K-1)) )/dz
+     endif
+
      F2=F0 + ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
   
      Qa(k)=Qa(k)+(F1+F2)/rho(k)
