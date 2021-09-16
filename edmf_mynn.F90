@@ -6359,16 +6359,28 @@ DO k=KTS,KTE-1
 
     DO I=1,NUP
         IF(I > NUP) exit
-        edmf_a(K)=edmf_a(K)+UPA(K+1,I)
-        edmf_w(K)=edmf_w(K)+UPA(K+1,I)*UPW(K+1,I)
-        edmf_qt(K)=edmf_qt(K)+UPA(K+1,I) * (UPQT(K+1,I)-QT(K+1))
-        edmf_thl(K)=edmf_thl(K)+UPA(K+1,I)* (UPTHL(K+1,I)-THL(K+1))
-        edmf_ent(K)=edmf_ent(K)+UPA(K+1,I)*ENT(K+1,I)
-        edmf_qc(K)=edmf_qc(K)+UPA(K+1,I)*UPQC(K+1,I)
-        edmf_debug1(K)=edmf_debug1(K) + UPA(K+1,I) * (UPTHV(K+1,I)-THV(K+1))
-        edmf_debug2(K)=QT(K+1) !debug2 is the mean qt to compare with actual output
+        ! yhc: because edmf_X variables are written to half levels in the history files, UP* variables should use K
+        edmf_a(K)=edmf_a(K)+UPA(K,I)
+        edmf_w(K)=edmf_w(K)+UPA(K,I)*UPW(K,I)
+        edmf_qt(K)=edmf_qt(K)+UPA(K,I) * (UPQT(K,I)-QT(K))
+        edmf_thl(K)=edmf_thl(K)+UPA(K,I)* (UPTHL(K,I)-THL(K))
+        edmf_ent(K)=edmf_ent(K)+UPA(K,I)*ENT(K,I)
+        edmf_qc(K)=edmf_qc(K)+UPA(K,I)*UPQC(K,I)
+        edmf_debug1(K)=edmf_debug1(K) + UPA(K,I) * (UPTHV(K,I)-THV(K))
+        edmf_debug2(K)=QT(K) !debug2 is the mean qt to compare with actual output
         ! edmf_debug3(K)=edmf_debug3(K)+UPA(K+1,I)* UPTHL(K+1,I) !debug3 is the actual ud thl
         ! edmf_debug4(K)=THL(K+1) !debug4 is the mean thl to compare with actual output
+
+!        edmf_a(K)=edmf_a(K)+UPA(K+1,I)
+!        edmf_w(K)=edmf_w(K)+UPA(K+1,I)*UPW(K+1,I)
+!        edmf_qt(K)=edmf_qt(K)+UPA(K+1,I) * (UPQT(K+1,I)-QT(K+1))
+!        edmf_thl(K)=edmf_thl(K)+UPA(K+1,I)* (UPTHL(K+1,I)-THL(K+1))
+!        edmf_ent(K)=edmf_ent(K)+UPA(K+1,I)*ENT(K+1,I)
+!        edmf_qc(K)=edmf_qc(K)+UPA(K+1,I)*UPQC(K+1,I)
+!        edmf_debug1(K)=edmf_debug1(K) + UPA(K+1,I) * (UPTHV(K+1,I)-THV(K+1))
+!        edmf_debug2(K)=QT(K+1) !debug2 is the mean qt to compare with actual output
+!        ! edmf_debug3(K)=edmf_debug3(K)+UPA(K+1,I)* UPTHL(K+1,I) !debug3 is the actual ud thl
+!        ! edmf_debug4(K)=THL(K+1) !debug4 is the mean thl to compare with actual output
     ENDDO
 
     IF (edmf_a(k)>0.) THEN
