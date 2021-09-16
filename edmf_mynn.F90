@@ -6417,9 +6417,12 @@ DO K=KTS,KTE-1
 
      F2=mf*(UPQC(K+1,I)-UPQC(K,I))/dz+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
        
-     Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)/rho(k)
-     Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)/rho(k)
+     ! yhc: F1 and F2 do not need to be divided by rho 
+     Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)
+     Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)
 
+     !Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)/rho(k)
+     !Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)/rho(k)
 
 !<--- yhc 2021-09-08
 !<--- yhc: this Qa recovery code is not correct  
@@ -6466,7 +6469,8 @@ DO K=KTS,KTE-1
 
      F2=F0 + ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
   
-     Qa(k)=Qa(k)+(F1+F2)/rho(k)
+     !Qa(k)=Qa(k)+(F1+F2)/rho(k)
+     Qa(k)=Qa(k)+(F1+F2)
  
   ENDDO
 ENDDO  
