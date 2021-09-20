@@ -4196,6 +4196,7 @@ END SUBROUTINE mym_condensation
        &qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix,       &  ! yhc_mynn add
        &qa_before_pdf, ql_before_pdf, qi_before_pdf,                                               &  ! yhc_mynn add
        &Q_ql,Q_qi,Q_a,                                                                             &  ! yhc_mynn add
+       &Q_ql_src,Q_qi_src,Q_a_src, Q_ql_eddy,Q_qi_eddy,Q_a_eddy,                                   &  ! yhc_mynn_add
        &a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half, mf_all_full, &                                                     ! yhc 2021-09-08
@@ -4274,7 +4275,8 @@ END SUBROUTINE mym_condensation
           ! terms to couple EDMF with Tiedtke   
           ! Yi-Hsuan ... add INTENT(out) and output these terms 
         !REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: Q_ql,Q_qi,Q_a
-        REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: Q_ql,Q_qi,Q_a
+        REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: Q_ql,Q_qi,Q_a, &
+           Q_ql_src,Q_qi_src,Q_a_src, Q_ql_eddy,Q_qi_eddy,Q_a_eddy
  
 
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
@@ -5195,6 +5197,14 @@ END SUBROUTINE mym_condensation
                Q_qi(i,k,j)=Q_qi1(k)
                Q_a(i,k,j)=Q_a1(k)
 
+               Q_ql_src(i,k,j)=Q_ql1_src(k)
+               Q_qi_src(i,k,j)=Q_qi1_src(k)
+               Q_a_src(i,k,j)=Q_a1_src(k)
+
+               Q_ql_eddy(i,k,j)=Q_ql1_eddy(k)
+               Q_qi_eddy(i,k,j)=Q_qi1_eddy(k)
+               Q_a_eddy(i,k,j)=Q_a1_eddy(k)
+
                !<--- yhc 2021-09-08
                a_moist_half  (i,k,j) = a_moist_half1(k)    
                a_moist_full  (i,k,j) = a_moist_full1(k)    
@@ -5219,6 +5229,14 @@ END SUBROUTINE mym_condensation
                 Q_ql(i,k,j)=0.
                 Q_qi(i,k,j)=0.
                 Q_a(i,k,j)=0.
+
+                Q_ql_src(i,k,j)=0.
+                Q_qi_src(i,k,j)=0.
+                Q_a_src(i,k,j)=0.
+ 
+                Q_ql_eddy(i,k,j)=0.
+                Q_qi_eddy(i,k,j)=0.
+                Q_a_eddy(i,k,j)=0.
                
                 ENDIF
                
@@ -7314,6 +7332,7 @@ subroutine edmf_mynn_driver ( &
        &qa_after_mix=Output_edmf%qa_after_mix, ql_after_mix=Output_edmf%ql_after_mix, qi_after_mix=Output_edmf%qi_after_mix, thl_after_mix=Output_edmf%thl_after_mix, qt_after_mix=Output_edmf%qt_after_mix, th_after_mix=Output_edmf%th_after_mix,        &      ! yhc_mynn add
         &qa_before_pdf=Output_edmf%qa_before_pdf, ql_before_pdf=Output_edmf%ql_before_pdf, qi_before_pdf=Output_edmf%qi_before_pdf, & ! yhc_mynn add
        &Q_ql=Output_edmf%Q_ql, Q_qi=Output_edmf%Q_qi, Q_a=Output_edmf%Q_qa,   &  ! yhc_mynn add
+       &Q_ql_src=Output_edmf%Q_ql_src, Q_qi_src=Output_edmf%Q_qi_src, Q_a_src=Output_edmf%Q_qa_src, Q_ql_eddy=Output_edmf%Q_ql_eddy, Q_qi_eddy=Output_edmf%Q_qi_eddy, Q_a_eddy=Output_edmf%Q_qa_eddy,  &  ! yhc_mynn add
        &a_moist_half=Output_edmf%a_moist_half, mf_moist_half=Output_edmf%mf_moist_half, qv_moist_half=Output_edmf%qv_moist_half, a_moist_full=Output_edmf%a_moist_full, mf_moist_full=Output_edmf%mf_moist_full, qv_moist_full=Output_edmf%qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half=Output_edmf%a_dry_half, mf_dry_half=Output_edmf%mf_dry_half, qv_dry_half=Output_edmf%qv_dry_half, a_dry_full=Output_edmf%a_dry_full, mf_dry_full=Output_edmf%mf_dry_full, qv_dry_full=Output_edmf%qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
