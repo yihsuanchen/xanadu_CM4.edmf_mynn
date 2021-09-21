@@ -4304,6 +4304,8 @@ END SUBROUTINE mym_condensation
          & edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd,& 
          & mynn_ql,edmf_debug1,edmf_debug2,edmf_debug3,edmf_debug4
 
+   REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: edmf_det
+
     REAL, DIMENSION(IMS:IME,JMS:JME), INTENT(inout) :: Pblh
 
     REAL, DIMENSION(IMS:IME,JMS:JME) :: &
@@ -4349,6 +4351,7 @@ END SUBROUTINE mym_condensation
                                 edmf_ent1,edmf_qc1,&
                                 edmf_a_dd1,edmf_w_dd1,edmf_qt_dd1,edmf_thl_dd1,&
                                 edmf_ent_dd1,edmf_qc_dd1,&
+                                edmf_det1, & ! yhc
                                 edmf_debug11,edmf_debug21,edmf_debug31,edmf_debug41
     REAL,DIMENSION(KTS:KTE+1) :: s_aw1,s_awthl1,s_awqt1,&
                   s_awqv1,s_awqc1,s_awu1,s_awv1,s_awqke1,&
@@ -4956,7 +4959,7 @@ END SUBROUTINE mym_condensation
                & qc_bm,cldfra_bm,             &
                & a_moist_half1, mf_moist_half1, qv_moist_half1, a_moist_full1, mf_moist_full1, qv_moist_full1, &  ! yhc 2021-09-08
                & a_dry_half1, mf_dry_half1, qv_dry_half1, a_dry_full1, mf_dry_full1, qv_dry_full1, &            ! yhc 2021-09-08
-               & mf_all_half1, mf_all_full1, &                                                     ! yhc 2021-09-08
+               & mf_all_half1, mf_all_full1, edmf_det1, &                                                     ! yhc 2021-09-08
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1, Q_ql1_adv,Q_qi1_adv,Q_a1_adv, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy, Q_ql1_ent,Q_qi1_ent,Q_a1_ent  &
@@ -5239,6 +5242,8 @@ END SUBROUTINE mym_condensation
              
                mf_all_half   (i,k,j) = mf_all_half1(k)
                mf_all_full   (i,k,j) = mf_all_full1(k)
+
+               edmf_det(i,k,j)=edmf_det1(k)
                !---> yhc 2021-09-08
 
                ELSE
@@ -6004,7 +6009,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
             ! output info
               & a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
               & a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
-              & mf_all_half, mf_all_full, &                                                  ! yhc 2021-09-08
+              & mf_all_half, mf_all_full, edmf_det, &                                                  ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa,Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent)
               !&ktop,ztop,kpbl,Qql,Qqi,Qa)
 
@@ -6050,6 +6055,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         REAl,DIMENSION(KTS:KTE,1:NUP) :: ENT,ENTf
         REAL,DIMENSION(KTS:KTE) :: L0s
         INTEGER,DIMENSION(KTS:KTE,1:NUP) :: ENTi
+
+        REAl,DIMENSION(KTS:KTE,1:NUP) :: DET
+        REAL,DIMENSION(KTS:KTE), INTENT(out) :: edmf_det
 
     ! internal variables
         INTEGER :: K,I, qlTop
@@ -6161,6 +6169,9 @@ s_awqke=0.
  Qqi_adv  = 0.
  Qqi_eddy = 0.
  Qqi_ent  = 0.
+
+ edmf_det = 0.
+ DET=0.
 
 ! This part is specific for Stratocumulus
 ! cloudflg = .false.
@@ -6654,6 +6665,35 @@ DO K=KTS,KTOP-1
     mf_dry_full (K) = 0.5 * (mf_dry_half (K)+mf_dry_half (K+1))
     qv_dry_full (K) = 0.5 * (qv_dry_half (K)+qv_dry_half (K+1))
   endif
+ENDDO
+
+!--- diagnose detrainment rate
+DO K=KTS,KTE-1
+  IF(k > KTOP) exit
+
+  DO I=1,NUP
+    IF(I > NUP) exit
+
+    dz=ZW(k+1)-ZW(k)
+
+    mfp1=rho(K)*UPW(K+1,I)
+    if (k.eq.1) then
+      mf=rho(1)*UPW(K,I)
+    else
+      mf=rho(K-1)*UPW(K,I)
+    endif
+
+    if (mf.gt.0) then
+      DET(K,I) = ENT(K,I) - (mfp1-mf)/mf/dz   
+    endif
+
+    edmf_det(K)=edmf_det(K)+UPA(K,I)*DET(K,I)
+  ENDDO
+
+  IF (edmf_a(k)>0.) THEN
+    edmf_det(k)=edmf_det(k)/edmf_a(k)
+  ENDIF
+
 ENDDO
 
 !print*,'a_dry_full',a_dry_full
