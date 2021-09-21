@@ -459,7 +459,7 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni  ! tracer indices for stratiform clo
 integer :: nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl ! tracer index for EDMF-MYNN tracers
 integer :: ntp          ! number of prognostic tracers
 
-integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf, id_qtdt_edmf, id_thldt_edmf, id_diff_t_edmf, id_diff_m_edmf, id_el_edmf
+integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_det, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf, id_qtdt_edmf, id_thldt_edmf, id_diff_t_edmf, id_diff_m_edmf, id_el_edmf
 
 integer :: id_t_input, id_q_input, id_qa_input, id_ql_input, id_qi_input, id_thl_input, id_qt_input, id_rh_input, id_th_input, id_t_before_mix, id_q_before_mix, id_qa_before_mix, id_ql_before_mix, id_qi_before_mix, id_thl_before_mix, id_qt_before_mix, id_rh_before_mix, id_th_before_mix, id_t_after_mix, id_q_after_mix, id_qa_after_mix, id_ql_after_mix, id_qi_after_mix, id_thl_after_mix, id_qt_after_mix, id_rh_after_mix, id_th_after_mix, id_qa_before_pdf, id_ql_before_pdf, id_qi_before_pdf 
 
@@ -702,8 +702,12 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  'thl in updrafts', 'K' , &
                  missing_value=missing_value )
 
-  id_edmf_ent = register_diag_field (mod_name, 'edmf_ent', axes(half), Time, &
+  id_edmf_ent = register_diag_field (mod_name, 'edmf_ent', axes(full), Time, &
                  'entrainment in updrafts', '1/m' , &
+                 missing_value=missing_value )
+
+  id_edmf_det = register_diag_field (mod_name, 'edmf_det', axes(full), Time, &
+                 'dentrainment in updrafts', '1/m' , &
                  missing_value=missing_value )
 
   id_edmf_qc = register_diag_field (mod_name, 'edmf_qc', axes(half), Time, &
@@ -7279,7 +7283,7 @@ subroutine edmf_mynn_driver ( &
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2), &
                    size(Physics_input_block%t,3)) :: &
-          tmp_3d
+          tmp_3d, diag_full
 
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2), &
@@ -7703,10 +7707,16 @@ subroutine edmf_mynn_driver ( &
         used = send_data (id_edmf_thl, diag_half, Time_next, is, js, 1 )
       endif
 
-!------- entrainment in updrafts (units: 1/m) at half level -------
+!------- entrainment in updrafts (units: 1/m) at full level -------
       if ( id_edmf_ent > 0) then
-        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_ent, diag_half)
-        used = send_data (id_edmf_ent, diag_half, Time_next, is, js, 1 )
+        call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%edmf_ent, diag_full)
+        used = send_data (id_edmf_ent, diag_full, Time_next, is, js, 1 )
+      endif
+
+!------- dentrainment in updrafts (units: 1/m) at full level -------
+      if ( id_edmf_det > 0) then
+        call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%edmf_det, diag_full)
+        used = send_data (id_edmf_det, diag_full, Time_next, is, js, 1 )
       endif
 
 !------- qc in updrafts (units: kg/kg) at half level -------
