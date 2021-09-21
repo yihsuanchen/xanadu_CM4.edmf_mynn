@@ -121,7 +121,7 @@ type edmf_output_type
     Qke, Tsq, Qsq, Cov,         &
     RUBLTEN, RVBLTEN, RTHBLTEN, RQVBLTEN, RQLBLTEN, RQIBLTEN, RQNIBLTEN, RTHRATEN, &
     RCCBLTEN, RTHLBLTEN, RQTBLTEN,   &
-    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc, edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd, &
+    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_det, edmf_qc, edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd, &
     edmf_debug1,edmf_debug2,edmf_debug3,edmf_debug4, &
     Q_ql, Q_qi, Q_qa, &
     Q_ql_adv, Q_qi_adv, Q_qa_adv, &
@@ -4227,7 +4227,7 @@ END SUBROUTINE mym_condensation
        &bl_mynn_edmf_part,bl_mynn_edmf_Lent,&
        &bl_mynn_cloudmix,bl_mynn_mixqt, &
        &edmf_a,edmf_w,edmf_qt,          &
-       &edmf_thl,edmf_ent,edmf_qc,      &
+       &edmf_thl,edmf_ent,edmf_det,edmf_qc,      &
        &edmf_debug1,edmf_debug2,        &
        &edmf_debug3,edmf_debug4,        &
        &edmf_a_dd,edmf_w_dd,edmf_qt_dd,    &
@@ -4300,11 +4300,9 @@ END SUBROUTINE mym_condensation
          &exch_h,exch_m
 
    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), OPTIONAL, INTENT(inout) :: &
-         & edmf_a,edmf_w,edmf_qt,edmf_thl,edmf_ent,edmf_qc, &
+         & edmf_a,edmf_w,edmf_qt,edmf_thl,edmf_ent,edmf_det,edmf_qc, &
          & edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd,& 
          & mynn_ql,edmf_debug1,edmf_debug2,edmf_debug3,edmf_debug4
-
-   REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: edmf_det
 
     REAL, DIMENSION(IMS:IME,JMS:JME), INTENT(inout) :: Pblh
 
@@ -7419,7 +7417,7 @@ subroutine edmf_mynn_driver ( &
        &bl_mynn_edmf_part=bl_mynn_edmf_part,bl_mynn_edmf_Lent=bl_mynn_edmf_Lent,&
        &bl_mynn_cloudmix=bl_mynn_cloudmix,bl_mynn_mixqt=bl_mynn_mixqt, &
        &edmf_a=Output_edmf%edmf_a,edmf_w=Output_edmf%edmf_w,edmf_qt=Output_edmf%edmf_qt,          &
-       &edmf_thl=Output_edmf%edmf_thl,edmf_ent=Output_edmf%edmf_ent,edmf_qc=Output_edmf%edmf_qc,      &
+       &edmf_thl=Output_edmf%edmf_thl,edmf_ent=Output_edmf%edmf_ent, edmf_det=Output_edmf%edmf_det, edmf_qc=Output_edmf%edmf_qc,      &
        &edmf_debug1=Output_edmf%edmf_debug1,edmf_debug2=Output_edmf%edmf_debug2,        &
        &edmf_debug3=Output_edmf%edmf_debug3,edmf_debug4=Output_edmf%edmf_debug4,        &
        &edmf_a_dd=Output_edmf%edmf_a_dd,edmf_w_dd=Output_edmf%edmf_w_dd,edmf_qt_dd=Output_edmf%edmf_qt_dd,    &
@@ -8420,6 +8418,7 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%edmf_qt     (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_qt     = 0.
   allocate (Output_edmf%edmf_thl    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_thl    = 0.
   allocate (Output_edmf%edmf_ent    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_ent    = 0.
+  allocate (Output_edmf%edmf_det    (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_det    = 0.
   allocate (Output_edmf%edmf_qc     (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_qc     = 0.
   allocate (Output_edmf%edmf_a_dd   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_a_dd   = 0.
   allocate (Output_edmf%edmf_w_dd   (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%edmf_w_dd   = 0.
@@ -8960,6 +8959,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%edmf_qt     )  
   deallocate (Output_edmf%edmf_thl    )  
   deallocate (Output_edmf%edmf_ent    )  
+  deallocate (Output_edmf%edmf_det    )  
   deallocate (Output_edmf%edmf_qc     )  
   deallocate (Output_edmf%edmf_a_dd   )  
   deallocate (Output_edmf%edmf_w_dd   )  
