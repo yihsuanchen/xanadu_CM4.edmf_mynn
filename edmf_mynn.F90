@@ -124,7 +124,8 @@ type edmf_output_type
     edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc, edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd, &
     edmf_debug1,edmf_debug2,edmf_debug3,edmf_debug4, &
     Q_ql, Q_qi, Q_qa, &
-    Q_ql_src, Q_qi_src, Q_qa_src, &
+    Q_ql_adv, Q_qi_adv, Q_qa_adv, &
+    Q_ql_ent, Q_qi_ent, Q_qa_ent, &
     Q_ql_eddy, Q_qi_eddy, Q_qa_eddy, &
     mynn_ql, qc_bl, cldfra_bl, el_pbl, Sh3D
 
@@ -466,7 +467,7 @@ integer :: id_tdt_edmf_orig, id_qdt_edmf_orig, id_qadt_edmf_orig, id_qidt_edmf_o
 
 integer :: id_qldt_edmf_ED, id_qldt_edmf_MF, id_qidt_edmf_ED, id_qidt_edmf_MF, id_qadt_edmf_ED, id_qadt_edmf_MF
 
-integer :: id_qldt_edmf_MF_src, id_qldt_edmf_MF_eddy, id_qidt_edmf_MF_src, id_qidt_edmf_MF_eddy, id_qadt_edmf_MF_src, id_qadt_edmf_MF_eddy
+integer :: id_qldt_edmf_MF_adv, id_qldt_edmf_MF_eddy, id_qidt_edmf_MF_adv, id_qidt_edmf_MF_eddy, id_qadt_edmf_MF_adv, id_qadt_edmf_MF_eddy
 
 integer :: id_a_moist_half, id_a_moist_full, id_mf_moist_half, id_mf_moist_full, id_qv_moist_half, id_qv_moist_full, id_a_dry_half, id_a_dry_full, id_mf_dry_half, id_mf_dry_full, id_qv_dry_half, id_qv_dry_full, id_mf_all_half, id_mf_all_full
 !---------------------------------------------------------------------
@@ -917,24 +918,24 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  'qa tendency from edmf_mynn, MF', '1/s' , &
                  missing_value=missing_value )
 
-  id_qldt_edmf_MF_src = register_diag_field (mod_name, 'qldt_edmf_MF_src', axes(full), Time, &
-                 'ql tendency from edmf_mynn, MF_src', 'kg/kg/s' , &
+  id_qldt_edmf_MF_adv = register_diag_field (mod_name, 'qldt_edmf_MF_adv', axes(full), Time, &
+                 'ql tendency from edmf_mynn, MF_adv', 'kg/kg/s' , &
                  missing_value=missing_value )
 
   id_qldt_edmf_MF_eddy = register_diag_field (mod_name, 'qldt_edmf_MF_eddy', axes(full), Time, &
                  'ql tendency from edmf_mynn, MF_eddy', 'kg/kg/s' , &
                  missing_value=missing_value )
 
-  id_qidt_edmf_MF_src = register_diag_field (mod_name, 'qidt_edmf_MF_src', axes(full), Time, &
-                 'qi tendency from edmf_mynn, MF_src', 'kg/kg/s' , &
+  id_qidt_edmf_MF_adv = register_diag_field (mod_name, 'qidt_edmf_MF_adv', axes(full), Time, &
+                 'qi tendency from edmf_mynn, MF_adv', 'kg/kg/s' , &
                  missing_value=missing_value )
 
   id_qidt_edmf_MF_eddy = register_diag_field (mod_name, 'qidt_edmf_MF_eddy', axes(full), Time, &
                  'qi tendency from edmf_mynn, MF_eddy', 'kg/kg/s' , &
                  missing_value=missing_value )
 
-  id_qadt_edmf_MF_src = register_diag_field (mod_name, 'qadt_edmf_MF_src', axes(full), Time, &
-                 'qa tendency from edmf_mynn, MF_src', '1/s' , &
+  id_qadt_edmf_MF_adv = register_diag_field (mod_name, 'qadt_edmf_MF_adv', axes(full), Time, &
+                 'qa tendency from edmf_mynn, MF_adv', '1/s' , &
                  missing_value=missing_value )
 
   id_qadt_edmf_MF_eddy = register_diag_field (mod_name, 'qadt_edmf_MF_eddy', axes(full), Time, &
@@ -4196,7 +4197,7 @@ END SUBROUTINE mym_condensation
        &qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix,       &  ! yhc_mynn add
        &qa_before_pdf, ql_before_pdf, qi_before_pdf,                                               &  ! yhc_mynn add
        &Q_ql,Q_qi,Q_a,                                                                             &  ! yhc_mynn add
-       &Q_ql_src,Q_qi_src,Q_a_src, Q_ql_eddy,Q_qi_eddy,Q_a_eddy,                                   &  ! yhc_mynn_add
+       &Q_ql_adv,Q_qi_adv,Q_a_adv, Q_ql_eddy,Q_qi_eddy,Q_a_eddy,                                   &  ! yhc_mynn_add
        &a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half, mf_all_full, &                                                     ! yhc 2021-09-08
@@ -4276,7 +4277,7 @@ END SUBROUTINE mym_condensation
           ! Yi-Hsuan ... add INTENT(out) and output these terms 
         !REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: Q_ql,Q_qi,Q_a
         REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: Q_ql,Q_qi,Q_a, &
-           Q_ql_src,Q_qi_src,Q_a_src, Q_ql_eddy,Q_qi_eddy,Q_a_eddy
+           Q_ql_adv,Q_qi_adv,Q_a_adv, Q_ql_eddy,Q_qi_eddy,Q_a_eddy
  
 
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
@@ -4349,7 +4350,7 @@ END SUBROUTINE mym_condensation
 
 
     REAL,DIMENSION(KTS:KTE) :: Q_ql1,Q_qi1,Q_a1, &
-      Q_ql1_src,Q_qi1_src,Q_a1_src, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy
+      Q_ql1_adv,Q_qi1_adv,Q_a1_adv, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy, Q_ql1_ent,Q_qi1_ent,Q_a1_ent
 
     !<--- yhc 2021-09-08 
     REAL, DIMENSION(IMS:IME,KMS:KME+1,JMS:JME), INTENT(out) :: &
@@ -4946,7 +4947,7 @@ END SUBROUTINE mym_condensation
                & mf_all_half1, mf_all_full1, &                                                     ! yhc 2021-09-08
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
-               & Q_ql1,Q_qi1,Q_a1, Q_ql1_src,Q_qi1_src,Q_a1_src, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy                  &
+               & Q_ql1,Q_qi1,Q_a1, Q_ql1_adv,Q_qi1_adv,Q_a1_adv, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy, Q_ql1_ent,Q_qi1_ent,Q_a1_ent  &
                !& Q_ql1,Q_qi1,Q_a1                 &
             )
 
@@ -5197,9 +5198,9 @@ END SUBROUTINE mym_condensation
                Q_qi(i,k,j)=Q_qi1(k)
                Q_a(i,k,j)=Q_a1(k)
 
-               Q_ql_src(i,k,j)=Q_ql1_src(k)
-               Q_qi_src(i,k,j)=Q_qi1_src(k)
-               Q_a_src(i,k,j)=Q_a1_src(k)
+               Q_ql_adv(i,k,j)=Q_ql1_adv(k)
+               Q_qi_adv(i,k,j)=Q_qi1_adv(k)
+               Q_a_adv(i,k,j)=Q_a1_adv(k)
 
                Q_ql_eddy(i,k,j)=Q_ql1_eddy(k)
                Q_qi_eddy(i,k,j)=Q_qi1_eddy(k)
@@ -5230,9 +5231,9 @@ END SUBROUTINE mym_condensation
                 Q_qi(i,k,j)=0.
                 Q_a(i,k,j)=0.
 
-                Q_ql_src(i,k,j)=0.
-                Q_qi_src(i,k,j)=0.
-                Q_a_src(i,k,j)=0.
+                Q_ql_adv(i,k,j)=0.
+                Q_qi_adv(i,k,j)=0.
+                Q_a_adv(i,k,j)=0.
  
                 Q_ql_eddy(i,k,j)=0.
                 Q_qi_eddy(i,k,j)=0.
@@ -5984,7 +5985,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               & a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
               & a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
               & mf_all_half, mf_all_full, &                                                  ! yhc 2021-09-08
-              &ktop,ztop,kpbl,Qql,Qqi,Qa,Qql_src,Qqi_src,Qa_src, Qql_eddy,Qqi_eddy,Qa_eddy)
+              &ktop,ztop,kpbl,Qql,Qqi,Qa,Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent)
               !&ktop,ztop,kpbl,Qql,Qqi,Qa)
 
 
@@ -6016,7 +6017,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         REAL,DIMENSION(KTS:KTE), INTENT(IN) :: qc_bl1d, cldfra_bl1d
 
       REAL,DIMENSION(KTS:KTE), INTENT(OUT) :: Qql,Qqi,Qa, &
-        Qql_src,Qqi_src,Qa_src, Qql_eddy,Qqi_eddy,Qa_eddy
+        Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent
 
 
         !INTEGER, PARAMETER :: NUP=100, debug_mf=0 !fixing number of plumes to 10
@@ -6042,7 +6043,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
                Fng,qww,alpha,beta,bb,f,pt,t,q2p,b9,satvp,rhgrid
         
         REAL,DIMENSION(kts:kte) :: ph,lfh 
-        REAL :: THVsrfF,QTsrfF,maxS,stabF,dz,F0,F1,F2,CCp1,CCp0,mf,mfp1  
+        REAL :: THVsrfF,QTsrfF,maxS,stabF,dz,F0,F1,F2,F3,CCp1,CCp0,mf,mfp1  
 
         INTEGER, DIMENSION(2) :: seedmf
     ! w parameters
@@ -6131,12 +6132,15 @@ s_awqke=0.
  Qqi=0. 
  Qa=0. 
 
- Qql_src  = 0.
+ Qql_adv  = 0.
  Qql_eddy = 0.
- Qa_src  = 0.
+ Qql_ent  = 0.
+ Qa_adv  = 0.
  Qa_eddy = 0.
- Qqi_src  = 0.
+ Qa_ent  = 0.
+ Qqi_adv  = 0.
  Qqi_eddy = 0.
+ Qqi_ent  = 0.
 
 ! This part is specific for Stratocumulus
 ! cloudflg = .false.
@@ -6483,17 +6487,20 @@ DO K=KTS,KTE-1
        F1=-(mfp1*(UPQC(K+1,I)-qc(K))-mf*(UPQC(K,I)-qc(K-1)))/dz
      endif
 
-     F2=mf*(UPQC(K+1,I)-UPQC(K,I))/dz+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+     F2=mf*(UPQC(K+1,I)-UPQC(K,I))/dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+     F3=ENT(K,I)*mf*(UPQC(K,I)-qc(K))
        
      ! yhc: F1 and F2 do not need to be divided by rho 
-     Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)
-     Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)
+     Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2+F3)
+     Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2+F3)
 
      Qql_eddy(k)=Qql_eddy(k)+liquid_frac(k)*F1
-     Qql_src (k)=Qql_src(k)+liquid_frac(k)*F2
+     Qql_adv (k)=Qql_adv(k)+liquid_frac(k)*F2
+     Qql_ent (k)=Qql_ent(k)+liquid_frac(k)*F3
 
      Qqi_eddy(k)=Qqi_eddy(k)+(1.-liquid_frac(k))*F1
-     Qqi_src (k)=Qqi_src(k)+(1.-liquid_frac(k))*F2
+     Qqi_adv (k)=Qqi_adv(k)+(1.-liquid_frac(k))*F2
+     Qqi_ent (k)=Qqi_ent(k)+(1.-liquid_frac(k))*F3
 
      !Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)/rho(k)
      !Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)/rho(k)
@@ -6527,11 +6534,11 @@ DO K=KTS,KTE-1
   ENDIF
 
   IF (UPQC(K,I) <= 0. .and. UPQC(K+1,I) > 0.) then
-    F0 = UPA(K,I)*UPW(K,I)/dz
+    F2 = UPA(K,I)*UPW(K,I)/dz
   ELSEIF (UPQC(K,I) > 0. .and. UPQC(K+1,I) <= 0.) then
-    F0 = -1.*UPA(K,I)*UPW(K,I)/dz
+    F2 = -1.*UPA(K,I)*UPW(K,I)/dz
   ELSE
-    F0 = 0.
+    F2 = 0.
   ENDIF
   
     ! for area fraction
@@ -6541,13 +6548,15 @@ DO K=KTS,KTE-1
        F1=-(mfp1*(CCp1-cldfra_bl1d(K))-mf*(CCp0-cldfra_bl1d(K-1)) )/dz
      endif
 
-     F2=F0 + ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
+     !F2=F0 !+ ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
+     F3=ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
   
      !Qa(k)=Qa(k)+(F1+F2)/rho(k)
-     Qa(k)=Qa(k)+(F1+F2)
+     Qa(k)=Qa(k)+(F1+F2+F3)
 
      Qa_eddy(k)=Qa_eddy(k)+F1
-     Qa_src (k)=Qa_src(k)+F2
+     Qa_adv (k)=Qa_adv(k)+F2
+     Qa_ent (k)=Qa_ent(k)+F3
  
   ENDDO
 ENDDO  
@@ -7332,7 +7341,7 @@ subroutine edmf_mynn_driver ( &
        &qa_after_mix=Output_edmf%qa_after_mix, ql_after_mix=Output_edmf%ql_after_mix, qi_after_mix=Output_edmf%qi_after_mix, thl_after_mix=Output_edmf%thl_after_mix, qt_after_mix=Output_edmf%qt_after_mix, th_after_mix=Output_edmf%th_after_mix,        &      ! yhc_mynn add
         &qa_before_pdf=Output_edmf%qa_before_pdf, ql_before_pdf=Output_edmf%ql_before_pdf, qi_before_pdf=Output_edmf%qi_before_pdf, & ! yhc_mynn add
        &Q_ql=Output_edmf%Q_ql, Q_qi=Output_edmf%Q_qi, Q_a=Output_edmf%Q_qa,   &  ! yhc_mynn add
-       &Q_ql_src=Output_edmf%Q_ql_src, Q_qi_src=Output_edmf%Q_qi_src, Q_a_src=Output_edmf%Q_qa_src, Q_ql_eddy=Output_edmf%Q_ql_eddy, Q_qi_eddy=Output_edmf%Q_qi_eddy, Q_a_eddy=Output_edmf%Q_qa_eddy,  &  ! yhc_mynn add
+       &Q_ql_adv=Output_edmf%Q_ql_adv, Q_qi_adv=Output_edmf%Q_qi_adv, Q_a_adv=Output_edmf%Q_qa_adv, Q_ql_eddy=Output_edmf%Q_ql_eddy, Q_qi_eddy=Output_edmf%Q_qi_eddy, Q_a_eddy=Output_edmf%Q_qa_eddy,  &  ! yhc_mynn add
        &a_moist_half=Output_edmf%a_moist_half, mf_moist_half=Output_edmf%mf_moist_half, qv_moist_half=Output_edmf%qv_moist_half, a_moist_full=Output_edmf%a_moist_full, mf_moist_full=Output_edmf%mf_moist_full, qv_moist_full=Output_edmf%qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half=Output_edmf%a_dry_half, mf_dry_half=Output_edmf%mf_dry_half, qv_dry_half=Output_edmf%qv_dry_half, a_dry_full=Output_edmf%a_dry_full, mf_dry_full=Output_edmf%mf_dry_full, qv_dry_full=Output_edmf%qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
@@ -8399,12 +8408,15 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%Q_ql            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_ql = 0.
   allocate (Output_edmf%Q_qi            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qi = 0.
   allocate (Output_edmf%Q_qa            (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qa = 0.
-  allocate (Output_edmf%Q_ql_src        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_ql_src = 0.
-  allocate (Output_edmf%Q_qi_src        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qi_src = 0.
-  allocate (Output_edmf%Q_qa_src        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qa_src = 0.
-  allocate (Output_edmf%Q_ql_eddy        (IMS:IME,KMS:KME,JMS:JME)) ; Output_edmf%Q_ql_eddy = 0.
-  allocate (Output_edmf%Q_qi_eddy        (IMS:IME,KMS:KME,JMS:JME)) ; Output_edmf%Q_qi_eddy = 0.
-  allocate (Output_edmf%Q_qa_eddy        (IMS:IME,KMS:KME,JMS:JME)) ; Output_edmf%Q_qa_eddy = 0.
+  allocate (Output_edmf%Q_ql_adv        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_ql_adv = 0.
+  allocate (Output_edmf%Q_qi_adv        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qi_adv = 0.
+  allocate (Output_edmf%Q_qa_adv        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qa_adv = 0.
+  allocate (Output_edmf%Q_ql_eddy       (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_ql_eddy = 0.
+  allocate (Output_edmf%Q_qi_eddy       (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qi_eddy = 0.
+  allocate (Output_edmf%Q_qa_eddy       (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qa_eddy = 0.
+  allocate (Output_edmf%Q_ql_ent        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_ql_ent = 0.
+  allocate (Output_edmf%Q_qi_ent        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qi_ent = 0.
+  allocate (Output_edmf%Q_qa_ent        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qa_ent = 0.
 
   allocate (Output_edmf%a_moist_half    (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%a_moist_half  = 0.
   allocate (Output_edmf%mf_moist_half   (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%mf_moist_half = 0.
@@ -8937,12 +8949,15 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%Q_ql            )
   deallocate (Output_edmf%Q_qi            )
   deallocate (Output_edmf%Q_qa            )
-  deallocate (Output_edmf%Q_ql_src        )
-  deallocate (Output_edmf%Q_qi_src        )
-  deallocate (Output_edmf%Q_qa_src        )
+  deallocate (Output_edmf%Q_ql_adv        )
+  deallocate (Output_edmf%Q_qi_adv        )
+  deallocate (Output_edmf%Q_qa_adv        )
   deallocate (Output_edmf%Q_ql_eddy       )
   deallocate (Output_edmf%Q_qi_eddy       )
   deallocate (Output_edmf%Q_qa_eddy       )
+  deallocate (Output_edmf%Q_ql_ent        )
+  deallocate (Output_edmf%Q_qi_ent        )
+  deallocate (Output_edmf%Q_qa_ent        )
   deallocate (Output_edmf%a_moist_half    )
   deallocate (Output_edmf%mf_moist_half   )
   deallocate (Output_edmf%qv_moist_half   )
@@ -9997,22 +10012,22 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
       used = send_data (id_qadt_edmf_MF, tmp_3d, Time_next, is, js, 1 )
     endif
 
-!------- qa tendency from edmf_mynn, MF_src (units: 1/s) at full level -------
-    if ( id_qadt_edmf_MF_src > 0) then
-      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_src(:,:,:), tmp_3d)
-      used = send_data (id_qadt_edmf_MF_src, tmp_3d, Time_next, is, js, 1 )
+!------- qa tendency from edmf_mynn, MF_adv (units: 1/s) at full level -------
+    if ( id_qadt_edmf_MF_adv > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_adv(:,:,:), tmp_3d)
+      used = send_data (id_qadt_edmf_MF_adv, tmp_3d, Time_next, is, js, 1 )
     endif
 
-!------- ql tendency from edmf_mynn, MF_src (units: kg/kg/s) at full level -------
-    if ( id_qldt_edmf_MF_src > 0) then
-      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_src(:,:,:), tmp_3d)
-      used = send_data (id_qldt_edmf_MF_src, tmp_3d, Time_next, is, js, 1 )
+!------- ql tendency from edmf_mynn, MF_adv (units: kg/kg/s) at full level -------
+    if ( id_qldt_edmf_MF_adv > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_adv(:,:,:), tmp_3d)
+      used = send_data (id_qldt_edmf_MF_adv, tmp_3d, Time_next, is, js, 1 )
     endif
 
-!------- qi tendency from edmf_mynn, MF_src (units: kg/kg/s) at full level -------
-    if ( id_qidt_edmf_MF_src > 0) then
-      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_src(:,:,:), tmp_3d)
-      used = send_data (id_qidt_edmf_MF_src, tmp_3d, Time_next, is, js, 1 )
+!------- qi tendency from edmf_mynn, MF_adv (units: kg/kg/s) at full level -------
+    if ( id_qidt_edmf_MF_adv > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_adv(:,:,:), tmp_3d)
+      used = send_data (id_qidt_edmf_MF_adv, tmp_3d, Time_next, is, js, 1 )
     endif
 
 !------- qa tendency from edmf_mynn, MF_eddy (units: 1/s) at full level -------
