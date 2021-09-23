@@ -239,6 +239,8 @@ type edmf_output_type
     Q_ql_adv, Q_qi_adv, Q_qa_adv, &
     Q_ql_ent, Q_qi_ent, Q_qa_ent, &
     Q_ql_eddy, Q_qi_eddy, Q_qa_eddy, &
+    Q_ql_det, Q_qi_det, Q_qa_det, &
+    Q_ql_sub, Q_qi_sub, Q_qa_sub, &
     mynn_ql, qc_bl, cldfra_bl, el_pbl, Sh3D
 
   real, dimension(:,:),   allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,JMS:JME)
@@ -7971,6 +7973,12 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%Q_ql_ent        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_ql_ent = 0.
   allocate (Output_edmf%Q_qi_ent        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qi_ent = 0.
   allocate (Output_edmf%Q_qa_ent        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qa_ent = 0.
+  allocate (Output_edmf%Q_ql_det        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_ql_det = 0.
+  allocate (Output_edmf%Q_qi_det        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qi_det = 0.
+  allocate (Output_edmf%Q_qa_det        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qa_det = 0.
+  allocate (Output_edmf%Q_ql_sub        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_ql_sub = 0.
+  allocate (Output_edmf%Q_qi_sub        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qi_sub = 0.
+  allocate (Output_edmf%Q_qa_sub        (IMS:IME,KMS:KME,JMS:JME))  ; Output_edmf%Q_qa_sub = 0.
 
   allocate (Output_edmf%a_moist_half    (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%a_moist_half  = 0.
   allocate (Output_edmf%mf_moist_half   (IMS:IME,KMS:KME+1,JMS:JME))  ; Output_edmf%mf_moist_half = 0.
@@ -8513,6 +8521,12 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%Q_ql_ent        )
   deallocate (Output_edmf%Q_qi_ent        )
   deallocate (Output_edmf%Q_qa_ent        )
+  deallocate (Output_edmf%Q_ql_det        )
+  deallocate (Output_edmf%Q_qi_det        )
+  deallocate (Output_edmf%Q_qa_det        )
+  deallocate (Output_edmf%Q_ql_sub        )
+  deallocate (Output_edmf%Q_qi_sub        )
+  deallocate (Output_edmf%Q_qa_sub        )
   deallocate (Output_edmf%a_moist_half    )
   deallocate (Output_edmf%mf_moist_half   )
   deallocate (Output_edmf%qv_moist_half   )
