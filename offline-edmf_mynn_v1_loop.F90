@@ -3728,7 +3728,9 @@ END SUBROUTINE mym_condensation
         !REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: Q_ql,Q_qi,Q_a
         REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: Q_ql,Q_qi,Q_a, &
            Q_ql_adv,Q_qi_adv,Q_a_adv, Q_ql_eddy,Q_qi_eddy,Q_a_eddy, Q_ql_ent,Q_qi_ent,Q_a_ent
- 
+  
+        REAL,DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+           Q_ql_det,Q_qi_det,Q_a_det, Q_ql_sub,Q_qi_sub,Q_a_sub
 
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(inout) :: &
          &RUBLTEN,RVBLTEN,RTHBLTEN,RQVBLTEN,RQLBLTEN,&
@@ -4662,6 +4664,14 @@ END SUBROUTINE mym_condensation
                Q_qi_ent(i,k,j)=Q_qi1_ent(k)
                Q_a_ent(i,k,j)=Q_a1_ent(k)
 
+               Q_ql_det(i,k,j)=Q_ql1_det(k)
+               Q_qi_det(i,k,j)=Q_qi1_det(k)
+               Q_a_det(i,k,j)=Q_a1_det(k)
+
+               Q_ql_sub(i,k,j)=Q_ql1_sub(k)
+               Q_qi_sub(i,k,j)=Q_qi1_sub(k)
+               Q_a_sub(i,k,j)=Q_a1_sub(k)
+
                !<--- yhc 2021-09-08
                a_moist_half  (i,k,j) = a_moist_half1(k)    
                a_moist_full  (i,k,j) = a_moist_full1(k)    
@@ -4700,6 +4710,14 @@ END SUBROUTINE mym_condensation
                 Q_ql_ent(i,k,j)=0.
                 Q_qi_ent(i,k,j)=0.
                 Q_a_ent(i,k,j)=0.
+
+                Q_ql_det(i,k,j)=0.
+                Q_qi_det(i,k,j)=0.
+                Q_a_det(i,k,j)=0.
+
+                Q_ql_sub(i,k,j)=0.
+                Q_qi_sub(i,k,j)=0.
+                Q_a_sub(i,k,j)=0.
                
                 ENDIF
                
@@ -5599,14 +5617,24 @@ s_awqke=0.
  Qa=0. 
 
  Qql_adv  = 0.
- Qql_eddy = 0.
- Qql_ent  = 0.
- Qa_adv  = 0.
- Qa_eddy = 0.
- Qa_ent  = 0.
  Qqi_adv  = 0.
+ Qa_adv  = 0.
+
+ Qql_eddy = 0.
  Qqi_eddy = 0.
+ Qa_eddy = 0.
+
+ Qql_ent  = 0.
  Qqi_ent  = 0.
+ Qa_ent  = 0.
+
+ Qql_det  = 0.
+ Qqi_det  = 0.
+ Qa_det  = 0.
+
+ Qql_sub  = 0.
+ Qqi_sub  = 0.
+ Qa_sub  = 0.
 
  edmf_det = 0.
  DET=0.
