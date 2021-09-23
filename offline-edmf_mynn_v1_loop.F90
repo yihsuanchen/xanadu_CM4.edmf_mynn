@@ -197,6 +197,8 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
 
   real    :: sgm_factor = 100.                  ! factor in computing sigma_s in MYNN
 
+  integer :: Qx_MF = 1
+
 !==================
 type edmf_input_type
   integer,              allocatable ::   &
@@ -6090,6 +6092,21 @@ DO K=KTS,KTE-1
  
   ENDDO
 ENDDO  
+
+!--- return MF cloud tendencies  
+if (Qx_MF.eq.1) then   ! eddy-divergence/source form 
+  Qql(:) = Qql_eddy(:) + Qql_adv(:) +Qql_ent(:) 
+  Qqi(:) = Qqi_eddy(:) + Qqi_adv(:) +Qqi_ent(:) 
+  Qa (:) = Qa_eddy (:) + Qa_adv (:) +Qa_ent (:) 
+
+elseif (Qx_MF.eq.2) then ! detrainment/subsidence form
+  Qql(:) = Qql_det(:) + Qql_sub(:)
+  Qqi(:) = Qqi_det(:) + Qqi_sub(:)
+  Qa (:) = Qa_det (:) + Qa_sub (:)
+
+else
+  print*,'ERROR: Qx_MF must be 1 or 2'
+endif
 
 !--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
 
