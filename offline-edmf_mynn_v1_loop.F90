@@ -5476,6 +5476,8 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
       REAL,DIMENSION(KTS:KTE), INTENT(OUT) :: Qql,Qqi,Qa, &
         Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent
 
+      REAL,DIMENSION(KTS:KTE) :: &
+        Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub
 
         !INTEGER, PARAMETER :: NUP=100, debug_mf=0 !fixing number of plumes to 10
         INTEGER, PARAMETER :: debug_mf=0 !fixing number of plumes to 10, yhc - move NUP to namelist parameter
@@ -5933,8 +5935,38 @@ DO k=KTS,KTE+1
 ENDDO
 
 
-! compute variables for coupling with Tiedtke
+!<--- yhc 2021-09-08
 
+!--- diagnose detrainment rate
+DO K=KTS,KTE-1
+  IF(k > KTOP) exit
+
+  DO I=1,NUP
+    IF(I > NUP) exit
+
+    dz=ZW(k+1)-ZW(k)
+
+    mfp1=rho(K)*UPW(K+1,I)
+    if (k.eq.1) then
+      mf=rho(1)*UPW(K,I)
+    else
+      mf=rho(K-1)*UPW(K,I)
+    endif
+
+    if (mf.gt.0) then
+      DET(K,I) = ENT(K,I) - (mfp1-mf)/mf/dz   
+    endif
+
+    edmf_det(K)=edmf_det(K)+UPA(K,I)*DET(K,I)
+  ENDDO
+
+  IF (edmf_a(k)>0.) THEN
+    edmf_det(k)=edmf_det(k)/edmf_a(k)
+  ENDIF
+
+ENDDO
+
+!--- compute variables for coupling with Tiedtke
 DO K=KTS,KTE-1
   DO I=1,NUP
      dz=ZW(k+1)-ZW(k)
@@ -5957,6 +5989,7 @@ DO K=KTS,KTE-1
      Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2+F3)
      Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2+F3)
 
+     !--- eddy-flux divergence/source form
      Qql_eddy(k)=Qql_eddy(k)+liquid_frac(k)*F1
      Qql_adv (k)=Qql_adv(k)+liquid_frac(k)*F2
      Qql_ent (k)=Qql_ent(k)+liquid_frac(k)*F3
@@ -5964,6 +5997,24 @@ DO K=KTS,KTE-1
      Qqi_eddy(k)=Qqi_eddy(k)+(1.-liquid_frac(k))*F1
      Qqi_adv (k)=Qqi_adv(k)+(1.-liquid_frac(k))*F2
      Qqi_ent (k)=Qqi_ent(k)+(1.-liquid_frac(k))*F3
+
+     !--- detrainment/subsidence form
+     if (k.eq.1) then
+       mf=rho(1)*UPW(K,I)*UPA(K,I)
+     else
+       mf=rho(K-1)*UPW(K,I)*UPA(K,I)
+     endif
+
+     mfp1=rho(K+1)*UPA(K+1,I)*UPW(K+1,I)
+
+     F1=mf*DET(K,I)*(UPQC(K,I)-qc(K))
+     F2=mfp1*(qc(K+1)-qc(K))/dz
+
+     Qql_det(k) = liquid_frac(k)*F1/rho(K)
+     Qql_sub(k) = liquid_frac(k)*F2/rho(K)
+
+     Qqi_det(k) = (1.-liquid_frac(k))*F1/rho(K)
+     Qqi_sub(k) = (1.-liquid_frac(k))*F2/rho(K)
 
      !Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)/rho(k)
      !Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)/rho(k)
@@ -6017,17 +6068,32 @@ DO K=KTS,KTE-1
      !Qa(k)=Qa(k)+(F1+F2)/rho(k)
      Qa(k)=Qa(k)+(F1+F2+F3)
 
+     !--- eddy-flux divergence/source form
      Qa_eddy(k)=Qa_eddy(k)+F1
      Qa_adv (k)=Qa_adv(k)+F2
      Qa_ent (k)=Qa_ent(k)+F3
+
+     !--- detrainment/subsidence form
+     if (k.eq.1) then
+       mf=rho(1)*UPW(K,I)*UPA(K,I)
+     else
+       mf=rho(K-1)*UPW(K,I)*UPA(K,I)
+     endif
+
+     mfp1=rho(K+1)*UPA(K+1,I)*UPW(K+1,I)
+
+     F1=mf*DET(K,I)*(CCp0-cldfra_bl1d(K))
+     F2=mfp1*(CCp1-cldfra_bl1d(K))/dz
+
+     Qa_det(k) = F1/rho(K)
+     Qa_sub(k) = F2/rho(K)
  
   ENDDO
 ENDDO  
-!---> yhc 2021-09-08
 
-!<--- yhc 2021-09-08
+!--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
 
-!--- initial variables
+  !--- initial variables
   a_moist_half  = 0.    
   a_moist_full  = 0.
   mf_moist_half = 0.    
@@ -6099,34 +6165,6 @@ DO K=KTS,KTOP-1
   endif
 ENDDO
 
-!--- diagnose detrainment rate
-DO K=KTS,KTE-1
-  IF(k > KTOP) exit
-
-  DO I=1,NUP
-    IF(I > NUP) exit
-
-    dz=ZW(k+1)-ZW(k)
-
-    mfp1=rho(K)*UPW(K+1,I)
-    if (k.eq.1) then
-      mf=rho(1)*UPW(K,I)
-    else
-      mf=rho(K-1)*UPW(K,I)
-    endif
-
-    if (mf.gt.0) then
-      DET(K,I) = ENT(K,I) - (mfp1-mf)/mf/dz   
-    endif
-
-    edmf_det(K)=edmf_det(K)+UPA(K,I)*DET(K,I)
-  ENDDO
-
-  IF (edmf_a(k)>0.) THEN
-    edmf_det(k)=edmf_det(k)/edmf_a(k)
-  ENDIF
-
-ENDDO
 
 !print*,'a_dry_full',a_dry_full
 !print*,'a_dry_half',a_dry_half
