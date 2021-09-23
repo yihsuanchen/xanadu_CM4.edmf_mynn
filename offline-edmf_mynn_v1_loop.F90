@@ -3801,7 +3801,8 @@ END SUBROUTINE mym_condensation
 
 
     REAL,DIMENSION(KTS:KTE) :: Q_ql1,Q_qi1,Q_a1, &
-      Q_ql1_adv,Q_qi1_adv,Q_a1_adv, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy, Q_ql1_ent,Q_qi1_ent,Q_a1_ent
+      Q_ql1_adv,Q_qi1_adv,Q_a1_adv, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy, Q_ql1_ent,Q_qi1_ent,Q_a1_ent, &
+      Q_ql1_sub,Q_qi1_sub,Q_a1_sub, Q_ql1_det,Q_qi1_det,Q_a1_det
 
     !<--- yhc 2021-09-08 
     REAL, DIMENSION(IMS:IME,KMS:KME+1,JMS:JME), INTENT(out) :: &
@@ -4398,9 +4399,9 @@ END SUBROUTINE mym_condensation
                & mf_all_half1, mf_all_full1, edmf_det1, &                                                     ! yhc 2021-09-08
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
-               & Q_ql1,Q_qi1,Q_a1, Q_ql1_adv,Q_qi1_adv,Q_a1_adv, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy, Q_ql1_ent,Q_qi1_ent,Q_a1_ent  &
-               !& Q_ql1,Q_qi1,Q_a1                 &
-            )
+               & Q_ql1,Q_qi1,Q_a1,                 &
+               & Q_ql1_adv,Q_qi1_adv,Q_a1_adv, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy, Q_ql1_ent,Q_qi1_ent,Q_a1_ent, Q_ql1_det,Q_qi1_det,Q_a1_det, Q_ql1_sub,Q_qi1_sub,Q_a1_sub  &
+             )
 
           ENDIF
 
@@ -5446,8 +5447,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               & a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
               & a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
               & mf_all_half, mf_all_full, edmf_det, &                                                  ! yhc 2021-09-08
-              &ktop,ztop,kpbl,Qql,Qqi,Qa,Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent)
-              !&ktop,ztop,kpbl,Qql,Qqi,Qa)
+              &ktop,ztop,kpbl,Qql,Qqi,Qa, &
+              & Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent, Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub &
+              ) ! yhc 2021-09-08
 
 
 
@@ -5478,10 +5480,8 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         REAL,DIMENSION(KTS:KTE), INTENT(IN) :: qc_bl1d, cldfra_bl1d
 
       REAL,DIMENSION(KTS:KTE), INTENT(OUT) :: Qql,Qqi,Qa, &
+        Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub, &
         Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent
-
-      REAL,DIMENSION(KTS:KTE) :: &
-        Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub
 
         !INTEGER, PARAMETER :: NUP=100, debug_mf=0 !fixing number of plumes to 10
         INTEGER, PARAMETER :: debug_mf=0 !fixing number of plumes to 10, yhc - move NUP to namelist parameter
