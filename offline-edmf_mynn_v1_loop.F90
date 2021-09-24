@@ -197,7 +197,7 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
 
   real    :: sgm_factor = 100.                  ! factor in computing sigma_s in MYNN
 
-  integer :: Qx_MF = 1
+  integer :: Qx_MF = 1 
 
 !==================
 type edmf_input_type
@@ -5971,7 +5971,7 @@ ENDDO
 
 !--- diagnose detrainment rate
 DO K=KTS,KTE-1
-  IF(k > KTOP) exit
+   !IF(k > KTOP) exit
 
   DO I=1,NUP
     IF(I > NUP) exit
@@ -6042,11 +6042,11 @@ DO K=KTS,KTE-1
      F1=mf*DET(K,I)*(UPQC(K,I)-qc(K))
      F2=mfp1*(qc(K+1)-qc(K))/dz
 
-     Qql_det(k) = liquid_frac(k)*F1/rho(K)
-     Qql_sub(k) = liquid_frac(k)*F2/rho(K)
+     Qql_det(k) = Qql_det(k)+liquid_frac(k)*F1/rho(K)
+     Qqi_det(k) = Qqi_det(k)+(1.-liquid_frac(k))*F1/rho(K)
 
-     Qqi_det(k) = (1.-liquid_frac(k))*F1/rho(K)
-     Qqi_sub(k) = (1.-liquid_frac(k))*F2/rho(K)
+     Qql_sub(k) = Qql_sub(k)+liquid_frac(k)*F2/rho(K)
+     Qqi_sub(k) = Qqi_sub(k)+(1.-liquid_frac(k))*F2/rho(K)
 
      !Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)/rho(k)
      !Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)/rho(k)
@@ -6115,10 +6115,10 @@ DO K=KTS,KTE-1
      mfp1=rho(K+1)*UPA(K+1,I)*UPW(K+1,I)
 
      F1=mf*DET(K,I)*(CCp0-cldfra_bl1d(K))
-     F2=mfp1*(CCp1-cldfra_bl1d(K))/dz
+     F2=mfp1*(cldfra_bl1d(K+1)-cldfra_bl1d(K))/dz
 
-     Qa_det(k) = F1/rho(K)
-     Qa_sub(k) = F2/rho(K)
+     Qa_det(k) = Qa_det(k)+F1/rho(K)
+     Qa_sub(k) = Qa_sub(k)+F2/rho(K)
  
   ENDDO
 ENDDO  
@@ -6137,6 +6137,11 @@ elseif (Qx_MF.eq.2) then ! detrainment/subsidence form
 else
   print*,'ERROR: Qx_MF must be 1 or 2'
 endif
+
+!print*,'Qx_MF',Qx_MF
+!print*,'Qql',Qql
+!print*,'Qqi',Qqi
+!print*,'Qa',Qa
 
 !--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
 
@@ -11290,13 +11295,13 @@ endif ! end if of input profile
   Physics_input_block%q(:,:,:,nqi) = qi
   Physics_input_block%q(:,:,:,nqa) = qa
 
-  Physics_input_block%q(:,:,:,nql) = 1.e-4
+  !Physics_input_block%q(:,:,:,nql) = 1.e-4
   !Physics_input_block%q(:,:,:,nqi) = 0.
-  Physics_input_block%q(:,:,:,nqa) = 1.
+  !Physics_input_block%q(:,:,:,nqa) = 1.
 
-  Physics_input_block%q(:,:,:,nql) = 0.
+  !Physics_input_block%q(:,:,:,nql) = 0.
   !Physics_input_block%q(:,:,:,nqi) = 0.
-  Physics_input_block%q(:,:,:,nqa) = 0.
+  !Physics_input_block%q(:,:,:,nqa) = 0.
 
   do mm = 1,loop_times
     ! set tendencies to zeros
