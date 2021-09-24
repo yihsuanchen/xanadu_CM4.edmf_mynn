@@ -450,7 +450,7 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, &  ! for testing, no need any more 2021-08-04
-                            do_option_edmf2ls_mp, do_use_tau, &
+                            do_option_edmf2ls_mp, do_use_tau, Qx_MF, &
                             do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
 
 !---------------------------------------------------------------------
@@ -472,7 +472,7 @@ integer :: id_tdt_edmf_orig, id_qdt_edmf_orig, id_qadt_edmf_orig, id_qidt_edmf_o
 
 integer :: id_qldt_edmf_ED, id_qldt_edmf_MF, id_qidt_edmf_ED, id_qidt_edmf_MF, id_qadt_edmf_ED, id_qadt_edmf_MF
 
-integer :: id_qldt_edmf_MF_adv, id_qldt_edmf_MF_eddy, id_qldt_edmf_MF_ent, id_qidt_edmf_MF_adv, id_qidt_edmf_MF_eddy, id_qidt_edmf_MF_ent, id_qadt_edmf_MF_adv, id_qadt_edmf_MF_eddy, id_qadt_edmf_MF_ent
+integer :: id_qldt_edmf_MF_adv, id_qldt_edmf_MF_eddy, id_qldt_edmf_MF_ent, id_qidt_edmf_MF_adv, id_qidt_edmf_MF_eddy, id_qidt_edmf_MF_ent, id_qadt_edmf_MF_adv, id_qadt_edmf_MF_eddy, id_qadt_edmf_MF_ent, id_qadt_edmf_MF_det, id_qldt_edmf_MF_det, id_qidt_edmf_MF_det, id_qadt_edmf_MF_sub, id_qldt_edmf_MF_sub, id_qidt_edmf_MF_sub
 
 integer :: id_a_moist_half, id_a_moist_full, id_mf_moist_half, id_mf_moist_full, id_qv_moist_half, id_qv_moist_full, id_a_dry_half, id_a_dry_full, id_mf_dry_half, id_mf_dry_full, id_qv_dry_half, id_qv_dry_full, id_mf_all_half, id_mf_all_full
 !---------------------------------------------------------------------
@@ -961,6 +961,30 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_qadt_edmf_MF_ent = register_diag_field (mod_name, 'qadt_edmf_MF_ent', axes(full), Time, &
                  'qa tendency from edmf_mynn, MF_ent', '1/s' , &
+                 missing_value=missing_value )
+
+  id_qadt_edmf_MF_det = register_diag_field (mod_name, 'qadt_edmf_MF_det', axes(full), Time, &
+                 'qa tendency from edmf_mynn, MF_det', '1/s' , &
+                 missing_value=missing_value )
+
+  id_qldt_edmf_MF_det = register_diag_field (mod_name, 'qldt_edmf_MF_det', axes(full), Time, &
+                 'ql tendency from edmf_mynn, MF_det', 'kg/kg/s' , &
+                 missing_value=missing_value )
+
+  id_qidt_edmf_MF_det = register_diag_field (mod_name, 'qidt_edmf_MF_det', axes(full), Time, &
+                 'qi tendency from edmf_mynn, MF_det', 'kg/kg/s' , &
+                 missing_value=missing_value )
+
+  id_qadt_edmf_MF_sub = register_diag_field (mod_name, 'qadt_edmf_MF_sub', axes(full), Time, &
+                 'qa tendency from edmf_mynn, MF_sub', '1/s' , &
+                 missing_value=missing_value )
+
+  id_qldt_edmf_MF_sub = register_diag_field (mod_name, 'qldt_edmf_MF_sub', axes(full), Time, &
+                 'ql tendency from edmf_mynn, MF_sub', 'kg/kg/s' , &
+                 missing_value=missing_value )
+
+  id_qidt_edmf_MF_sub = register_diag_field (mod_name, 'qidt_edmf_MF_sub', axes(full), Time, &
+                 'qi tendency from edmf_mynn, MF_sub', 'kg/kg/s' , &
                  missing_value=missing_value )
 
   id_a_moist_half = register_diag_field (mod_name, 'a_moist_half', axes(half), Time, &
@@ -6587,8 +6611,8 @@ DO K=KTS,KTE-1
      F3=ENT(K,I)*mf*(UPQC(K,I)-qc(K))
        
      ! yhc: F1 and F2 do not need to be divided by rho 
-     Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2+F3)
-     Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2+F3)
+     !Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2+F3)
+     !Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2+F3)
 
      !--- eddy-flux divergence/source form
      Qql_eddy(k)=Qql_eddy(k)+liquid_frac(k)*F1
@@ -6667,7 +6691,7 @@ DO K=KTS,KTE-1
      F3=ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
   
      !Qa(k)=Qa(k)+(F1+F2)/rho(k)
-     Qa(k)=Qa(k)+(F1+F2+F3)
+     !Qa(k)=Qa(k)+(F1+F2+F3)
 
      !--- eddy-flux divergence/source form
      Qa_eddy(k)=Qa_eddy(k)+F1
@@ -7676,429 +7700,429 @@ subroutine edmf_mynn_driver ( &
       lmask_half(:,:,1:kx) = .true.
       lmask_half(:,:,kx+1) = .false.
 
-!!send_data
-!!------- zonal wind stress (units: kg/m/s2) at one level -------
-!      if ( id_u_flux > 0) then
-!        used = send_data (id_u_flux, u_flux, Time_next, is, js )
-!      endif
-!
-!!------- meridional wind stress (units: kg/m/s2) at one level -------
-!      if ( id_v_flux > 0) then
-!        used = send_data (id_v_flux, v_flux, Time_next, is, js )
-!      endif
-!
-!!------- u_star from u_flux and v_flux (units: m/s) at one level -------
-!      if ( id_u_star_updated > 0) then
-!        used = send_data (id_u_star_updated, Input_edmf%u_star_updated, Time_next, is, js )
-!      endif
-!
-!!------- sensible heat flux from star (units: W/m2) at one level -------
-!      if ( id_shflx_star > 0) then
-!        used = send_data (id_shflx_star, Input_edmf%shflx_star, Time_next, is, js )
-!      endif
-!
-!!------- evaporation flux from star (units: kg/m2/s) at one level -------
-!      if ( id_lhflx_star > 0) then
-!        used = send_data (id_lhflx_star, Input_edmf%lhflx_star, Time_next, is, js )
-!      endif
-!
-!!------- kinematic virtual temperature flux from star (units: K m/s) at one level -------
-!      if ( id_w1_thv1_surf_star > 0) then
-!        used = send_data (id_w1_thv1_surf_star, Input_edmf%w1_thv1_surf_star, Time_next, is, js )
-!      endif
-!
-!!------- kinematic virtual temperature flux from updated fluxes (units: K m/s) at one level -------
-!      if ( id_w1_thv1_surf_updated > 0) then
-!        used = send_data (id_w1_thv1_surf_updated, Input_edmf%w1_th1_surf_updated, Time_next, is, js )
-!      endif
-!
-!!------- Obukhov length from star (units: m) at one level -------
-!      if ( id_Obukhov_length_star > 0) then
-!        used = send_data (id_Obukhov_length_star, Input_edmf%Obukhov_length_star, Time_next, is, js )
-!      endif
-!
-!!------- Obukhov length from updated fluxes (units: m) at one level -------
-!      if ( id_Obukhov_length_updated > 0) then
-!        used = send_data (id_Obukhov_length_updated, Input_edmf%Obukhov_length_updated, Time_next, is, js )
-!      endif
-!
-!!------- turbulent kinetic energy (units: m2/s2) at full level -------
-!      if ( id_tke_edmf > 0) then
-!        used = send_data (id_tke_edmf, am4_Output_edmf%tke, Time_next, is, js, 1 )
-!      endif
-!
-!!------- variance of theta_l (units: K^2) at full level -------
-!      if ( id_Tsq > 0) then
-!        used = send_data (id_Tsq, am4_Output_edmf%Tsq, Time_next, is, js, 1 )
-!      endif
-!
-!!------- covariance of theta_l and q_t (units: none) at full level -------
-!      if ( id_Cov_thl_qt > 0) then
-!        used = send_data (id_Cov_thl_qt, am4_Output_edmf%Cov_thl_qt, Time_next, is, js, 1 )
-!      endif
-!
-!!------- u tendency from edmf_mynn (units: m/s2) at full level -------
-!      if ( id_udt_edmf > 0) then
-!        used = send_data (id_udt_edmf, am4_Output_edmf%udt_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- v tendency from edmf_mynn (units: m/s2) at full level -------
-!      if ( id_vdt_edmf > 0) then
-!        used = send_data (id_vdt_edmf, am4_Output_edmf%vdt_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- t tendency from edmf_mynn (units: K/s) at full level -------
-!      if ( id_tdt_edmf > 0) then
-!        used = send_data (id_tdt_edmf, am4_Output_edmf%tdt_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- q tendency from edmf_mynn (units: kg/kg/s) at full level -------
-!      if ( id_qdt_edmf > 0) then
-!        used = send_data (id_qdt_edmf, am4_Output_edmf%qdt_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qi tendency from edmf_mynn (units: kg/kg/s) at full level -------
-!      if ( id_qidt_edmf > 0) then
-!        used = send_data (id_qidt_edmf, am4_Output_edmf%qidt_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qc tendency from edmf_mynn (units: kg/kg/s) at full level -------
-!      if ( id_qldt_edmf > 0) then
-!        used = send_data (id_qldt_edmf, am4_Output_edmf%qldt_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- cldfrac tendency from edmf_mynn (units: 1/s) at full level -------
-!      if ( id_qadt_edmf > 0) then
-!        used = send_data (id_qadt_edmf, am4_Output_edmf%qadt_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- updraft area (units: none) at half level -------
-!      if ( id_edmf_a > 0) then
-!        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_a, diag_half)
-!        used = send_data (id_edmf_a, diag_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- vertical velocity of updrafts (units: m/s) at half level -------
-!      if ( id_edmf_w > 0) then
-!        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_w, diag_half)
-!        used = send_data (id_edmf_w, diag_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qt in updrafts (units: kg/kg) at half level -------
-!      if ( id_edmf_qt > 0) then
-!        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qt, diag_half)
-!        used = send_data (id_edmf_qt, diag_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- thl in updrafts (units: K) at half level -------
-!      if ( id_edmf_thl > 0) then
-!        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_thl, diag_half)
-!        used = send_data (id_edmf_thl, diag_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- entrainment in updrafts (units: 1/m) at full level -------
-!      if ( id_edmf_ent > 0) then
-!        call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%edmf_ent, diag_full)
-!        used = send_data (id_edmf_ent, diag_full, Time_next, is, js, 1 )
-!      endif
-!
-!!------- dentrainment in updrafts (units: 1/m) at full level -------
-!      if ( id_edmf_det > 0) then
-!        call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%edmf_det, diag_full)
-!        used = send_data (id_edmf_det, diag_full, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qc in updrafts (units: kg/kg) at half level -------
-!      if ( id_edmf_qc > 0) then
-!        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qc, diag_half)
-!        used = send_data (id_edmf_qc, diag_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- theta_li in edmf_mynn (units: K) at full level -------
-!      if ( id_thl_edmf > 0) then
-!        used = send_data (id_thl_edmf, am4_Output_edmf%thl_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qt in edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_qt_edmf > 0) then
-!        used = send_data (id_qt_edmf, am4_Output_edmf%qt_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- cloud fraction in edmf_mynn (units: fraction) at full level -------
-!      if ( id_cldfra_bl > 0) then
-!        used = send_data (id_cldfra_bl, am4_Output_edmf%cldfra_bl, Time_next, is, js, 1 )
-!      endif
-!
-!!------- liquid water mixing ratio in edmf_mynn (units: mynn) at full level -------
-!      if ( id_qc_bl > 0) then
-!        used = send_data (id_qc_bl, am4_Output_edmf%qc_bl, Time_next, is, js, 1 )
-!      endif
-!
-!!------- depth of planetary boundary layer (units: m) at one level -------
-!      if ( id_z_pbl > 0) then
-!        used = send_data (id_z_pbl, pbltop, Time_next, is, js )
-!      endif
-!
-!!------- PBL depth from edmf_mynn (units: m) at one level -------
-!      if ( id_z_pbl_edmf > 0) then
-!        used = send_data (id_z_pbl_edmf, am4_Output_edmf%pbltop, Time_next, is, js )
-!      endif
-!
-!!------- qt tendency from edmf_mynn (units: kg/kg/s) at full level -------
-!      if ( id_qtdt_edmf > 0) then
-!        used = send_data (id_qtdt_edmf, am4_Output_edmf%qtdt_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- thl tendency from edmf_mynn (units: K/s) at full level -------
-!      if ( id_thldt_edmf > 0) then
-!        used = send_data (id_thldt_edmf, am4_Output_edmf%thldt_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- heat diff coeffs from edmf_mynn (units: K/m/s) at half level -------
-!      if ( id_diff_t_edmf > 0) then
-!        ! the dimension size of am4_Output_edmf%diff_t_edmf is kx, but it is on half level. Write out on half levels
-!        diag_half(:,:,kx+1) = 0.
-!        diag_half(:,:,1:kx) = am4_Output_edmf%diff_t_edmf(:,:,1:kx)
-!        used = send_data (id_diff_t_edmf, diag_half, Time_next, is, js, 1, mask=lmask_half )
-!        !used = send_data (id_diff_t_edmf, am4_Output_edmf%diff_t_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- momentum diff coeffs from edmf_mynn (units: m2/s) at half level -------
-!      if ( id_diff_m_edmf > 0) then
-!        ! the dimension size of am4_Output_edmf%diff_m_edmf is kx, but it is on half level. Write out on half levels
-!        diag_half(:,:,kx+1) = 0.
-!        diag_half(:,:,1:kx) = am4_Output_edmf%diff_m_edmf(:,:,1:kx)
-!        used = send_data (id_diff_m_edmf, diag_half, Time_next, is, js, 1, mask=lmask_half )
-!        !used = send_data (id_diff_m_edmf, am4_Output_edmf%diff_m_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- mixing length in edmf_mynn (units: m) at full level -------
-!      if ( id_el_edmf > 0) then
-!        used = send_data (id_el_edmf, am4_Output_edmf%el_edmf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- T input to edmf_mynn (units: K) at full level -------
-!      if ( id_t_input > 0) then
-!        used = send_data (id_t_input, am4_Output_edmf%t_input, Time_next, is, js, 1 )
-!      endif
-!
-!!------- q input to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_q_input > 0) then
-!        used = send_data (id_q_input, am4_Output_edmf%q_input, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qa input to edmf_mynn (units: none) at full level -------
-!      if ( id_qa_input > 0) then
-!        used = send_data (id_qa_input, am4_Output_edmf%qa_input, Time_next, is, js, 1 )
-!      endif
-!
-!!------- ql input to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_ql_input > 0) then
-!        used = send_data (id_ql_input, am4_Output_edmf%ql_input, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qi input to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_qi_input > 0) then
-!        used = send_data (id_qi_input, am4_Output_edmf%qi_input, Time_next, is, js, 1 )
-!      endif
-!
-!!------- thl input to edmf_mynn (units: K) at full level -------
-!      if ( id_thl_input > 0) then
-!        used = send_data (id_thl_input, am4_Output_edmf%thl_input, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qt input to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_qt_input > 0) then
-!        used = send_data (id_qt_input, am4_Output_edmf%qt_input, Time_next, is, js, 1 )
-!      endif
-!
-!!------- rh input to edmf_mynn (units: percent) at full level -------
-!      if ( id_rh_input > 0) then
-!        used = send_data (id_rh_input, am4_Output_edmf%rh_input, Time_next, is, js, 1 )
-!      endif
-!
-!!------- theta input to edmf_mynn (units: K) at full level -------
-!      if ( id_th_input > 0) then
-!        used = send_data (id_th_input, am4_Output_edmf%th_input, Time_next, is, js, 1 )
-!      endif
-!
-!!------- T before_mix to edmf_mynn (units: K) at full level -------
-!      if ( id_t_before_mix > 0) then
-!        used = send_data (id_t_before_mix, am4_Output_edmf%t_before_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- q before_mix to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_q_before_mix > 0) then
-!        used = send_data (id_q_before_mix, am4_Output_edmf%q_before_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qa before_mix to edmf_mynn (units: none) at full level -------
-!      if ( id_qa_before_mix > 0) then
-!        used = send_data (id_qa_before_mix, am4_Output_edmf%qa_before_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- ql before_mix to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_ql_before_mix > 0) then
-!        used = send_data (id_ql_before_mix, am4_Output_edmf%ql_before_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qi before_mix to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_qi_before_mix > 0) then
-!        used = send_data (id_qi_before_mix, am4_Output_edmf%qi_before_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- thl before_mix to edmf_mynn (units: K) at full level -------
-!      if ( id_thl_before_mix > 0) then
-!        used = send_data (id_thl_before_mix, am4_Output_edmf%thl_before_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qt before_mix to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_qt_before_mix > 0) then
-!        used = send_data (id_qt_before_mix, am4_Output_edmf%qt_before_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- rh before_mix to edmf_mynn (units: percent) at full level -------
-!      if ( id_rh_before_mix > 0) then
-!        used = send_data (id_rh_before_mix, am4_Output_edmf%rh_before_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- theta before_mix to edmf_mynn (units: K) at full level -------
-!      if ( id_th_before_mix > 0) then
-!        used = send_data (id_th_before_mix, am4_Output_edmf%th_before_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- T after_mix to edmf_mynn (units: K) at full level -------
-!      if ( id_t_after_mix > 0) then
-!        used = send_data (id_t_after_mix, am4_Output_edmf%t_after_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- q after_mix to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_q_after_mix > 0) then
-!        used = send_data (id_q_after_mix, am4_Output_edmf%q_after_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qa after_mix to edmf_mynn (units: none) at full level -------
-!      if ( id_qa_after_mix > 0) then
-!        used = send_data (id_qa_after_mix, am4_Output_edmf%qa_after_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- ql after_mix to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_ql_after_mix > 0) then
-!        used = send_data (id_ql_after_mix, am4_Output_edmf%ql_after_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qi after_mix to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_qi_after_mix > 0) then
-!        used = send_data (id_qi_after_mix, am4_Output_edmf%qi_after_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- thl after_mix to edmf_mynn (units: K) at full level -------
-!      if ( id_thl_after_mix > 0) then
-!        used = send_data (id_thl_after_mix, am4_Output_edmf%thl_after_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qt after_mix to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_qt_after_mix > 0) then
-!        used = send_data (id_qt_after_mix, am4_Output_edmf%qt_after_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- rh after_mix to edmf_mynn (units: percent) at full level -------
-!      if ( id_rh_after_mix > 0) then
-!        used = send_data (id_rh_after_mix, am4_Output_edmf%rh_after_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- theta after_mix to edmf_mynn (units: K) at full level -------
-!      if ( id_th_after_mix > 0) then
-!        used = send_data (id_th_after_mix, am4_Output_edmf%th_after_mix, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qa before_pdf to edmf_mynn (units: none) at full level -------
-!      if ( id_qa_before_pdf > 0) then
-!        used = send_data (id_qa_before_pdf, am4_Output_edmf%qa_before_pdf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- ql before_pdf to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_ql_before_pdf > 0) then
-!        used = send_data (id_ql_before_pdf, am4_Output_edmf%ql_before_pdf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- qi before_pdf to edmf_mynn (units: kg/kg) at full level -------
-!      if ( id_qi_before_pdf > 0) then
-!        used = send_data (id_qi_before_pdf, am4_Output_edmf%qi_before_pdf, Time_next, is, js, 1 )
-!      endif
-!
-!!------- moist updraft area on phalf (units: none) at half level -------
-!      if ( id_a_moist_half > 0) then
-!        used = send_data (id_a_moist_half, am4_Output_edmf%a_moist_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- moist updraft area on pfull (units: none) at full level -------
-!      if ( id_a_moist_full > 0) then
-!        used = send_data (id_a_moist_full, am4_Output_edmf%a_moist_full, Time_next, is, js, 1 )
-!      endif
-!
-!!------- moist updraft mass flux on phalf (units: kg/m2/s) at half level -------
-!      if ( id_mf_moist_half > 0) then
-!        used = send_data (id_mf_moist_half, am4_Output_edmf%mf_moist_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- moist updraft mass flux on pfull (units: kg/m2/s) at full level -------
-!      if ( id_mf_moist_full > 0) then
-!        used = send_data (id_mf_moist_full, am4_Output_edmf%mf_moist_full, Time_next, is, js, 1 )
-!      endif
-!
-!!------- spec humid of moist updraft on phalf (units: kg/kg) at half level -------
-!      if ( id_qv_moist_half > 0) then
-!        used = send_data (id_qv_moist_half, am4_Output_edmf%qv_moist_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- spec humid of moist updraft on pfull (units: kg/kg) at full level -------
-!      if ( id_qv_moist_full > 0) then
-!        used = send_data (id_qv_moist_full, am4_Output_edmf%qv_moist_full, Time_next, is, js, 1 )
-!      endif
-!
-!!------- dry updraft area on phalf (units: none) at half level -------
-!      if ( id_a_dry_half > 0) then
-!        used = send_data (id_a_dry_half, am4_Output_edmf%a_dry_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- dry updraft area on pfull (units: none) at full level -------
-!      if ( id_a_dry_full > 0) then
-!        used = send_data (id_a_dry_full, am4_Output_edmf%a_dry_full, Time_next, is, js, 1 )
-!      endif
-!
-!!------- dry updraft mass flux on phalf (units: kg/m2/s) at half level -------
-!      if ( id_mf_dry_half > 0) then
-!        used = send_data (id_mf_dry_half, am4_Output_edmf%mf_dry_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- dry updraft mass flux on pfull (units: kg/m2/s) at full level -------
-!      if ( id_mf_dry_full > 0) then
-!        used = send_data (id_mf_dry_full, am4_Output_edmf%mf_dry_full, Time_next, is, js, 1 )
-!      endif
-!
-!!------- spec humid of dry updraft on phalf (units: kg/kg) at half level -------
-!      if ( id_qv_dry_half > 0) then
-!        used = send_data (id_qv_dry_half, am4_Output_edmf%qv_dry_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- spec humid of dry updraft on pfull (units: kg/kg) at full level -------
-!      if ( id_qv_dry_full > 0) then
-!        used = send_data (id_qv_dry_full, am4_Output_edmf%qv_dry_full, Time_next, is, js, 1 )
-!      endif
-!
-!!------- updraft mass flux on phalf (units: kg/m2/s) at half level -------
-!      if ( id_mf_all_half > 0) then
-!        used = send_data (id_mf_all_half, am4_Output_edmf%mf_all_half, Time_next, is, js, 1 )
-!      endif
-!
-!!------- updraft mass flux on pfull (units: kg/m2/s) at full level -------
-!      if ( id_mf_all_full > 0) then
-!        used = send_data (id_mf_all_full, am4_Output_edmf%mf_all_full, Time_next, is, js, 1 )
-!      endif
-!
-!
-!!send_data
+!send_data
+!------- zonal wind stress (units: kg/m/s2) at one level -------
+      if ( id_u_flux > 0) then
+        used = send_data (id_u_flux, u_flux, Time_next, is, js )
+      endif
+
+!------- meridional wind stress (units: kg/m/s2) at one level -------
+      if ( id_v_flux > 0) then
+        used = send_data (id_v_flux, v_flux, Time_next, is, js )
+      endif
+
+!------- u_star from u_flux and v_flux (units: m/s) at one level -------
+      if ( id_u_star_updated > 0) then
+        used = send_data (id_u_star_updated, Input_edmf%u_star_updated, Time_next, is, js )
+      endif
+
+!------- sensible heat flux from star (units: W/m2) at one level -------
+      if ( id_shflx_star > 0) then
+        used = send_data (id_shflx_star, Input_edmf%shflx_star, Time_next, is, js )
+      endif
+
+!------- evaporation flux from star (units: kg/m2/s) at one level -------
+      if ( id_lhflx_star > 0) then
+        used = send_data (id_lhflx_star, Input_edmf%lhflx_star, Time_next, is, js )
+      endif
+
+!------- kinematic virtual temperature flux from star (units: K m/s) at one level -------
+      if ( id_w1_thv1_surf_star > 0) then
+        used = send_data (id_w1_thv1_surf_star, Input_edmf%w1_thv1_surf_star, Time_next, is, js )
+      endif
+
+!------- kinematic virtual temperature flux from updated fluxes (units: K m/s) at one level -------
+      if ( id_w1_thv1_surf_updated > 0) then
+        used = send_data (id_w1_thv1_surf_updated, Input_edmf%w1_th1_surf_updated, Time_next, is, js )
+      endif
+
+!------- Obukhov length from star (units: m) at one level -------
+      if ( id_Obukhov_length_star > 0) then
+        used = send_data (id_Obukhov_length_star, Input_edmf%Obukhov_length_star, Time_next, is, js )
+      endif
+
+!------- Obukhov length from updated fluxes (units: m) at one level -------
+      if ( id_Obukhov_length_updated > 0) then
+        used = send_data (id_Obukhov_length_updated, Input_edmf%Obukhov_length_updated, Time_next, is, js )
+      endif
+
+!------- turbulent kinetic energy (units: m2/s2) at full level -------
+      if ( id_tke_edmf > 0) then
+        used = send_data (id_tke_edmf, am4_Output_edmf%tke, Time_next, is, js, 1 )
+      endif
+
+!------- variance of theta_l (units: K^2) at full level -------
+      if ( id_Tsq > 0) then
+        used = send_data (id_Tsq, am4_Output_edmf%Tsq, Time_next, is, js, 1 )
+      endif
+
+!------- covariance of theta_l and q_t (units: none) at full level -------
+      if ( id_Cov_thl_qt > 0) then
+        used = send_data (id_Cov_thl_qt, am4_Output_edmf%Cov_thl_qt, Time_next, is, js, 1 )
+      endif
+
+!------- u tendency from edmf_mynn (units: m/s2) at full level -------
+      if ( id_udt_edmf > 0) then
+        used = send_data (id_udt_edmf, am4_Output_edmf%udt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- v tendency from edmf_mynn (units: m/s2) at full level -------
+      if ( id_vdt_edmf > 0) then
+        used = send_data (id_vdt_edmf, am4_Output_edmf%vdt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- t tendency from edmf_mynn (units: K/s) at full level -------
+      if ( id_tdt_edmf > 0) then
+        used = send_data (id_tdt_edmf, am4_Output_edmf%tdt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- q tendency from edmf_mynn (units: kg/kg/s) at full level -------
+      if ( id_qdt_edmf > 0) then
+        used = send_data (id_qdt_edmf, am4_Output_edmf%qdt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- qi tendency from edmf_mynn (units: kg/kg/s) at full level -------
+      if ( id_qidt_edmf > 0) then
+        used = send_data (id_qidt_edmf, am4_Output_edmf%qidt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- qc tendency from edmf_mynn (units: kg/kg/s) at full level -------
+      if ( id_qldt_edmf > 0) then
+        used = send_data (id_qldt_edmf, am4_Output_edmf%qldt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- cldfrac tendency from edmf_mynn (units: 1/s) at full level -------
+      if ( id_qadt_edmf > 0) then
+        used = send_data (id_qadt_edmf, am4_Output_edmf%qadt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- updraft area (units: none) at half level -------
+      if ( id_edmf_a > 0) then
+        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_a, diag_half)
+        used = send_data (id_edmf_a, diag_half, Time_next, is, js, 1 )
+      endif
+
+!------- vertical velocity of updrafts (units: m/s) at half level -------
+      if ( id_edmf_w > 0) then
+        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_w, diag_half)
+        used = send_data (id_edmf_w, diag_half, Time_next, is, js, 1 )
+      endif
+
+!------- qt in updrafts (units: kg/kg) at half level -------
+      if ( id_edmf_qt > 0) then
+        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qt, diag_half)
+        used = send_data (id_edmf_qt, diag_half, Time_next, is, js, 1 )
+      endif
+
+!------- thl in updrafts (units: K) at half level -------
+      if ( id_edmf_thl > 0) then
+        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_thl, diag_half)
+        used = send_data (id_edmf_thl, diag_half, Time_next, is, js, 1 )
+      endif
+
+!------- entrainment in updrafts (units: 1/m) at full level -------
+      if ( id_edmf_ent > 0) then
+        call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%edmf_ent, diag_full)
+        used = send_data (id_edmf_ent, diag_full, Time_next, is, js, 1 )
+      endif
+
+!------- dentrainment in updrafts (units: 1/m) at full level -------
+      if ( id_edmf_det > 0) then
+        call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%edmf_det, diag_full)
+        used = send_data (id_edmf_det, diag_full, Time_next, is, js, 1 )
+      endif
+
+!------- qc in updrafts (units: kg/kg) at half level -------
+      if ( id_edmf_qc > 0) then
+        call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qc, diag_half)
+        used = send_data (id_edmf_qc, diag_half, Time_next, is, js, 1 )
+      endif
+
+!------- theta_li in edmf_mynn (units: K) at full level -------
+      if ( id_thl_edmf > 0) then
+        used = send_data (id_thl_edmf, am4_Output_edmf%thl_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- qt in edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qt_edmf > 0) then
+        used = send_data (id_qt_edmf, am4_Output_edmf%qt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- cloud fraction in edmf_mynn (units: fraction) at full level -------
+      if ( id_cldfra_bl > 0) then
+        used = send_data (id_cldfra_bl, am4_Output_edmf%cldfra_bl, Time_next, is, js, 1 )
+      endif
+
+!------- liquid water mixing ratio in edmf_mynn (units: mynn) at full level -------
+      if ( id_qc_bl > 0) then
+        used = send_data (id_qc_bl, am4_Output_edmf%qc_bl, Time_next, is, js, 1 )
+      endif
+
+!------- depth of planetary boundary layer (units: m) at one level -------
+      if ( id_z_pbl > 0) then
+        used = send_data (id_z_pbl, pbltop, Time_next, is, js )
+      endif
+
+!------- PBL depth from edmf_mynn (units: m) at one level -------
+      if ( id_z_pbl_edmf > 0) then
+        used = send_data (id_z_pbl_edmf, am4_Output_edmf%pbltop, Time_next, is, js )
+      endif
+
+!------- qt tendency from edmf_mynn (units: kg/kg/s) at full level -------
+      if ( id_qtdt_edmf > 0) then
+        used = send_data (id_qtdt_edmf, am4_Output_edmf%qtdt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- thl tendency from edmf_mynn (units: K/s) at full level -------
+      if ( id_thldt_edmf > 0) then
+        used = send_data (id_thldt_edmf, am4_Output_edmf%thldt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- heat diff coeffs from edmf_mynn (units: K/m/s) at half level -------
+      if ( id_diff_t_edmf > 0) then
+        ! the dimension size of am4_Output_edmf%diff_t_edmf is kx, but it is on half level. Write out on half levels
+        diag_half(:,:,kx+1) = 0.
+        diag_half(:,:,1:kx) = am4_Output_edmf%diff_t_edmf(:,:,1:kx)
+        used = send_data (id_diff_t_edmf, diag_half, Time_next, is, js, 1, mask=lmask_half )
+        !used = send_data (id_diff_t_edmf, am4_Output_edmf%diff_t_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- momentum diff coeffs from edmf_mynn (units: m2/s) at half level -------
+      if ( id_diff_m_edmf > 0) then
+        ! the dimension size of am4_Output_edmf%diff_m_edmf is kx, but it is on half level. Write out on half levels
+        diag_half(:,:,kx+1) = 0.
+        diag_half(:,:,1:kx) = am4_Output_edmf%diff_m_edmf(:,:,1:kx)
+        used = send_data (id_diff_m_edmf, diag_half, Time_next, is, js, 1, mask=lmask_half )
+        !used = send_data (id_diff_m_edmf, am4_Output_edmf%diff_m_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- mixing length in edmf_mynn (units: m) at full level -------
+      if ( id_el_edmf > 0) then
+        used = send_data (id_el_edmf, am4_Output_edmf%el_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- T input to edmf_mynn (units: K) at full level -------
+      if ( id_t_input > 0) then
+        used = send_data (id_t_input, am4_Output_edmf%t_input, Time_next, is, js, 1 )
+      endif
+
+!------- q input to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_q_input > 0) then
+        used = send_data (id_q_input, am4_Output_edmf%q_input, Time_next, is, js, 1 )
+      endif
+
+!------- qa input to edmf_mynn (units: none) at full level -------
+      if ( id_qa_input > 0) then
+        used = send_data (id_qa_input, am4_Output_edmf%qa_input, Time_next, is, js, 1 )
+      endif
+
+!------- ql input to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_ql_input > 0) then
+        used = send_data (id_ql_input, am4_Output_edmf%ql_input, Time_next, is, js, 1 )
+      endif
+
+!------- qi input to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qi_input > 0) then
+        used = send_data (id_qi_input, am4_Output_edmf%qi_input, Time_next, is, js, 1 )
+      endif
+
+!------- thl input to edmf_mynn (units: K) at full level -------
+      if ( id_thl_input > 0) then
+        used = send_data (id_thl_input, am4_Output_edmf%thl_input, Time_next, is, js, 1 )
+      endif
+
+!------- qt input to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qt_input > 0) then
+        used = send_data (id_qt_input, am4_Output_edmf%qt_input, Time_next, is, js, 1 )
+      endif
+
+!------- rh input to edmf_mynn (units: percent) at full level -------
+      if ( id_rh_input > 0) then
+        used = send_data (id_rh_input, am4_Output_edmf%rh_input, Time_next, is, js, 1 )
+      endif
+
+!------- theta input to edmf_mynn (units: K) at full level -------
+      if ( id_th_input > 0) then
+        used = send_data (id_th_input, am4_Output_edmf%th_input, Time_next, is, js, 1 )
+      endif
+
+!------- T before_mix to edmf_mynn (units: K) at full level -------
+      if ( id_t_before_mix > 0) then
+        used = send_data (id_t_before_mix, am4_Output_edmf%t_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- q before_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_q_before_mix > 0) then
+        used = send_data (id_q_before_mix, am4_Output_edmf%q_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qa before_mix to edmf_mynn (units: none) at full level -------
+      if ( id_qa_before_mix > 0) then
+        used = send_data (id_qa_before_mix, am4_Output_edmf%qa_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- ql before_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_ql_before_mix > 0) then
+        used = send_data (id_ql_before_mix, am4_Output_edmf%ql_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qi before_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qi_before_mix > 0) then
+        used = send_data (id_qi_before_mix, am4_Output_edmf%qi_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- thl before_mix to edmf_mynn (units: K) at full level -------
+      if ( id_thl_before_mix > 0) then
+        used = send_data (id_thl_before_mix, am4_Output_edmf%thl_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qt before_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qt_before_mix > 0) then
+        used = send_data (id_qt_before_mix, am4_Output_edmf%qt_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- rh before_mix to edmf_mynn (units: percent) at full level -------
+      if ( id_rh_before_mix > 0) then
+        used = send_data (id_rh_before_mix, am4_Output_edmf%rh_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- theta before_mix to edmf_mynn (units: K) at full level -------
+      if ( id_th_before_mix > 0) then
+        used = send_data (id_th_before_mix, am4_Output_edmf%th_before_mix, Time_next, is, js, 1 )
+      endif
+
+!------- T after_mix to edmf_mynn (units: K) at full level -------
+      if ( id_t_after_mix > 0) then
+        used = send_data (id_t_after_mix, am4_Output_edmf%t_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- q after_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_q_after_mix > 0) then
+        used = send_data (id_q_after_mix, am4_Output_edmf%q_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qa after_mix to edmf_mynn (units: none) at full level -------
+      if ( id_qa_after_mix > 0) then
+        used = send_data (id_qa_after_mix, am4_Output_edmf%qa_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- ql after_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_ql_after_mix > 0) then
+        used = send_data (id_ql_after_mix, am4_Output_edmf%ql_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qi after_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qi_after_mix > 0) then
+        used = send_data (id_qi_after_mix, am4_Output_edmf%qi_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- thl after_mix to edmf_mynn (units: K) at full level -------
+      if ( id_thl_after_mix > 0) then
+        used = send_data (id_thl_after_mix, am4_Output_edmf%thl_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qt after_mix to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qt_after_mix > 0) then
+        used = send_data (id_qt_after_mix, am4_Output_edmf%qt_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- rh after_mix to edmf_mynn (units: percent) at full level -------
+      if ( id_rh_after_mix > 0) then
+        used = send_data (id_rh_after_mix, am4_Output_edmf%rh_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- theta after_mix to edmf_mynn (units: K) at full level -------
+      if ( id_th_after_mix > 0) then
+        used = send_data (id_th_after_mix, am4_Output_edmf%th_after_mix, Time_next, is, js, 1 )
+      endif
+
+!------- qa before_pdf to edmf_mynn (units: none) at full level -------
+      if ( id_qa_before_pdf > 0) then
+        used = send_data (id_qa_before_pdf, am4_Output_edmf%qa_before_pdf, Time_next, is, js, 1 )
+      endif
+
+!------- ql before_pdf to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_ql_before_pdf > 0) then
+        used = send_data (id_ql_before_pdf, am4_Output_edmf%ql_before_pdf, Time_next, is, js, 1 )
+      endif
+
+!------- qi before_pdf to edmf_mynn (units: kg/kg) at full level -------
+      if ( id_qi_before_pdf > 0) then
+        used = send_data (id_qi_before_pdf, am4_Output_edmf%qi_before_pdf, Time_next, is, js, 1 )
+      endif
+
+!------- moist updraft area on phalf (units: none) at half level -------
+      if ( id_a_moist_half > 0) then
+        used = send_data (id_a_moist_half, am4_Output_edmf%a_moist_half, Time_next, is, js, 1 )
+      endif
+
+!------- moist updraft area on pfull (units: none) at full level -------
+      if ( id_a_moist_full > 0) then
+        used = send_data (id_a_moist_full, am4_Output_edmf%a_moist_full, Time_next, is, js, 1 )
+      endif
+
+!------- moist updraft mass flux on phalf (units: kg/m2/s) at half level -------
+      if ( id_mf_moist_half > 0) then
+        used = send_data (id_mf_moist_half, am4_Output_edmf%mf_moist_half, Time_next, is, js, 1 )
+      endif
+
+!------- moist updraft mass flux on pfull (units: kg/m2/s) at full level -------
+      if ( id_mf_moist_full > 0) then
+        used = send_data (id_mf_moist_full, am4_Output_edmf%mf_moist_full, Time_next, is, js, 1 )
+      endif
+
+!------- spec humid of moist updraft on phalf (units: kg/kg) at half level -------
+      if ( id_qv_moist_half > 0) then
+        used = send_data (id_qv_moist_half, am4_Output_edmf%qv_moist_half, Time_next, is, js, 1 )
+      endif
+
+!------- spec humid of moist updraft on pfull (units: kg/kg) at full level -------
+      if ( id_qv_moist_full > 0) then
+        used = send_data (id_qv_moist_full, am4_Output_edmf%qv_moist_full, Time_next, is, js, 1 )
+      endif
+
+!------- dry updraft area on phalf (units: none) at half level -------
+      if ( id_a_dry_half > 0) then
+        used = send_data (id_a_dry_half, am4_Output_edmf%a_dry_half, Time_next, is, js, 1 )
+      endif
+
+!------- dry updraft area on pfull (units: none) at full level -------
+      if ( id_a_dry_full > 0) then
+        used = send_data (id_a_dry_full, am4_Output_edmf%a_dry_full, Time_next, is, js, 1 )
+      endif
+
+!------- dry updraft mass flux on phalf (units: kg/m2/s) at half level -------
+      if ( id_mf_dry_half > 0) then
+        used = send_data (id_mf_dry_half, am4_Output_edmf%mf_dry_half, Time_next, is, js, 1 )
+      endif
+
+!------- dry updraft mass flux on pfull (units: kg/m2/s) at full level -------
+      if ( id_mf_dry_full > 0) then
+        used = send_data (id_mf_dry_full, am4_Output_edmf%mf_dry_full, Time_next, is, js, 1 )
+      endif
+
+!------- spec humid of dry updraft on phalf (units: kg/kg) at half level -------
+      if ( id_qv_dry_half > 0) then
+        used = send_data (id_qv_dry_half, am4_Output_edmf%qv_dry_half, Time_next, is, js, 1 )
+      endif
+
+!------- spec humid of dry updraft on pfull (units: kg/kg) at full level -------
+      if ( id_qv_dry_full > 0) then
+        used = send_data (id_qv_dry_full, am4_Output_edmf%qv_dry_full, Time_next, is, js, 1 )
+      endif
+
+!------- updraft mass flux on phalf (units: kg/m2/s) at half level -------
+      if ( id_mf_all_half > 0) then
+        used = send_data (id_mf_all_half, am4_Output_edmf%mf_all_half, Time_next, is, js, 1 )
+      endif
+
+!------- updraft mass flux on pfull (units: kg/m2/s) at full level -------
+      if ( id_mf_all_full > 0) then
+        used = send_data (id_mf_all_full, am4_Output_edmf%mf_all_full, Time_next, is, js, 1 )
+      endif
+
+
+!send_data
 
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
@@ -10119,125 +10143,160 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
 ! save the original mynn_edmf tendencies
 !----------------------------
 
-!!send_data
-!   !------- t tendency from edmf_mynn original (units: K/s) at full level -------
-!   if ( id_tdt_edmf_orig > 0) then
-!     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RTHBLTEN(:,:,:)*Input_edmf%exner(:,:,:), tmp_3d)
-!     used = send_data (id_tdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
-!   endif
-!
-!   !------- q tendency from edmf_mynn original (units: kg/kg/s) at full level -------
-!   if ( id_qdt_edmf_orig > 0) then
-!     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQVBLTEN(:,:,:), tmp_3d)
-!     used = send_data (id_qdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
-!   endif
-!
-!   !------- cldfra tendency from edmf_mynn original (units: 1/s) at full level -------
-!   if ( id_qadt_edmf_orig > 0) then
-!     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RCCBLTEN(:,:,:), tmp_3d)
-!     used = send_data (id_qadt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
-!   endif
-!
-!   !------- qi tendency from edmf_mynn original (units: kg/kg/s) at full level -------
-!   if ( id_qidt_edmf_orig > 0) then
-!     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQIBLTEN(:,:,:), tmp_3d)
-!     used = send_data (id_qidt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
-!   endif
-!
-!   !------- ql tendency from edmf_mynn original (units: kg/kg/s) at full level -------
-!   if ( id_qldt_edmf_orig > 0) then
-!     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQLBLTEN(:,:,:), tmp_3d)
-!     used = send_data (id_qldt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
-!   endif
-!
-!!------- ql tendency from edmf_mynn, ED (units: kg/kg/s) at full level -------
-!    if ( id_qldt_edmf_ED > 0) then
-!      used = send_data (id_qldt_edmf_ED, rdt_mynn_ed_am4(:,:,:,nql), Time_next, is, js, 1 )
-!    endif
-!
-!!------- ql tendency from edmf_mynn, MF (units: kg/kg/s) at full level -------
-!    if ( id_qldt_edmf_MF > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql(:,:,:), tmp_3d)
-!      used = send_data (id_qldt_edmf_MF, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!------- qi tendency from edmf_mynn, ED (units: kg/kg/s) at full level -------
-!    if ( id_qidt_edmf_ED > 0) then
-!      used = send_data (id_qidt_edmf_ED, rdt_mynn_ed_am4(:,:,:,nqi), Time_next, is, js, 1 )
-!    endif
-!
-!!------- qi tendency from edmf_mynn, MF (units: kg/kg/s) at full level -------
-!    if ( id_qidt_edmf_MF > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi(:,:,:), tmp_3d)
-!      used = send_data (id_qidt_edmf_MF, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!------- qa tendency from edmf_mynn, ED (units: 1/s) at full level -------
-!    if ( id_qadt_edmf_ED > 0) then
-!      used = send_data (id_qadt_edmf_ED, rdt_mynn_ed_am4(:,:,:,nqa), Time_next, is, js, 1 )
-!    endif
-!
-!!------- qa tendency from edmf_mynn, MF (units: 1/s) at full level -------
-!    if ( id_qadt_edmf_MF > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa(:,:,:), tmp_3d)
-!      used = send_data (id_qadt_edmf_MF, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!------- qa tendency from edmf_mynn, MF_adv (units: 1/s) at full level -------
-!    if ( id_qadt_edmf_MF_adv > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_adv(:,:,:), tmp_3d)
-!      used = send_data (id_qadt_edmf_MF_adv, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!------- ql tendency from edmf_mynn, MF_adv (units: kg/kg/s) at full level -------
-!    if ( id_qldt_edmf_MF_adv > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_adv(:,:,:), tmp_3d)
-!      used = send_data (id_qldt_edmf_MF_adv, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!------- qi tendency from edmf_mynn, MF_adv (units: kg/kg/s) at full level -------
-!    if ( id_qidt_edmf_MF_adv > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_adv(:,:,:), tmp_3d)
-!      used = send_data (id_qidt_edmf_MF_adv, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!------- qa tendency from edmf_mynn, MF_eddy (units: 1/s) at full level -------
-!    if ( id_qadt_edmf_MF_eddy > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_eddy(:,:,:), tmp_3d)
-!      used = send_data (id_qadt_edmf_MF_eddy, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!------- ql tendency from edmf_mynn, MF_eddy (units: kg/kg/s) at full level -------
-!    if ( id_qldt_edmf_MF_eddy > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_eddy(:,:,:), tmp_3d)
-!      used = send_data (id_qldt_edmf_MF_eddy, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!------- qi tendency from edmf_mynn, MF_eddy (units: kg/kg/s) at full level -------
-!    if ( id_qidt_edmf_MF_eddy > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_eddy(:,:,:), tmp_3d)
-!      used = send_data (id_qidt_edmf_MF_eddy, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!------- qa tendency from edmf_mynn, MF_ent (units: 1/s) at full level -------
-!    if ( id_qadt_edmf_MF_ent > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_ent(:,:,:), tmp_3d)
-!      used = send_data (id_qadt_edmf_MF_ent, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!------- ql tendency from edmf_mynn, MF_ent (units: kg/kg/s) at full level -------
-!    if ( id_qldt_edmf_MF_ent > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_ent(:,:,:), tmp_3d)
-!      used = send_data (id_qldt_edmf_MF_ent, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!------- qi tendency from edmf_mynn, MF_ent (units: kg/kg/s) at full level -------
-!    if ( id_qidt_edmf_MF_ent > 0) then
-!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_ent(:,:,:), tmp_3d)
-!      used = send_data (id_qidt_edmf_MF_ent, tmp_3d, Time_next, is, js, 1 )
-!    endif
-!
-!!send_data
+!send_data
+   !------- t tendency from edmf_mynn original (units: K/s) at full level -------
+   if ( id_tdt_edmf_orig > 0) then
+     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RTHBLTEN(:,:,:)*Input_edmf%exner(:,:,:), tmp_3d)
+     used = send_data (id_tdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+   endif
+
+   !------- q tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+   if ( id_qdt_edmf_orig > 0) then
+     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQVBLTEN(:,:,:), tmp_3d)
+     used = send_data (id_qdt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+   endif
+
+   !------- cldfra tendency from edmf_mynn original (units: 1/s) at full level -------
+   if ( id_qadt_edmf_orig > 0) then
+     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RCCBLTEN(:,:,:), tmp_3d)
+     used = send_data (id_qadt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+   endif
+
+   !------- qi tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+   if ( id_qidt_edmf_orig > 0) then
+     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQIBLTEN(:,:,:), tmp_3d)
+     used = send_data (id_qidt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+   endif
+
+   !------- ql tendency from edmf_mynn original (units: kg/kg/s) at full level -------
+   if ( id_qldt_edmf_orig > 0) then
+     call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQLBLTEN(:,:,:), tmp_3d)
+     used = send_data (id_qldt_edmf_orig, tmp_3d, Time_next, is, js, 1 )
+   endif
+
+!------- ql tendency from edmf_mynn, ED (units: kg/kg/s) at full level -------
+    if ( id_qldt_edmf_ED > 0) then
+      used = send_data (id_qldt_edmf_ED, rdt_mynn_ed_am4(:,:,:,nql), Time_next, is, js, 1 )
+    endif
+
+!------- ql tendency from edmf_mynn, MF (units: kg/kg/s) at full level -------
+    if ( id_qldt_edmf_MF > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql(:,:,:), tmp_3d)
+      used = send_data (id_qldt_edmf_MF, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qi tendency from edmf_mynn, ED (units: kg/kg/s) at full level -------
+    if ( id_qidt_edmf_ED > 0) then
+      used = send_data (id_qidt_edmf_ED, rdt_mynn_ed_am4(:,:,:,nqi), Time_next, is, js, 1 )
+    endif
+
+!------- qi tendency from edmf_mynn, MF (units: kg/kg/s) at full level -------
+    if ( id_qidt_edmf_MF > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi(:,:,:), tmp_3d)
+      used = send_data (id_qidt_edmf_MF, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qa tendency from edmf_mynn, ED (units: 1/s) at full level -------
+    if ( id_qadt_edmf_ED > 0) then
+      used = send_data (id_qadt_edmf_ED, rdt_mynn_ed_am4(:,:,:,nqa), Time_next, is, js, 1 )
+    endif
+
+!------- qa tendency from edmf_mynn, MF (units: 1/s) at full level -------
+    if ( id_qadt_edmf_MF > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa(:,:,:), tmp_3d)
+      used = send_data (id_qadt_edmf_MF, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qa tendency from edmf_mynn, MF_adv (units: 1/s) at full level -------
+    if ( id_qadt_edmf_MF_adv > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_adv(:,:,:), tmp_3d)
+      used = send_data (id_qadt_edmf_MF_adv, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- ql tendency from edmf_mynn, MF_adv (units: kg/kg/s) at full level -------
+    if ( id_qldt_edmf_MF_adv > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_adv(:,:,:), tmp_3d)
+      used = send_data (id_qldt_edmf_MF_adv, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qi tendency from edmf_mynn, MF_adv (units: kg/kg/s) at full level -------
+    if ( id_qidt_edmf_MF_adv > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_adv(:,:,:), tmp_3d)
+      used = send_data (id_qidt_edmf_MF_adv, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qa tendency from edmf_mynn, MF_eddy (units: 1/s) at full level -------
+    if ( id_qadt_edmf_MF_eddy > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_eddy(:,:,:), tmp_3d)
+      used = send_data (id_qadt_edmf_MF_eddy, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- ql tendency from edmf_mynn, MF_eddy (units: kg/kg/s) at full level -------
+    if ( id_qldt_edmf_MF_eddy > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_eddy(:,:,:), tmp_3d)
+      used = send_data (id_qldt_edmf_MF_eddy, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qi tendency from edmf_mynn, MF_eddy (units: kg/kg/s) at full level -------
+    if ( id_qidt_edmf_MF_eddy > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_eddy(:,:,:), tmp_3d)
+      used = send_data (id_qidt_edmf_MF_eddy, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qa tendency from edmf_mynn, MF_ent (units: 1/s) at full level -------
+    if ( id_qadt_edmf_MF_ent > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_ent(:,:,:), tmp_3d)
+      used = send_data (id_qadt_edmf_MF_ent, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- ql tendency from edmf_mynn, MF_ent (units: kg/kg/s) at full level -------
+    if ( id_qldt_edmf_MF_ent > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_ent(:,:,:), tmp_3d)
+      used = send_data (id_qldt_edmf_MF_ent, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qi tendency from edmf_mynn, MF_ent (units: kg/kg/s) at full level -------
+    if ( id_qidt_edmf_MF_ent > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_ent(:,:,:), tmp_3d)
+      used = send_data (id_qidt_edmf_MF_ent, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qa tendency from edmf_mynn, MF_det (units: 1/s) at full level -------
+    if ( id_qadt_edmf_MF_det > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_det(:,:,:), tmp_3d)
+      used = send_data (id_qadt_edmf_MF_det, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- ql tendency from edmf_mynn, MF_det (units: kg/kg/s) at full level -------
+    if ( id_qldt_edmf_MF_det > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_det(:,:,:), tmp_3d)
+      used = send_data (id_qldt_edmf_MF_det, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qi tendency from edmf_mynn, MF_det (units: kg/kg/s) at full level -------
+    if ( id_qidt_edmf_MF_det > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_det(:,:,:), tmp_3d)
+      used = send_data (id_qidt_edmf_MF_det, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qa tendency from edmf_mynn, MF_sub (units: 1/s) at full level -------
+    if ( id_qadt_edmf_MF_sub > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_sub(:,:,:), tmp_3d)
+      used = send_data (id_qadt_edmf_MF_sub, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- ql tendency from edmf_mynn, MF_sub (units: kg/kg/s) at full level -------
+    if ( id_qldt_edmf_MF_sub > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_sub(:,:,:), tmp_3d)
+      used = send_data (id_qldt_edmf_MF_sub, tmp_3d, Time_next, is, js, 1 )
+    endif
+
+!------- qi tendency from edmf_mynn, MF_sub (units: kg/kg/s) at full level -------
+    if ( id_qidt_edmf_MF_sub > 0) then
+      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_sub(:,:,:), tmp_3d)
+      used = send_data (id_qidt_edmf_MF_sub, tmp_3d, Time_next, is, js, 1 )
+    endif
+!send_data
 
 !----------------------------
 ! modify mynn_edmf tendencies 
