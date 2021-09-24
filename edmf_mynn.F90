@@ -6158,7 +6158,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          mf_dry_full  ,  & 
          mf_all_full  , & 
          qv_moist_full,  & 
-         qv_dry_full    
+         qv_dry_full   
+  
+       REAL,DIMENSION(KTS:KTE) :: ZFULL
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -6562,6 +6564,11 @@ ENDDO
 
 !<--- yhc 2021-09-08
 
+!--- compute z at full levels (where T,q are defined)
+DO K=KTS,KTE
+  ZFULL(K) = 0.5 * (ZW(K)+ZW(K+1))
+ENDDO
+
 !--- diagnose detrainment rate
 DO K=KTS,KTE-1
    !IF(k > KTOP) exit
@@ -6630,10 +6637,10 @@ DO K=KTS,KTE-1
        mf=rho(K-1)*UPW(K,I)*UPA(K,I)
      endif
 
-     mfp1=rho(K+1)*UPA(K+1,I)*UPW(K+1,I)
+     mfp1=rho(K)*UPA(K+1,I)*UPW(K+1,I)
 
      F1=mf*DET(K,I)*(UPQC(K,I)-qc(K))
-     F2=mfp1*(qc(K+1)-qc(K))/dz
+     F2=mfp1*(qc(K+1)-qc(K))/(ZFULL(K+1)-ZFULL(K))
 
      Qql_det(k) = Qql_det(k)+liquid_frac(k)*F1/rho(K)
      Qqi_det(k) = Qqi_det(k)+(1.-liquid_frac(k))*F1/rho(K)
@@ -6705,10 +6712,10 @@ DO K=KTS,KTE-1
        mf=rho(K-1)*UPW(K,I)*UPA(K,I)
      endif
 
-     mfp1=rho(K+1)*UPA(K+1,I)*UPW(K+1,I)
+     mfp1=rho(K)*UPA(K+1,I)*UPW(K+1,I)
 
      F1=mf*DET(K,I)*(CCp0-cldfra_bl1d(K))
-     F2=mfp1*(cldfra_bl1d(K+1)-cldfra_bl1d(K))/dz
+     F2=mfp1*(cldfra_bl1d(K+1)-cldfra_bl1d(K))/(ZFULL(K+1)-ZFULL(K))
 
      Qa_det(k) = Qa_det(k)+F1/rho(K)
      Qa_sub(k) = Qa_sub(k)+F2/rho(K)
