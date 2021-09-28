@@ -5769,6 +5769,7 @@ real :: diff,exn,t,th,qs,qcold,xlvv
   xlvv=xlLF_blend(THL*EXN,lf)
 
   !QC=0.  !better first guess QC is incoming from lower level, do not set to zero
+
   do i=1,NITER
      T=EXN*THL + xlvv/cp*QC        
      QS=qsatLF_blend(T,P,lf)
@@ -6398,6 +6399,8 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
             Un=U(K-1)*(1-EntExp)+UPU(K-1,I)*EntExp_M
             Vn=V(K-1)*(1-EntExp)+UPV(K-1,I)*EntExp_M
             ! get thvn,qcn
+
+            if (K.eq.KTS+1) QCn = 0.  ! yhc, first guess of QCn. If not set, Qcn may be randomly set (e.g. 0.7) which wouldcause problem
             call condensation_edmf(QTn,THLn,Ph(K),lfh(k),THVn,QCn)
 
             B=g*(0.5*(THVn+UPTHV(k-1,I))/THV(k-1)-1)
@@ -7661,8 +7664,8 @@ subroutine edmf_mynn_driver ( &
       rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
       rdt(:,:,:,nqi)  = rdt(:,:,:,nqi) + am4_Output_edmf%qidt_edmf(:,:,:)
 
-      edmf_mc_full (:,:,:) = am4_Output_edmf%mf_all_half (:,:,:)
-      edmf_mc_half (:,:,:) = am4_Output_edmf%mf_all_full (:,:,:)
+      edmf_mc_half (:,:,:) = am4_Output_edmf%mf_all_half (:,:,:)
+      edmf_mc_full (:,:,:) = am4_Output_edmf%mf_all_full (:,:,:)
 
     ! accumulate EDMF cloud tendencies to the model tendencies. Pass MF mass flux, moist area and humidity to Tiedtke
     elseif (option_edmf2ls_mp.eq.5) then 
