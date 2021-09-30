@@ -31,7 +31,7 @@ use           fms_mod, only: file_exist, open_namelist_file,       &
                              mpp_chksum
 
 use     constants_mod, only: vonkarm, rdgas, rvgas, kappa, grav, &
-                             cp_air, dens_h2o, hlv, hlf, hls  !, con_cliq, con_csol. con_cliq, con_csol are not accessble?
+                             cp_air, dens_h2o, hlv, hlf, hls, pi  !, con_cliq, con_csol. con_cliq, con_csol are not accessble?
 
 use  diag_manager_mod, only: register_diag_field, send_data
 
@@ -155,7 +155,7 @@ type am4_edmf_output_type
 
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
     thl_edmf, qt_edmf,  & ! diagnostic purpose
-    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, qadt_edmf, &  ! outputs from EDMF-MYNN scheme
+    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, qadt_edmf, qndt_edmf, &  ! outputs from EDMF-MYNN scheme
     qtdt_edmf, thldt_edmf, &
     diff_t_edmf, diff_m_edmf, &
     cldfra_bl, qc_bl, el_edmf, &
@@ -433,6 +433,8 @@ end type edmf_ls_mp_type
                                                 !             (rdgas/rvgas)*esat/pressure
                                                 ! same setting as module moist_processes_mod
 
+  real    :: rc_MF = 10.e-6                     ! assumed cloud droplet radius in plumes (meters)
+
   character*20 :: do_debug_option = ""          ! debug purpose
 
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
@@ -449,7 +451,7 @@ end type edmf_ls_mp_type
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
-                            tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, &  ! for testing, no need any more 2021-08-04
+                            tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
                             do_option_edmf2ls_mp, do_use_tau, Qx_MF, &
                             do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
 
@@ -464,7 +466,7 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni  ! tracer indices for stratiform clo
 integer :: nQke, nSh3D, nel_pbl, ncldfra_bl, nqc_bl ! tracer index for EDMF-MYNN tracers
 integer :: ntp          ! number of prognostic tracers
 
-integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_det, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf, id_qtdt_edmf, id_thldt_edmf, id_diff_t_edmf, id_diff_m_edmf, id_el_edmf
+integer :: id_u_flux, id_v_flux, id_u_star_updated, id_shflx_star, id_lhflx_star, id_w1_thv1_surf_star, id_w1_thv1_surf_updated, id_Obukhov_length_star, id_Obukhov_length_updated, id_tke_edmf, id_Tsq, id_Cov_thl_qt, id_udt_edmf, id_vdt_edmf, id_tdt_edmf, id_qdt_edmf, id_qidt_edmf, id_qadt_edmf, id_qldt_edmf, id_qndt_edmf, id_edmf_a, id_edmf_w, id_edmf_qt, id_edmf_thl, id_edmf_ent, id_edmf_det, id_edmf_qc, id_thl_edmf, id_qt_edmf, id_cldfra_bl, id_qc_bl, id_z_pbl, id_z_pbl_edmf, id_qtdt_edmf, id_thldt_edmf, id_diff_t_edmf, id_diff_m_edmf, id_el_edmf
 
 integer :: id_t_input, id_q_input, id_qa_input, id_ql_input, id_qi_input, id_thl_input, id_qt_input, id_rh_input, id_th_input, id_t_before_mix, id_q_before_mix, id_qa_before_mix, id_ql_before_mix, id_qi_before_mix, id_thl_before_mix, id_qt_before_mix, id_rh_before_mix, id_th_before_mix, id_t_after_mix, id_q_after_mix, id_qa_after_mix, id_ql_after_mix, id_qi_after_mix, id_thl_after_mix, id_qt_after_mix, id_rh_after_mix, id_th_after_mix, id_qa_before_pdf, id_ql_before_pdf, id_qi_before_pdf 
 
@@ -689,6 +691,10 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_qldt_edmf = register_diag_field (mod_name, 'qldt_edmf', axes(full), Time, &
                  'ql tendency from edmf_mynn', 'kg/kg/s' , &
+                 missing_value=missing_value )
+
+  id_qndt_edmf = register_diag_field (mod_name, 'qndt_edmf', axes(full), Time, &
+                 'qn tendency from edmf_mynn', '1/kg/s' , &
                  missing_value=missing_value )
 
   id_edmf_a = register_diag_field (mod_name, 'edmf_a', axes(half), Time, &
@@ -7664,6 +7670,10 @@ subroutine edmf_mynn_driver ( &
       rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
       rdt(:,:,:,nqi)  = rdt(:,:,:,nqi) + am4_Output_edmf%qidt_edmf(:,:,:)
 
+      ! for testing, assume cloud droplet radius (rc_MF) and then compute cloud liquid number tendency
+      am4_Output_edmf%qndt_edmf(:,:,:) = am4_Output_edmf%qldt_edmf(:,:,:) / dens_h2o / (4./3.*pi*rc_MF**3)  
+      rdt(:,:,:,nqn)  = rdt(:,:,:,nqn) + am4_Output_edmf%qndt_edmf(:,:,:)
+
       edmf_mc_half (:,:,:) = am4_Output_edmf%mf_all_half (:,:,:)
       edmf_mc_full (:,:,:) = am4_Output_edmf%mf_all_full (:,:,:)
 
@@ -7804,6 +7814,11 @@ subroutine edmf_mynn_driver ( &
 !------- cldfrac tendency from edmf_mynn (units: 1/s) at full level -------
       if ( id_qadt_edmf > 0) then
         used = send_data (id_qadt_edmf, am4_Output_edmf%qadt_edmf, Time_next, is, js, 1 )
+      endif
+
+!------- cloud droplet number tendency from edmf_mynn (units: 1/kg/s) at full level -------
+      if ( id_qndt_edmf > 0) then
+        used = send_data (id_qndt_edmf, am4_Output_edmf%qndt_edmf, Time_next, is, js, 1 )
       endif
 
 !------- updraft area (units: none) at half level -------
@@ -8649,6 +8664,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qidt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qidt_edmf   = 0.
   allocate (am4_Output_edmf%qldt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qldt_edmf   = 0.
   allocate (am4_Output_edmf%qadt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qadt_edmf   = 0.
+  allocate (am4_Output_edmf%qndt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qndt_edmf   = 0.
   allocate (am4_Output_edmf%qtdt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qtdt_edmf   = 0.
   allocate (am4_Output_edmf%thldt_edmf  (ix,jx,kx))  ; am4_Output_edmf%thldt_edmf  = 0.
   allocate (am4_Output_edmf%edmf_a      (ix,jx,kx))  ; am4_Output_edmf%edmf_a      = 0.
@@ -9193,6 +9209,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qidt_edmf   )  
   deallocate (am4_Output_edmf%qldt_edmf   )  
   deallocate (am4_Output_edmf%qadt_edmf   )  
+  deallocate (am4_Output_edmf%qndt_edmf   )  
   deallocate (am4_Output_edmf%qtdt_edmf   )  
   deallocate (am4_Output_edmf%thldt_edmf  )  
   deallocate (am4_Output_edmf%edmf_a      )
