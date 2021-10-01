@@ -2218,6 +2218,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                rdt_mynn_ed_am4,  &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf(is:ie,js:je), &
+               edmf_mc_full(is:ie,js:je,:), edmf_mc_half(is:ie,js:je,:), edmf_moist_area(is:ie,js:je,:), edmf_dry_area(is:ie,js:je,:), edmf_moist_humidity(is:ie,js:je,:), edmf_dry_humidity(is:ie,js:je,:), &
                z_pbl, udt, vdt, tdt, rdt, rdiag)
 
     !--- yhc note, 2021-05-03
@@ -3091,6 +3092,7 @@ real,dimension(:,:),    intent(inout)             :: gust
                rdt_mynn_ed_am4,  &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf(is:ie,js:je), &
+               edmf_mc_full(is:ie,js:je,:), edmf_mc_half(is:ie,js:je,:), edmf_moist_area(is:ie,js:je,:), edmf_dry_area(is:ie,js:je,:), edmf_moist_humidity(is:ie,js:je,:), edmf_dry_humidity(is:ie,js:je,:), &
                z_pbl, udt, vdt, tdt, rdt, rdiag)
                !pbltop, udt, vdt, tdt, rdt, rdiag)  ! if using pbltop, amip4 run will fail and such failure happen any time and is not reproducible, yhc 2021-04-21
 
@@ -3243,9 +3245,9 @@ real,dimension(:,:),    intent(inout)             :: gust
         Phys_mp_exch%edmf_dry_area        =>    edmf_dry_area       (is:ie,js:je,:)   
         Phys_mp_exch%edmf_dry_humidity    =>    edmf_dry_humidity   (is:ie,js:je,:)   
 
-        if (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
-          Phys_mp_exch%diff_t => diff_t(is:ie,js:je,:)
-        endif
+        !if (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic) then
+        !  Phys_mp_exch%diff_t => diff_t(is:ie,js:je,:)
+        !endif
         !--> yhc
 
 !-----------------------------------------------------------------------
