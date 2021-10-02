@@ -2435,14 +2435,18 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
           rdt(:,:,:,:)   = rdt_before_vdiff_down(is:ie,js:je,:,:)
 
         else  ! some tracers are handled by vert_diff
-          if     (do_tracers_selective.eq.1) then      ! process all tracers except qn and qni
+    
+          if     (do_tracers_selective.eq.0) then      ! ! do nothing, all tracers are processed by vert_diff excpet specific humidity
+            rdt_dum1 = 0.
+
+          elseif     (do_tracers_selective.eq.1) then      ! Reset qn and qni, i.e. vert_diff process all tracers except qn,qni
             if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(is:ie,js:je,:,nqn)
             if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(is:ie,js:je,:,nqni)
   
-          elseif (do_tracers_selective.eq.2) then      ! do not process any tracers
+          elseif (do_tracers_selective.eq.2) then      ! Reset all tracers, i.e. vert_diff does not process any tracers
             rdt(:,:,:,:)   = rdt_before_vdiff_down(is:ie,js:je,:,:)
   
-          elseif (do_tracers_selective.eq.3) then      ! only process qn and qni
+          elseif (do_tracers_selective.eq.3) then      ! Reset all tracers except qn and qni, i.e. vert_diff only processes qn and qni 
             if (nqn  > 0) rdt_dum1 (:,:,:) = rdt(:,:,:,nqn)
             if (nqni > 0) rdt_dum2 (:,:,:) = rdt(:,:,:,nqni)
   
@@ -2450,23 +2454,25 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
             if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_dum1(:,:,:)
             if (nqni > 0) rdt(:,:,:,nqni) = rdt_dum2(:,:,:)
 
-          elseif (do_tracers_selective.eq.4) then      ! process all tracers except cloud fields: qa,ql,qi,nqn,nqi
+          elseif (do_tracers_selective.eq.4) then      ! Reset qa,ql,qi,nqn,nqi, i.e. vert_diff does not process these tracers 
             if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(is:ie,js:je,:,nqa)
             if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(is:ie,js:je,:,nql)
             if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(is:ie,js:je,:,nqi)
             if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(is:ie,js:je,:,nqn)
             if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(is:ie,js:je,:,nqni)
 
-          elseif (do_tracers_selective.eq.5) then      ! process all tracers except cloud fraction and specific humidity qa,ql,qi. Cloud number are processed by vert_diff
+          elseif (do_tracers_selective.eq.5) then      ! Reset qa, ql,qi, i.e. vert_diff process the other tracers including qn, qni 
             if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(is:ie,js:je,:,nqa)
             if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(is:ie,js:je,:,nql)
             if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(is:ie,js:je,:,nqi)
 
-          elseif (do_tracers_selective.eq.6) then      ! process all tracers and qa,ql,qi would be changed in mynn_edmf 
+          elseif (do_tracers_selective.eq.6) then      ! process all tracers and qa,ql,qi,qn from EDMF would be computed in mynn_edmf 
             rdt_dum1 = 0.
           
           else   ! do nothing, all tracers are processed by vert_diff excpet specific humidity
-            rdt_dum1 = 0.
+
+           call error_mesg ('physics_driver_mod',  &
+                            'do_tracers_selective is not supported', FATAL)
 
           endif  ! end if of do_tracers_selective
         endif    ! end if of do_tracers_in_edmf_mynn 
@@ -3004,10 +3010,13 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'do_tracers_selective, nqa, nql, nqi',do_tracers_selective, nqa, nql, nqi
       endif
 
-      if (do_tracers_selective.eq.6) then
+      if (do_tracers_selective.eq.6) then  ! because ED and MF tendencies would be computed in mynn_edmf, so resetting these
+                                           ! to values prior to vert_diff_down
         if (nqa  > 0) rdt(:,:,:,nqa)  = rdt_before_vdiff_down(is:ie,js:je,:,nqa)
         if (nql  > 0) rdt(:,:,:,nql)  = rdt_before_vdiff_down(is:ie,js:je,:,nql)
         if (nqi  > 0) rdt(:,:,:,nqi)  = rdt_before_vdiff_down(is:ie,js:je,:,nqi)
+        if (nqn  > 0) rdt(:,:,:,nqn)  = rdt_before_vdiff_down(is:ie,js:je,:,nqn)
+        if (nqni > 0) rdt(:,:,:,nqni) = rdt_before_vdiff_down(is:ie,js:je,:,nqni)
       endif
 !--> yhc
 
