@@ -7295,7 +7295,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               rdt_mynn_ed_am4, &
-              do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
+              do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, do_tracers_selective, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
@@ -7334,6 +7334,7 @@ subroutine edmf_mynn_driver ( &
   logical, intent(in)                   :: do_edmf_mynn_diagnostic
   logical, intent(in)                   :: do_return_edmf_mynn_diff_only
   character*5, intent(in)               :: do_edmf_mynn_in_physics
+  integer, intent(in)                   :: do_tracers_selective
 
 !---------------------------------------------------------------------
 ! Arguments (Intent inout)  
@@ -7428,14 +7429,60 @@ subroutine edmf_mynn_driver ( &
   jx = size(Physics_input_block%t,2)
   kx = size(Physics_input_block%t,3)  
 
-!---------
-! check 
-!---------
+!-----------------
+! check namelist
+!----------------
   if (do_edmf_mynn_in_physics.eq."down" .and. option_surface_flux.ne."star") then
     call error_mesg( ' edmf_mynn',     &
                      ' when do_edmf_mynn_in_physics=down, option_surface_flux must be "star" in the edmf_mynn_nml',&
                      FATAL )
   endif
+
+  !--- MYNN EDonly configuration. 
+  !    MYNN only returns ED coefficients and all diffusion is handled by AM4 vertical diffusion module, similar to Lock
+  if (do_return_edmf_mynn_diff_only) then
+
+    !!!!!!!!!!!!!!!!!
+    if (do_edmf_mynn_in_physics.eq."down" .and. option_surface_flux.eq."star") then
+      tt1=0.
+    else
+      call error_mesg( ' edmf_mynn',     &
+                       ' when do_return_edmf_mynn_diff_only=T, do_edmf_mynn_in_physics must be "down" and option_surface_flux must be "star" in the edmf_mynn_nml',&
+                       FATAL )
+    endif
+
+    !!!!!!!!!!!!!!!!!
+    if (edmf_type.eq.1 .and. bl_mynn_edmf.eq.0) then
+      tt1=0.
+    else
+      call error_mesg( ' edmf_mynn',     &
+                       ' when do_return_edmf_mynn_diff_only=T, edmf_type must be 1 and bl_mynn_edmf must be 0',&
+                       FATAL )
+    endif
+  end if   ! end if of do_return_edmf_mynn_diff_only
+
+  !--- Method 3, EDonly configuration. 
+  !    approximate ql and qi tendencies from AM4 ED and MF terms, and then recover T and qv tendencies
+  if (edmf_type.eq.2 .and. bl_mynn_edmf.eq.0) then
+    !!!!!!!!!!!!!!!!!
+    if (do_tracers_selective.ne.0 .or. do_option_edmf2ls_mp.ne.99) then
+      call error_mesg( ' edmf_mynn',     &
+                       ' For M3_EDonly (edmf_type=2 .and. bl_mynn_edmf=0), do_tracers_selective must be 0 and do_option_edmf2ls_mp must be 99',&
+                       FATAL )
+    endif
+  end if   ! end if of do_return_edmf_mynn_diff_only
+  
+  !--- Method 3, EDMF configuration. 
+  !    approximate ql and qi tendencies from AM4 ED and MF terms, and then recover T and qv tendencies
+  if (edmf_type.eq.2 .and. bl_mynn_edmf.eq.3) then
+    !!!!!!!!!!!!!!!!!
+    if (do_tracers_selective.ne.6 .or. do_option_edmf2ls_mp.ne.4) then
+      call error_mesg( ' edmf_mynn',     &
+                       ' For M3_EDMF (edmf_type=2 .and. bl_mynn_edmf=3), do_tracers_selective must be 6 and do_option_edmf2ls_mp must be 4',&
+                       FATAL )
+    endif
+  end if   ! end if of do_return_edmf_mynn_diff_only
+
 
 !! debug01
 !write(6,*) 'edmf_mynn, beginning'
@@ -7691,10 +7738,15 @@ subroutine edmf_mynn_driver ( &
       edmf_dry_humidity   (:,:,:) = am4_Output_edmf%qv_dry_full  (:,:,:)
 
     ! set to zeros if option_edmf2ls_mp is not supported
-    else
+    elseif (option_edmf2ls_mp.eq.99) then 
       qadt_edmf   = 0.
       qldt_edmf   = 0.
       qidt_edmf   = 0.
+
+    else
+      call error_mesg( ' edmf_mynn',     &
+                       ' do_option_edmf2ls_mp is not valid',&
+                       FATAL )
 
     endif  ! end if of option_edmf2ls_mp
 
