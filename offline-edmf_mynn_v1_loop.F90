@@ -40,7 +40,7 @@ MODULE module_bl_mynn
   integer, parameter :: nhalf = nfull+1
   integer, parameter :: nfull2 = nfull+1
   integer, parameter :: nhalf2 = nfull2+1
-  integer, parameter :: tr = 4
+  integer, parameter :: tr = 5 
 
   integer, parameter :: ntracer = 32 
   integer, parameter :: ntp = 26
@@ -54,6 +54,7 @@ MODULE module_bl_mynn
   integer, parameter :: nql = 2
   integer, parameter :: nqi = 3
   integer, parameter :: nqa = 4
+  integer, parameter :: nqn = 5
 
   real, parameter :: dt = 1800.
 !  real, parameter :: dt = 300.
@@ -93,6 +94,9 @@ real, public, parameter :: con_cliq = 4.1855e+3 !< spec heat H2O liq [J/kg/K]
 real, public, parameter :: con_csol = 2.1060e+3 !< spec heat H2O ice [J/kg/K]
 real, public, parameter :: kappa  = 2./7.
 real, public, parameter :: cp_air   = 1004.6      !< Specific heat capacity of dry air at constant pressure [J/kg/deg]
+
+real, public, parameter :: dens_h2o = 1000.     ! Density of liquid water [kg/m^3]
+real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circumference to diameter [N/A]   
 
    real, parameter :: p00    = 1000.0e2     ! 1000hPa
    real, parameter :: p00inv = 1./p00
@@ -199,6 +203,10 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
 
   integer :: Qx_MF = 1 
 
+  real    :: rc_MF = 10.e-6                     ! assumed cloud droplet radius in plumes (meters)
+
+  integer :: do_tracers_selective=6
+
 !==================
 type edmf_input_type
   integer,              allocatable ::   &
@@ -267,13 +275,12 @@ type am4_edmf_output_type
 
   real, dimension(:,:,:),   allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull)
     thl_edmf, qt_edmf,  & ! diagnostic purpose
-    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, qadt_edmf, &  ! outputs from EDMF-MYNN scheme
+    tke, Tsq, Cov_thl_qt, udt_edmf, vdt_edmf, tdt_edmf, qdt_edmf, qidt_edmf, qldt_edmf, qadt_edmf, qndt_edmf, &  ! outputs from EDMF-MYNN scheme
     qtdt_edmf, thldt_edmf, &
-    !qldt_edmf_ED, qldt_edmf_MF, qidt_edmf_ED, qidt_edmf_MF, qadt_edmf_ED, qadt_edmf_MF, &
     diff_t_edmf, diff_m_edmf, &
     cldfra_bl, qc_bl, el_edmf, &
     Q_ql, Q_qi, Q_qa, &
-    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc                                   !
+    edmf_a, edmf_w, edmf_qt, edmf_thl, edmf_ent, edmf_qc 
 
   real, dimension(:,:,:), allocatable :: &   ! OUTPUT, DIMENSION(nlon, nlat, nfull/nhalf)
     a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &
@@ -5174,6 +5181,7 @@ real :: diff,exn,t,th,qs,qcold,xlvv
   xlvv=xlLF_blend(THL*EXN,lf)
 
   !QC=0.  !better first guess QC is incoming from lower level, do not set to zero
+
   do i=1,NITER
      T=EXN*THL + xlvv/cp*QC        
      QS=qsatLF_blend(T,P,lf)
@@ -5563,7 +5571,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          mf_dry_full  ,  & 
          mf_all_full  , & 
          qv_moist_full,  & 
-         qv_dry_full    
+         qv_dry_full   
+  
+       REAL,DIMENSION(KTS:KTE) :: ZFULL
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -5801,6 +5811,8 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
             Un=U(K-1)*(1-EntExp)+UPU(K-1,I)*EntExp_M
             Vn=V(K-1)*(1-EntExp)+UPV(K-1,I)*EntExp_M
             ! get thvn,qcn
+
+            if (K.eq.KTS+1) QCn = 0.  ! yhc, first guess of QCn. If not set, Qcn may be randomly set (e.g. 0.7) which wouldcause problem
             call condensation_edmf(QTn,THLn,Ph(K),lfh(k),THVn,QCn)
 
             B=g*(0.5*(THVn+UPTHV(k-1,I))/THV(k-1)-1)
@@ -5967,6 +5979,11 @@ ENDDO
 
 !<--- yhc 2021-09-08
 
+!--- compute z at full levels (where T,q are defined)
+DO K=KTS,KTE
+  ZFULL(K) = 0.5 * (ZW(K)+ZW(K+1))
+ENDDO
+
 !--- diagnose detrainment rate
 DO K=KTS,KTE-1
    !IF(k > KTOP) exit
@@ -5996,6 +6013,31 @@ DO K=KTS,KTE-1
 
 ENDDO
 
+!--- write out
+if (do_writeout_column_nml) then
+  do I=1,NUP
+    !where (DET(:,I) .lt. 0) 
+    !  print*,'gg,i',I
+    !end where
+    F1=0  
+    DO K=KTS,KTE-1
+      if (DET(K,I) .lt. 0) then
+        F1=1  
+        exit  
+      endif 
+    ENDDO 
+  
+    if (F1.eq.1) then
+      write(6,3001) 'ZW  = (/',ZW(:)
+      write(6,3002) 'UPA = (/',UPA(:,I)
+      write(6,3002) 'UPW = (/',UPW(:,I)
+      write(6,3002) 'ENT = (/',ENT(:,I)
+      write(6,3002) 'DET = (/',DET(:,I)
+      write(6,*) '---------------------------'
+    endif 
+  enddo 
+endif
+
 !--- compute variables for coupling with Tiedtke
 DO K=KTS,KTE-1
   DO I=1,NUP
@@ -6016,8 +6058,8 @@ DO K=KTS,KTE-1
      F3=ENT(K,I)*mf*(UPQC(K,I)-qc(K))
        
      ! yhc: F1 and F2 do not need to be divided by rho 
-     Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2+F3)
-     Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2+F3)
+     !Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2+F3)
+     !Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2+F3)
 
      !--- eddy-flux divergence/source form
      Qql_eddy(k)=Qql_eddy(k)+liquid_frac(k)*F1
@@ -6035,10 +6077,10 @@ DO K=KTS,KTE-1
        mf=rho(K-1)*UPW(K,I)*UPA(K,I)
      endif
 
-     mfp1=rho(K+1)*UPA(K+1,I)*UPW(K+1,I)
+     mfp1=rho(K)*UPA(K+1,I)*UPW(K+1,I)
 
      F1=mf*DET(K,I)*(UPQC(K,I)-qc(K))
-     F2=mfp1*(qc(K+1)-qc(K))/dz
+     F2=mfp1*(qc(K+1)-qc(K))/(ZFULL(K+1)-ZFULL(K))
 
      Qql_det(k) = Qql_det(k)+liquid_frac(k)*F1/rho(K)
      Qqi_det(k) = Qqi_det(k)+(1.-liquid_frac(k))*F1/rho(K)
@@ -6096,7 +6138,7 @@ DO K=KTS,KTE-1
      F3=ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
   
      !Qa(k)=Qa(k)+(F1+F2)/rho(k)
-     Qa(k)=Qa(k)+(F1+F2+F3)
+     !Qa(k)=Qa(k)+(F1+F2+F3)
 
      !--- eddy-flux divergence/source form
      Qa_eddy(k)=Qa_eddy(k)+F1
@@ -6110,10 +6152,10 @@ DO K=KTS,KTE-1
        mf=rho(K-1)*UPW(K,I)*UPA(K,I)
      endif
 
-     mfp1=rho(K+1)*UPA(K+1,I)*UPW(K+1,I)
+     mfp1=rho(K)*UPA(K+1,I)*UPW(K+1,I)
 
      F1=mf*DET(K,I)*(CCp0-cldfra_bl1d(K))
-     F2=mfp1*(cldfra_bl1d(K+1)-cldfra_bl1d(K))/dz
+     F2=mfp1*(cldfra_bl1d(K+1)-cldfra_bl1d(K))/(ZFULL(K+1)-ZFULL(K))
 
      Qa_det(k) = Qa_det(k)+F1/rho(K)
      Qa_sub(k) = Qa_sub(k)+F2/rho(K)
@@ -6263,7 +6305,8 @@ IF (maxS .gt. upstab) THEN
   ENDDO
 ENDIF
 
-
+3001 format (A35,2X,34(F10.3,2X,','))
+3002 format (A35,2X,34(E12.4,2X,','))
 
 END SUBROUTINE edmf_JPL
 
@@ -6684,7 +6727,7 @@ subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
               rdt_mynn_ed_am4, &
-              do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
+              do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, do_tracers_selective, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
@@ -6723,6 +6766,7 @@ subroutine edmf_mynn_driver ( &
   logical, intent(in)                   :: do_edmf_mynn_diagnostic
   logical, intent(in)                   :: do_return_edmf_mynn_diff_only
   character*5, intent(in)               :: do_edmf_mynn_in_physics
+  integer, intent(in)                   :: do_tracers_selective
 
 !---------------------------------------------------------------------
 ! Arguments (Intent inout)  
@@ -6817,14 +6861,60 @@ subroutine edmf_mynn_driver ( &
   jx = size(Physics_input_block%t,2)
   kx = size(Physics_input_block%t,3)  
 
-!---------
-! check 
-!---------
+!-----------------
+! check namelist
+!----------------
   if (do_edmf_mynn_in_physics.eq."down" .and. option_surface_flux.ne."star") then
     call error_mesg( ' edmf_mynn',     &
                      ' when do_edmf_mynn_in_physics=down, option_surface_flux must be "star" in the edmf_mynn_nml',&
                      FATAL )
   endif
+
+  !--- MYNN EDonly configuration. 
+  !    MYNN only returns ED coefficients and all diffusion is handled by AM4 vertical diffusion module, similar to Lock
+  if (do_return_edmf_mynn_diff_only) then
+
+    !!!!!!!!!!!!!!!!!
+    if (do_edmf_mynn_in_physics.eq."down" .and. option_surface_flux.eq."star") then
+      tt1=0.
+    else
+      call error_mesg( ' edmf_mynn',     &
+                       ' when do_return_edmf_mynn_diff_only=T, do_edmf_mynn_in_physics must be "down" and option_surface_flux must be "star" in the edmf_mynn_nml',&
+                       FATAL )
+    endif
+
+    !!!!!!!!!!!!!!!!!
+    if (edmf_type.eq.1 .and. bl_mynn_edmf.eq.0) then
+      tt1=0.
+    else
+      call error_mesg( ' edmf_mynn',     &
+                       ' when do_return_edmf_mynn_diff_only=T, edmf_type must be 1 and bl_mynn_edmf must be 0',&
+                       FATAL )
+    endif
+  end if   ! end if of do_return_edmf_mynn_diff_only
+
+  !--- Method 3, EDonly configuration. 
+  !    approximate ql and qi tendencies from AM4 ED and MF terms, and then recover T and qv tendencies
+  if (edmf_type.eq.2 .and. bl_mynn_edmf.eq.0) then
+    !!!!!!!!!!!!!!!!!
+    if (do_tracers_selective.ne.0 .or. do_option_edmf2ls_mp.ne.99) then
+      call error_mesg( ' edmf_mynn',     &
+                       ' For M3_EDonly (edmf_type=2 .and. bl_mynn_edmf=0), do_tracers_selective must be 0 and do_option_edmf2ls_mp must be 99',&
+                       FATAL )
+    endif
+  end if   ! end if of do_return_edmf_mynn_diff_only
+  
+  !--- Method 3, EDMF configuration. 
+  !    approximate ql and qi tendencies from AM4 ED and MF terms, and then recover T and qv tendencies
+  if (edmf_type.eq.2 .and. bl_mynn_edmf.eq.3) then
+    !!!!!!!!!!!!!!!!!
+    if (do_tracers_selective.ne.6 .or. do_option_edmf2ls_mp.ne.4) then
+      call error_mesg( ' edmf_mynn',     &
+                       ' For M3_EDMF (edmf_type=2 .and. bl_mynn_edmf=3), do_tracers_selective must be 6 and do_option_edmf2ls_mp must be 4',&
+                       FATAL )
+    endif
+  end if   ! end if of do_return_edmf_mynn_diff_only
+
 
 !! debug01
 !write(6,*) 'edmf_mynn, beginning'
@@ -7059,8 +7149,12 @@ subroutine edmf_mynn_driver ( &
       rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
       rdt(:,:,:,nqi)  = rdt(:,:,:,nqi) + am4_Output_edmf%qidt_edmf(:,:,:)
 
-      edmf_mc_full (:,:,:) = am4_Output_edmf%mf_all_half (:,:,:)
-      edmf_mc_half (:,:,:) = am4_Output_edmf%mf_all_full (:,:,:)
+      ! for testing, assume cloud droplet radius (rc_MF) and then compute cloud liquid number tendency
+      am4_Output_edmf%qndt_edmf(:,:,:) = am4_Output_edmf%qldt_edmf(:,:,:) / dens_h2o / (4./3.*pi*rc_MF**3)  
+      rdt(:,:,:,nqn)  = rdt(:,:,:,nqn) + am4_Output_edmf%qndt_edmf(:,:,:)
+
+      edmf_mc_half (:,:,:) = am4_Output_edmf%mf_all_half (:,:,:)
+      edmf_mc_full (:,:,:) = am4_Output_edmf%mf_all_full (:,:,:)
 
     ! accumulate EDMF cloud tendencies to the model tendencies. Pass MF mass flux, moist area and humidity to Tiedtke
     elseif (option_edmf2ls_mp.eq.5) then 
@@ -7075,11 +7169,17 @@ subroutine edmf_mynn_driver ( &
       edmf_dry_area       (:,:,:) = am4_Output_edmf%a_dry_full   (:,:,:)
       edmf_dry_humidity   (:,:,:) = am4_Output_edmf%qv_dry_full  (:,:,:)
 
-    ! set to zeros if option_edmf2ls_mp is not supported
-    else
+    ! do not change cloud tendencies 
+    elseif (option_edmf2ls_mp.eq.99) then 
       qadt_edmf   = 0.
       qldt_edmf   = 0.
       qidt_edmf   = 0.
+
+    ! set to zeros if option_edmf2ls_mp is not supported
+    else
+      call error_mesg( ' edmf_mynn',     &
+                       ' do_option_edmf2ls_mp is not valid',&
+                       FATAL )
 
     endif  ! end if of option_edmf2ls_mp
 
@@ -7199,6 +7299,11 @@ subroutine edmf_mynn_driver ( &
 !!------- cldfrac tendency from edmf_mynn (units: 1/s) at full level -------
 !      if ( id_qadt_edmf > 0) then
 !        used = send_data (id_qadt_edmf, am4_Output_edmf%qadt_edmf, Time_next, is, js, 1 )
+!      endif
+!
+!!------- cloud droplet number tendency from edmf_mynn (units: 1/kg/s) at full level -------
+!      if ( id_qndt_edmf > 0) then
+!        used = send_data (id_qndt_edmf, am4_Output_edmf%qndt_edmf, Time_next, is, js, 1 )
 !      endif
 !
 !!------- updraft area (units: none) at half level -------
@@ -8044,6 +8149,7 @@ subroutine edmf_alloc ( &
   allocate (am4_Output_edmf%qidt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qidt_edmf   = 0.
   allocate (am4_Output_edmf%qldt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qldt_edmf   = 0.
   allocate (am4_Output_edmf%qadt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qadt_edmf   = 0.
+  allocate (am4_Output_edmf%qndt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qndt_edmf   = 0.
   allocate (am4_Output_edmf%qtdt_edmf   (ix,jx,kx))  ; am4_Output_edmf%qtdt_edmf   = 0.
   allocate (am4_Output_edmf%thldt_edmf  (ix,jx,kx))  ; am4_Output_edmf%thldt_edmf  = 0.
   allocate (am4_Output_edmf%edmf_a      (ix,jx,kx))  ; am4_Output_edmf%edmf_a      = 0.
@@ -8588,6 +8694,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (am4_Output_edmf%qidt_edmf   )  
   deallocate (am4_Output_edmf%qldt_edmf   )  
   deallocate (am4_Output_edmf%qadt_edmf   )  
+  deallocate (am4_Output_edmf%qndt_edmf   )  
   deallocate (am4_Output_edmf%qtdt_edmf   )  
   deallocate (am4_Output_edmf%thldt_edmf  )  
   deallocate (am4_Output_edmf%edmf_a      )
@@ -9666,6 +9773,41 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
 !      used = send_data (id_qidt_edmf_MF_ent, tmp_3d, Time_next, is, js, 1 )
 !    endif
 !
+!!------- qa tendency from edmf_mynn, MF_det (units: 1/s) at full level -------
+!    if ( id_qadt_edmf_MF_det > 0) then
+!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_det(:,:,:), tmp_3d)
+!      used = send_data (id_qadt_edmf_MF_det, tmp_3d, Time_next, is, js, 1 )
+!    endif
+!
+!!------- ql tendency from edmf_mynn, MF_det (units: kg/kg/s) at full level -------
+!    if ( id_qldt_edmf_MF_det > 0) then
+!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_det(:,:,:), tmp_3d)
+!      used = send_data (id_qldt_edmf_MF_det, tmp_3d, Time_next, is, js, 1 )
+!    endif
+!
+!!------- qi tendency from edmf_mynn, MF_det (units: kg/kg/s) at full level -------
+!    if ( id_qidt_edmf_MF_det > 0) then
+!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_det(:,:,:), tmp_3d)
+!      used = send_data (id_qidt_edmf_MF_det, tmp_3d, Time_next, is, js, 1 )
+!    endif
+!
+!!------- qa tendency from edmf_mynn, MF_sub (units: 1/s) at full level -------
+!    if ( id_qadt_edmf_MF_sub > 0) then
+!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_sub(:,:,:), tmp_3d)
+!      used = send_data (id_qadt_edmf_MF_sub, tmp_3d, Time_next, is, js, 1 )
+!    endif
+!
+!!------- ql tendency from edmf_mynn, MF_sub (units: kg/kg/s) at full level -------
+!    if ( id_qldt_edmf_MF_sub > 0) then
+!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_sub(:,:,:), tmp_3d)
+!      used = send_data (id_qldt_edmf_MF_sub, tmp_3d, Time_next, is, js, 1 )
+!    endif
+!
+!!------- qi tendency from edmf_mynn, MF_sub (units: kg/kg/s) at full level -------
+!    if ( id_qidt_edmf_MF_sub > 0) then
+!      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_sub(:,:,:), tmp_3d)
+!      used = send_data (id_qidt_edmf_MF_sub, tmp_3d, Time_next, is, js, 1 )
+!    endif
 !!send_data
 
 !----------------------------
@@ -9812,6 +9954,7 @@ subroutine reshape_mynn_array_to_am4_half (ix, jx, kx, mynn_array_3d, am4_array_
   enddo  ! end loop of 1
 
 end subroutine reshape_mynn_array_to_am4_half
+
 
 !#############################
 ! Mellor-Yamada
@@ -11334,11 +11477,20 @@ endif ! end if of input profile
   !rdt_mynn_ed_am4(:,:,:,nqa) = 2.
   !rdt_mynn_ed_am4(:,:,:,nqi) = 3.
 
+  !call edmf_mynn_driver ( &
+  !            is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
+  !            b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+  !            rdt_mynn_ed_am4,  & 
+  !            do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
+  !            option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
+  !            edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
+  !           pbltop, udt, vdt, tdt, rdt, rdiag)
+
   call edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-              rdt_mynn_ed_am4,  & 
-              do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, &
+              rdt_mynn_ed_am4, &
+              do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, do_tracers_selective, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
               pbltop, udt, vdt, tdt, rdt, rdiag)
