@@ -15,7 +15,7 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_begin"
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_01"
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_02_u,vdt_NaN"
-  !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
+  character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
   !character*50 :: input_profile = "AMIP_i27_j01_IndOcn"
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
   !character*50 :: input_profile = "SCM_am4p0_RF01_01"
@@ -26,9 +26,9 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_BOMEX_MYNN_ED_mixleng3"
   !character*50 :: input_profile = "SCM_RF01_mynn_EDMFexpUP_Gmy_ADD_0.5h"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm01"
-  character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
+  !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
 
-  integer, parameter :: loop_times = 1
+  integer, parameter :: loop_times = 10
  ! integer, parameter :: loop_times = 24 
  ! integer, parameter :: loop_times = 100
  ! integer, parameter :: loop_times = 60 
@@ -5511,7 +5511,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         INTEGER, PARAMETER :: debug_mf=0 !fixing number of plumes to 10, yhc - move NUP to namelist parameter
 
     ! updraft properties
-        REAL,DIMENSION(KTS:KTE+1,1:NUP) :: UPW,UPTHL,UPQT,UPQC,UPA,UPU,UPV,UPTHV
+        REAL,DIMENSION(KTS:KTE+1,1:NUP) :: UPW,UPTHL,UPQT,UPQC,UPA,UPU,UPV,UPTHV,UPRHO
 
     ! entrainment variables
         REAl,DIMENSION(KTS:KTE,1:NUP) :: ENT,ENTf
@@ -5525,7 +5525,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         INTEGER :: K,I, qlTop
         REAL :: wthv,wstar,qstar,thstar,sigmaW,sigmaQT,sigmaTH,z0, &
             pwmin,pwmax,wmin,wmax,wlv,wtv,dthv_dz
-        REAL :: B,QTn,THLn,THVn,QCn,Un,Vn,Wn2,EntEXP,EntW, deltaZ,EntExp_M, Beta_un, Z00, Z_i
+        REAL :: B,QTn,THLn,THVn,UPAn,QCn,Un,Vn,Wn2,EntEXP,EntW, deltaZ,EntExp_M, Beta_un, Z00, Z_i
 
     ! VARIABLES FOR CHABOUREAU-BECHTOLD CLOUD FRACTION
         ! REAL,DIMENSION(KTS:KTE), INTENT(INOUT) :: vt, vq, sgm
@@ -5585,6 +5585,7 @@ ktop = 0
 ztop = 0.0
 
 UPW=0.
+UPRHO=0.
 UPTHL=0.
 UPTHV=0.
 UPQT=0.
@@ -5791,6 +5792,8 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
 
 ! surface condensation (compute THL and QC)
   DO I=1,NUP  
+  
+        UPRHO(KTS,I)=Ph(KTS)/(r_d*UPTHV(KTS,I)*(Ph(kts)/p1000mb)**rcp)
         call condensation_edmfA(UPTHV(KTS,I),UPQT(KTS,I),ph(KTS),lfh(KTS),UPTHL(KTS,I),UPQC(KTS,i))
  ENDDO
    
@@ -5832,18 +5835,42 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
             ! print *, "Plume number = ", I, " k = ", k, " upthv = ", THVn, " thv = ", thv(k)
             ! print *, "upthl = ", THLn, " thl = ", thl(k)
             ! print *, "Beta = ", Beta_un, " Wn2 = ", Wn2, " Bouy = ", B
-            IF (Wn2 >0.) THEN
-                UPW(K,I)=sqrt(Wn2)
+         
+         
+             UPRHO(K,I)=Ph(k)/(r_d*THVn*(Ph(k)/p1000mb)**rcp)
+         
+         
+            IF (Wn2 >0.) THEN     
+              UPW(K,I)=sqrt(Wn2)
+              
+             ! 1/M dM/dz=eps ... conservation equation for entraining plumes with 0 detrainment
+             ! integrate conservation equation from k-1 to k to get
+             ! M(k)=M(k-1)*exp(int_(k-1)^k  eps*dz)
+         
+               UPAn=UPA(K-1,I)*UPRHO(K-1,I)*UPW(k-1,I)/(UPRHO(K,I)*UPW(K,I)*EntExp)
+         
+               ! exit vertical loop
+              !  - this should never happen, because of the exponential MF form
+         !      IF (UPAn<= 0.) THEN
+         !      UPRHO(K,I)=0.
+         !        UPW(K,I)=0.
+         !        exit
+         !      ENDIF
+         
+                
+                
+           
                 UPTHV(K,I)=THVn
                 UPTHL(K,I)=THLn
                 UPQT(K,I)=QTn
                 UPQC(K,I)=QCn
                 UPU(K,I)=Un
                 UPV(K,I)=Vn
-                UPA(K,I)=UPA(K-1,I)
+                UPA(K,I)=UPAn
 
                 ktop = MAX(ktop,k)
             ELSE
+            ! exit vertical loop
                   exit
             END IF
         ENDDO
