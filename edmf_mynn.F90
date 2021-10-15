@@ -6105,7 +6105,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         INTEGER, PARAMETER :: debug_mf=0 !fixing number of plumes to 10, yhc - move NUP to namelist parameter
 
     ! updraft properties
-        REAL,DIMENSION(KTS:KTE+1,1:NUP) :: UPW,UPTHL,UPQT,UPQC,UPA,UPU,UPV,UPTHV
+        REAL,DIMENSION(KTS:KTE+1,1:NUP) :: UPW,UPTHL,UPQT,UPQC,UPA,UPU,UPV,UPTHV,UPRHO
 
     ! entrainment variables
         REAl,DIMENSION(KTS:KTE,1:NUP) :: ENT,ENTf
@@ -6119,7 +6119,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         INTEGER :: K,I, qlTop
         REAL :: wthv,wstar,qstar,thstar,sigmaW,sigmaQT,sigmaTH,z0, &
             pwmin,pwmax,wmin,wmax,wlv,wtv,dthv_dz
-        REAL :: B,QTn,THLn,THVn,QCn,Un,Vn,Wn2,EntEXP,EntW, deltaZ,EntExp_M, Beta_un, Z00, Z_i
+        REAL :: B,QTn,THLn,THVn,UPAn,QCn,Un,Vn,Wn2,EntEXP,EntW, deltaZ,EntExp_M, Beta_un, Z00, Z_i
 
     ! VARIABLES FOR CHABOUREAU-BECHTOLD CLOUD FRACTION
         ! REAL,DIMENSION(KTS:KTE), INTENT(INOUT) :: vt, vq, sgm
@@ -6179,6 +6179,7 @@ ktop = 0
 ztop = 0.0
 
 UPW=0.
+UPRHO=0.
 UPTHL=0.
 UPTHV=0.
 UPQT=0.
@@ -6385,6 +6386,8 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
 
 ! surface condensation (compute THL and QC)
   DO I=1,NUP  
+  
+        UPRHO(KTS,I)=Ph(KTS)/(r_d*UPTHV(KTS,I)*(Ph(kts)/p1000mb)**rcp)
         call condensation_edmfA(UPTHV(KTS,I),UPQT(KTS,I),ph(KTS),lfh(KTS),UPTHL(KTS,I),UPQC(KTS,i))
  ENDDO
    
@@ -6426,18 +6429,42 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
             ! print *, "Plume number = ", I, " k = ", k, " upthv = ", THVn, " thv = ", thv(k)
             ! print *, "upthl = ", THLn, " thl = ", thl(k)
             ! print *, "Beta = ", Beta_un, " Wn2 = ", Wn2, " Bouy = ", B
-            IF (Wn2 >0.) THEN
-                UPW(K,I)=sqrt(Wn2)
+         
+         
+             UPRHO(K,I)=Ph(k)/(r_d*THVn*(Ph(k)/p1000mb)**rcp)
+         
+         
+            IF (Wn2 >0.) THEN     
+              UPW(K,I)=sqrt(Wn2)
+              
+             ! 1/M dM/dz=eps ... conservation equation for entraining plumes with 0 detrainment
+             ! integrate conservation equation from k-1 to k to get
+             ! M(k)=M(k-1)*exp(int_(k-1)^k  eps*dz)
+         
+               UPAn=UPA(K-1,I)*UPRHO(K-1,I)*UPW(k-1,I)/(UPRHO(K,I)*UPW(K,I)*EntExp)
+         
+               ! exit vertical loop
+              !  - this should never happen, because of the exponential MF form
+         !      IF (UPAn<= 0.) THEN
+         !      UPRHO(K,I)=0.
+         !        UPW(K,I)=0.
+         !        exit
+         !      ENDIF
+         
+                
+                
+           
                 UPTHV(K,I)=THVn
                 UPTHL(K,I)=THLn
                 UPQT(K,I)=QTn
                 UPQC(K,I)=QCn
                 UPU(K,I)=Un
                 UPV(K,I)=Vn
-                UPA(K,I)=UPA(K-1,I)
+                UPA(K,I)=UPAn
 
                 ktop = MAX(ktop,k)
             ELSE
+            ! exit vertical loop
                   exit
             END IF
         ENDDO
@@ -6587,12 +6614,13 @@ DO K=KTS,KTE-1
 
     dz=ZW(k+1)-ZW(k)
 
-    mfp1=rho(K)*UPW(K+1,I)
-    if (k.eq.1) then
-      mf=rho(1)*UPW(K,I)
-    else
-      mf=rho(K-1)*UPW(K,I)
-    endif
+    mfp1=UPRHO(K+1,I)*UPW(K+1,I)*UPA(K+1,I)
+    mf  =UPRHO(K,I)  *UPW(K,I)  *UPA(K,I)
+    !if (k.eq.1) then
+    !  mf=UPRHO(1,I)*UPW(K,I)*UPA(K,I)
+    !else
+    !  mf=UPRHO(K-1,I)*UPW(K,I)*UPA(K,I)
+    !endif
 
     if (mf.gt.0) then
       DET(K,I) = ENT(K,I) - (mfp1-mf)/mf/dz   
@@ -6606,6 +6634,31 @@ DO K=KTS,KTE-1
   ENDIF
 
 ENDDO
+
+!--- write out
+if (do_writeout_column_nml) then
+  do I=1,NUP
+    !where (DET(:,I) .lt. 0) 
+    !  print*,'gg,i',I
+    !end where
+    F1=0  
+    DO K=KTS,KTE-1
+      if (DET(K,I) .lt. 0) then
+        F1=1  
+        exit  
+      endif 
+    ENDDO 
+  
+    if (F1.eq.1) then
+      write(6,3001) 'ZW  = (/',ZW(:)
+      write(6,3002) 'UPA = (/',UPA(:,I)
+      write(6,3002) 'UPW = (/',UPW(:,I)
+      write(6,3002) 'ENT = (/',ENT(:,I)
+      write(6,3002) 'DET = (/',DET(:,I)
+      write(6,*) '---------------------------'
+    endif 
+  enddo 
+endif
 
 !--- compute variables for coupling with Tiedtke
 DO K=KTS,KTE-1
@@ -6874,7 +6927,8 @@ IF (maxS .gt. upstab) THEN
   ENDDO
 ENDIF
 
-
+3001 format (A35,2X,34(F10.3,2X,','))
+3002 format (A35,2X,34(E12.4,2X,','))
 
 END SUBROUTINE edmf_JPL
 
@@ -7737,12 +7791,13 @@ subroutine edmf_mynn_driver ( &
       edmf_dry_area       (:,:,:) = am4_Output_edmf%a_dry_full   (:,:,:)
       edmf_dry_humidity   (:,:,:) = am4_Output_edmf%qv_dry_full  (:,:,:)
 
-    ! set to zeros if option_edmf2ls_mp is not supported
+    ! do not change cloud tendencies 
     elseif (option_edmf2ls_mp.eq.99) then 
       qadt_edmf   = 0.
       qldt_edmf   = 0.
       qidt_edmf   = 0.
 
+    ! set to zeros if option_edmf2ls_mp is not supported
     else
       call error_mesg( ' edmf_mynn',     &
                        ' do_option_edmf2ls_mp is not valid',&
