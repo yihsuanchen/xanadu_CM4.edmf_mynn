@@ -437,7 +437,7 @@ end type edmf_ls_mp_type
 
   character*20 :: do_debug_option = ""          ! debug purpose
 
-  logical :: do_force_detrain_positive = .true.  ! force diagnosed MF detrainment to be positive
+  logical :: do_modify_detrainment = .true.  ! Modify diagnosed detrainment rate. 1. force diagnosed MF detrainment to be positive, 2. only detrainment happens just below the plume top, i.e. no entrainment in detrained layer
 
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
@@ -455,7 +455,7 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
                             do_option_edmf2ls_mp, do_use_tau, Qx_MF, &
-                            do_force_detrain_positive, &
+                            do_modify_detrainment, &
                             do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
 
 !---------------------------------------------------------------------
@@ -6629,10 +6629,14 @@ DO K=KTS,KTE-1
       DET(K,I) = ENT(K,I) - (mfp1-mf)/mf/dz   
     endif
 
-    if (do_force_detrain_positive) then   ! force detrainment rate must be larger than zero
-      if (DET(K,I).lt.0.) then
+    if (do_modify_detrainment) then   
+      if (DET(K,I).lt.0.) then  ! force detrainment rate must be larger than zero
         DET(K,I) = 0.
       endif
+
+      ! only let detrainment happen just below the plume top
+      dz=ZW(KTOP)-ZW(KTOP-1)
+      DET(KTOP-1,I) = 1./dz 
     endif
 
     edmf_det(K)=edmf_det(K)+UPA(K,I)*DET(K,I)
@@ -6660,6 +6664,7 @@ if (do_writeout_column_nml) then
   
     if (F1.eq.1) then
       write(6,3001) 'ZW  = (/',ZW(:)
+      write(6,3002) 'UPRHO = (/',UPRHO(:,I)
       write(6,3002) 'UPA = (/',UPA(:,I)
       write(6,3002) 'UPW = (/',UPW(:,I)
       write(6,3002) 'ENT = (/',ENT(:,I)
