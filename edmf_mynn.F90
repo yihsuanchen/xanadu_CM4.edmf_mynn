@@ -6638,19 +6638,16 @@ DO K=KTS,KTE-1
     !  mf=UPRHO(K-1,I)*UPW(K,I)*UPA(K,I)
     !endif
 
-    if (mf.gt.0) then
-      DET(K,I) = ENT(K,I) - (mfp1-mf)/mf/dz   
-    endif
-
-    if (do_modify_detrainment) then   
-      if (DET(K,I).lt.0.) then  ! force detrainment rate must be larger than zero
-        DET(K,I) = 0.
-      endif
-
-      ! only let detrainment happen just below the plume top
-      dz=ZW(KTOP)-ZW(KTOP-1)
-      DET(KTOP-1,I) = 1./dz 
-    endif
+    if (option_up_area.eq.2) then         ! for lateral entraining plume with detrainment that occurs only at plume top
+      if (mf.gt.0 .and. mfp1.le.0.) then
+        dz=ZW(K)-ZW(K-1)
+        DET(K,I) = 1./dz 
+      endif 
+    else       ! compute detrainment given entrainment and mass flux
+      if (mf.gt.0) then
+        DET(K,I) = ENT(K,I) - (mfp1-mf)/mf/dz   
+      endif 
+    endif 
 
     edmf_det(K)=edmf_det(K)+UPA(K,I)*DET(K,I)
   ENDDO
