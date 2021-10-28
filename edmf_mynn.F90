@@ -6176,6 +6176,8 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          qv_dry_full   
   
        REAL,DIMENSION(KTS:KTE) :: ZFULL
+
+       REAL :: qcp0, qcp1
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
