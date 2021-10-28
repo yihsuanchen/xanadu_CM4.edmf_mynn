@@ -428,6 +428,9 @@ end type edmf_ls_mp_type
 
   integer :: Qx_numerics=1                      ! =1, use upwind approximation in computing MF eddy-flux/source and subsidence/detrainment forms
 
+  integer :: option_up_area=1                   !=1, constant updraft area assumption, i.e. the updraft area remains the same with height
+                                                !=2, updraft area is changed with height to maintain mass conservation in plumes
+
   logical :: do_use_tau = .true.                ! .true.  : use the T,q at the current step
                                                 ! .false. : use the updated T,q
   logical :: do_simple =.false.                 ! do_simple = switch to turn on alternative definition of specific
@@ -456,7 +459,7 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
-                            do_option_edmf2ls_mp, do_use_tau, Qx_MF, Qx_numerics, &
+                            do_option_edmf2ls_mp, do_use_tau, Qx_MF, Qx_numerics, option_up_area, &
                             do_modify_detrainment, &
                             do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
 
@@ -6446,8 +6449,14 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
              ! integrate conservation equation from k-1 to k to get
              ! M(k)=M(k-1)*exp(int_(k-1)^k  eps*dz)
          
-               UPAn=UPA(K-1,I)*UPRHO(K-1,I)*UPW(k-1,I)/(UPRHO(K,I)*UPW(K,I)*EntExp)
+               !UPAn=UPA(K-1,I)*UPRHO(K-1,I)*UPW(k-1,I)/(UPRHO(K,I)*UPW(K,I)*EntExp)
          
+               if (option_up_area.eq.1) then
+                 UPAn=UPA(K-1,I)
+               elseif (option_up_area.eq.2) then
+                 UPAn=UPA(K-1,I)*UPRHO(K-1,I)*UPW(k-1,I)/(UPRHO(K,I)*UPW(K,I)*EntExp)
+               end if
+
                ! exit vertical loop
               !  - this should never happen, because of the exponential MF form
          !      IF (UPAn<= 0.) THEN
