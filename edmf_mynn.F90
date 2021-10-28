@@ -426,6 +426,8 @@ end type edmf_ls_mp_type
   integer :: Qx_MF=1                            ! =1, using eddy-divergence/source form to compute MF tendencies on grid-scale cloud
                                                 ! =2, using detrainment/subsidence form to compute MF tendencies on grid-scale cloud
 
+  integer :: Qx_numerics=1                      ! =1, use upwind approximation in computing MF eddy-flux/source and subsidence/detrainment forms
+
   logical :: do_use_tau = .true.                ! .true.  : use the T,q at the current step
                                                 ! .false. : use the updated T,q
   logical :: do_simple =.false.                 ! do_simple = switch to turn on alternative definition of specific
@@ -454,7 +456,7 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
-                            do_option_edmf2ls_mp, do_use_tau, Qx_MF, &
+                            do_option_edmf2ls_mp, do_use_tau, Qx_MF, Qx_numerics, &
                             do_modify_detrainment, &
                             do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
 
@@ -6676,128 +6678,160 @@ endif
 
 !--- compute variables for coupling with Tiedtke
 DO K=KTS,KTE-1
-  DO I=1,NUP
+  !DO I=1,NUP
+  DO I=1,1
      dz=ZW(k+1)-ZW(k)
    
-     mfp1=UPA(K+1,I)*UPW(K+1,I)
-     mf=UPA(K,I)*UPW(K,I)
+     !--- mass flux 
+     mfp1= UPRHO(K+1,I) * UPA(K+1,I) * UPW(K+1,I)   ! mass flux at k+1/2 level
+     mf  = UPRHO(K,I)   * UPA(K,I)   * UPW(K,I)     ! mass fkyx at k-1/2 level
+
+     qcp1 = 0.5 * (qc(K)+qc(K+1))                   ! grid-scale qc at k+1/2 level
+     if (K.eq.1) then
+       qcp0 = qc(K)                                 ! grid-scale qc at k-1/2 level
+     else
+       qcp0 = 0.5 * (qc(K)+qc(K-1))                 ! grid-scale qc at k-1/2 level
+     endif
+
+     !--- saturated fraction
+     IF (UPQC(K+1,I) > 0.) THEN    ! saturated fraction at k+1/2 level
+       CCp1=1.
+     ELSE
+       CCp1=0.
+     ENDIF
    
-     ! for liquid and ice water
-     !F1=-(mfp1*(UPQC(K+1,I)-qc(K+1))-mf*(UPQC(K,I)-qc(K)))/dz
-     if (K.eq.1) then
-       F1=-(mfp1*(UPQC(K+1,I)-qc(K))-mf*(UPQC(K,I)-0.))/dz     ! qc(K-1)=qc(0)=0.
-     else
-       F1=-(mfp1*(UPQC(K+1,I)-qc(K))-mf*(UPQC(K,I)-qc(K-1)))/dz
-     endif
+     IF (UPQC(K,I) > 0.) THEN      ! saturated fraction at k-1/2 level
+       CCp0=1.
+     ELSE
+       CCp0=0.
+     ENDIF
 
-     F2=mf*(UPQC(K+1,I)-UPQC(K,I))/dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
-     F3=ENT(K,I)*mf*(UPQC(K,I)-qc(K))
-       
-     ! yhc: F1 and F2 do not need to be divided by rho 
-     !Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2+F3)
-     !Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2+F3)
+     !************************
+     !************************
+     !
+     !  eddy-flux/source form
+     !
+     !************************
+     !************************
 
-     !--- eddy-flux divergence/source form
-     Qql_eddy(k)=Qql_eddy(k)+liquid_frac(k)*F1
-     Qql_adv (k)=Qql_adv(k)+liquid_frac(k)*F2
-     Qql_ent (k)=Qql_ent(k)+liquid_frac(k)*F3
+       !-----------------------------------------------
+       !--- cloud condensate, eddy-flux/source form ---
+       !-----------------------------------------------
+       F1=0.
+       F2=0.
+       F3=0.
 
-     Qqi_eddy(k)=Qqi_eddy(k)+(1.-liquid_frac(k))*F1
-     Qqi_adv (k)=Qqi_adv(k)+(1.-liquid_frac(k))*F2
-     Qqi_ent (k)=Qqi_ent(k)+(1.-liquid_frac(k))*F3
-
-     !--- detrainment/subsidence form
-     if (k.eq.1) then
-       mf=rho(1)*UPW(K,I)*UPA(K,I)
-     else
-       mf=rho(K-1)*UPW(K,I)*UPA(K,I)
-     endif
-
-     mfp1=rho(K)*UPA(K+1,I)*UPW(K+1,I)
-
-     F1=mf*DET(K,I)*(UPQC(K,I)-qc(K))
-     F2=mfp1*(qc(K+1)-qc(K))/(ZFULL(K+1)-ZFULL(K))
-
-     Qql_det(k) = Qql_det(k)+liquid_frac(k)*F1/rho(K)
-     Qqi_det(k) = Qqi_det(k)+(1.-liquid_frac(k))*F1/rho(K)
-
-     Qql_sub(k) = Qql_sub(k)+liquid_frac(k)*F2/rho(K)
-     Qqi_sub(k) = Qqi_sub(k)+(1.-liquid_frac(k))*F2/rho(K)
-
-     !Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)/rho(k)
-     !Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)/rho(k)
-
-!<--- yhc 2021-09-08
-!<--- yhc: this Qa recovery code is not correct  
-!  CCp1=0.
-!  CCp0=0.
-!  IF (UPQC(K+1,I) > 0.) CCp1=UPA(K+1,I)
-!    IF (UPQC(K,I) > 0.) CCp0=UPA(K,I)
-!  
-!    ! for area fraction
-!     F1=-(mfp1*(CCp1-cldfra_bl1d(K+1))-mf*(CCp0-cldfra_bl1d(K)) )/dz
-!     F2=mf*(CCp1-CCp0)/dz+ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
-!  
-!     Qa(k)=Qa(k)+(F1+F2)/rho(k)
-!--->  
+       if (Qx_numerics.eq.1) then   ! upwind approximation
+         !--- F1: eddy-flux convergence term for cloud condensate
+         if (K.eq.1) then
+           F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-0.) )  / dz     ! qc(K-1)=qc(0)=0.
+         else
+           F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-qcp0)) / dz
+         endif
   
-  CCp1=0.
-  CCp0=0.
-  IF (UPQC(K+1,I) > 0.) THEN
-    CCp1=1.
-  ELSE
-    CCp1=0.
-  ENDIF
+         if (UPW(K,I).gt.0. .and. UPW(K+1,I).gt.0.) then  ! source terms are only present in the plume
+           !--- F2: source/vertical advection term for cloud condensate
+           F2 = UPA(K,I) * UPW(K,I) * (UPQC(K+1,I)-UPQC(K,I)) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+    
+           !--- F3: source/entrainment term for cloud condensate
+           F3 = UPA(K,I) * UPW(K,I) * ENT(K,I) * (UPQC(K,I)-qc(K))
+         endif
+       endif  ! end if of Qx_numerics   
 
-  IF (UPQC(K,I) > 0.) THEN
-    CCp0=1.
-  ELSE
-    CCp0=0.
-  ENDIF
+         !--- sum over the i-th plume
+         Qql_eddy(k)=Qql_eddy(k)+liquid_frac(k)*F1
+         Qql_adv (k)=Qql_adv(k)+liquid_frac(k)*F2
+         Qql_ent (k)=Qql_ent(k)+liquid_frac(k)*F3
+    
+         Qqi_eddy(k)=Qqi_eddy(k)+(1.-liquid_frac(k))*F1
+         Qqi_adv (k)=Qqi_adv(k)+(1.-liquid_frac(k))*F2
+         Qqi_ent (k)=Qqi_ent(k)+(1.-liquid_frac(k))*F3
 
-  IF (UPQC(K,I) <= 0. .and. UPQC(K+1,I) > 0.) then
-    F2 = UPA(K,I)*UPW(K,I)/dz
-  ELSEIF (UPQC(K,I) > 0. .and. UPQC(K+1,I) <= 0.) then
-    F2 = -1.*UPA(K,I)*UPW(K,I)/dz
-  ELSE
-    F2 = 0.
-  ENDIF
+       !---------------------------------------------
+       !--- cloud fraction, eddy-flux/source form ---
+       !---------------------------------------------
+       F1=0.
+       F2=0.
+       F3=0.
+
+       if (Qx_numerics.eq.1) then   ! upwind approximation
+         !--- F1: eddy-flux convergence term for cloud fraction
+         if (K.eq.1) then
+           F1 = -1./rho(k) * ( mfp1*(CCp1-cldfra_bl1d(K)) - mf*(CCp0-0.) ) / dz     ! qc(K-1)=qc(0)=0.
+         else
+           F1 = -1./rho(k) * ( mfp1*(CCp1-cldfra_bl1d(K)) - mf*(CCp0-cldfra_bl1d(K-1))) / dz
+         endif
+
+         if (UPW(K,I).gt.0. .and. UPW(K+1,I).gt.0.) then  ! source terms are only present in the plume
+           !--- F2: vertical advection term
+           F2 = UPA(K,I) * UPW(K,I) * (CCp1-CCp0) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+    
+           !--- F3: entrainment term
+           F3 = UPA(K,I) * UPW(K,I) * ENT(K,I) * (CCp0-qc(K))
+         endif
+       endif  ! end if of Qx_numerics   
   
-    ! for area fraction
-     if (K.eq.1) then
-       F1=-(mfp1*(CCp1-cldfra_bl1d(K))-mf*(CCp0-0.) )/dz   ! cldfra_bl1d(0) = 0.
-     else
-       F1=-(mfp1*(CCp1-cldfra_bl1d(K))-mf*(CCp0-cldfra_bl1d(K-1)) )/dz
-     endif
+         Qa_eddy(k)=Qa_eddy(k)+F1
+         Qa_adv (k)=Qa_adv(k)+F2
+         Qa_ent (k)=Qa_ent(k)+F3
 
-     !F2=F0 !+ ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
-     F3=ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
-  
-     !Qa(k)=Qa(k)+(F1+F2)/rho(k)
-     !Qa(k)=Qa(k)+(F1+F2+F3)
+     !************************
+     !************************
+     !
+     !  detrainment/subsidence form
+     !
+     !************************
+     !************************
 
-     !--- eddy-flux divergence/source form
-     Qa_eddy(k)=Qa_eddy(k)+F1
-     Qa_adv (k)=Qa_adv(k)+F2
-     Qa_ent (k)=Qa_ent(k)+F3
+       !-----------------------------------------------------
+       !--- cloud condensate, detrainment/subsidence form ---
+       !-----------------------------------------------------
+       F1=0.
+       F2=0.
+       F3=0.
 
-     !--- detrainment/subsidence form
-     if (k.eq.1) then
-       mf=rho(1)*UPW(K,I)*UPA(K,I)
-     else
-       mf=rho(K-1)*UPW(K,I)*UPA(K,I)
-     endif
+       if (Qx_numerics.eq.1) then   ! upwind approximation
+         ! F1: subsidence term for cloud condensate
+         F1 = mfp1/rho(k) * (qc(K+1)-qc(K))/(ZFULL(K+1)-ZFULL(K))  
 
-     mfp1=rho(K)*UPA(K+1,I)*UPW(K+1,I)
+         ! F2: detrainment term for cloud condensate
+         F2 = mf*DET(K,I)/rho(k) * (UPQC(K,I)-qc(K))
+       endif  ! end if of Qx_numerics   
 
-     F1=mf*DET(K,I)*(CCp0-cldfra_bl1d(K))
-     F2=mfp1*(cldfra_bl1d(K+1)-cldfra_bl1d(K))/(ZFULL(K+1)-ZFULL(K))
+       ! sum over all plumes
+       Qql_sub(k) = Qql_sub(k)+liquid_frac(k)*F1
+       Qqi_sub(k) = Qqi_sub(k)+(1.-liquid_frac(k))*F1
 
-     Qa_det(k) = Qa_det(k)+F1/rho(K)
-     Qa_sub(k) = Qa_sub(k)+F2/rho(K)
- 
+       Qql_det(k) = Qql_det(k)+liquid_frac(k)*F2
+       Qqi_det(k) = Qqi_det(k)+(1.-liquid_frac(k))*F2
+
+       !---------------------------------------------------
+       !--- cloud fraction, detrainment/subsidence form ---
+       !---------------------------------------------------
+       F1=0.
+       F2=0.
+       F3=0.
+
+       if (Qx_numerics.eq.1) then   ! upwind approximation
+         ! F1: subsidence term for cloud condensate
+         F1 = mfp1/rho(k) * (cldfra_bl1d(K+1)-cldfra_bl1d(K))/(ZFULL(K+1)-ZFULL(K))  
+
+         ! F2: detrainment term for cloud condensate
+         F2 = mf*DET(K,I)/rho(k) * (CCp0-cldfra_bl1d(K))
+       endif  ! end if of Qx_numerics   
+
+       ! sum over all plumes
+       Qa_sub(k) = Qa_sub(k)+F1
+       Qa_det(k) = Qa_det(k)+F2
+
   ENDDO
 ENDDO  
+
+      print*,'Qa_eddy',Qa_eddy
+      print*,'Qa_adv ',Qa_adv
+      print*,'Qa_ent ',Qa_ent
+      print*,'Qa_sub ',Qa_sub
+      print*,'Qa_det ',Qa_det
 
 !--- return MF cloud tendencies  
 if (Qx_MF.eq.1) then   ! eddy-divergence/source form 
@@ -6813,11 +6847,6 @@ elseif (Qx_MF.eq.2) then ! detrainment/subsidence form
 else
   print*,'ERROR: Qx_MF must be 1 or 2'
 endif
-
-!print*,'Qx_MF',Qx_MF
-!print*,'Qql',Qql
-!print*,'Qqi',Qqi
-!print*,'Qa',Qa
 
 !--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
 
