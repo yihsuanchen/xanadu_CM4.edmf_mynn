@@ -6178,6 +6178,10 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
        REAL,DIMENSION(KTS:KTE) :: ZFULL
 
        REAL :: qcp0, qcp1
+
+       REAl,DIMENSION(KTS:KTE,1:NUP) :: &
+        Qql_det_i, Qqi_det_i, Qa_det_i, Qql_sub_i , Qqi_sub_i , Qa_sub_i, &
+        Qql_adv_i, Qqi_adv_i, Qa_adv_i, Qql_eddy_i, Qqi_eddy_i, Qa_eddy_i, Qql_ent_i, Qqi_ent_i, Qa_ent_i
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -6248,6 +6252,26 @@ s_awqke=0.
  Qql_sub  = 0.
  Qqi_sub  = 0.
  Qa_sub  = 0.
+
+ Qql_adv_i = 0.
+ Qqi_adv_i = 0.
+ Qa_adv_i = 0.
+
+ Qql_eddy_i = 0.
+ Qqi_eddy_i = 0.
+ Qa_eddy_i = 0.
+
+ Qql_ent_i = 0.
+ Qqi_ent_i = 0.
+ Qa_ent_i = 0.
+
+ Qql_det_i = 0.
+ Qqi_det_i = 0.
+ Qa_det_i = 0.
+
+ Qql_sub_i = 0.
+ Qqi_sub_i = 0.
+ Qa_sub_i = 0.
 
  edmf_det = 0.
  DET=0.
@@ -6686,8 +6710,8 @@ endif
 
 !--- compute variables for coupling with Tiedtke
 DO K=KTS,KTE-1
-  !DO I=1,NUP
-  DO I=1,1
+  DO I=1,NUP
+  !DO I=1,1
      dz=ZW(k+1)-ZW(k)
    
      !--- mass flux 
@@ -6746,14 +6770,22 @@ DO K=KTS,KTE-1
          endif
        endif  ! end if of Qx_numerics   
 
-         !--- sum over the i-th plume
-         Qql_eddy(k)=Qql_eddy(k)+liquid_frac(k)*F1
-         Qql_adv (k)=Qql_adv(k)+liquid_frac(k)*F2
-         Qql_ent (k)=Qql_ent(k)+liquid_frac(k)*F3
+         Qql_eddy_i (K,I) = liquid_frac(k)*F1
+         Qql_adv_i  (K,I) = liquid_frac(k)*F2
+         Qql_ent_i  (K,I) = liquid_frac(k)*F3
     
-         Qqi_eddy(k)=Qqi_eddy(k)+(1.-liquid_frac(k))*F1
-         Qqi_adv (k)=Qqi_adv(k)+(1.-liquid_frac(k))*F2
-         Qqi_ent (k)=Qqi_ent(k)+(1.-liquid_frac(k))*F3
+         Qqi_eddy_i (K,I) = (1.-liquid_frac(k))*F1
+         Qqi_adv_i  (K,I) = (1.-liquid_frac(k))*F2
+         Qqi_ent_i  (K,I) = (1.-liquid_frac(k))*F3
+
+         !--- sum over the i-th plume
+         Qql_eddy(k) = Qql_eddy(k) + Qql_eddy_i (K,I)
+         Qql_adv (k) = Qql_adv (k) + Qql_adv_i  (K,I)
+         Qql_ent (k) = Qql_ent (k) + Qql_ent_i  (K,I)
+
+         Qqi_eddy(k) = Qqi_eddy(k) + Qqi_eddy_i (K,I)
+         Qqi_adv (k) = Qqi_adv (k) + Qqi_adv_i  (K,I)
+         Qqi_ent (k) = Qqi_ent (k) + Qqi_ent_i  (K,I)
 
        !---------------------------------------------
        !--- cloud fraction, eddy-flux/source form ---
@@ -6765,23 +6797,23 @@ DO K=KTS,KTE-1
        if (Qx_numerics.eq.1) then   ! upwind approximation
          !--- F1: eddy-flux convergence term for cloud fraction
          if (K.eq.1) then
-           F1 = -1./rho(k) * ( mfp1*(CCp1-cldfra_bl1d(K)) - mf*(CCp0-0.) ) / dz     ! qc(K-1)=qc(0)=0.
+           Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldfra_bl1d(K)) - mf*(CCp0-0.) ) / dz     ! qc(K-1)=qc(0)=0.
          else
-           F1 = -1./rho(k) * ( mfp1*(CCp1-cldfra_bl1d(K)) - mf*(CCp0-cldfra_bl1d(K-1))) / dz
+           Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldfra_bl1d(K)) - mf*(CCp0-cldfra_bl1d(K-1))) / dz
          endif
 
          if (UPW(K,I).gt.0. .and. UPW(K+1,I).gt.0.) then  ! source terms are only present in the plume
            !--- F2: vertical advection term
-           F2 = UPA(K,I) * UPW(K,I) * (CCp1-CCp0) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+           Qa_adv_i (K,I) = UPA(K,I) * UPW(K,I) * (CCp1-CCp0) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
     
            !--- F3: entrainment term
-           F3 = UPA(K,I) * UPW(K,I) * ENT(K,I) * (CCp0-qc(K))
+           Qa_ent_i (K,I) = UPA(K,I) * UPW(K,I) * ENT(K,I) * (CCp0-qc(K))
          endif
        endif  ! end if of Qx_numerics   
   
-         Qa_eddy(k)=Qa_eddy(k)+F1
-         Qa_adv (k)=Qa_adv(k)+F2
-         Qa_ent (k)=Qa_ent(k)+F3
+         Qa_eddy(k) = Qa_eddy(k) + Qa_eddy_i (K,I)
+         Qa_adv (k) = Qa_adv (k) + Qa_adv_i  (K,I)
+         Qa_ent (k) = Qa_ent (k) + Qa_ent_i  (K,I)
 
      !************************
      !************************
@@ -6806,12 +6838,18 @@ DO K=KTS,KTE-1
          F2 = mf*DET(K,I)/rho(k) * (UPQC(K,I)-qc(K))
        endif  ! end if of Qx_numerics   
 
-       ! sum over all plumes
-       Qql_sub(k) = Qql_sub(k)+liquid_frac(k)*F1
-       Qqi_sub(k) = Qqi_sub(k)+(1.-liquid_frac(k))*F1
+         Qql_sub_i (K,I) = liquid_frac(k)*F1
+         Qql_det_i (K,I) = liquid_frac(k)*F2
 
-       Qql_det(k) = Qql_det(k)+liquid_frac(k)*F2
-       Qqi_det(k) = Qqi_det(k)+(1.-liquid_frac(k))*F2
+         Qqi_sub_i (K,I) = (1.-liquid_frac(k))*F1
+         Qqi_det_i (K,I) = (1.-liquid_frac(k))*F2
+
+       ! sum over all plumes
+       Qql_sub(k) = Qql_sub(k) + Qql_sub_i (K,I)
+       Qqi_sub(k) = Qqi_sub(k) + Qqi_sub_i (K,I)
+
+       Qql_det(k) = Qql_det(k) + Qql_det_i (K,I)
+       Qqi_det(k) = Qqi_det(k) + Qqi_det_i (K,I)
 
        !---------------------------------------------------
        !--- cloud fraction, detrainment/subsidence form ---
@@ -6822,24 +6860,18 @@ DO K=KTS,KTE-1
 
        if (Qx_numerics.eq.1) then   ! upwind approximation
          ! F1: subsidence term for cloud condensate
-         F1 = mfp1/rho(k) * (cldfra_bl1d(K+1)-cldfra_bl1d(K))/(ZFULL(K+1)-ZFULL(K))  
+         Qa_sub_i (K,I) = mfp1/rho(k) * (cldfra_bl1d(K+1)-cldfra_bl1d(K))/(ZFULL(K+1)-ZFULL(K))  
 
          ! F2: detrainment term for cloud condensate
-         F2 = mf*DET(K,I)/rho(k) * (CCp0-cldfra_bl1d(K))
+         Qa_det_i (K,I) = mf*DET(K,I)/rho(k) * (CCp0-cldfra_bl1d(K))
        endif  ! end if of Qx_numerics   
 
        ! sum over all plumes
-       Qa_sub(k) = Qa_sub(k)+F1
-       Qa_det(k) = Qa_det(k)+F2
+       Qa_sub(k) = Qa_sub(k) + Qa_sub_i (K,I)
+       Qa_det(k) = Qa_det(k) + Qa_det_i (K,I)
 
   ENDDO
 ENDDO  
-
-      print*,'Qa_eddy',Qa_eddy
-      print*,'Qa_adv ',Qa_adv
-      print*,'Qa_ent ',Qa_ent
-      print*,'Qa_sub ',Qa_sub
-      print*,'Qa_det ',Qa_det
 
 !--- return MF cloud tendencies  
 if (Qx_MF.eq.1) then   ! eddy-divergence/source form 
@@ -6948,6 +6980,32 @@ ENDDO
 ! moist+dry mass flux
   mf_all_half (:) = mf_moist_half (:) + mf_dry_half (:)
   mf_all_full (:) = mf_moist_full (:) + mf_dry_full (:)
+
+
+!--- check part
+if (do_check_ent_det) then
+  DO I=1,NUP
+    DO K=KTS,KTE-1
+      IF(I > NUP) exit
+        dz=ZW(k+1)-ZW(k)
+        mfp1=UPRHO(K+1,I)*UPW(K+1,I)*UPA(K+1,I)
+        mf  =UPRHO(K,I)  *UPW(K,I)  *UPA(K,I)    
+  
+        F1=0.
+        F2=0.
+        F3=0.
+  
+        if (mf.gt.0.) then
+          F1 = 1./mf * (mfp1-mf)/dz
+          F2 = ENT(K,I) - DET(K,I)  
+          if (F1.gt.0.) F3 = (F1-F2)/F1 * 100.
+  
+          !print*,'I,K, ENT, DET, 1/m*dm/dz, ENT-DET, %diff',I,K, ENT(K,I),DET(K,I),F1,F2,F3
+          print*,'I,K, 1/m*dm/dz, ENT-DET, %diff',I,K,F1,F2,F3
+        endif
+    ENDDO  ! end loop of K
+  ENDDO    ! end loop of I
+endif      ! end if of do_check_ent_det
 !---> yhc 2021-09-08
 
 
