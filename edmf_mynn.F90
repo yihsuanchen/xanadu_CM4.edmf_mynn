@@ -413,6 +413,7 @@ end type edmf_ls_mp_type
   logical :: do_writeout_column_nml = .false.   ! control whether writing out the column
   logical :: do_check_consrv = .false.          ! control whether writing out the water/heat conservation
   logical :: do_check_realizability = .false.   ! control whether writing out current and update cloud properties (qa,ql)
+  logical :: do_check_ent_det = .false.         ! control whether writing out entrainment and detrainment rate for debugging
   logical :: do_stop_run = .false.              ! whether to stop the simulation
   real    :: qke_min = -1.                      ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
                                                 !   set qke_min>0 may remove energy/water away and cause water mass is not conserved
@@ -442,8 +443,6 @@ end type edmf_ls_mp_type
 
   character*20 :: do_debug_option = ""          ! debug purpose
 
-  logical :: do_modify_detrainment = .true.  ! Modify diagnosed detrainment rate. 1. force diagnosed MF detrainment to be positive, 2. only detrainment happens just below the plume top, i.e. no entrainment in detrained layer
-
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
   real    :: tdt_max     = 500. ! K/day
@@ -460,7 +459,6 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
                             do_option_edmf2ls_mp, do_use_tau, Qx_MF, Qx_numerics, option_up_area, &
-                            do_modify_detrainment, &
                             do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
 
 !---------------------------------------------------------------------
