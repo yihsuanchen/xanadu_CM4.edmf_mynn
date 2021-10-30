@@ -4440,6 +4440,7 @@ END SUBROUTINE mym_condensation
       qv_dry_half1
 
     REAL,DIMENSION(KTS:KTE) :: &
+      num_DET1, num_nDET_pENT1, num_nDET_zENT1,  &
       a_moist_full1 ,  &
       a_dry_full1 ,  &
       mf_moist_full1,  &
@@ -4447,6 +4448,12 @@ END SUBROUTINE mym_condensation
       mf_all_full1  , &
       qv_moist_full1,  &
       qv_dry_full1
+
+    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+      num_DET, num_nDET_pENT, num_nDET_zENT
+
+    REAL, DIMENSION(IMS:IME,JMS:JME,KMS:KME) :: &
+      diag_full
     !---> yhc 2021-09-08
 
 ! 0 ... default thing 
@@ -5004,6 +5011,7 @@ END SUBROUTINE mym_condensation
                & a_moist_half1, mf_moist_half1, qv_moist_half1, a_moist_full1, mf_moist_full1, qv_moist_full1, &  ! yhc 2021-09-08
                & a_dry_half1, mf_dry_half1, qv_dry_half1, a_dry_full1, mf_dry_full1, qv_dry_full1, &            ! yhc 2021-09-08
                & mf_all_half1, mf_all_full1, edmf_det1, &                                                     ! yhc 2021-09-08
+               & num_DET1, num_nDET_zENT1, num_nDET_pENT1, &                                               ! yhc 2021-09-08
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1,                 &
@@ -5296,6 +5304,11 @@ END SUBROUTINE mym_condensation
                mf_all_full   (i,k,j) = mf_all_full1(k)
 
                edmf_det(i,k,j)=edmf_det1(k)
+
+               num_DET      (i,k,j) = num_DET1      (k)
+               num_nDET_zENT(i,k,j) = num_nDET_zENT1(k)
+               num_nDET_pENT(i,k,j) = num_nDET_pENT1(k)
+
                !---> yhc 2021-09-08
 
                ELSE
@@ -6071,6 +6084,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               & a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
               & a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
               & mf_all_half, mf_all_full, edmf_det, &                                                  ! yhc 2021-09-08
+              & num_DET, num_nDET_zENT, num_nDET_pENT, &                                               ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa, &
               & Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent, Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub &
               ) ! yhc 2021-09-08
@@ -6165,6 +6179,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          qv_dry_half  
 
        REAL,DIMENSION(kts:kte), INTENT(OUT) :: & 
+         num_DET, num_nDET_zENT, num_nDET_pENT,  &
          a_moist_full ,  &
          a_dry_full ,  &
          mf_moist_full,  &
@@ -6173,13 +6188,15 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          qv_moist_full,  & 
          qv_dry_full   
   
-       REAL,DIMENSION(KTS:KTE) :: ZFULL
+       REAL,DIMENSION(KTS:KTE) :: &
+         ZFULL
 
        REAL :: qcp0, qcp1
 
        REAl,DIMENSION(KTS:KTE,1:NUP) :: &
         Qql_det_i, Qqi_det_i, Qa_det_i, Qql_sub_i , Qqi_sub_i , Qa_sub_i, &
         Qql_adv_i, Qqi_adv_i, Qa_adv_i, Qql_eddy_i, Qqi_eddy_i, Qa_eddy_i, Qql_ent_i, Qqi_ent_i, Qa_ent_i
+
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -6979,7 +6996,6 @@ ENDDO
   mf_all_half (:) = mf_moist_half (:) + mf_dry_half (:)
   mf_all_full (:) = mf_moist_full (:) + mf_dry_full (:)
 
-
 !--- check part
 if (do_check_ent_det) then
   DO I=1,NUP
@@ -7004,6 +7020,37 @@ if (do_check_ent_det) then
     ENDDO  ! end loop of K
   ENDDO    ! end loop of I
 endif      ! end if of do_check_ent_det
+
+
+!--- compute the frequency of negative DET
+num_DET=0.
+num_nDET_zENT=0.
+num_nDET_pENT=0.
+
+DO K=KTS,KTE-1
+  DO I=1,NUP
+    mf = UPRHO(K,I)*UPW(K,I)*UPA(K,I)
+
+    if (mf.gt.0) then
+      if (DET(K,I).ne.0.) then      ! count # of detrainment at each level
+        num_DET (K) = num_DET(K)+1.
+      endif
+
+      if (DET(K,I).lt.0. .and. ENT(K,I).eq.0.) then  ! count # of negative detrainment with zero entrainment
+        num_nDET_zENT (K) = num_nDET_zENT (K)+1. 
+      endif
+
+      if (DET(K,I).lt.0. .and. ENT(K,I).gt.0.) then  ! count # of negative detrainment with positive entrainment
+        num_nDET_pENT (K) = num_nDET_pENT (K)+1. 
+      endif
+    endif  ! end if of mf>0
+  ENDDO
+
+  if (num_DET (K).gt.0.) then  ! compute frequency
+    num_nDET_zENT (K) = num_nDET_zENT (K) / num_DET (K)
+    num_nDET_pENT (K) = num_nDET_pENT (K) / num_DET (K)
+  endif
+ENDDO
 !---> yhc 2021-09-08
 
 
@@ -7442,6 +7489,7 @@ END SUBROUTINE edmf_JPL
 !         !     ENDIF
 !         ! ENDDO
 ! END SUBROUTINE DDMF_JPL
+
 
 !################################
 !################################
