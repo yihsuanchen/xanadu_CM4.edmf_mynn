@@ -1062,11 +1062,11 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  missing_value=missing_value )
 
   id_num_ndet_zent = register_diag_field (mod_name, 'num_ndet_zent', axes(full), Time, &
-                 'number of negative dentrainment with zero entrainment in edmf updrafts', 'none' , &
+                 'frequency of negative dentrainment with zero entrainment in edmf updrafts', 'none' , &
                  missing_value=missing_value )
 
   id_num_ndet_pent = register_diag_field (mod_name, 'num_ndet_pent', axes(full), Time, &
-                 'number of negative dentrainment with positive entrainment in edmf updrafts', 'none' , &
+                 'frequency of negative dentrainment with positive entrainment in edmf updrafts', 'none' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -6940,19 +6940,19 @@ endif
 
 !--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
 DO K=KTS,KTE-1
-  IF(k > KTOP) exit
+  !IF(k > KTOP) exit
 
   DO I=1,NUP
     IF(I > NUP) exit
 
     if (UPQC(K,I) > 0.) then   ! sum of individual moist updrafts
       a_moist_half  (K) = a_moist_half  (K) + UPA(K,I) 
-      mf_moist_half (K) = mf_moist_half (K) + UPA(K,I)*rho(K)*UPW(K,I)
+      mf_moist_half (K) = mf_moist_half (K) + UPA(K,I)*UPRHO(K,I)*UPW(K,I)
       qv_moist_half (K) = qv_moist_half (K) + UPA(K,I)*(UPQT(K,I)-UPQC(K,I))  
 
     else                       ! sum of individual dry updrafts
       a_dry_half    (K) = a_dry_half  (K) + UPA(K,I) 
-      mf_dry_half   (K) = mf_dry_half (K) + UPA(K,I)*rho(K)*UPW(K,I)
+      mf_dry_half   (K) = mf_dry_half (K) + UPA(K,I)*UPRHO(K,I)*UPW(K,I)
       qv_dry_half   (K) = qv_dry_half (K) + UPA(K,I)*(UPQT(K,I)-UPQC(K,I))        
     endif
   ENDDO  ! end loop of i
@@ -6970,15 +6970,15 @@ ENDDO    ! end loop of k
 !      interpolate from the updraft base. Right above the updraft top (KTOP, mf>0), using upwind approximation
 
   !--- updraft top
-  a_moist_full  (KTOP) = a_moist_half  (KTOP)
-  mf_moist_full (KTOP) = mf_moist_half (KTOP)
-  qv_moist_full (KTOP) = qv_moist_half (KTOP)
+  !a_moist_full  (KTOP) = a_moist_half  (KTOP)
+  !mf_moist_full (KTOP) = mf_moist_half (KTOP)
+  !qv_moist_full (KTOP) = qv_moist_half (KTOP)
 
-  a_dry_full    (KTOP) = a_dry_half    (KTOP)
-  mf_dry_full   (KTOP) = mf_dry_half   (KTOP)
-  qv_dry_full   (KTOP) = qv_dry_half   (KTOP)
+  !a_dry_full    (KTOP) = a_dry_half    (KTOP)
+  !mf_dry_full   (KTOP) = mf_dry_half   (KTOP)
+  !qv_dry_full   (KTOP) = qv_dry_half   (KTOP)
 
-DO K=KTS,KTOP-1
+DO K=KTS,KTE-1
   if (mf_moist_half (K) > 0.) then
     a_moist_full  (K) = 0.5 * (a_moist_half  (K)+a_moist_half  (K+1))
     mf_moist_full (K) = 0.5 * (mf_moist_half (K)+mf_moist_half (K+1))
