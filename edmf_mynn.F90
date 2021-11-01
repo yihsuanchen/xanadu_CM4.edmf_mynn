@@ -6206,7 +6206,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
        REAL,DIMENSION(KTS:KTE) :: &
          ZFULL
 
-       REAL :: qcp0, qcp1
+       REAL :: qcp0, qcp1, cldp1, cldp0
 
        REAl,DIMENSION(KTS:KTE,1:NUP) :: &
         Qql_det_i, Qqi_det_i, Qa_det_i, Qql_sub_i , Qqi_sub_i , Qa_sub_i, &
@@ -6755,6 +6755,13 @@ DO K=KTS,KTE-1
        qcp0 = 0.5 * (qc(K)+qc(K-1))                 ! grid-scale qc at k-1/2 level
      endif
 
+     cldp1 = 0.5 * (cldfra_bl1d(K)+cldfra_bl1d(K+1))          ! grid-scale cloud fraction at k+1/2 level
+     if (K.eq.1) then
+       cldp0 = cldfra_bl1d(K)                                 ! grid-scale cloud fraction at k-1/2 level
+     else
+       cldp0 = 0.5 * (cldfra_bl1d(K)+cldfra_bl1d(K-1))        ! grid-scale cloud fraction at k-1/2 level
+     endif
+
      !--- saturated fraction
      IF (UPQC(K+1,I) > 0.) THEN    ! saturated fraction at k+1/2 level
        CCp1=1.
@@ -6827,9 +6834,9 @@ DO K=KTS,KTE-1
        if (Qx_numerics.eq.1) then   ! upwind approximation
          !--- F1: eddy-flux convergence term for cloud fraction
          if (K.eq.1) then
-           Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldfra_bl1d(K)) - mf*(CCp0-0.) ) / dz     ! qc(K-1)=qc(0)=0.
+           Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldp1) - mf*(CCp0-0.)    ) / dz     ! qc(K-1)=qc(0)=0.
          else
-           Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldfra_bl1d(K)) - mf*(CCp0-cldfra_bl1d(K-1))) / dz
+           Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldp1) - mf*(CCp0-cldp0) ) / dz
          endif
 
          if (UPW(K,I).gt.0. .and. UPW(K+1,I).gt.0.) then  ! source terms are only present in the plume
@@ -6837,7 +6844,7 @@ DO K=KTS,KTE-1
            Qa_adv_i (K,I) = UPA(K,I) * UPW(K,I) * (CCp1-CCp0) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
     
            !--- F3: entrainment term
-           Qa_ent_i (K,I) = UPA(K,I) * UPW(K,I) * ENT(K,I) * (CCp0-qc(K))
+           Qa_ent_i (K,I) = UPA(K,I) * UPW(K,I) * ENT(K,I) * (CCp0-cldfra_bl1d(K))
          endif
        endif  ! end if of Qx_numerics   
   
