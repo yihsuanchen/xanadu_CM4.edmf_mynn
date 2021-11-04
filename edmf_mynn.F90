@@ -439,6 +439,10 @@ end type edmf_ls_mp_type
                                                 !             (rdgas/rvgas)*esat/pressure
                                                 ! same setting as module moist_processes_mod
 
+  integer :: option_ent=1                       ! =1, use original stochastic entrainment formula
+                                                ! =2, separate entrainment into stochastic and deterministic parts
+                                                !     controlling by alpha_st (1 completely stochastic, 0 completely deterministic)
+  real  :: alpha_st=0.5
   real    :: rc_MF = 10.e-6                     ! assumed cloud droplet radius in plumes (meters)
 
   character*20 :: do_debug_option = ""          ! debug purpose
@@ -458,7 +462,7 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
-                            do_option_edmf2ls_mp, do_use_tau, Qx_MF, Qx_numerics, option_up_area, &
+                            do_option_edmf2ls_mp, do_use_tau, Qx_MF, Qx_numerics, option_up_area, option_ent, alpha_st, &
                             do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
 
 !---------------------------------------------------------------------
@@ -6397,7 +6401,14 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
  ! entrainent: Ent=Ent0/dz*P(dz/L0)
     do i=1,Nup
         do k=kts,kte
-          ENT(k,i)=real(ENTi(k,i))*Ent0/(ZW(k+1)-ZW(k))
+          if (option_ent.eq.1) then   ! original stochstic entrainment. But when it produce zero entrainment with constant
+                                      ! area assumption, this can violate mass continuity in plumes. 
+            ENT(k,i)=real(ENTi(k,i))*Ent0/(ZW(k+1)-ZW(k))
+
+          elseif (option_ent.eq.2) then   ! separate Ent0 to stochastic part and deterministic part to avoid zero entrainment problems
+            ENT(k,i)=alpha_st*real(ENTi(k,i))*Ent0/(ZW(k+1)-ZW(k))+(1.-alpha_st)*Ent0/L0
+
+          endif  ! end if of option_ent
         enddo
     enddo
 
