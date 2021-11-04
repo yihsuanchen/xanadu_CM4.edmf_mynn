@@ -569,6 +569,18 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                      FATAL )
   endif
 
+  if ( alpha_st.gt.1. .or. alpha_st.lt.0. ) then
+    call error_mesg( ' edmf_mynn',     &
+                     ' alpha_st  must be between 0 to 1',&
+                     FATAL )
+  endif
+
+  if ( option_ent.gt.2 .or. option_ent.lt.0) then
+    call error_mesg( ' edmf_mynn',     &
+                     ' option_ent must be 1 or 2',&
+                     FATAL )
+  endif
+
 !  if (     do_option_edmf2ls_mp.ne.0    &
 !     .and. do_option_edmf2ls_mp.ne.1    &
 !     .and. do_option_edmf2ls_mp.ne.2    &
@@ -6406,7 +6418,7 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
             ENT(k,i)=real(ENTi(k,i))*Ent0/(ZW(k+1)-ZW(k))
 
           elseif (option_ent.eq.2) then   ! separate Ent0 to stochastic part and deterministic part to avoid zero entrainment problems
-            ENT(k,i)=alpha_st*real(ENTi(k,i))*Ent0/(ZW(k+1)-ZW(k))+(1.-alpha_st)*Ent0/L0
+            ENT(k,i)=alpha_st*real(ENTi(k,i))*Ent0/(ZW(k+1)-ZW(k)) + (1.-alpha_st)*Ent0/L0
 
           endif  ! end if of option_ent
         enddo
