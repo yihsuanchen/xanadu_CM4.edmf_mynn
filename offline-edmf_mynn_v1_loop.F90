@@ -15,7 +15,7 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_begin"
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_01"
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_02_u,vdt_NaN"
-  character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
+  !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
   !character*50 :: input_profile = "AMIP_i27_j01_IndOcn"
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
   !character*50 :: input_profile = "SCM_am4p0_RF01_01"
@@ -23,12 +23,13 @@ MODULE module_bl_mynn
   ! character*50 :: input_profile = "SCM_am4p0_RF01_03_cloudy"
   !character*50 :: input_profile = "SCM_RF01_modQDT-Gmy_aTnTtT_a3_5.0h"
   !character*50 :: input_profile = "xxx"
-  !character*50 :: input_profile = "SCM_BOMEX_MYNN_ED_mixleng3"
+  character*50 :: input_profile = "SCM_BOMEX_MYNN_ED_mixleng3"
   !character*50 :: input_profile = "SCM_RF01_mynn_EDMFexpUP_Gmy_ADD_0.5h"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm01"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
 
-  integer, parameter :: loop_times = 10
+  integer, parameter :: loop_times = 1
+ ! integer, parameter :: loop_times = 10
  ! integer, parameter :: loop_times = 24 
  ! integer, parameter :: loop_times = 100
  ! integer, parameter :: loop_times = 60 
@@ -172,6 +173,12 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
    !logical :: do_check_realizability = .true.
    logical :: do_check_realizability = .false.
 
+   !logical :: do_check_ent_det = .true.
+   logical :: do_check_ent_det = .false.
+
+   logical :: do_limit_detrain_positive = .true.
+   !logical :: do_limit_detrain_positive = .false.
+
   integer :: edmf_type=2                        ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
                                                 ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
   real    :: qke_min = -1.                      ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
@@ -206,6 +213,16 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
   real    :: rc_MF = 10.e-6                     ! assumed cloud droplet radius in plumes (meters)
 
   integer :: do_tracers_selective=6
+
+  integer :: Qx_numerics =1   ! =1, use upwind approximation in computing MF eddy-flux/source and subsidence/detrainment forms
+
+  !integer :: option_up_area =2 
+  integer :: option_up_area =1 
+
+  integer :: option_ent=1                       ! =1, use original stochastic entrainment formula
+                                                ! =2, separate entrainment into stochastic and deterministic parts
+                                                !     controlling by alpha_st (1 completely stochastic, 0 completely deterministic)
+  real    :: alpha_st=0.5
 
 !==================
 type edmf_input_type
@@ -3658,6 +3675,7 @@ END SUBROUTINE mym_condensation
        &a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half, mf_all_full, &                                                     ! yhc 2021-09-08
+       &num_DET, num_nDET_pENT, num_nDET_zENT, &                                        ! yhc 2021-09-08
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -3822,6 +3840,7 @@ END SUBROUTINE mym_condensation
       qv_dry_half
 
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
+      num_DET, num_nDET_pENT, num_nDET_zENT,  &
       a_moist_full , &
       a_dry_full , &
       mf_moist_full,  &
@@ -3840,6 +3859,7 @@ END SUBROUTINE mym_condensation
       qv_dry_half1
 
     REAL,DIMENSION(KTS:KTE) :: &
+      num_DET1, num_nDET_pENT1, num_nDET_zENT1,  &
       a_moist_full1 ,  &
       a_dry_full1 ,  &
       mf_moist_full1,  &
@@ -3847,6 +3867,9 @@ END SUBROUTINE mym_condensation
       mf_all_full1  , &
       qv_moist_full1,  &
       qv_dry_full1
+
+    REAL, DIMENSION(IMS:IME,JMS:JME,KMS:KME) :: &
+      diag_full
     !---> yhc 2021-09-08
 
 ! 0 ... default thing 
@@ -4404,6 +4427,7 @@ END SUBROUTINE mym_condensation
                & a_moist_half1, mf_moist_half1, qv_moist_half1, a_moist_full1, mf_moist_full1, qv_moist_full1, &  ! yhc 2021-09-08
                & a_dry_half1, mf_dry_half1, qv_dry_half1, a_dry_full1, mf_dry_full1, qv_dry_full1, &            ! yhc 2021-09-08
                & mf_all_half1, mf_all_full1, edmf_det1, &                                                     ! yhc 2021-09-08
+               & num_DET1, num_nDET_zENT1, num_nDET_pENT1, &                                               ! yhc 2021-09-08
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1,                 &
@@ -4696,6 +4720,11 @@ END SUBROUTINE mym_condensation
                mf_all_full   (i,k,j) = mf_all_full1(k)
 
                edmf_det(i,k,j)=edmf_det1(k)
+
+               num_DET      (i,k,j) = num_DET1      (k)
+               num_nDET_zENT(i,k,j) = num_nDET_zENT1(k)
+               num_nDET_pENT(i,k,j) = num_nDET_pENT1(k)
+
                !---> yhc 2021-09-08
 
                ELSE
@@ -4783,6 +4812,8 @@ END SUBROUTINE mym_condensation
 
 
 !print *,'qkeEND',qke
+
+
 
   END SUBROUTINE mynn_bl_driver
 
@@ -5471,6 +5502,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               & a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
               & a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
               & mf_all_half, mf_all_full, edmf_det, &                                                  ! yhc 2021-09-08
+              & num_DET, num_nDET_zENT, num_nDET_pENT, &                                               ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa, &
               & Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent, Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub &
               ) ! yhc 2021-09-08
@@ -5565,6 +5597,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          qv_dry_half  
 
        REAL,DIMENSION(kts:kte), INTENT(OUT) :: & 
+         num_DET, num_nDET_zENT, num_nDET_pENT,  &
          a_moist_full ,  &
          a_dry_full ,  &
          mf_moist_full,  &
@@ -5573,7 +5606,15 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          qv_moist_full,  & 
          qv_dry_full   
   
-       REAL,DIMENSION(KTS:KTE) :: ZFULL
+       REAL,DIMENSION(KTS:KTE) :: &
+         ZFULL
+
+       REAL :: qcp0, qcp1, cldp1, cldp0
+
+       REAl,DIMENSION(KTS:KTE,1:NUP) :: &
+        Qql_det_i, Qqi_det_i, Qa_det_i, Qql_sub_i , Qqi_sub_i , Qa_sub_i, &
+        Qql_adv_i, Qqi_adv_i, Qa_adv_i, Qql_eddy_i, Qqi_eddy_i, Qa_eddy_i, Qql_ent_i, Qqi_ent_i, Qa_ent_i
+
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -5644,6 +5685,26 @@ s_awqke=0.
  Qql_sub  = 0.
  Qqi_sub  = 0.
  Qa_sub  = 0.
+
+ Qql_adv_i = 0.
+ Qqi_adv_i = 0.
+ Qa_adv_i = 0.
+
+ Qql_eddy_i = 0.
+ Qqi_eddy_i = 0.
+ Qa_eddy_i = 0.
+
+ Qql_ent_i = 0.
+ Qqi_ent_i = 0.
+ Qa_ent_i = 0.
+
+ Qql_det_i = 0.
+ Qqi_det_i = 0.
+ Qa_det_i = 0.
+
+ Qql_sub_i = 0.
+ Qqi_sub_i = 0.
+ Qa_sub_i = 0.
 
  edmf_det = 0.
  DET=0.
@@ -5739,7 +5800,14 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
  ! entrainent: Ent=Ent0/dz*P(dz/L0)
     do i=1,Nup
         do k=kts,kte
-          ENT(k,i)=real(ENTi(k,i))*Ent0/(ZW(k+1)-ZW(k))
+          if (option_ent.eq.1) then   ! original stochstic entrainment. But when it produce zero entrainment with constant
+                                      ! area assumption, this can violate mass continuity in plumes. 
+            ENT(k,i)=real(ENTi(k,i))*Ent0/(ZW(k+1)-ZW(k))
+
+          elseif (option_ent.eq.2) then   ! separate Ent0 to stochastic part and deterministic part to avoid zero entrainment problems
+            ENT(k,i)=alpha_st*real(ENTi(k,i))*Ent0/(ZW(k+1)-ZW(k)) + (1.-alpha_st)*Ent0/L0
+
+          endif  ! end if of option_ent
         enddo
     enddo
 
@@ -5847,8 +5915,14 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
              ! integrate conservation equation from k-1 to k to get
              ! M(k)=M(k-1)*exp(int_(k-1)^k  eps*dz)
          
-               UPAn=UPA(K-1,I)*UPRHO(K-1,I)*UPW(k-1,I)/(UPRHO(K,I)*UPW(K,I)*EntExp)
+               !UPAn=UPA(K-1,I)*UPRHO(K-1,I)*UPW(k-1,I)/(UPRHO(K,I)*UPW(K,I)*EntExp)
          
+               if (option_up_area.eq.1) then
+                 UPAn=UPA(K-1,I)
+               elseif (option_up_area.eq.2) then
+                 UPAn=UPA(K-1,I)*UPRHO(K-1,I)*UPW(k-1,I)/(UPRHO(K,I)*UPW(K,I)*EntExp)
+               end if
+
                ! exit vertical loop
               !  - this should never happen, because of the exponential MF form
          !      IF (UPAn<= 0.) THEN
@@ -6020,16 +6094,24 @@ DO K=KTS,KTE-1
 
     dz=ZW(k+1)-ZW(k)
 
-    mfp1=rho(K)*UPW(K+1,I)
-    if (k.eq.1) then
-      mf=rho(1)*UPW(K,I)
-    else
-      mf=rho(K-1)*UPW(K,I)
-    endif
+    mfp1=UPRHO(K+1,I)*UPW(K+1,I)*UPA(K+1,I)
+    mf  =UPRHO(K,I)  *UPW(K,I)  *UPA(K,I)
+    !if (k.eq.1) then
+    !  mf=UPRHO(1,I)*UPW(K,I)*UPA(K,I)
+    !else
+    !  mf=UPRHO(K-1,I)*UPW(K,I)*UPA(K,I)
+    !endif
 
-    if (mf.gt.0) then
-      DET(K,I) = ENT(K,I) - (mfp1-mf)/mf/dz   
-    endif
+    if (option_up_area.eq.2) then         ! for lateral entraining plume with detrainment that occurs only at plume top
+      if (mf.gt.0 .and. mfp1.le.0.) then
+        dz=ZW(K)-ZW(K-1)
+        DET(K,I) = 1./dz 
+      endif 
+    else       ! compute detrainment given entrainment and mass flux
+      if (mf.gt.0) then
+        DET(K,I) = ENT(K,I) - (mfp1-mf)/mf/dz   
+      endif 
+    endif 
 
     edmf_det(K)=edmf_det(K)+UPA(K,I)*DET(K,I)
   ENDDO
@@ -6056,6 +6138,7 @@ if (do_writeout_column_nml) then
   
     if (F1.eq.1) then
       write(6,3001) 'ZW  = (/',ZW(:)
+      write(6,3002) 'UPRHO = (/',UPRHO(:,I)
       write(6,3002) 'UPA = (/',UPA(:,I)
       write(6,3002) 'UPW = (/',UPW(:,I)
       write(6,3002) 'ENT = (/',ENT(:,I)
@@ -6068,125 +6151,172 @@ endif
 !--- compute variables for coupling with Tiedtke
 DO K=KTS,KTE-1
   DO I=1,NUP
+  !DO I=1,1
      dz=ZW(k+1)-ZW(k)
    
-     mfp1=UPA(K+1,I)*UPW(K+1,I)
-     mf=UPA(K,I)*UPW(K,I)
+     !--- mass flux 
+     mfp1= UPRHO(K+1,I) * UPA(K+1,I) * UPW(K+1,I)   ! mass flux at k+1/2 level
+     mf  = UPRHO(K,I)   * UPA(K,I)   * UPW(K,I)     ! mass fkyx at k-1/2 level
+
+     qcp1 = 0.5 * (qc(K)+qc(K+1))                   ! grid-scale qc at k+1/2 level
+     if (K.eq.1) then
+       qcp0 = qc(K)                                 ! grid-scale qc at k-1/2 level
+     else
+       qcp0 = 0.5 * (qc(K)+qc(K-1))                 ! grid-scale qc at k-1/2 level
+     endif
+
+     cldp1 = 0.5 * (cldfra_bl1d(K)+cldfra_bl1d(K+1))          ! grid-scale cloud fraction at k+1/2 level
+     if (K.eq.1) then
+       cldp0 = cldfra_bl1d(K)                                 ! grid-scale cloud fraction at k-1/2 level
+     else
+       cldp0 = 0.5 * (cldfra_bl1d(K)+cldfra_bl1d(K-1))        ! grid-scale cloud fraction at k-1/2 level
+     endif
+
+     !--- saturated fraction
+     IF (UPQC(K+1,I) > 0.) THEN    ! saturated fraction at k+1/2 level
+       CCp1=1.
+     ELSE
+       CCp1=0.
+     ENDIF
    
-     ! for liquid and ice water
-     !F1=-(mfp1*(UPQC(K+1,I)-qc(K+1))-mf*(UPQC(K,I)-qc(K)))/dz
-     if (K.eq.1) then
-       F1=-(mfp1*(UPQC(K+1,I)-qc(K))-mf*(UPQC(K,I)-0.))/dz     ! qc(K-1)=qc(0)=0.
-     else
-       F1=-(mfp1*(UPQC(K+1,I)-qc(K))-mf*(UPQC(K,I)-qc(K-1)))/dz
-     endif
+     IF (UPQC(K,I) > 0.) THEN      ! saturated fraction at k-1/2 level
+       CCp0=1.
+     ELSE
+       CCp0=0.
+     ENDIF
 
-     F2=mf*(UPQC(K+1,I)-UPQC(K,I))/dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
-     F3=ENT(K,I)*mf*(UPQC(K,I)-qc(K))
-       
-     ! yhc: F1 and F2 do not need to be divided by rho 
-     !Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2+F3)
-     !Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2+F3)
+     !************************
+     !************************
+     !
+     !  eddy-flux/source form
+     !
+     !************************
+     !************************
 
-     !--- eddy-flux divergence/source form
-     Qql_eddy(k)=Qql_eddy(k)+liquid_frac(k)*F1
-     Qql_adv (k)=Qql_adv(k)+liquid_frac(k)*F2
-     Qql_ent (k)=Qql_ent(k)+liquid_frac(k)*F3
+       !-----------------------------------------------
+       !--- cloud condensate, eddy-flux/source form ---
+       !-----------------------------------------------
+       F1=0.
+       F2=0.
+       F3=0.
 
-     Qqi_eddy(k)=Qqi_eddy(k)+(1.-liquid_frac(k))*F1
-     Qqi_adv (k)=Qqi_adv(k)+(1.-liquid_frac(k))*F2
-     Qqi_ent (k)=Qqi_ent(k)+(1.-liquid_frac(k))*F3
-
-     !--- detrainment/subsidence form
-     if (k.eq.1) then
-       mf=rho(1)*UPW(K,I)*UPA(K,I)
-     else
-       mf=rho(K-1)*UPW(K,I)*UPA(K,I)
-     endif
-
-     mfp1=rho(K)*UPA(K+1,I)*UPW(K+1,I)
-
-     F1=mf*DET(K,I)*(UPQC(K,I)-qc(K))
-     F2=mfp1*(qc(K+1)-qc(K))/(ZFULL(K+1)-ZFULL(K))
-
-     Qql_det(k) = Qql_det(k)+liquid_frac(k)*F1/rho(K)
-     Qqi_det(k) = Qqi_det(k)+(1.-liquid_frac(k))*F1/rho(K)
-
-     Qql_sub(k) = Qql_sub(k)+liquid_frac(k)*F2/rho(K)
-     Qqi_sub(k) = Qqi_sub(k)+(1.-liquid_frac(k))*F2/rho(K)
-
-     !Qql(k)=Qql(k)+liquid_frac(k)*(F1+F2)/rho(k)
-     !Qqi(k)=Qqi(k)+(1.-liquid_frac(k))*(F1+F2)/rho(k)
-
-!<--- yhc 2021-09-08
-!<--- yhc: this Qa recovery code is not correct  
-!  CCp1=0.
-!  CCp0=0.
-!  IF (UPQC(K+1,I) > 0.) CCp1=UPA(K+1,I)
-!    IF (UPQC(K,I) > 0.) CCp0=UPA(K,I)
-!  
-!    ! for area fraction
-!     F1=-(mfp1*(CCp1-cldfra_bl1d(K+1))-mf*(CCp0-cldfra_bl1d(K)) )/dz
-!     F2=mf*(CCp1-CCp0)/dz+ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
-!  
-!     Qa(k)=Qa(k)+(F1+F2)/rho(k)
-!--->  
+       if (Qx_numerics.eq.1) then   ! upwind approximation
+         !--- F1: eddy-flux convergence term for cloud condensate
+         if (K.eq.1) then
+           F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-0.) )  / dz     ! qc(K-1)=qc(0)=0.
+         else
+           F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-qcp0)) / dz
+         endif
   
-  CCp1=0.
-  CCp0=0.
-  IF (UPQC(K+1,I) > 0.) THEN
-    CCp1=1.
-  ELSE
-    CCp1=0.
-  ENDIF
+         if (UPW(K,I).gt.0. .and. UPW(K+1,I).gt.0.) then  ! source terms are only present in the plume
+           !--- F2: source/vertical advection term for cloud condensate
+           F2 = UPA(K,I) * UPW(K,I) * (UPQC(K+1,I)-UPQC(K,I)) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+    
+           !--- F3: source/entrainment term for cloud condensate
+           F3 = UPA(K,I) * UPW(K,I) * ENT(K,I) * (UPQC(K,I)-qc(K))
+         endif
+       endif  ! end if of Qx_numerics   
 
-  IF (UPQC(K,I) > 0.) THEN
-    CCp0=1.
-  ELSE
-    CCp0=0.
-  ENDIF
+         Qql_eddy_i (K,I) = liquid_frac(k)*F1
+         Qql_adv_i  (K,I) = liquid_frac(k)*F2
+         Qql_ent_i  (K,I) = liquid_frac(k)*F3
+    
+         Qqi_eddy_i (K,I) = (1.-liquid_frac(k))*F1
+         Qqi_adv_i  (K,I) = (1.-liquid_frac(k))*F2
+         Qqi_ent_i  (K,I) = (1.-liquid_frac(k))*F3
 
-  IF (UPQC(K,I) <= 0. .and. UPQC(K+1,I) > 0.) then
-    F2 = UPA(K,I)*UPW(K,I)/dz
-  ELSEIF (UPQC(K,I) > 0. .and. UPQC(K+1,I) <= 0.) then
-    F2 = -1.*UPA(K,I)*UPW(K,I)/dz
-  ELSE
-    F2 = 0.
-  ENDIF
+         !--- sum over the i-th plume
+         Qql_eddy(k) = Qql_eddy(k) + Qql_eddy_i (K,I)
+         Qql_adv (k) = Qql_adv (k) + Qql_adv_i  (K,I)
+         Qql_ent (k) = Qql_ent (k) + Qql_ent_i  (K,I)
+
+         Qqi_eddy(k) = Qqi_eddy(k) + Qqi_eddy_i (K,I)
+         Qqi_adv (k) = Qqi_adv (k) + Qqi_adv_i  (K,I)
+         Qqi_ent (k) = Qqi_ent (k) + Qqi_ent_i  (K,I)
+
+       !---------------------------------------------
+       !--- cloud fraction, eddy-flux/source form ---
+       !---------------------------------------------
+       F1=0.
+       F2=0.
+       F3=0.
+
+       if (Qx_numerics.eq.1) then   ! upwind approximation
+         !--- F1: eddy-flux convergence term for cloud fraction
+         if (K.eq.1) then
+           Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldp1) - mf*(CCp0-0.)    ) / dz     ! qc(K-1)=qc(0)=0.
+         else
+           Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldp1) - mf*(CCp0-cldp0) ) / dz
+         endif
+
+         if (UPW(K,I).gt.0. .and. UPW(K+1,I).gt.0.) then  ! source terms are only present in the plume
+           !--- F2: vertical advection term
+           Qa_adv_i (K,I) = UPA(K,I) * UPW(K,I) * (CCp1-CCp0) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+    
+           !--- F3: entrainment term
+           Qa_ent_i (K,I) = UPA(K,I) * UPW(K,I) * ENT(K,I) * (CCp0-cldfra_bl1d(K))
+         endif
+       endif  ! end if of Qx_numerics   
   
-    ! for area fraction
-     if (K.eq.1) then
-       F1=-(mfp1*(CCp1-cldfra_bl1d(K))-mf*(CCp0-0.) )/dz   ! cldfra_bl1d(0) = 0.
-     else
-       F1=-(mfp1*(CCp1-cldfra_bl1d(K))-mf*(CCp0-cldfra_bl1d(K-1)) )/dz
-     endif
+         Qa_eddy(k) = Qa_eddy(k) + Qa_eddy_i (K,I)
+         Qa_adv (k) = Qa_adv (k) + Qa_adv_i  (K,I)
+         Qa_ent (k) = Qa_ent (k) + Qa_ent_i  (K,I)
 
-     !F2=F0 !+ ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
-     F3=ENT(K,I)*mf*(CCp0-cldfra_bl1d(K))
-  
-     !Qa(k)=Qa(k)+(F1+F2)/rho(k)
-     !Qa(k)=Qa(k)+(F1+F2+F3)
+     !************************
+     !************************
+     !
+     !  detrainment/subsidence form
+     !
+     !************************
+     !************************
 
-     !--- eddy-flux divergence/source form
-     Qa_eddy(k)=Qa_eddy(k)+F1
-     Qa_adv (k)=Qa_adv(k)+F2
-     Qa_ent (k)=Qa_ent(k)+F3
+       !-----------------------------------------------------
+       !--- cloud condensate, detrainment/subsidence form ---
+       !-----------------------------------------------------
+       F1=0.
+       F2=0.
+       F3=0.
 
-     !--- detrainment/subsidence form
-     if (k.eq.1) then
-       mf=rho(1)*UPW(K,I)*UPA(K,I)
-     else
-       mf=rho(K-1)*UPW(K,I)*UPA(K,I)
-     endif
+       if (Qx_numerics.eq.1) then   ! upwind approximation
+         ! F1: subsidence term for cloud condensate
+         F1 = mfp1/rho(k) * (qc(K+1)-qc(K))/(ZFULL(K+1)-ZFULL(K))  
 
-     mfp1=rho(K)*UPA(K+1,I)*UPW(K+1,I)
+         ! F2: detrainment term for cloud condensate
+         F2 = mf*DET(K,I)/rho(k) * (UPQC(K,I)-qc(K))
+       endif  ! end if of Qx_numerics   
 
-     F1=mf*DET(K,I)*(CCp0-cldfra_bl1d(K))
-     F2=mfp1*(cldfra_bl1d(K+1)-cldfra_bl1d(K))/(ZFULL(K+1)-ZFULL(K))
+         Qql_sub_i (K,I) = liquid_frac(k)*F1
+         Qql_det_i (K,I) = liquid_frac(k)*F2
 
-     Qa_det(k) = Qa_det(k)+F1/rho(K)
-     Qa_sub(k) = Qa_sub(k)+F2/rho(K)
- 
+         Qqi_sub_i (K,I) = (1.-liquid_frac(k))*F1
+         Qqi_det_i (K,I) = (1.-liquid_frac(k))*F2
+
+       ! sum over all plumes
+       Qql_sub(k) = Qql_sub(k) + Qql_sub_i (K,I)
+       Qqi_sub(k) = Qqi_sub(k) + Qqi_sub_i (K,I)
+
+       Qql_det(k) = Qql_det(k) + Qql_det_i (K,I)
+       Qqi_det(k) = Qqi_det(k) + Qqi_det_i (K,I)
+
+       !---------------------------------------------------
+       !--- cloud fraction, detrainment/subsidence form ---
+       !---------------------------------------------------
+       F1=0.
+       F2=0.
+       F3=0.
+
+       if (Qx_numerics.eq.1) then   ! upwind approximation
+         ! F1: subsidence term for cloud condensate
+         Qa_sub_i (K,I) = mfp1/rho(k) * (cldfra_bl1d(K+1)-cldfra_bl1d(K))/(ZFULL(K+1)-ZFULL(K))  
+
+         ! F2: detrainment term for cloud condensate
+         Qa_det_i (K,I) = mf*DET(K,I)/rho(k) * (CCp0-cldfra_bl1d(K))
+       endif  ! end if of Qx_numerics   
+
+       ! sum over all plumes
+       Qa_sub(k) = Qa_sub(k) + Qa_sub_i (K,I)
+       Qa_det(k) = Qa_det(k) + Qa_det_i (K,I)
+
   ENDDO
 ENDDO  
 
@@ -6204,11 +6334,6 @@ elseif (Qx_MF.eq.2) then ! detrainment/subsidence form
 else
   print*,'ERROR: Qx_MF must be 1 or 2'
 endif
-
-!print*,'Qx_MF',Qx_MF
-!print*,'Qql',Qql
-!print*,'Qqi',Qqi
-!print*,'Qa',Qa
 
 !--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
 
@@ -6232,19 +6357,19 @@ endif
 
 !--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
 DO K=KTS,KTE-1
-  IF(k > KTOP) exit
+  !IF(k > KTOP) exit
 
   DO I=1,NUP
     IF(I > NUP) exit
 
     if (UPQC(K,I) > 0.) then   ! sum of individual moist updrafts
       a_moist_half  (K) = a_moist_half  (K) + UPA(K,I) 
-      mf_moist_half (K) = mf_moist_half (K) + UPA(K,I)*rho(K)*UPW(K,I)
+      mf_moist_half (K) = mf_moist_half (K) + UPA(K,I)*UPRHO(K,I)*UPW(K,I)
       qv_moist_half (K) = qv_moist_half (K) + UPA(K,I)*(UPQT(K,I)-UPQC(K,I))  
 
     else                       ! sum of individual dry updrafts
       a_dry_half    (K) = a_dry_half  (K) + UPA(K,I) 
-      mf_dry_half   (K) = mf_dry_half (K) + UPA(K,I)*rho(K)*UPW(K,I)
+      mf_dry_half   (K) = mf_dry_half (K) + UPA(K,I)*UPRHO(K,I)*UPW(K,I)
       qv_dry_half   (K) = qv_dry_half (K) + UPA(K,I)*(UPQT(K,I)-UPQC(K,I))        
     endif
   ENDDO  ! end loop of i
@@ -6262,15 +6387,15 @@ ENDDO    ! end loop of k
 !      interpolate from the updraft base. Right above the updraft top (KTOP, mf>0), using upwind approximation
 
   !--- updraft top
-  a_moist_full  (KTOP) = a_moist_half  (KTOP)
-  mf_moist_full (KTOP) = mf_moist_half (KTOP)
-  qv_moist_full (KTOP) = qv_moist_half (KTOP)
+  !a_moist_full  (KTOP) = a_moist_half  (KTOP)
+  !mf_moist_full (KTOP) = mf_moist_half (KTOP)
+  !qv_moist_full (KTOP) = qv_moist_half (KTOP)
 
-  a_dry_full    (KTOP) = a_dry_half    (KTOP)
-  mf_dry_full   (KTOP) = mf_dry_half   (KTOP)
-  qv_dry_full   (KTOP) = qv_dry_half   (KTOP)
+  !a_dry_full    (KTOP) = a_dry_half    (KTOP)
+  !mf_dry_full   (KTOP) = mf_dry_half   (KTOP)
+  !qv_dry_full   (KTOP) = qv_dry_half   (KTOP)
 
-DO K=KTS,KTOP-1
+DO K=KTS,KTE-1
   if (mf_moist_half (K) > 0.) then
     a_moist_full  (K) = 0.5 * (a_moist_half  (K)+a_moist_half  (K+1))
     mf_moist_full (K) = 0.5 * (mf_moist_half (K)+mf_moist_half (K+1))
@@ -6302,6 +6427,62 @@ ENDDO
 ! moist+dry mass flux
   mf_all_half (:) = mf_moist_half (:) + mf_dry_half (:)
   mf_all_full (:) = mf_moist_full (:) + mf_dry_full (:)
+
+!--- check part
+if (do_check_ent_det) then
+  DO I=1,NUP
+    DO K=KTS,KTE-1
+      IF(I > NUP) exit
+        dz=ZW(k+1)-ZW(k)
+        mfp1=UPRHO(K+1,I)*UPW(K+1,I)*UPA(K+1,I)
+        mf  =UPRHO(K,I)  *UPW(K,I)  *UPA(K,I)    
+  
+        F1=0.
+        F2=0.
+        F3=0.
+  
+        if (mf.gt.0.) then
+          F1 = 1./mf * (mfp1-mf)/dz
+          F2 = ENT(K,I) - DET(K,I)  
+          if (F1.gt.0.) F3 = (F1-F2)/F1 * 100.
+  
+          !print*,'I,K, ENT, DET, 1/m*dm/dz, ENT-DET, %diff',I,K, ENT(K,I),DET(K,I),F1,F2,F3
+          print*,'I,K, 1/m*dm/dz, ENT-DET, %diff',I,K,F1,F2,F3
+        endif
+    ENDDO  ! end loop of K
+  ENDDO    ! end loop of I
+endif      ! end if of do_check_ent_det
+
+
+!--- compute the frequency of negative DET
+num_DET=0.
+num_nDET_zENT=0.
+num_nDET_pENT=0.
+
+DO K=KTS,KTE-1
+  DO I=1,NUP
+    mf = UPRHO(K,I)*UPW(K,I)*UPA(K,I)
+
+    if (mf.gt.0) then
+      if (DET(K,I).ne.0.) then      ! count # of detrainment at each level
+        num_DET (K) = num_DET(K)+1.
+      endif
+
+      if (DET(K,I).lt.0. .and. ENT(K,I).eq.0.) then  ! count # of negative detrainment with zero entrainment
+        num_nDET_zENT (K) = num_nDET_zENT (K)+1. 
+      endif
+
+      if (DET(K,I).lt.0. .and. ENT(K,I).gt.0.) then  ! count # of negative detrainment with positive entrainment
+        num_nDET_pENT (K) = num_nDET_pENT (K)+1. 
+      endif
+    endif  ! end if of mf>0
+  ENDDO
+
+  if (num_DET (K).gt.0.) then  ! compute frequency
+    num_nDET_zENT (K) = num_nDET_zENT (K) / num_DET (K)
+    num_nDET_pENT (K) = num_nDET_pENT (K) / num_DET (K)
+  endif
+ENDDO
 !---> yhc 2021-09-08
 
 
@@ -6741,6 +6922,7 @@ END SUBROUTINE edmf_JPL
 !         ! ENDDO
 ! END SUBROUTINE DDMF_JPL
 
+
 !################################
 !################################
 !
@@ -6883,6 +7065,12 @@ subroutine edmf_mynn_driver ( &
                       size(Physics_input_block%t,2), &
                       size(Physics_input_block%t,3)+1) :: &
           lmask_half 
+
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,3), &
+                   size(Physics_input_block%t,2)) :: &   ! (i,k,j)
+          num_DET, num_nDET_pENT, num_nDET_zENT
+
 !-------------------------
   ix = size(Physics_input_block%t,1)
   jx = size(Physics_input_block%t,2)
@@ -7042,6 +7230,7 @@ subroutine edmf_mynn_driver ( &
        &a_moist_half=Output_edmf%a_moist_half, mf_moist_half=Output_edmf%mf_moist_half, qv_moist_half=Output_edmf%qv_moist_half, a_moist_full=Output_edmf%a_moist_full, mf_moist_full=Output_edmf%mf_moist_full, qv_moist_full=Output_edmf%qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half=Output_edmf%a_dry_half, mf_dry_half=Output_edmf%mf_dry_half, qv_dry_half=Output_edmf%qv_dry_half, a_dry_full=Output_edmf%a_dry_full, mf_dry_full=Output_edmf%mf_dry_full, qv_dry_full=Output_edmf%qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
+       &num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, &            ! yhc 2021-09-08
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
@@ -7658,7 +7847,23 @@ subroutine edmf_mynn_driver ( &
 !        used = send_data (id_mf_all_full, am4_Output_edmf%mf_all_full, Time_next, is, js, 1 )
 !      endif
 !
+!!------- number of dentrainment in edmf updrafts (units: none) at full level -------
+!      if ( id_num_det > 0) then
+!        call reshape_mynn_array_to_am4(ix, jx, kx, num_DET, diag_full)
+!        used = send_data (id_num_det, diag_full, Time_next, is, js, 1 )
+!      endif
 !
+!!------- number of negative dentrainment with zero entrainment in edmf updrafts (units: none) at full level -------
+!      if ( id_num_ndet_zent > 0) then
+!        call reshape_mynn_array_to_am4(ix, jx, kx, num_nDET_zENT, diag_full)
+!        used = send_data (id_num_ndet_zent, diag_full, Time_next, is, js, 1 )
+!      endif
+!
+!!------- number of negative dentrainment with positive entrainment in edmf updrafts (units: none) at full level -------
+!      if ( id_num_ndet_pent > 0) then
+!        call reshape_mynn_array_to_am4(ix, jx, kx, num_nDET_pENT, diag_full)
+!        used = send_data (id_num_ndet_pent, diag_full, Time_next, is, js, 1 )
+!      endif
 !!send_data
 
 !---------------------------------------------------------------------
@@ -9982,7 +10187,6 @@ subroutine reshape_mynn_array_to_am4_half (ix, jx, kx, mynn_array_3d, am4_array_
 
 end subroutine reshape_mynn_array_to_am4_half
 
-
 !#############################
 ! Mellor-Yamada
 !#############################
@@ -11463,9 +11667,9 @@ endif ! end if of input profile
   Physics_input_block%q(:,:,:,nqi) = qi
   Physics_input_block%q(:,:,:,nqa) = qa
 
-  !Physics_input_block%q(:,:,:,nql) = 1.e-4
-  !Physics_input_block%q(:,:,:,nqi) = 0.
-  !Physics_input_block%q(:,:,:,nqa) = 1.
+  Physics_input_block%q(:,:,:,nql) = 1.e-4
+  Physics_input_block%q(:,:,:,nqi) = 0.
+  Physics_input_block%q(:,:,:,nqa) = 1.
 
   !Physics_input_block%q(:,:,:,nql) = 0.
   !Physics_input_block%q(:,:,:,nqi) = 0.
