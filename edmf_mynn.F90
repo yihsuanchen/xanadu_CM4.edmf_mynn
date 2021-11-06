@@ -442,7 +442,7 @@ end type edmf_ls_mp_type
   integer :: option_ent=1                       ! =1, use original stochastic entrainment formula
                                                 ! =2, separate entrainment into stochastic and deterministic parts
                                                 !     controlling by alpha_st (1 completely stochastic, 0 completely deterministic)
-  real  :: alpha_st=0.5
+  real    :: alpha_st=0.5
   real    :: rc_MF = 10.e-6                     ! assumed cloud droplet radius in plumes (meters)
 
   character*20 :: do_debug_option = ""          ! debug purpose
