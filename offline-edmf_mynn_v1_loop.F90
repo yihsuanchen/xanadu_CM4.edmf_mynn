@@ -23,10 +23,10 @@ MODULE module_bl_mynn
   ! character*50 :: input_profile = "SCM_am4p0_RF01_03_cloudy"
   !character*50 :: input_profile = "SCM_RF01_modQDT-Gmy_aTnTtT_a3_5.0h"
   !character*50 :: input_profile = "xxx"
-  character*50 :: input_profile = "SCM_BOMEX_MYNN_ED_mixleng3"
+  !character*50 :: input_profile = "SCM_BOMEX_MYNN_ED_mixleng3"
   !character*50 :: input_profile = "SCM_RF01_mynn_EDMFexpUP_Gmy_ADD_0.5h"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm01"
-  !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
+  character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
 
   integer, parameter :: loop_times = 1
  ! integer, parameter :: loop_times = 10
@@ -217,7 +217,7 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
   integer :: Qx_numerics =1   ! =1, use upwind approximation in computing MF eddy-flux/source and subsidence/detrainment forms
 
   !integer :: option_up_area =2 
-  integer :: option_up_area =1 
+  integer :: option_up_area =3 
 
   integer :: option_ent=1                       ! =1, use original stochastic entrainment formula
                                                 ! =2, separate entrainment into stochastic and deterministic parts
@@ -5609,7 +5609,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
        REAL,DIMENSION(KTS:KTE) :: &
          ZFULL
 
-       REAL :: qcp0, qcp1, cldp1, cldp0
+       REAL :: qcp0, qcp1, cldp1, cldp0, det_temp
 
        REAl,DIMENSION(KTS:KTE,1:NUP) :: &
         Qql_det_i, Qqi_det_i, Qa_det_i, Qql_sub_i , Qqi_sub_i , Qa_sub_i, &
@@ -5907,9 +5907,16 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
          
              UPRHO(K,I)=Ph(k)/(r_d*THVn*(Ph(k)/p1000mb)**rcp)
          
-         
             IF (Wn2 >0.) THEN     
               UPW(K,I)=sqrt(Wn2)
+
+              !yhc, compute detrainment rate, assuming updraft area does not change
+              mf  =UPRHO(K-1,I)*UPW(K-1,I)*UPA(K-1,I)
+              mfp1=UPRHO(K,I)  *UPW(K,I)  *UPA(K-1,I)   
+              det_temp=0.
+              if (mf.gt.0) then
+                det_temp = ENT(K-1,I) - (mfp1-mf)/mf/deltaZ
+              endif
               
              ! 1/M dM/dz=eps ... conservation equation for entraining plumes with 0 detrainment
              ! integrate conservation equation from k-1 to k to get
@@ -5917,11 +5924,22 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
          
                !UPAn=UPA(K-1,I)*UPRHO(K-1,I)*UPW(k-1,I)/(UPRHO(K,I)*UPW(K,I)*EntExp)
          
-               if (option_up_area.eq.1) then
+               if (option_up_area.eq.1) then   ! updraft area is constant
                  UPAn=UPA(K-1,I)
-               elseif (option_up_area.eq.2) then
+
+               elseif (option_up_area.eq.2) then   ! updraft area varies with height to satisfy the mass continuity equation
                  UPAn=UPA(K-1,I)*UPRHO(K-1,I)*UPW(k-1,I)/(UPRHO(K,I)*UPW(K,I)*EntExp)
-               end if
+
+               elseif (option_up_area.eq.3) then   ! if detrainment rate>=0, assume updraft area is constant.
+                                                   ! otherwise, vary the area to satisfy the mass continuity equation
+                 if (det_temp.ge.0.) then
+                   UPAn=UPA(K-1,I)
+                 else
+                   UPAn=UPA(K-1,I)*UPRHO(K-1,I)*UPW(k-1,I)/(UPRHO(K,I)*UPW(K,I)*EntExp)
+                 endif
+               endif
+
+!print*,'i,k-1,upa',i,k-1,UPA(K-1,I)
 
                ! exit vertical loop
               !  - this should never happen, because of the exponential MF form
@@ -6111,6 +6129,11 @@ DO K=KTS,KTE-1
       if (mf.gt.0) then
         DET(K,I) = ENT(K,I) - (mfp1-mf)/mf/dz   
       endif 
+
+      if (option_up_area.eq.3) then       ! hybrid approach
+        if (DET(K,I).lt.0.) DET(K,I)=0.   ! in this approach, detrainment should >=0. 
+                                          ! but becasue of numeric trancation, DET may<0 (e.g. -1.e-9). In this case, reset DET to 0  
+      endif
     endif 
 
     edmf_det(K)=edmf_det(K)+UPA(K,I)*DET(K,I)
