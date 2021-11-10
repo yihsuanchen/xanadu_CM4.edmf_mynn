@@ -488,7 +488,7 @@ integer :: id_qldt_edmf_MF_adv, id_qldt_edmf_MF_eddy, id_qldt_edmf_MF_ent, id_qi
 
 integer :: id_a_moist_half, id_a_moist_full, id_mf_moist_half, id_mf_moist_full, id_qv_moist_half, id_qv_moist_full, id_a_dry_half, id_a_dry_full, id_mf_dry_half, id_mf_dry_full, id_qv_dry_half, id_qv_dry_full, id_mf_all_half, id_mf_all_full
 
-integer :: id_num_det, id_num_ndet_zent, id_num_ndet_pent
+integer :: id_num_updraft, id_num_det, id_num_ndet_zent, id_num_ndet_pent
 !---------------------------------------------------------------------
 
   contains
@@ -1071,6 +1071,10 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_mf_all_full = register_diag_field (mod_name, 'mf_all_full', axes(full), Time, &
                  'updraft mass flux on pfull', 'kg/m2/s' , &
+                 missing_value=missing_value )
+
+  id_num_updraft = register_diag_field (mod_name, 'num_updraft', axes(half), Time, &
+                 'number of edmf updrafts', 'none' , &
                  missing_value=missing_value )
 
   id_num_det = register_diag_field (mod_name, 'num_det', axes(full), Time, &
@@ -4288,7 +4292,7 @@ END SUBROUTINE mym_condensation
        &a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half, mf_all_full, &                                                     ! yhc 2021-09-08
-       &num_DET, num_nDET_pENT, num_nDET_zENT, &                                        ! yhc 2021-09-08
+       &num_updraft, num_DET, num_nDET_pENT, num_nDET_zENT, &                                        ! yhc 2021-09-08
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -4444,6 +4448,7 @@ END SUBROUTINE mym_condensation
 
     !<--- yhc 2021-09-08 
     REAL, DIMENSION(IMS:IME,KMS:KME+1,JMS:JME), INTENT(out) :: &
+      num_updraft  , &
       a_moist_half , &
       a_dry_half   , &
       mf_moist_half, &
@@ -4463,6 +4468,7 @@ END SUBROUTINE mym_condensation
       qv_dry_full
 
     REAL,DIMENSION(KTS:KTE+1) :: &
+      num_updraft1  , &
       a_moist_half1 , &
       a_dry_half1   , &
       mf_moist_half1, &
@@ -5040,7 +5046,7 @@ END SUBROUTINE mym_condensation
                & a_moist_half1, mf_moist_half1, qv_moist_half1, a_moist_full1, mf_moist_full1, qv_moist_full1, &  ! yhc 2021-09-08
                & a_dry_half1, mf_dry_half1, qv_dry_half1, a_dry_full1, mf_dry_full1, qv_dry_full1, &            ! yhc 2021-09-08
                & mf_all_half1, mf_all_full1, edmf_det1, &                                                     ! yhc 2021-09-08
-               & num_DET1, num_nDET_zENT1, num_nDET_pENT1, &                                               ! yhc 2021-09-08
+               & num_updraft1, num_DET1, num_nDET_zENT1, num_nDET_pENT1, &                                               ! yhc 2021-09-08
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1,                 &
@@ -5334,6 +5340,7 @@ END SUBROUTINE mym_condensation
 
                edmf_det(i,k,j)=edmf_det1(k)
 
+               num_updraft  (i,k,j) = num_updraft1  (k)
                num_DET      (i,k,j) = num_DET1      (k)
                num_nDET_zENT(i,k,j) = num_nDET_zENT1(k)
                num_nDET_pENT(i,k,j) = num_nDET_pENT1(k)
@@ -6115,7 +6122,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               & a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
               & a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
               & mf_all_half, mf_all_full, edmf_det, &                                                  ! yhc 2021-09-08
-              & num_DET, num_nDET_zENT, num_nDET_pENT, &                                               ! yhc 2021-09-08
+              & num_updraft, num_DET, num_nDET_zENT, num_nDET_pENT, &                                               ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa, &
               & Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent, Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub &
               ) ! yhc 2021-09-08
@@ -6201,6 +6208,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
     !    moist/dry/all: moist updrafts, dry updrafts, or combined (moist+dry) updrafts
     !    full/half: on full levels (where T,q are defined) to half levels (those levels in between full levels)
        REAL,DIMENSION(kts:kte+1), INTENT(OUT) :: & 
+         num_updraft  , &
          a_moist_half , &   
          a_dry_half   , &        
          mf_moist_half, &     
@@ -7091,6 +7099,7 @@ endif      ! end if of do_check_ent_det
 
 
 !--- compute the frequency of negative DET
+num_updraft=0.
 num_DET=0.
 num_nDET_zENT=0.
 num_nDET_pENT=0.
@@ -7100,6 +7109,8 @@ DO K=KTS,KTE-1
     mf = UPRHO(K,I)*UPW(K,I)*UPA(K,I)
 
     if (mf.gt.0) then
+      num_updraft(K) = num_updraft(K)+1.  ! count # of updrafts at each level
+
       if (DET(K,I).ne.0.) then      ! count # of detrainment at each level
         num_DET (K) = num_DET(K)+1.
       endif
@@ -7707,6 +7718,11 @@ subroutine edmf_mynn_driver ( &
                    size(Physics_input_block%t,2)) :: &   ! (i,k,j)
           num_DET, num_nDET_pENT, num_nDET_zENT
 
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,3)+1, &
+                   size(Physics_input_block%t,2)) :: &   ! (i,k,j)
+          num_updraft
+
 !-------------------------
   ix = size(Physics_input_block%t,1)
   jx = size(Physics_input_block%t,2)
@@ -7866,7 +7882,7 @@ subroutine edmf_mynn_driver ( &
        &a_moist_half=Output_edmf%a_moist_half, mf_moist_half=Output_edmf%mf_moist_half, qv_moist_half=Output_edmf%qv_moist_half, a_moist_full=Output_edmf%a_moist_full, mf_moist_full=Output_edmf%mf_moist_full, qv_moist_full=Output_edmf%qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half=Output_edmf%a_dry_half, mf_dry_half=Output_edmf%mf_dry_half, qv_dry_half=Output_edmf%qv_dry_half, a_dry_full=Output_edmf%a_dry_full, mf_dry_full=Output_edmf%mf_dry_full, qv_dry_full=Output_edmf%qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
-       &num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, &            ! yhc 2021-09-08
+       &num_updraft=num_updraft, num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, &            ! yhc 2021-09-08
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
@@ -8481,6 +8497,12 @@ subroutine edmf_mynn_driver ( &
 !------- updraft mass flux on pfull (units: kg/m2/s) at full level -------
       if ( id_mf_all_full > 0) then
         used = send_data (id_mf_all_full, am4_Output_edmf%mf_all_full, Time_next, is, js, 1 )
+      endif
+
+!------- number of edmf updrafts (units: none) at half level -------
+      if ( id_num_updraft > 0) then
+        call reshape_mynn_array_to_am4_half(ix, jx, kx, num_updraft, diag_half)
+        used = send_data (id_num_updraft, diag_half, Time_next, is, js, 1 )
       endif
 
 !------- number of dentrainment in edmf updrafts (units: none) at full level -------
