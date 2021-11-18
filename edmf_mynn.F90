@@ -61,6 +61,13 @@ use   field_manager_mod, only: MODEL_ATMOS
 use  tracer_manager_mod, only: get_number_tracers, get_tracer_index,           &
                                get_tracer_names
 use moist_proc_utils_mod, only : rh_calc
+
+use random_numbers_mod,    only:  randomNumberStream,   &
+                                  getRandomNumbers
+
+use random_number_streams_mod, only: random_number_streams_init, &
+                                     get_random_number_streams, &
+                                     random_number_streams_end
  
 !---------------------------------------------------------------------
 
@@ -457,6 +464,8 @@ end type edmf_ls_mp_type
   real    :: fixed_pblh       = 2500. 
 
   real    :: sgm_factor = 100.                  ! factor in computing sigma_s in MYNN
+
+  integer :: option_rng = 1  ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
@@ -7723,10 +7732,17 @@ subroutine edmf_mynn_driver ( &
                    size(Physics_input_block%t,2)) :: &   ! (i,k,j)
           num_updraft
 
+  type(randomNumberStream), dimension(size(Physics_input_block%t,1), &
+                                      size(Physics_input_block%t,2)) :: &     ! dimension (nlon,nlat)
+    streams
+  real :: randomNumbers
+
 !-------------------------
   ix = size(Physics_input_block%t,1)
   jx = size(Physics_input_block%t,2)
   kx = size(Physics_input_block%t,3)  
+
+  call get_random_number_streams ( is, js, Time_next, Physics_input_block%t(:,:,kx), streams)
 
 !-----------------
 ! check namelist
