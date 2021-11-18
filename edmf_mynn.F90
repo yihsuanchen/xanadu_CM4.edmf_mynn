@@ -449,7 +449,7 @@ end type edmf_ls_mp_type
 
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
-  real    :: tdt_max     = 500. ! K/day
+  real    :: tdt_max     = 2000. ! K/day
   logical :: do_limit_tdt = .false.
   real    :: tdt_limit =   200. ! K/day
 
@@ -7694,7 +7694,7 @@ subroutine edmf_mynn_driver ( &
   logical used
   logical do_writeout_column
   real    :: lat_lower, lat_upper, lon_lower, lon_upper, lat_temp, lon_temp
-  real    :: tt1
+  real    :: tt1, tt2
   integer :: i,j,k
   integer :: ix,jx,kx
 
@@ -8523,6 +8523,23 @@ subroutine edmf_mynn_driver ( &
         used = send_data (id_num_ndet_pent, diag_full, Time_next, is, js, 1 )
       endif
 !send_data
+
+!----------
+! debug
+!----------
+  
+  if (do_debug_option.eq."tdt_check") then
+    tt1 = tdt_max / 86400. ! change unit from K/day to K/s
+    do i=1,ix
+    do j=1,jx
+    do k=1,kx
+      if (abs(am4_Output_edmf%tdt_edmf(i,j,k)).gt.tt1) then
+        print*,'gg11, i,j,k,tdt_edmf', am4_Output_edmf%tdt_edmf(i,j,k)
+      endif
+    enddo
+    enddo
+    enddo
+  end if
 
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
