@@ -465,7 +465,9 @@ end type edmf_ls_mp_type
 
   real    :: sgm_factor = 100.                  ! factor in computing sigma_s in MYNN
 
+  character*20 :: option_stoch_entrain = "Poisson_knuth"
   integer :: option_rng = 1  ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
+
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
@@ -4302,6 +4304,7 @@ END SUBROUTINE mym_condensation
        &a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half, mf_all_full, &                                                     ! yhc 2021-09-08
        &num_updraft, num_DET, num_nDET_pENT, num_nDET_zENT, &                                        ! yhc 2021-09-08
+       &streams, &  ! yhc 2021-11-18
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -4456,6 +4459,12 @@ END SUBROUTINE mym_condensation
       Q_ql1_sub,Q_qi1_sub,Q_a1_sub, Q_ql1_det,Q_qi1_det,Q_a1_det
 
     !<--- yhc 2021-09-08 
+
+    !--- input argument
+    type(randomNumberStream), dimension(IMS:IME,JMS:JME), INTENT(INOUT) :: &     ! yhc 2021-11-18
+      streams
+
+    !--- output argument
     REAL, DIMENSION(IMS:IME,KMS:KME+1,JMS:JME), INTENT(out) :: &
       num_updraft  , &
       a_moist_half , &
@@ -4475,6 +4484,19 @@ END SUBROUTINE mym_condensation
       mf_all_full  , &
       qv_moist_full,  &
       qv_dry_full
+
+    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
+    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+       qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &
+       qa_before_pdf, ql_before_pdf, qi_before_pdf, &
+       qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix
+
+    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+    !   qa_before_pdf, ql_before_pdf, qi_before_pdf
+
+    !--- local argument
+    REAL, DIMENSION(KMS:KME) :: &
+       dum_1D
 
     REAL,DIMENSION(KTS:KTE+1) :: &
       num_updraft1  , &
@@ -4498,6 +4520,7 @@ END SUBROUTINE mym_condensation
 
     REAL, DIMENSION(IMS:IME,JMS:JME,KMS:KME) :: &
       diag_full
+
     !---> yhc 2021-09-08
 
 ! 0 ... default thing 
@@ -4525,21 +4548,6 @@ END SUBROUTINE mym_condensation
 
 ! Stochastic fields 
      REAL, DIMENSION(KTS:KTE)                         ::    rstoch_col
-
-
-    !<--- yhc_mynn, add new output variables, 2021-04-02
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
-    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
-       qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &
-       qa_before_pdf, ql_before_pdf, qi_before_pdf, &
-       qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix
-
-    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
-    !   qa_before_pdf, ql_before_pdf, qi_before_pdf
-
-    REAL, DIMENSION(KMS:KME) :: &
-       dum_1D
-    !---> yhc_mynn
 
     IF ( debug_code ) THEN
        print*,'in MYNN driver; at beginning'
@@ -5059,6 +5067,7 @@ END SUBROUTINE mym_condensation
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1,                 &
+               & streams(i,j),   & ! ych 2021-11-18
                & Q_ql1_adv,Q_qi1_adv,Q_a1_adv, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy, Q_ql1_ent,Q_qi1_ent,Q_a1_ent, Q_ql1_det,Q_qi1_det,Q_a1_det, Q_ql1_sub,Q_qi1_sub,Q_a1_sub  &
              )
 
@@ -6133,6 +6142,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               & mf_all_half, mf_all_full, edmf_det, &                                                  ! yhc 2021-09-08
               & num_updraft, num_DET, num_nDET_zENT, num_nDET_pENT, &                                               ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa, &
+              & streams1, &    ! yhc 2021-11-18
               & Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent, Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub &
               ) ! yhc 2021-09-08
 
@@ -6245,6 +6255,10 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         Qql_det_i, Qqi_det_i, Qa_det_i, Qql_sub_i , Qqi_sub_i , Qa_sub_i, &
         Qql_adv_i, Qqi_adv_i, Qa_adv_i, Qql_eddy_i, Qqi_eddy_i, Qa_eddy_i, Qql_ent_i, Qqi_ent_i, Qa_ent_i
 
+       integer, parameter :: rx = 500  ! AM4 random number generator
+       real :: rr(rx)
+
+       type(randomNumberStream), INTENT(INOUT) :: streams1
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -6424,7 +6438,19 @@ seedmf(1) = 1000000 * ( 100*thl(1) - INT(100*thl(1)))
 seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2))) 
 
 ! get Poisson P(dz/L0)
-    call Poisson(kts,kte,1,Nup,ENTf,ENTi,seedmf)
+!    call Poisson(kts,kte,1,Nup,ENTf,ENTi,seedmf)
+
+  !<-- yhc 2021-11-18, use AM4 random number geneartor
+  if (option_stoch_entrain.eq."Poisson") then  
+    call Poisson(kts,kte,1,Nup,ENTf,ENTi,seedmf)   ! the original Possion function
+
+  elseif (option_stoch_entrain.eq."Poisson_knuth") then   ! use AM4 random number geneartor
+    if (option_rng == 0) call random_number(rr)
+    if (option_rng == 1) call getRandomNumbers (streams1,rr)
+    call Poisson_knuth (kte-kts+1, Nup, rx, rr, ENTf, ENTi)
+
+  endif    ! end if of option_stoch_entrain.eq
+  !-->
 
 
  ! entrainent: Ent=Ent0/dz*P(dz/L0)
@@ -7742,7 +7768,9 @@ subroutine edmf_mynn_driver ( &
   jx = size(Physics_input_block%t,2)
   kx = size(Physics_input_block%t,3)  
 
-  call get_random_number_streams ( is, js, Time_next, Physics_input_block%t(:,:,kx), streams)
+  if (option_stoch_entrain.eq."Poisson_knuth") then
+    call get_random_number_streams ( is, js, Time_next, Physics_input_block%t(:,:,kx), streams)
+  endif
 
 !-----------------
 ! check namelist
@@ -7899,6 +7927,7 @@ subroutine edmf_mynn_driver ( &
        &a_dry_half=Output_edmf%a_dry_half, mf_dry_half=Output_edmf%mf_dry_half, qv_dry_half=Output_edmf%qv_dry_half, a_dry_full=Output_edmf%a_dry_full, mf_dry_full=Output_edmf%mf_dry_full, qv_dry_full=Output_edmf%qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
        &num_updraft=num_updraft, num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, &            ! yhc 2021-09-08
+       &streams=streams, &  ! yhc 2021-11-18
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
@@ -10877,6 +10906,152 @@ subroutine reshape_mynn_array_to_am4_half (ix, jx, kx, mynn_array_3d, am4_array_
   enddo  ! end loop of 1
 
 end subroutine reshape_mynn_array_to_am4_half
+
+!###################################
+
+subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
+!----------
+! Desecription:
+!   a Poisson random number generator attributed to Donald Knuth:
+!
+! Reference:
+!   Wiki: https://en.wikipedia.org/wiki/Poisson_distribution#Generating_Poisson-distributed_random_variables
+!         https://www.johndcook.com/blog/2010/06/14/generating-poisson-random-values/
+! 
+!
+!---------
+! algorithm - Knuth_Junhao method
+!init:
+!        Let λLeft ← λ, k ← 0 and p ← 1.
+!    do:
+!        k ← k + 1.
+!        Generate uniform random number u in (0,1) and let p ← p × u.
+!        while p < 1 and λLeft > 0:
+!            if λLeft > STEP:
+!                p ← p × eSTEP
+!                λLeft ← λLeft − STEP
+!            else:
+!                p ← p × eλLeft
+!                λLeft ← 0
+!    while p > 1.
+!    return k − 1.
+!
+!---------
+! algorithm - Knuth method
+!
+!   init:
+!           Let L ← exp(−λ), k ← 0 and p ← 1.
+!      do:
+!           k ← k + 1.
+!           Generate uniform random number u in [0,1] and let p ← p × u.
+!      while p > L.
+!      return k − 1.
+!
+! Author: Yi-Hsuan Chen
+!----------
+
+  !--- input/output arguments
+  integer, intent(in)  :: kx, nx, rx   ! dimension of input/output variables
+  real   , intent(in)  :: rr   (rx)
+  real   , intent(in)  :: ENTf (kx,nx)  ! Poisson parameter
+
+  integer, intent(out) :: ENTi(kx,nx)  ! a random integer number drawn from the Poisson distribution
+
+  !--- local variables
+  integer, parameter :: itermax = 500   ! maximum of iteration loop
+  real,    parameter :: step    = 70
+
+  real ::        &
+    LL,          &    ! L, lambda, p, and u in the equations in reference
+    lambda,      &
+    lambda_left, &
+    pp,          &
+    uu
+  integer ::     &
+    kk             ! k in the equations in reference
+
+  integer i,j,n,k
+
+  character*40 method
+!-------------------------------
+  !method = "Knuth"
+  method = "Knuth_Junhao"
+
+  !--- initialize 
+  ENTi = 0
+  j = 1
+
+!--- loop over each element
+do n=1,nx
+do k=1,kx
+
+!======================================
+if (method == "Knuth_Junhao") then
+!======================================
+
+  !--- initialize values
+  lambda = ENTf(k,n)
+  ENTi(k,n) = int(lambda)
+  lambda_left = lambda
+  kk = 0
+  pp = 1.
+
+  !************
+  do i=1,itermax
+  !************
+
+
+    !--- restart the random number array
+    if (j > rx) then
+!print*,'restart the index in rr'
+      j=1
+    endif
+
+    kk = kk + 1
+    uu = rr(j)
+    pp = pp * uu
+
+!print*,'kk,uu,pp,lambda_left',kk,uu,pp,lambda_left
+
+    if (pp < 1 .and. lambda_left > 0.) then
+      if (lambda_left > step) then
+        pp = pp * exp(step)
+        lambda_left = lambda_left - step
+      else
+        pp = pp * exp(lambda_left)
+        lambda_left = 0.
+      endif
+    endif
+
+    if (pp < 1) then
+      ENTi(k,n) = kk - 1
+      j=j+1
+!print*,'yaya'
+      exit
+    endif
+!
+!
+    !--- advance to the next index in the random number array
+    j=j+1
+!
+  !************
+  enddo  ! end loop of i
+  !************
+
+!============
+end if   ! end if of method = "Knuth_Junhao"
+!============
+  if (i >= itermax) then
+    ENTi(k,n) = int(lambda)
+!    print*,'qq,itermax,',lambda
+  endif
+
+enddo  ! end loop of k
+enddo  ! end loop of n
+
+!print*,'ENTi',ENTi
+
+end subroutine Poisson_knuth
 
 !#############################
 ! Mellor-Yamada
