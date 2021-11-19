@@ -8574,6 +8574,21 @@ subroutine edmf_mynn_driver ( &
 ! debug
 !----------
   
+  !--- check whether edmf_a>1
+  call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_a, diag_half)
+  if (do_debug_option.eq."edmf_a") then
+    do i=1,ix
+    do j=1,jx
+    do k=1,kx+1
+      if (diag_half(i,j,k).gt.1.) then
+        print*,'gg01, i,j,k,edmf_a', i,j,k,diag_half(i,j,k)
+      endif
+    enddo
+    enddo
+    enddo
+  endif
+
+  !--- check whether tdt is too large
   if (do_debug_option.eq."tdt_check") then
     tt1 = tdt_max / 86400. ! change unit from K/day to K/s
     do i=1,ix
