@@ -68,6 +68,10 @@ type time_type
   integer :: tt1, tt2
 end type time_type
 
+type randomNumberStream
+  integer :: tt1, tt2
+end type randomNumberStream
+
 type physics_input_block_type
   real, dimension(ni,nj,nfull) :: &
     t,u,v,omega,p_full,z_full
@@ -173,8 +177,8 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
    !logical :: do_check_realizability = .true.
    logical :: do_check_realizability = .false.
 
-   !logical :: do_check_ent_det = .true.
-   logical :: do_check_ent_det = .false.
+   logical :: do_check_ent_det = .true.
+   !logical :: do_check_ent_det = .false.
 
    logical :: do_limit_detrain_positive = .true.
    !logical :: do_limit_detrain_positive = .false.
@@ -223,6 +227,11 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
                                                 ! =2, separate entrainment into stochastic and deterministic parts
                                                 !     controlling by alpha_st (1 completely stochastic, 0 completely deterministic)
   real    :: alpha_st=0.5
+
+  character*20 :: option_stoch_entrain = "Poisson"  ! option for random number generator (RNG)
+                                                    !   Poisson: using the Fortran intrinsic RNG
+
+  integer :: option_rng = 1  ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
 
 !==================
 type edmf_input_type
@@ -3675,7 +3684,8 @@ END SUBROUTINE mym_condensation
        &a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half, mf_all_full, &                                                     ! yhc 2021-09-08
-       &num_DET, num_nDET_pENT, num_nDET_zENT, &                                        ! yhc 2021-09-08
+       &num_updraft, num_DET, num_nDET_pENT, num_nDET_zENT, &                                        ! yhc 2021-09-08
+       &streams, &  ! yhc 2021-11-18
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -3830,7 +3840,14 @@ END SUBROUTINE mym_condensation
       Q_ql1_sub,Q_qi1_sub,Q_a1_sub, Q_ql1_det,Q_qi1_det,Q_a1_det
 
     !<--- yhc 2021-09-08 
+
+    !--- input argument
+    type(randomNumberStream), dimension(IMS:IME,JMS:JME), INTENT(INOUT) :: &     ! yhc 2021-11-18
+      streams
+
+    !--- output argument
     REAL, DIMENSION(IMS:IME,KMS:KME+1,JMS:JME), INTENT(out) :: &
+      num_updraft  , &
       a_moist_half , &
       a_dry_half   , &
       mf_moist_half, &
@@ -3849,7 +3866,21 @@ END SUBROUTINE mym_condensation
       qv_moist_full,  &
       qv_dry_full
 
+    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
+    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+       qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &
+       qa_before_pdf, ql_before_pdf, qi_before_pdf, &
+       qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix
+
+    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
+    !   qa_before_pdf, ql_before_pdf, qi_before_pdf
+
+    !--- local argument
+    REAL, DIMENSION(KMS:KME) :: &
+       dum_1D
+
     REAL,DIMENSION(KTS:KTE+1) :: &
+      num_updraft1  , &
       a_moist_half1 , &
       a_dry_half1   , &
       mf_moist_half1, &
@@ -3870,6 +3901,7 @@ END SUBROUTINE mym_condensation
 
     REAL, DIMENSION(IMS:IME,JMS:JME,KMS:KME) :: &
       diag_full
+
     !---> yhc 2021-09-08
 
 ! 0 ... default thing 
@@ -3897,21 +3929,6 @@ END SUBROUTINE mym_condensation
 
 ! Stochastic fields 
      REAL, DIMENSION(KTS:KTE)                         ::    rstoch_col
-
-
-    !<--- yhc_mynn, add new output variables, 2021-04-02
-    REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
-    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
-       qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &
-       qa_before_pdf, ql_before_pdf, qi_before_pdf, &
-       qa_after_mix, ql_after_mix, qi_after_mix, thl_after_mix, qt_after_mix, th_after_mix
-
-    !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
-    !   qa_before_pdf, ql_before_pdf, qi_before_pdf
-
-    REAL, DIMENSION(KMS:KME) :: &
-       dum_1D
-    !---> yhc_mynn
 
     IF ( debug_code ) THEN
        print*,'in MYNN driver; at beginning'
@@ -4427,10 +4444,11 @@ END SUBROUTINE mym_condensation
                & a_moist_half1, mf_moist_half1, qv_moist_half1, a_moist_full1, mf_moist_full1, qv_moist_full1, &  ! yhc 2021-09-08
                & a_dry_half1, mf_dry_half1, qv_dry_half1, a_dry_full1, mf_dry_full1, qv_dry_full1, &            ! yhc 2021-09-08
                & mf_all_half1, mf_all_full1, edmf_det1, &                                                     ! yhc 2021-09-08
-               & num_DET1, num_nDET_zENT1, num_nDET_pENT1, &                                               ! yhc 2021-09-08
+               & num_updraft1, num_DET1, num_nDET_zENT1, num_nDET_pENT1, &                                               ! yhc 2021-09-08
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1,                 &
+               & streams(i,j),   & ! ych 2021-11-18
                & Q_ql1_adv,Q_qi1_adv,Q_a1_adv, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy, Q_ql1_ent,Q_qi1_ent,Q_a1_ent, Q_ql1_det,Q_qi1_det,Q_a1_det, Q_ql1_sub,Q_qi1_sub,Q_a1_sub  &
              )
 
@@ -4721,6 +4739,7 @@ END SUBROUTINE mym_condensation
 
                edmf_det(i,k,j)=edmf_det1(k)
 
+               num_updraft  (i,k,j) = num_updraft1  (k)
                num_DET      (i,k,j) = num_DET1      (k)
                num_nDET_zENT(i,k,j) = num_nDET_zENT1(k)
                num_nDET_pENT(i,k,j) = num_nDET_pENT1(k)
@@ -5502,8 +5521,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               & a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
               & a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
               & mf_all_half, mf_all_full, edmf_det, &                                                  ! yhc 2021-09-08
-              & num_DET, num_nDET_zENT, num_nDET_pENT, &                                               ! yhc 2021-09-08
+              & num_updraft, num_DET, num_nDET_zENT, num_nDET_pENT, &                                               ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa, &
+              & streams1, &    ! yhc 2021-11-18
               & Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent, Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub &
               ) ! yhc 2021-09-08
 
@@ -5588,6 +5608,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
     !    moist/dry/all: moist updrafts, dry updrafts, or combined (moist+dry) updrafts
     !    full/half: on full levels (where T,q are defined) to half levels (those levels in between full levels)
        REAL,DIMENSION(kts:kte+1), INTENT(OUT) :: & 
+         num_updraft  , &
          a_moist_half , &   
          a_dry_half   , &        
          mf_moist_half, &     
@@ -5615,6 +5636,10 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         Qql_det_i, Qqi_det_i, Qa_det_i, Qql_sub_i , Qqi_sub_i , Qa_sub_i, &
         Qql_adv_i, Qqi_adv_i, Qa_adv_i, Qql_eddy_i, Qqi_eddy_i, Qa_eddy_i, Qql_ent_i, Qqi_ent_i, Qa_ent_i
 
+       integer, parameter :: rx = 500  ! AM4 random number generator
+       real :: rr(rx)
+
+       type(randomNumberStream), INTENT(INOUT) :: streams1
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -5794,7 +5819,19 @@ seedmf(1) = 1000000 * ( 100*thl(1) - INT(100*thl(1)))
 seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2))) 
 
 ! get Poisson P(dz/L0)
-    call Poisson(kts,kte,1,Nup,ENTf,ENTi,seedmf)
+!    call Poisson(kts,kte,1,Nup,ENTf,ENTi,seedmf)
+
+  !<-- yhc 2021-11-18, use AM4 random number geneartor
+  if (option_stoch_entrain.eq."Poisson") then  
+    call Poisson(kts,kte,1,Nup,ENTf,ENTi,seedmf)   ! the original Possion function
+
+  elseif (option_stoch_entrain.eq."Poisson_knuth") then   ! use AM4 random number geneartor
+    if (option_rng == 0) call random_number(rr)
+    if (option_rng == 1) call getRandomNumbers (streams1,rr)
+    call Poisson_knuth (kte-kts+1, Nup, rx, rr, ENTf, ENTi)
+
+  endif    ! end if of option_stoch_entrain.eq
+  !-->
 
 
  ! entrainent: Ent=Ent0/dz*P(dz/L0)
@@ -5917,7 +5954,7 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
               if (mf.gt.0) then
                 det_temp = ENT(K-1,I) - (mfp1-mf)/mf/deltaZ
               endif
-              
+         
              ! 1/M dM/dz=eps ... conservation equation for entraining plumes with 0 detrainment
              ! integrate conservation equation from k-1 to k to get
              ! M(k)=M(k-1)*exp(int_(k-1)^k  eps*dz)
@@ -6470,7 +6507,7 @@ if (do_check_ent_det) then
           if (F1.gt.0.) F3 = (F1-F2)/F1 * 100.
   
           !print*,'I,K, ENT, DET, 1/m*dm/dz, ENT-DET, %diff',I,K, ENT(K,I),DET(K,I),F1,F2,F3
-          print*,'I,K, 1/m*dm/dz, ENT-DET, %diff',I,K,F1,F2,F3
+          print*,'I,K, 1/m*dm/dz, ENT, DET, ENT-DET, %diff',I,K,F1,ENT(K,I),DET(K,I),F2,F3
         endif
     ENDDO  ! end loop of K
   ENDDO    ! end loop of I
@@ -6478,6 +6515,7 @@ endif      ! end if of do_check_ent_det
 
 
 !--- compute the frequency of negative DET
+num_updraft=0.
 num_DET=0.
 num_nDET_zENT=0.
 num_nDET_pENT=0.
@@ -6487,6 +6525,8 @@ DO K=KTS,KTE-1
     mf = UPRHO(K,I)*UPW(K,I)*UPA(K,I)
 
     if (mf.gt.0) then
+      num_updraft(K) = num_updraft(K)+1.  ! count # of updrafts at each level
+
       if (DET(K,I).ne.0.) then      ! count # of detrainment at each level
         num_DET (K) = num_DET(K)+1.
       endif
@@ -7070,7 +7110,7 @@ subroutine edmf_mynn_driver ( &
   logical used
   logical do_writeout_column
   real    :: lat_lower, lat_upper, lon_lower, lon_upper, lat_temp, lon_temp
-  real    :: tt1
+  real    :: tt1, tt2
   integer :: i,j,k
   integer :: ix,jx,kx
 
@@ -7094,10 +7134,24 @@ subroutine edmf_mynn_driver ( &
                    size(Physics_input_block%t,2)) :: &   ! (i,k,j)
           num_DET, num_nDET_pENT, num_nDET_zENT
 
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,3)+1, &
+                   size(Physics_input_block%t,2)) :: &   ! (i,k,j)
+          num_updraft
+
+  type(randomNumberStream), dimension(size(Physics_input_block%t,1), &
+                                      size(Physics_input_block%t,2)) :: &     ! dimension (nlon,nlat)
+    streams
+  real :: randomNumbers
+
 !-------------------------
   ix = size(Physics_input_block%t,1)
   jx = size(Physics_input_block%t,2)
   kx = size(Physics_input_block%t,3)  
+
+  if (option_stoch_entrain.eq."Poisson_knuth") then
+    call get_random_number_streams ( is, js, Time_next, Physics_input_block%t(:,:,kx), streams)
+  endif
 
 !-----------------
 ! check namelist
@@ -7253,7 +7307,8 @@ subroutine edmf_mynn_driver ( &
        &a_moist_half=Output_edmf%a_moist_half, mf_moist_half=Output_edmf%mf_moist_half, qv_moist_half=Output_edmf%qv_moist_half, a_moist_full=Output_edmf%a_moist_full, mf_moist_full=Output_edmf%mf_moist_full, qv_moist_full=Output_edmf%qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half=Output_edmf%a_dry_half, mf_dry_half=Output_edmf%mf_dry_half, qv_dry_half=Output_edmf%qv_dry_half, a_dry_full=Output_edmf%a_dry_full, mf_dry_full=Output_edmf%mf_dry_full, qv_dry_full=Output_edmf%qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
-       &num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, &            ! yhc 2021-09-08
+       &num_updraft=num_updraft, num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, &            ! yhc 2021-09-08
+       &streams=streams, &  ! yhc 2021-11-18
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
@@ -7870,6 +7925,12 @@ subroutine edmf_mynn_driver ( &
 !        used = send_data (id_mf_all_full, am4_Output_edmf%mf_all_full, Time_next, is, js, 1 )
 !      endif
 !
+!!------- number of edmf updrafts (units: none) at half level -------
+!      if ( id_num_updraft > 0) then
+!        call reshape_mynn_array_to_am4_half(ix, jx, kx, num_updraft, diag_half)
+!        used = send_data (id_num_updraft, diag_half, Time_next, is, js, 1 )
+!      endif
+!
 !!------- number of dentrainment in edmf updrafts (units: none) at full level -------
 !      if ( id_num_det > 0) then
 !        call reshape_mynn_array_to_am4(ix, jx, kx, num_DET, diag_full)
@@ -7888,6 +7949,38 @@ subroutine edmf_mynn_driver ( &
 !        used = send_data (id_num_ndet_pent, diag_full, Time_next, is, js, 1 )
 !      endif
 !!send_data
+
+!----------
+! debug
+!----------
+  
+  !--- check whether edmf_a>1
+  call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_a, diag_half)
+  if (do_debug_option.eq."edmf_a" .or. do_debug_option.eq."all") then
+    do i=1,ix
+    do j=1,jx
+    do k=1,kx+1
+      if (diag_half(i,j,k).gt.1.) then
+        print*,'gg01, i,j,k,lon,lat,edmf_a', i,j,k,lon(i,j),lat(i,j),diag_half(i,j,k)
+      endif
+    enddo
+    enddo
+    enddo
+  endif
+
+  !--- check whether tdt is too large
+  if (do_debug_option.eq."tdt_check" .or. do_debug_option.eq."all") then
+    tt1 = tdt_max / 86400. ! change unit from K/day to K/s
+    do i=1,ix
+    do j=1,jx
+    do k=1,kx
+      if (abs(am4_Output_edmf%tdt_edmf(i,j,k)).gt.tt1) then
+        print*,'gg02, i,j,k,lon,lat,tdt_edmf', i,j,k,lon(i,j),lat(i,j),am4_Output_edmf%tdt_edmf(i,j,k)
+      endif
+    enddo
+    enddo
+    enddo
+  end if
 
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
@@ -10210,6 +10303,152 @@ subroutine reshape_mynn_array_to_am4_half (ix, jx, kx, mynn_array_3d, am4_array_
 
 end subroutine reshape_mynn_array_to_am4_half
 
+!###################################
+
+subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
+!----------
+! Desecription:
+!   a Poisson random number generator attributed to Donald Knuth:
+!
+! Reference:
+!   Wiki: https://en.wikipedia.org/wiki/Poisson_distribution#Generating_Poisson-distributed_random_variables
+!         https://www.johndcook.com/blog/2010/06/14/generating-poisson-random-values/
+! 
+!
+!---------
+! algorithm - Knuth_Junhao method
+!init:
+!        Let λLeft ← λ, k ← 0 and p ← 1.
+!    do:
+!        k ← k + 1.
+!        Generate uniform random number u in (0,1) and let p ← p × u.
+!        while p < 1 and λLeft > 0:
+!            if λLeft > STEP:
+!                p ← p × eSTEP
+!                λLeft ← λLeft − STEP
+!            else:
+!                p ← p × eλLeft
+!                λLeft ← 0
+!    while p > 1.
+!    return k − 1.
+!
+!---------
+! algorithm - Knuth method
+!
+!   init:
+!           Let L ← exp(−λ), k ← 0 and p ← 1.
+!      do:
+!           k ← k + 1.
+!           Generate uniform random number u in [0,1] and let p ← p × u.
+!      while p > L.
+!      return k − 1.
+!
+! Author: Yi-Hsuan Chen
+!----------
+
+  !--- input/output arguments
+  integer, intent(in)  :: kx, nx, rx   ! dimension of input/output variables
+  real   , intent(in)  :: rr   (rx)
+  real   , intent(in)  :: ENTf (kx,nx)  ! Poisson parameter
+
+  integer, intent(out) :: ENTi(kx,nx)  ! a random integer number drawn from the Poisson distribution
+
+  !--- local variables
+  integer, parameter :: itermax = 500   ! maximum of iteration loop
+  real,    parameter :: step    = 70
+
+  real ::        &
+    LL,          &    ! L, lambda, p, and u in the equations in reference
+    lambda,      &
+    lambda_left, &
+    pp,          &
+    uu
+  integer ::     &
+    kk             ! k in the equations in reference
+
+  integer i,j,n,k
+
+  character*40 method
+!-------------------------------
+  !method = "Knuth"
+  method = "Knuth_Junhao"
+
+  !--- initialize 
+  ENTi = 0
+  j = 1
+
+!--- loop over each element
+do n=1,nx
+do k=1,kx
+
+!======================================
+if (method == "Knuth_Junhao") then
+!======================================
+
+  !--- initialize values
+  lambda = ENTf(k,n)
+  ENTi(k,n) = int(lambda)
+  lambda_left = lambda
+  kk = 0
+  pp = 1.
+
+  !************
+  do i=1,itermax
+  !************
+
+
+    !--- restart the random number array
+    if (j > rx) then
+!print*,'restart the index in rr'
+      j=1
+    endif
+
+    kk = kk + 1
+    uu = rr(j)
+    pp = pp * uu
+
+!print*,'kk,uu,pp,lambda_left',kk,uu,pp,lambda_left
+
+    if (pp < 1 .and. lambda_left > 0.) then
+      if (lambda_left > step) then
+        pp = pp * exp(step)
+        lambda_left = lambda_left - step
+      else
+        pp = pp * exp(lambda_left)
+        lambda_left = 0.
+      endif
+    endif
+
+    if (pp < 1) then
+      ENTi(k,n) = kk - 1
+      j=j+1
+!print*,'yaya'
+      exit
+    endif
+!
+!
+    !--- advance to the next index in the random number array
+    j=j+1
+!
+  !************
+  enddo  ! end loop of i
+  !************
+
+!============
+end if   ! end if of method = "Knuth_Junhao"
+!============
+  if (i >= itermax) then
+    ENTi(k,n) = int(lambda)
+!    print*,'qq,itermax,',lambda
+  endif
+
+enddo  ! end loop of k
+enddo  ! end loop of n
+
+!print*,'ENTi',ENTi
+
+end subroutine Poisson_knuth
+
 !#############################
 ! Mellor-Yamada
 !#############################
@@ -10223,6 +10462,18 @@ subroutine error_mesg(character1, character2, fatal0)
   character character2
   integer fatal0
 end subroutine error_mesg
+
+subroutine getRandomNumbers(streams, rr)
+  type(randomNumberStream) :: streams
+  real, dimension(:) :: rr
+end subroutine getRandomNumbers
+
+subroutine get_random_number_streams(is, js, Time_next, tt, streams)
+  integer is, js
+  type(time_type)         :: Time_next
+  real, dimension(:,:) :: tt
+  type(randomNumberStream), dimension(:,:) :: streams
+end subroutine get_random_number_streams
 
 !------------------
 subroutine compute_qs_one(t, p, qs)
