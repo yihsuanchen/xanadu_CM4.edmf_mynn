@@ -465,7 +465,9 @@ end type edmf_ls_mp_type
 
   real    :: sgm_factor = 100.                  ! factor in computing sigma_s in MYNN
 
-  character*20 :: option_stoch_entrain = "Poisson_knuth"
+  character*20 :: option_stoch_entrain = "Poisson_knuth"  ! option for random number generator (RNG)
+                                                          !   Poisson: using the Fortran intrinsic RNG
+                                                          !   Poisson_knuth: using AM4 RNG
   integer :: option_rng = 1  ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
 
 
@@ -590,6 +592,12 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
   if ( option_ent.gt.2 .or. option_ent.lt.0) then
     call error_mesg( ' edmf_mynn',     &
                      ' option_ent must be 1 or 2',&
+                     FATAL )
+  endif
+
+  if (option_stoch_entrain.ne."Poisson" .or. option_stoch_entrain.ne."Poisson_knuth") then
+    call error_mesg( ' edmf_mynn',     &
+                     '  option_stoch_entrain must be Poisson or Poisson_knuth',&
                      FATAL )
   endif
 
