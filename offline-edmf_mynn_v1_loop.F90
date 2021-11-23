@@ -27,7 +27,7 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_RF01_mynn_EDMFexpUP_Gmy_ADD_0.5h"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm01"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
-  character*50 :: input_profile = "AMIP_i8_j3_Arctic"
+  character*50 :: input_profile = "AMIP_i8_j3_Arctic"  ! negative updraft vertical velocity at the surface (wmin & wmax <0)
 
   integer, parameter :: loop_times = 1
  ! integer, parameter :: loop_times = 10
@@ -126,8 +126,8 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
    INTEGER :: bl_mynn_mixqt     = 2         ! will mix moist conserved variables, after mixing invokes PDF cloud scheme to convert moist variables to dry
    INTEGER :: icloud_bl         = 1         ! 1, cloud cover and liquid water from the PDF scheme will be on the cloud output
 
-   !integer :: initflag = 1                 ! (when 1 it initializes TKE using level 2 MYNN scheme) 
-   integer :: initflag = 0 
+   integer :: initflag = 1                 ! (when 1 it initializes TKE using level 2 MYNN scheme) 
+   !integer :: initflag = 0 
    logical :: FLAG_QI  = .true.             ! (flags for whether cloud and ice mixing rations and number concentrations are mixed separately)
    logical :: FLAG_QNI = .false.            ! all false
    logical :: FLAG_QC  = .false.
@@ -178,8 +178,8 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
    !logical :: do_check_realizability = .true.
    logical :: do_check_realizability = .false.
 
-   logical :: do_check_ent_det = .true.
-   !logical :: do_check_ent_det = .false.
+   !logical :: do_check_ent_det = .true.
+   logical :: do_check_ent_det = .false.
 
    logical :: do_limit_detrain_positive = .true.
    !logical :: do_limit_detrain_positive = .false.
@@ -5782,6 +5782,8 @@ IF ( wthv >= 0.0 ) then
     wmin=sigmaW*pwmin
     wmax=sigmaW*pwmax
 
+print*,'WARNING: wmin, wmax',wmin,wmax
+
     ! set entrainment L0 to be a function of dthv/dz, height, and w_star
     ! do k=kts+1,kte
     !     dthv_dz = 1./(ZW(k)-ZW(k-1))*(thv(k)-thv(k-1))
@@ -9172,8 +9174,13 @@ subroutine edmf_writeout_column ( &
 
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2), &
+                   size(Physics_input_block%t,3)+1) :: &
+    diag_half
+
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,2), &
                    size(Physics_input_block%t,3)) :: &
-    rh, qsat
+    rh, qsat, diag_full
 
   real ::  &
     tk, qtk, qtdtk, rhok, dzk, &
@@ -9503,6 +9510,42 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ' '
         write(6,*)    '; EDMF diffusion coefficients for momentum (m2/s)'
         write(6,3002) ' diff_m_edmf = (/'    ,am4_Output_edmf%diff_m_edmf (ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; vertical velocity of updrafts [m s^-1]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_w, diag_half)
+        write(6,3002) ' edmf_w = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; ensemble updraft mass flux [kg m^-2 s^-1]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%mf_all_half, diag_half)
+        write(6,3002) ' mf_all_half = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; ensemble-mean qc in updrafts [kg/kg]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qc, diag_half)
+        write(6,3002) ' edmf_qc = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; updraft area [-]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_a, diag_half)
+        write(6,3002) ' edmf_a = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; dry updrafts area []'
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%a_dry_full, diag_full)
+        write(6,3002) ' a_dry_full = (/'    ,diag_full(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; moist updrafts area []'
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%a_moist_full, diag_full)
+        write(6,3002) ' a_moist_full = (/'    ,diag_full(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; qa before mix []'
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%qa_before_mix, diag_full)
+        write(6,3002) ' qa_before_mix = (/'    ,diag_full(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; entrainment in updrafts [m^-1]'
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%edmf_ent, diag_full)
+        write(6,3002) ' edmf_ent = (/'  ,diag_full(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; detrainment in updrafts [m^-1]'
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%edmf_det, diag_full)
+        write(6,3002) ' edmf_det = (/'  ,diag_full(ii_write,jj_write,:)
         write(6,*)    ' '
         write(6,*)    '; u tendency from edmf_mynn (m/s2)'
         write(6,3002) ' udt_edmf = (/'    ,am4_Output_edmf%udt_edmf (ii_write,jj_write,:)
@@ -12044,9 +12087,9 @@ endif ! end if of input profile
   Physics_input_block%q(:,:,:,nqi) = qi
   Physics_input_block%q(:,:,:,nqa) = qa
 
-  Physics_input_block%q(:,:,:,nql) = 1.e-4
-  Physics_input_block%q(:,:,:,nqi) = 0.
-  Physics_input_block%q(:,:,:,nqa) = 1.
+  !Physics_input_block%q(:,:,:,nql) = 1.e-4
+  !Physics_input_block%q(:,:,:,nqi) = 0.
+  !Physics_input_block%q(:,:,:,nqa) = 1.
 
   !Physics_input_block%q(:,:,:,nql) = 0.
   !Physics_input_block%q(:,:,:,nqi) = 0.
