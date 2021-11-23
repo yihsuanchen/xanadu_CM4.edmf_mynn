@@ -9778,8 +9778,8 @@ subroutine edmf_writeout_column ( &
   type(edmf_output_type), intent(in) :: Output_edmf
 
   type(am4_edmf_output_type), intent(in) :: am4_Output_edmf
-  !real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
-  real, intent(in), dimension(:,:,:,ntp+1:) :: &
+  real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
+  !real, intent(in), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
   real, intent(in), dimension(:,:,:,:) :: &
@@ -9799,8 +9799,13 @@ subroutine edmf_writeout_column ( &
 
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2), &
+                   size(Physics_input_block%t,3)+1) :: &
+    diag_half
+
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,2), &
                    size(Physics_input_block%t,3)) :: &
-    rh, qsat
+    rh, qsat, diag_full
 
   real ::  &
     tk, qtk, qtdtk, rhok, dzk, &
@@ -10130,6 +10135,42 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ' '
         write(6,*)    '; EDMF diffusion coefficients for momentum (m2/s)'
         write(6,3002) ' diff_m_edmf = (/'    ,am4_Output_edmf%diff_m_edmf (ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; vertical velocity of updrafts [m s^-1]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_w, diag_half)
+        write(6,3002) ' edmf_w = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; ensemble updraft mass flux [kg m^-2 s^-1]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%mf_all_half, diag_half)
+        write(6,3002) ' mf_all_half = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; ensemble-mean qc in updrafts [kg/kg]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qc, diag_half)
+        write(6,3002) ' edmf_qc = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; updraft area [-]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_a, diag_half)
+        write(6,3002) ' edmf_a = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; dry updrafts area []'
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%a_dry_full, diag_full)
+        write(6,3002) ' a_dry_full = (/'    ,diag_full(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; moist updrafts area []'
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%a_moist_full, diag_full)
+        write(6,3002) ' a_moist_full = (/'    ,diag_full(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; qa before mix []'
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%qa_before_mix, diag_full)
+        write(6,3002) ' qa_before_mix = (/'    ,diag_full(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; entrainment in updrafts [m^-1]'
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%edmf_ent, diag_full)
+        write(6,3002) ' edmf_ent = (/'  ,diag_full(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; detrainment in updrafts [m^-1]'
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%edmf_det, diag_full)
+        write(6,3002) ' edmf_det = (/'  ,diag_full(ii_write,jj_write,:)
         write(6,*)    ' '
         write(6,*)    '; u tendency from edmf_mynn (m/s2)'
         write(6,3002) ' udt_edmf = (/'    ,am4_Output_edmf%udt_edmf (ii_write,jj_write,:)
