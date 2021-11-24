@@ -595,7 +595,7 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                      FATAL )
   endif
 
-  if (option_stoch_entrain.ne."Poisson" .or. option_stoch_entrain.ne."Poisson_knuth") then
+  if (trim(option_stoch_entrain) /= 'Poisson' .and. trim(option_stoch_entrain) /= 'Poisson_knuth') then
     call error_mesg( ' edmf_mynn',     &
                      '  option_stoch_entrain must be Poisson or Poisson_knuth',&
                      FATAL )
@@ -6401,9 +6401,12 @@ IF ( wthv >= 0.0 ) then
     wstar=max(0.,(g/thv(KTS)*wthv*pblh)**(1./3.))
     qstar=wqt/wstar
     thstar=wthl/wstar
-    sigmaW=1.34*wstar*(z0/pblh)**(1./3.)*(1-0.8*z0/pblh)
-    sigmaQT=1.34*qstar*(z0/pblh)**(-1./3.)
-    sigmaTH=1.34*thstar*(z0/pblh)**(-1./3.)
+    sigmaW=1.34*wstar*(min(z0/pblh,1.))**(1./3.)*(1-0.8*min(z0/pblh,1.))  ! force z0/pblh<1. to avoid negative sigmaW and negative w
+    sigmaQT=1.34*qstar*(min(z0/pblh,1.))**(-1./3.)
+    sigmaTH=1.34*thstar*(min(z0/pblh,1.))**(-1./3.)
+    !sigmaW=1.34*wstar*(z0/pblh)**(1./3.)*(1-0.8*z0/pblh)
+    !sigmaQT=1.34*qstar*(z0/pblh)**(-1./3.)
+    !sigmaTH=1.34*thstar*(z0/pblh)**(-1./3.)
 
 
     wmin=sigmaW*pwmin
