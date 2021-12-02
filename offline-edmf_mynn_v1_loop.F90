@@ -24,10 +24,10 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_RF01_modQDT-Gmy_aTnTtT_a3_5.0h"
   !character*50 :: input_profile = "xxx"
   !character*50 :: input_profile = "SCM_BOMEX_MYNN_ED_mixleng3"
-  !character*50 :: input_profile = "SCM_RF01_mynn_EDMFexpUP_Gmy_ADD_0.5h"
+  character*50 :: input_profile = "SCM_RF01_mynn_EDMFexpUP_Gmy_ADD_0.5h"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm01"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
-  character*50 :: input_profile = "AMIP_i8_j3_Arctic"  ! negative updraft vertical velocity at the surface (wmin & wmax <0)
+  !character*50 :: input_profile = "AMIP_i8_j3_Arctic"  ! negative updraft vertical velocity at the surface (wmin & wmax <0)
 
   integer, parameter :: loop_times = 1
  ! integer, parameter :: loop_times = 10
@@ -233,6 +233,8 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
                                                     !   Poisson: using the Fortran intrinsic RNG
 
   integer :: option_rng = 1  ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
+
+  integer :: option_pblh_MF = 0 
 
 !==================
 type edmf_input_type
@@ -5640,6 +5642,8 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
        integer, parameter :: rx = 500  ! AM4 random number generator
        real :: rr(rx)
 
+       logical :: do_MF
+
        type(randomNumberStream), INTENT(INOUT) :: streams1
     !---> yhc 2021-09-08 
 
@@ -5752,7 +5756,17 @@ s_awqke=0.
 ! print*, "[EDMF_JPL]: Sc found at z = ", Z_i
 ! if surface buoyancy is positive we do integration otherwise not
 
-IF ( wthv >= 0.0 ) then
+    !<-- yhc 2021-11-26
+    z0=50.
+    do_MF = .true.
+    if (option_pblh_MF.eq.1 .and. pblh < z0) then  ! only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
+                                                   ! This is to prevent activating MF in very stable conditions.
+      do_MF = .false.
+    endif
+    !--> yhc 2021-11-26
+
+IF ( wthv >= 0.0 .and. do_MF) then  ! yhc 2021-11-26 add
+!IF ( wthv >= 0.0 ) then  ! yhc 2021-11-26 comment out
 
 ! get the pressure and liquid_fraction on updraft levels
 
@@ -5767,22 +5781,23 @@ IF ( wthv >= 0.0 ) then
 
 
  ! set initial conditions for updrafts
-    z0=50.
+ !   z0=50.  ! yhc 2021-11-26 comment out. z0 is set outside of the wthv if-statement
     pwmin=1.
     pwmax=3.
 
     wstar=max(0.,(g/thv(KTS)*wthv*pblh)**(1./3.))
     qstar=wqt/wstar
     thstar=wthl/wstar
-    sigmaW=1.34*wstar*(z0/pblh)**(1./3.)*(1-0.8*z0/pblh)
-    sigmaQT=1.34*qstar*(z0/pblh)**(-1./3.)
-    sigmaTH=1.34*thstar*(z0/pblh)**(-1./3.)
+    sigmaW=1.34*wstar*(min(z0/pblh,1.))**(1./3.)*(1-0.8*min(z0/pblh,1.))  ! force z0/pblh<1. to avoid negative sigmaW and negative w
+    sigmaQT=1.34*qstar*(min(z0/pblh,1.))**(-1./3.)
+    sigmaTH=1.34*thstar*(min(z0/pblh,1.))**(-1./3.)
+    !sigmaW=1.34*wstar*(z0/pblh)**(1./3.)*(1-0.8*z0/pblh)
+    !sigmaQT=1.34*qstar*(z0/pblh)**(-1./3.)
+    !sigmaTH=1.34*thstar*(z0/pblh)**(-1./3.)
 
 
     wmin=sigmaW*pwmin
     wmax=sigmaW*pwmax
-
-print*,'WARNING: wmin, wmax',wmin,wmax
 
     ! set entrainment L0 to be a function of dthv/dz, height, and w_star
     ! do k=kts+1,kte
@@ -9153,8 +9168,8 @@ subroutine edmf_writeout_column ( &
   type(edmf_output_type), intent(in) :: Output_edmf
 
   type(am4_edmf_output_type), intent(in) :: am4_Output_edmf
-  real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
-  !real, intent(in), dimension(:,:,:,ntp+1:) :: &
+  !real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
+  real, intent(in), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
   real, intent(in), dimension(:,:,:,:) :: &
@@ -9455,7 +9470,7 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nqi)'
         write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nqi) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
         write(6,*)    ''
-        write(6,*)    '----- end of fieles needed by the offline program ---'
+        write(6,*)    ';----- end of fieles needed by the offline program ---'
         write(6,*)    ''
         write(6,*)    '; friction velocity (m/s)'
         write(6,3003) '  u_star_star    = (/',Input_edmf%u_star_star(ii_write,jj_write)
@@ -9515,23 +9530,47 @@ subroutine edmf_writeout_column ( &
                       call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_w, diag_half)
         write(6,3002) ' edmf_w = (/'    ,diag_half(ii_write,jj_write,:)
         write(6,*)    ' '
+        write(6,*)    '; updraft area [-]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_a, diag_half)
+        write(6,3002) ' edmf_a = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
         write(6,*)    '; ensemble updraft mass flux [kg m^-2 s^-1]'
                       call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%mf_all_half, diag_half)
         write(6,3002) ' mf_all_half = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; moist updraft mass flux [kg m^-2 s^-1]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%mf_moist_half, diag_half)
+        write(6,3002) ' mf_moist_half = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; dry updraft mass flux [kg m^-2 s^-1]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%mf_dry_half, diag_half)
+        write(6,3002) ' mf_dry_half = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; dry updrafts area at half levels []'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%a_dry_half, diag_half)
+        write(6,3002) ' a_dry_half = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; moist updrafts area at half levels []'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%a_moist_half, diag_half)
+        write(6,3002) ' a_moist_half = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; ensemble-mean thl in updrafts [kg/kg]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_thl, diag_half)
+        write(6,3002) ' edmf_thl = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; ensemble-mean qt in updrafts [kg/kg]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qt, diag_half)
+        write(6,3002) ' edmf_qt = (/'    ,diag_half(ii_write,jj_write,:)
         write(6,*)    ' '
         write(6,*)    '; ensemble-mean qc in updrafts [kg/kg]'
                       call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qc, diag_half)
         write(6,3002) ' edmf_qc = (/'    ,diag_half(ii_write,jj_write,:)
         write(6,*)    ' '
-        write(6,*)    '; updraft area [-]'
-                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_a, diag_half)
-        write(6,3002) ' edmf_a = (/'    ,diag_half(ii_write,jj_write,:)
-        write(6,*)    ' '
-        write(6,*)    '; dry updrafts area []'
+        write(6,*)    '; dry updrafts area at full levels []'
                       call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%a_dry_full, diag_full)
         write(6,3002) ' a_dry_full = (/'    ,diag_full(ii_write,jj_write,:)
         write(6,*)    ' '
-        write(6,*)    '; moist updrafts area []'
+        write(6,*)    '; moist updrafts area at full levels []'
                       call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%a_moist_full, diag_full)
         write(6,3002) ' a_moist_full = (/'    ,diag_full(ii_write,jj_write,:)
         write(6,*)    ' '
@@ -9730,6 +9769,12 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; Output_edmf%exch_m'
         write(6,3002) ' exch_m = (/', Output_edmf%exch_m(ii_write,:,jj_write)
         write(6,*)    ''
+        !--------------------
+        !write(6,*)    'Output_edmf%a_dry_half,',Output_edmf%a_dry_half(ii_write,:,jj_write)
+        !write(6,*)    'Output_edmf%a_moist_half,',Output_edmf%a_moist_half(ii_write,:,jj_write)
+        !write(6,*)    'Output_edmf%mf_dry_half,',Output_edmf%mf_dry_half(ii_write,:,jj_write)
+        !write(6,*)    'Output_edmf%mf_moist_half,',Output_edmf%mf_moist_half(ii_write,:,jj_write)
+        !--------------------
         write(6,*)    ';-----------------------------'
         write(6,*)    ';  Some vi commands'
         write(6,*)    ';-----------------------------'
@@ -9779,7 +9824,7 @@ subroutine edmf_writeout_column ( &
 !enddo
 !**************************** end check saturation vapor pressure
 
-3000 format (A35,2X,F8.2,',')
+3000 format (A35,2X,F10.3,',')
 3001 format (A35,2X,34(F10.3,2X,','))
 3002 format (A35,2X,34(E12.4,2X,','))
 3003 format (A35,2X,E12.4,',')
@@ -10267,23 +10312,23 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
 !----------------------------
 ! printout statements 
 !----------------------------
-   if (do_writeout_column) then
-     write(6,*) '; i,j,',ii_write,jj_write
-     !--- qa
-     write(6,*) 'rdt_mynn_ed_am4, qa',rdt_mynn_ed_am4(ii_write,jj_write,:,nqa)
-     write(6,*) 'Output_edmf%Q_qa',Output_edmf%Q_qa(ii_write,:,jj_write)
-     write(6,*) 'Output_edmf%RCCBLTEN',Output_edmf%RCCBLTEN(ii_write,:,jj_write)
-
-     !--- ql
-     write(6,*) 'rdt_mynn_ed_am4, ql',rdt_mynn_ed_am4(ii_write,jj_write,:,nql)
-     write(6,*) 'Output_edmf%Q_ql',Output_edmf%Q_ql(ii_write,:,jj_write)
-     write(6,*) 'Output_edmf%RQLBLTEN',Output_edmf%RQLBLTEN(ii_write,:,jj_write)
-
-     !--- qi
-     write(6,*) 'rdt_mynn_ed_am4, qi',rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
-     write(6,*) 'Output_edmf%Q_qi',Output_edmf%Q_qi(ii_write,:,jj_write)
-     write(6,*) 'Output_edmf%RQIBLTEN',Output_edmf%RQIBLTEN(ii_write,:,jj_write)
-   end if
+!   if (do_writeout_column) then
+!     write(6,*) '; i,j,',ii_write,jj_write
+!     !--- qa
+!     write(6,*) 'rdt_mynn_ed_am4, qa',rdt_mynn_ed_am4(ii_write,jj_write,:,nqa)
+!     write(6,*) 'Output_edmf%Q_qa',Output_edmf%Q_qa(ii_write,:,jj_write)
+!     write(6,*) 'Output_edmf%RCCBLTEN',Output_edmf%RCCBLTEN(ii_write,:,jj_write)
+!
+!     !--- ql
+!     write(6,*) 'rdt_mynn_ed_am4, ql',rdt_mynn_ed_am4(ii_write,jj_write,:,nql)
+!     write(6,*) 'Output_edmf%Q_ql',Output_edmf%Q_ql(ii_write,:,jj_write)
+!     write(6,*) 'Output_edmf%RQLBLTEN',Output_edmf%RQLBLTEN(ii_write,:,jj_write)
+!
+!     !--- qi
+!     write(6,*) 'rdt_mynn_ed_am4, qi',rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
+!     write(6,*) 'Output_edmf%Q_qi',Output_edmf%Q_qi(ii_write,:,jj_write)
+!     write(6,*) 'Output_edmf%RQIBLTEN',Output_edmf%RQIBLTEN(ii_write,:,jj_write)
+!   end if
 
 end subroutine modify_mynn_edmf_tendencies
 
@@ -10319,29 +10364,58 @@ end subroutine reshape_mynn_array_to_am4
 
 !###################################
 
-subroutine reshape_mynn_array_to_am4_half (ix, jx, kx, mynn_array_3d, am4_array_3d)
+subroutine reshape_mynn_array_to_am4_half (ix_dum, jx_dum, kx_dum, mynn_array_3d, am4_array_3d)
 
-!--- input arguments
-  integer                   , intent(in)  :: ix, jx, kx
-  real, dimension(ix, kx, jx), intent(in) :: &
+!--- input arguments 
+  integer                   , intent(in)  :: ix_dum, jx_dum, kx_dum  ! not used
+  real, dimension(:, :, :), intent(in) :: &    ! (i,k,j)
     mynn_array_3d
 
 !--- output arguments
-  real, dimension(ix, jx, kx+1), intent(out) :: &
+  real, dimension(:, :, :), intent(out) :: &   ! (i,j,k)
     am4_array_3d
 
 !--- local variable
   integer i,j,k,kk
+  integer ix_am4, jx_am4, kx_am4, ix_mynn, jx_mynn, kx_mynn
 !----------------------------------
+
+  ix_am4 = size(am4_array_3d,1)
+  jx_am4 = size(am4_array_3d,2)
+  kx_am4 = size(am4_array_3d,3)
+
+  ix_mynn = size(mynn_array_3d,1)
+  jx_mynn = size(mynn_array_3d,3)
+  kx_mynn = size(mynn_array_3d,2)
+
+  if ( ix_am4.ne.ix_mynn .or. jx_am4.ne.jx_mynn) then
+    call error_mesg( ' edmf_mynn',     &
+                     ' in sub reshape_mynn_array_to_am4_half, ix and jx must be the same',&
+                     FATAL )
+  endif
 
   am4_array_3d = 0.
 
-  do i=1,ix
-  do j=1,jx
-    do k=1,kx      ! k index for full levels
-      kk=kx+2-k
-      am4_array_3d   (i,j,kk) = mynn_array_3d (i,k,j)
-    enddo  ! end loop of k, full levels
+  do i=1,ix_am4
+  do j=1,jx_am4
+
+    !--- both am4 and mynn has k+1 levels
+    if (kx_am4.eq.kx_mynn) then
+      do k=1,kx_am4      ! k index for half levels
+        kk=kx_am4+1-k
+        am4_array_3d   (i,j,kk) = mynn_array_3d (i,k,j)
+      enddo  ! end loop of k, half levels
+
+    !--- am4 has kx+1 levels but mynn has kx levels, but both indicate half levels
+    elseif (kx_am4.eq.kx_mynn+1) then
+      do k=1,kx_mynn      ! k index for half levels
+        kk=kx_mynn+2-k
+        am4_array_3d   (i,j,kk) = mynn_array_3d (i,k,j)
+      enddo  ! end loop of k, half levels
+
+      ! k at the topmost level
+      am4_array_3d (i,j,1) = mynn_array_3d(i,kx_mynn,j)
+    endif
   enddo  ! end loop of j
   enddo  ! end loop of 1
 
@@ -10492,6 +10566,7 @@ enddo  ! end loop of n
 !print*,'ENTi',ENTi
 
 end subroutine Poisson_knuth
+
 
 !#############################
 ! Mellor-Yamada
