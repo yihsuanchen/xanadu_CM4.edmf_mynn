@@ -10098,7 +10098,7 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nqi)'
         write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nqi) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
         write(6,*)    ''
-        write(6,*)    '----- end of fieles needed by the offline program ---'
+        write(6,*)    ';----- end of fieles needed by the offline program ---'
         write(6,*)    ''
         write(6,*)    '; friction velocity (m/s)'
         write(6,3003) '  u_star_star    = (/',Input_edmf%u_star_star(ii_write,jj_write)
@@ -10181,6 +10181,14 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; moist updrafts area at half levels []'
                       call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%a_moist_half, diag_half)
         write(6,3002) ' a_moist_half = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; ensemble-mean thl in updrafts [kg/kg]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_thl, diag_half)
+        write(6,3002) ' edmf_thl = (/'    ,diag_half(ii_write,jj_write,:)
+        write(6,*)    ' '
+        write(6,*)    '; ensemble-mean qt in updrafts [kg/kg]'
+                      call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qt, diag_half)
+        write(6,3002) ' edmf_qt = (/'    ,diag_half(ii_write,jj_write,:)
         write(6,*)    ' '
         write(6,*)    '; ensemble-mean qc in updrafts [kg/kg]'
                       call reshape_mynn_array_to_am4_half(ix, jx, kx, Output_edmf%edmf_qc, diag_half)
