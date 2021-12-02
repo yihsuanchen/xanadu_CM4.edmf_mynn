@@ -8005,6 +8005,8 @@ subroutine edmf_mynn_driver ( &
 ! deallocate EDMF-MYNN input and output variables 
 !---------------------------------------------------------------------
   print*,'WARNING: negative edmf_thl: ',Output_edmf%edmf_thl(1,:,1)
+  print*,'WARNING: edmf_qt: ',Output_edmf%edmf_qt(1,:,1)
+  print*,'WARNING: edmf_qc: ',Output_edmf%edmf_qc(1,:,1)
 
   call edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
 
