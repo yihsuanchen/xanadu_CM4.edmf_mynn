@@ -260,6 +260,18 @@ else
 
 end if
 
+print("------------------")
+print("option: ["+option+"]")
+print("")
+print("  friction velocity (m/s)	 : "+u_star_updated)
+print("  sensible heat flux (W/m2)	 : "+shflx_updated)
+print("  evaporation flux (kg water/m2/s): "+lhflx_updated)
+print("  surface heat flux (K m/s)	 : "+w1_th1_surf_updated)
+print("  surface moisture flux (kg water/kg air * m/s)	: "+w1_q1_surf_updated)
+print("  kinematic virtual temperature flux (K m/s)	: "+ w1_thv1_surf_updated)
+print("  Obukhov length (m)		 : "+Obukhov_length_updated)
+print("------------------")
+
 exit
 
 
