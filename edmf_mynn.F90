@@ -10390,10 +10390,10 @@ subroutine edmf_writeout_column ( &
         write(6,3002) ' exch_m = (/', Output_edmf%exch_m(ii_write,:,jj_write)
         write(6,*)    ''
         !--------------------
-        write(6,*)    'Output_edmf%a_dry_half,',Output_edmf%a_dry_half(ii_write,:,jj_write)
-        write(6,*)    'Output_edmf%a_moist_half,',Output_edmf%a_moist_half(ii_write,:,jj_write)
-        write(6,*)    'Output_edmf%mf_dry_half,',Output_edmf%mf_dry_half(ii_write,:,jj_write)
-        write(6,*)    'Output_edmf%mf_moist_half,',Output_edmf%mf_moist_half(ii_write,:,jj_write)
+        !write(6,*)    'Output_edmf%a_dry_half,',Output_edmf%a_dry_half(ii_write,:,jj_write)
+        !write(6,*)    'Output_edmf%a_moist_half,',Output_edmf%a_moist_half(ii_write,:,jj_write)
+        !write(6,*)    'Output_edmf%mf_dry_half,',Output_edmf%mf_dry_half(ii_write,:,jj_write)
+        !write(6,*)    'Output_edmf%mf_moist_half,',Output_edmf%mf_moist_half(ii_write,:,jj_write)
         !--------------------
         write(6,*)    ';-----------------------------'
         write(6,*)    ';  Some vi commands'
@@ -10984,35 +10984,60 @@ end subroutine reshape_mynn_array_to_am4
 
 !###################################
 
-subroutine reshape_mynn_array_to_am4_half (ix, jx, kx, mynn_array_3d, am4_array_3d)
+subroutine reshape_mynn_array_to_am4_half (ix_dum, jx_dum, kx_dum, mynn_array_3d, am4_array_3d)
 
-!--- input arguments
-  integer                   , intent(in)  :: ix, jx, kx
-  real, dimension(ix, kx, jx), intent(in) :: &
+!--- input arguments 
+  integer                   , intent(in)  :: ix_dum, jx_dum, kx_dum  ! not used
+  real, dimension(:, :, :), intent(in) :: &    ! (i,k,j)
     mynn_array_3d
 
 !--- output arguments
-  real, dimension(ix, jx, kx+1), intent(out) :: &
+  real, dimension(:, :, :), intent(out) :: &   ! (i,j,k)
     am4_array_3d
 
 !--- local variable
   integer i,j,k,kk
+  integer ix_am4, jx_am4, kx_am4, ix_mynn, jx_mynn, kx_mynn
 !----------------------------------
+
+  ix_am4 = size(am4_array_3d,1)
+  jx_am4 = size(am4_array_3d,2)
+  kx_am4 = size(am4_array_3d,3)
+
+  ix_mynn = size(mynn_array_3d,1)
+  jx_mynn = size(mynn_array_3d,3)
+  kx_mynn = size(mynn_array_3d,2)
+
+  if ( ix_am4.ne.ix_mynn .or. jx_am4.ne.jx_mynn) then
+    call error_mesg( ' edmf_mynn',     &
+                     ' in sub reshape_mynn_array_to_am4_half, ix and jx must be the same',&
+                     FATAL )
+  endif
 
   am4_array_3d = 0.
 
-  do i=1,ix
-  do j=1,jx
-    do k=1,kx      ! k index for half levels
-      kk=kx+2-k
-      !--- am4 has kx+1 levels, but mynn has kx levels but all are on half levels
-      am4_array_3d   (i,j,kk) = mynn_array_3d (i,k,j)
-    enddo  ! end loop of k, half levels
+  do i=1,ix_am4
+  do j=1,jx_am4
+
+    !--- both am4 and mynn has k+1 levels
+    if (kx_am4.eq.kx_mynn) then
+      do k=1,kx_am4      ! k index for half levels
+        kk=kx_am4+1-k
+        am4_array_3d   (i,j,kk) = mynn_array_3d (i,k,j)
+      enddo  ! end loop of k, half levels
+
+    !--- am4 has kx+1 levels but mynn has kx levels, but both indicate half levels
+    elseif (kx_am4.eq.kx_mynn+1) then
+      do k=1,kx_mynn      ! k index for half levels
+        kk=kx_mynn+2-k
+        am4_array_3d   (i,j,kk) = mynn_array_3d (i,k,j)
+      enddo  ! end loop of k, half levels
+
+      ! k at the topmost level
+      am4_array_3d (i,j,1) = mynn_array_3d(i,kx_mynn,j)
+    endif
   enddo  ! end loop of j
   enddo  ! end loop of 1
-
-  ! set the topmost levels
-  am4_array_3d(:,:,1) = mynn_array_3d(:,kx,:)
 
 end subroutine reshape_mynn_array_to_am4_half
 
