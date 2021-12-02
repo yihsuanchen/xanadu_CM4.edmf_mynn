@@ -162,8 +162,8 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    real    :: lat_range = 0.001
    real    :: lon_range = 0.001
-   logical :: do_writeout_column_nml = .true.
-   !logical :: do_writeout_column_nml = .false.
+   !logical :: do_writeout_column_nml = .true.
+   logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
    logical :: do_edmf2ls_mp = .true.
@@ -8004,6 +8004,8 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
 !---------------------------------------------------------------------
+  print*,'WARNING: negative edmf_thl: ',Output_edmf%edmf_thl(1,:,1)
+
   call edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
 
   !--- stop the model if prefered
@@ -8011,6 +8013,7 @@ subroutine edmf_mynn_driver ( &
     call error_mesg('edmf_mynn_driver',  &
        'stop by yihsuan', FATAL)
   endif
+
 
 end subroutine edmf_mynn_driver
 
