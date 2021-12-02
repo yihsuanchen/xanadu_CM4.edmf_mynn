@@ -10,9 +10,13 @@ load "/ncrc/home2/Yi-hsuan.Chen//script/ncl//ignorantNCL-colormaps.ncl"
 
 begin
 
-  option = "AMIP_i2_j4_Delware"
+  var_options = (/"th_all","q_all","area_all","tdt_all","qdt_all"/)
 
-if (option .eq. "AMIP_i2_j4_Delware") then
+  column_option = "AMIP_i2_j4_Delware"
+
+if (column_option .eq. "AMIP_i2_j4_Delware") then
+
+  kmin = 28   ; plot 28-surface
 
   ;@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   ; i,j,           4           2
@@ -196,9 +200,15 @@ if (option .eq. "AMIP_i2_j4_Delware") then
   
   ; moist updrafts area at half levels []
   a_moist_half = (/    0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.2703E-01  ,  0.1361E+00  ,  0.1573E+00  /)
+
+ ; ensemble-mean qt in updrafts [kg/kg]
+  edmf_qt = (/    0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.1748E-02  ,  0.1647E-02  ,  0.5834E-04  /)
   
   ; ensemble-mean qc in updrafts [kg/kg]
   edmf_qc = (/    0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.3455E-02  ,  0.3925E-02  ,  0.3049E-02  /)
+
+  ; thl in updrafts  [K]
+  edmf_thl = (/    0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,         0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,         0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  -0.1071E+02, -0.9398E+01, 0.2759E+01  /)
   
   ; dry updrafts area at full levels []
   a_dry_full = (/    0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  ,  0.0000E+00  /)
@@ -260,139 +270,144 @@ else
 
 end if
 
+;************* 
+; printout
+;************* 
+
+kx  = dimsizes(z_full_surf0)
+kxp = dimsizes(z_half_surf0)
+
 print("------------------")
-print("option: ["+option+"]")
+print("column option: ["+column_option+"]")
 print("")
 print("  friction velocity (m/s)	 : "+u_star_updated)
 print("  sensible heat flux (W/m2)	 : "+shflx_updated)
-print("  evaporation flux (kg water/m2/s): "+lhflx_updated)
 print("  surface heat flux (K m/s)	 : "+w1_th1_surf_updated)
+print("  evaporation flux (kg water/m2/s): "+lhflx_updated)
 print("  surface moisture flux (kg water/kg air * m/s)	: "+w1_q1_surf_updated)
 print("  kinematic virtual temperature flux (K m/s)	: "+ w1_thv1_surf_updated)
 print("  Obukhov length (m)		 : "+Obukhov_length_updated)
+print("")
+      tt1 = w1_th1_surf_updated / z_half_surf0(kxp-2) * 86400.       ; K/day
+print("  surface flux heating    (dw'th'/dz; K/day)    : "+tt1)
+      tt1 = w1_q1_surf_updated / z_half_surf0(kxp-2)  * 1.e+3 * 3600. ; unit g/kg/hour
+print("  surface flux moistening (dw'q' /dz; g/kg/hour): "+tt1)
 print("------------------")
 
-exit
+;-----------
+; plot
+;-----------
 
-
-  ZW = ZW(::-1)
-    ZW@long_name = "Height"
-    ZW@units     = "m"
-  z_full = z_full
-    z_full@long_name = "Height"
-    z_full@units     = "m"
-  UPA = UPA(::-1)
-    UPA@long_name = "updraft fraction"
-    UPA@units     = "none"
-  UPW = UPW(::-1)
-    UPW@long_name = "updraft velocity"
-    UPW@units     = "m/s"
-  ENT = ENT(::-1)*1000.
-    ENT@long_name = "entainment rate"
-    ENT@units     = "1/km"
-  DET = DET(::-1)*1000.
-    DET@long_name = "dentainment rate"
-    DET@units     = "1/km"
-
-  ENTmDET = diff(ENT,DET)
-    ENTmDET@long_name = "entainment minus detrainment"
-    ENTmDET@units     = ENT@units
-
-  MF=UPA*UPW*UPRHO(::-1)
-    MF@long_name = "mass flux"
-    MF@units     = "kg/m2/s"
-
-  print("ZW: "+ZW+", MF: "+MF)
-  print("---------------")
-  print("ENT: "+ENT+", DET: "+DET)
-
-;------------------
-; general settings
-;------------------
-
-  wks_name = "test111" + "-" + option
+;*** shared res ***
+  wks_name_head = "test111"
   wks_type = "png"  ; or x11,pdf,ncgm
-  wks = gsn_open_wks(wks_type, wks_name)
+
   res = True
     res@xyMonoMarkLineMode = True
     res@xyMarkLineMode  = "MarkLines"
+    res@gsnXRefLine = 0.
+    res@trYMinF = 0.
 
-  res_xy1 = res
-
-    res_xy1@gsnFrame = False
-    res_xy1@gsnDraw = False
-    res_xy1@gsnXRefLine = 0.
-
-    res_xy1@trYMinF = 0.
-    res_xy1@trYMaxF = 1200.
-
-    ;res_xy1@tiMainString = tiMainString
   opt_xy1 = True
     opt_xy1@gsnString = "x"
     opt_xy1@legend_mean = False
 
-  ks = 24
-  ke = 33
+nvar = dimsizes(var_options)
+;print(nvar)
 
-  xx1 = UPW(ks:)
-  yy1 = ZW(ks:)
-  labels1 = UPW@long_name
-  plot_xy01 = ignorant_xy(wks, xx1, yy1, labels1, res_xy1, opt_xy1)
+;printVarSummary(edmf_thl)
 
-  xx2 = UPA(ks:)
-  yy2 = ZW(ks:)
-  labels2 = UPA@long_name
-  plot_xy02 = ignorant_xy(wks, xx2, yy2, labels2, res_xy1, opt_xy1)
+plot_yy_zfull = z_full
+plot_yy_zhalf = z_half
 
-  xx3 = (/ENT(ks:),DET(ks:),ENTmDET(ks:)/)
-    xx3@units = ENT@units
-  yy3 = z_full(ks:)
-  labels3 = (/"ent","det","ent-det"/)
-  plot_xy03 = ignorant_xy(wks, xx3, yy3, labels3, res_xy1, opt_xy1)
+do v=0,nvar-1
+;do v=0,0
+  var1 = var_options(v)
+  res1 = res
+    res1@tiMainString = column_option
 
-  xx4 = MF(ks:)
-  yy4 = ZW(ks:)
-  labels4 = UPA@long_name
-  plot_xy04 = ignorant_xy(wks, xx4, yy4, labels4, res_xy1, opt_xy1)
+  if (var1.eq."th_all") then
+    plot_xx0 = (/th,thl,edmf_thl/)
+    plot_yy0 = (/plot_yy_zfull,plot_yy_zfull,plot_yy_zhalf(1:kxp-1)/)
 
-;--------
-; plot
-;--------
-  resp = True
-    resp@txString = option
+    plot_xx = plot_xx0(:,kmin:kx-1)
+    plot_yy = plot_yy0(:,kmin:kx-1)
+    labels = (/"th","thli","thli_MF"/)
+    plot_xx@units = "K"
 
-  nn=4
-  plot = new(nn,"graphic")
-  plot(0) = plot_xy01
-  plot(1) = plot_xy02
-  plot(2) = plot_xy04
-  plot(3) = plot_xy03
+  elseif (var1.eq."q_all") then
+    plot_xx0 = (/qq,ql,qi,qt, \
+                 edmf_qt(1:kxp-1),edmf_qc(1:kxp-1)/)
+    plot_yy0 = (/plot_yy_zfull,plot_yy_zfull,plot_yy_zfull,plot_yy_zfull, \
+                 plot_yy_zhalf(1:kxp-1),plot_yy_zhalf(1:kxp-1)/)
 
-  gsn_panel(wks,plot,(/1,nn/),resp)
-  opt1 = True
-  trim_fig(wks_type, wks_name, opt1)
+    plot_xx = plot_xx0(:,kmin:kx-1) * 1000. ; change unit from kg/kg to g/kg
+    plot_yy = plot_yy0(:,kmin:kx-1)
+    labels = (/"qv","ql","qi","qt","qt_MF","qc_MF"/)
+    plot_xx@units = "g/kg"
 
-  exit
+  elseif (var1.eq."area_all") then
+    plot_xx0 = (/qa_before_mix,a_dry_half(1:kxp-1),a_moist_half(1:kxp-1)/)
+    plot_yy0 = (/plot_yy_zfull,plot_yy_zhalf(1:kxp-1),plot_yy_zhalf(1:kxp-1)/)
 
-;==================
-  ks = 28
-  ke = kx-1
-  yy = z_full(ks:ke)
-  xx = th(:,ks:ke)
-  labels_xy1 = new ( tx, "string" )
+    plot_xx = plot_xx0(:,kmin:kx-1) 
+    plot_yy = plot_yy0(:,kmin:kx-1)
+    labels = (/"qa_Tiedtke","a_dry_MF","a_moist_MF"/)
+    plot_xx@units = "fraction (0-1)"
 
-  ss1 = "dry SCM, Hour "
-  do tt=0,tx-1
-    labels_xy1(tt) = ss1+tt
-  end do
+  elseif (var1.eq."tdt_all") then
+    plot_xx0 = (/thldt_edmf,tdt_edmf/)
+    plot_yy0 = (/plot_yy_zfull,plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:kx-1) * 86400.       ; change unit from K/s to K/day
+    plot_yy = plot_yy0(:,kmin:kx-1)
+    labels = (/"thl_dt","tdt"/)
+    plot_xx@units = "K/day"
+
+  elseif (var1.eq."qdt_all") then
+    plot_xx0 = (/qtdt_edmf,qdt_edmf/)
+    plot_yy0 = (/plot_yy_zfull,plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:kx-1) * 1.e+3 * 1800. ; change unit from kg/kg/s to g/kg/step
+    plot_yy = plot_yy0(:,kmin:kx-1)
+    labels = (/"qt_dt","q_dt"/)
+    plot_xx@units = "g/kg/step"
+
+  ;elseif (var1.eq."xxxxx") then
+    ;plot_xx0 = (//)
+    ;plot_yy0 = (//)
+
+    ;plot_xx = plot_xx0(:,kmin:kx-1)
+    ;plot_yy = plot_yy0(:,kmin:kx-1)
+    ;labels = (//)
+    ;plot_xx@units = ""
+
+  else
+    print("ERROR: ["+var1+"] is not supported")
+    exit
+  end if
+
+  ;printVarSummary(plot_xx)
+  ;printVarSummary(plot_yy)
+
+  ;--- open wks
+  wks_name = wks_name_head +"-"+ column_option +"-"+ var1
+  wks = gsn_open_wks(wks_type, wks_name)
+
+  ;--- plot
+  plot_yy@long_name = "Height"
+  plot_yy@units     = "m"
+
+  plot = ignorant_xy(wks, plot_xx, plot_yy, labels, res1, opt_xy1)
+  trim_fig(wks_type, wks_name, True)
+
+  delete(plot_xx0)
+  delete(plot_yy0)
+  delete(plot_xx)
+  delete(plot_yy)
+  delete(labels)
+  delete(res1)
+
+end do
 
 
-;--------
-; plot
-;--------
-  plot_xy1 = ignorant_xy(wks, xx, yy, labels_xy1, res_xy1, opt_xy1)
-  opt1 = True
-  trim_fig(wks_type, wks_name, opt1)
-
-
-end
