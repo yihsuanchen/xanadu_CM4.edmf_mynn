@@ -10,7 +10,7 @@ load "/ncrc/home2/Yi-hsuan.Chen//script/ncl//ignorantNCL-colormaps.ncl"
 
 begin
 
-  var_options = (/"th_all","q_all","area_all","tdt_all","qdt_all"/)
+  var_options = (/"ED_all","mf_all","th_all","q_all","area_all","tdt_all","qdt_all"/)
 
   column_option = "AMIP_i2_j4_Delware"
 
@@ -274,6 +274,7 @@ end if
 ; printout
 ;************* 
 
+
 kx  = dimsizes(z_full_surf0)
 kxp = dimsizes(z_half_surf0)
 
@@ -305,6 +306,7 @@ print("------------------")
   res = True
     res@xyMonoMarkLineMode = True
     res@xyMarkLineMode  = "MarkLines"
+    res@xyMonoDashPattern = False
     res@gsnXRefLine = 0.
     res@trYMinF = 0.
 
@@ -327,7 +329,7 @@ do v=0,nvar-1
     res1@tiMainString = column_option
 
   if (var1.eq."th_all") then
-    plot_xx0 = (/th,thl,edmf_thl/)
+    plot_xx0 = (/th,thl,edmf_thl+thl/)
     plot_yy0 = (/plot_yy_zfull,plot_yy_zfull,plot_yy_zhalf(1:kxp-1)/)
 
     plot_xx = plot_xx0(:,kmin:kx-1)
@@ -335,9 +337,12 @@ do v=0,nvar-1
     labels = (/"th","thli","thli_MF"/)
     plot_xx@units = "K"
 
+    res1@xyLineColors  = (/"red","red","blue"/)
+    res1@xyDashPatterns = (/2,0,0/)
+
   elseif (var1.eq."q_all") then
     plot_xx0 = (/qq,ql,qi,qt, \
-                 edmf_qt(1:kxp-1),edmf_qc(1:kxp-1)/)
+                 edmf_qt(1:kxp-1)+qt,edmf_qc(1:kxp-1)/)
     plot_yy0 = (/plot_yy_zfull,plot_yy_zfull,plot_yy_zfull,plot_yy_zfull, \
                  plot_yy_zhalf(1:kxp-1),plot_yy_zhalf(1:kxp-1)/)
 
@@ -345,6 +350,9 @@ do v=0,nvar-1
     plot_yy = plot_yy0(:,kmin:kx-1)
     labels = (/"qv","ql","qi","qt","qt_MF","qc_MF"/)
     plot_xx@units = "g/kg"
+
+    res1@xyLineColors  = (/"blue","lightseagreen","green","cyan","cyan","lightseagreen"/)
+    res1@xyDashPatterns = (/0,0,0,0,2,2/)
 
   elseif (var1.eq."area_all") then
     plot_xx0 = (/qa_before_mix,a_dry_half(1:kxp-1),a_moist_half(1:kxp-1)/)
@@ -355,6 +363,9 @@ do v=0,nvar-1
     labels = (/"qa_Tiedtke","a_dry_MF","a_moist_MF"/)
     plot_xx@units = "fraction (0-1)"
 
+    res1@xyLineColors  = (/"blue","burlywood","lightseagreen"/)
+    res1@xyDashPatterns = (/0,0,0/)
+
   elseif (var1.eq."tdt_all") then
     plot_xx0 = (/thldt_edmf,tdt_edmf/)
     plot_yy0 = (/plot_yy_zfull,plot_yy_zfull/)
@@ -364,6 +375,9 @@ do v=0,nvar-1
     labels = (/"thl_dt","tdt"/)
     plot_xx@units = "K/day"
 
+    res1@xyLineColors  = (/"red","orange"/)
+    res1@xyDashPatterns = (/0,0/)
+
   elseif (var1.eq."qdt_all") then
     plot_xx0 = (/qtdt_edmf,qdt_edmf/)
     plot_yy0 = (/plot_yy_zfull,plot_yy_zfull/)
@@ -372,6 +386,27 @@ do v=0,nvar-1
     plot_yy = plot_yy0(:,kmin:kx-1)
     labels = (/"qt_dt","q_dt"/)
     plot_xx@units = "g/kg/step"
+
+    res1@xyLineColors  = (/"blue","cyan"/)
+    res1@xyDashPatterns = (/0,0/)
+
+  elseif (var1.eq."mf_all") then
+    plot_xx0 = (/edmf_w,edmf_a,mf_all_half/)
+    plot_yy0 = (/plot_yy_zhalf,plot_yy_zhalf,plot_yy_zhalf/)
+
+    plot_xx = plot_xx0(:,kmin:)
+    plot_yy = plot_yy0(:,kmin:)
+    labels = (/"w","area","mf"/)
+    plot_xx@units = ""
+
+  elseif (var1.eq."ED_all") then
+    plot_xx0 = (/diff_t_edmf,diff_m_edmf/)
+    plot_yy0 = (/plot_yy_zhalf(1:kxp-1),plot_yy_zhalf(1:kxp-1)/)
+
+    plot_xx = plot_xx0(:,kmin:)
+    plot_yy = plot_yy0(:,kmin:)
+    labels = (/"ED_heat","ED_mom"/)
+    plot_xx@units = ""
 
   ;elseif (var1.eq."xxxxx") then
     ;plot_xx0 = (//)
@@ -409,5 +444,7 @@ do v=0,nvar-1
   delete(res1)
 
 end do
+
+end
 
 
