@@ -578,13 +578,52 @@ else
 
 end if
 
+;-------------------------------
+; compute updraft qv, ql and qi
+;-------------------------------
+kx  = dimsizes(z_full_surf0)
+kxp = dimsizes(z_half_surf0)
+
+edmf_qv = edmf_qt
+edmf_qv(1:kxp-1) = edmf_qt(1:kxp-1) + qt(:) - edmf_qc(1:kxp-1)
+
+edmf_ql = edmf_qc
+edmf_qi = edmf_qc
+
+edmf_ql = 0.
+edmf_qi = 0.
+
+liquid_frac = tt
+liquid_frac = -999.99
+
+do k=0,kx-1
+  ;--- subroutine  ComputeLiquidFrac
+  if (tt(k) .ge. 273.16) then
+    liquid_frac(k)=1.
+  elseif (tt(k) .LE. 253.) then
+    liquid_frac(k)=0.
+  else
+    liquid_frac(k) = 1.-(273.16-tt(k))/20.16
+  end if
+end do
+
+ice_frac = 1.-liquid_frac
+
+edmf_ql(1:kxp-1) = edmf_qc(1:kxp-1) * liquid_frac(:)
+edmf_qi(1:kxp-1) = edmf_qc(1:kxp-1) * ice_frac   (:)
+
+
+
+;print(liquid_frac+" , "+ice_frac)
+;print("qc: "+edmf_qc+", ql: "+edmf_ql+", qi: "+edmf_qi)
+
+;exit
+
 ;************* 
 ; printout
 ;************* 
 
 
-kx  = dimsizes(z_full_surf0)
-kxp = dimsizes(z_half_surf0)
 
 print("------------------")
 print("column option: ["+column_option+"]")
@@ -634,7 +673,7 @@ do v=0,nvar-1
 ;do v=0,0
   var1 = var_options(v)
   res1 = res
-    res1@tiMainString = column_option
+    res1@tiMainString = column_option +", "+ var1
 
   if (var1.eq."th_all") then
     plot_xx0 = (/th,thl,edmf_thl(1:kxp-1)+thl/)
@@ -648,7 +687,7 @@ do v=0,nvar-1
     res1@xyLineColors  = (/"red","red","blue"/)
     res1@xyDashPatterns = (/2,0,0/)
 
-  elseif (var1.eq."q_all") then
+  elseif (var1.eq."q_all0") then
     plot_xx0 = (/qq,ql,qi,qt, \
                  edmf_qt(1:kxp-1)+qt,edmf_qc(1:kxp-1)/)
     plot_yy0 = (/plot_yy_zfull,plot_yy_zfull,plot_yy_zfull,plot_yy_zfull, \
@@ -659,8 +698,26 @@ do v=0,nvar-1
     labels = (/"qv","ql","qi","qt","qt_MF","qc_MF"/)
     plot_xx@units = "g/kg"
 
+    ;res1@xyLineColors  = (/"blue","lightseagreen","green","cyan","cyan","lightseagreen"/)
     res1@xyLineColors  = (/"blue","lightseagreen","green","cyan","cyan","lightseagreen"/)
     res1@xyDashPatterns = (/0,0,0,0,2,2/)
+
+  elseif (var1.eq."q_all") then
+    plot_xx0 = (/qq,ql,qi,qt, \
+                 edmf_qv(1:kxp-1), edmf_ql(1:kxp-1), edmf_qi(1:kxp-1), edmf_qt(1:kxp-1)+qt/)
+    plot_yy0 = (/plot_yy_zfull,plot_yy_zfull,plot_yy_zfull,plot_yy_zfull, \
+                 plot_yy_zhalf(1:kxp-1),plot_yy_zhalf(1:kxp-1),plot_yy_zhalf(1:kxp-1),plot_yy_zhalf(1:kxp-1)/)
+
+    plot_xx = plot_xx0(:,kmin:kx-1) * 1000. ; change unit from kg/kg to g/kg
+    plot_yy = plot_yy0(:,kmin:kx-1)
+    labels = (/"qv","ql","qi","qt","qv_MF","ql_MF","qi_MF","qt_MF"/)
+    plot_xx@units = "g/kg"
+
+    ;res1@xyLineColors  = (/"blue","lightseagreen","green","cyan","cyan","lightseagreen"/)
+    ;res1@xyLineColors  = (/"blue","lightseagreen","green","cyan","cyan","lightseagreen"/)
+    res1@xyLineColors  = (/"cyan","green","gray","blue", \
+                           "cyan","green","gray","blue"/)
+    res1@xyDashPatterns = (/0,0,0,0,2,2,2,2/)
 
   elseif (var1.eq."area_all") then
     plot_xx0 = (/qa_before_mix,a_dry_half(1:kxp-1),a_moist_half(1:kxp-1)/)
@@ -687,16 +744,17 @@ do v=0,nvar-1
     res1@xyDashPatterns = (/0,0/)
 
   elseif (var1.eq."qdt_all") then
-    plot_xx0 = (/qtdt_edmf,qdt_edmf/)
-    plot_yy0 = (/plot_yy_zfull,plot_yy_zfull/)
+    plot_xx0 = (/qdt_edmf,qldt_edmf,qidt_edmf,qtdt_edmf/)
+    plot_yy0 = (/plot_yy_zfull/)
+
 
     plot_xx = plot_xx0(:,kmin:kx-1) * 1.e+3 * 1800. ; change unit from kg/kg/s to g/kg/step
-    plot_yy = plot_yy0(:,kmin:kx-1)
-    labels = (/"qt_dt","q_dt"/)
+    plot_yy = plot_yy0(kmin:kx-1)
+    labels = (/"q_dt","ql_dt","qi_dt","qt_dt"/)
     plot_xx@units = "g/kg/step"
 
-    res1@xyLineColors  = (/"blue","cyan"/)
-    res1@xyDashPatterns = (/0,0/)
+    res1@xyLineColors  = (/"cyan","green","gray","blue"/)
+    res1@xyDashPatterns = (/0,0,0,0/)
 
   elseif (var1.eq."mf_all") then
     plot_xx0 = (/edmf_w,edmf_a,mf_all_half/)
