@@ -10,7 +10,10 @@ load "/ncrc/home2/Yi-hsuan.Chen//script/ncl//ignorantNCL-colormaps.ncl"
 
 begin
 
-  var_options = (/"ED_all","mf_all","th_all","q_all","area_all","tdt_all","qdt_all"/)
+  ;var_options = (/"ED_all","mf_all","th_all","q_all","area_all","tdt_all","qdt_all"/)
+  var_options = (/"ED_all","mf_all","th_all","q_all","area_all","tdt_all","qdt_all", \
+                  "Q_qa","Q_qa_EddySrc","Q_qa_SubDet", "Q_ql","Q_ql_EddySrc","Q_ql_SubDet", "Q_qi","Q_qi_EddySrc","Q_qi_SubDet" \
+                /)
 
   ;column_option = "AMIP_i2_j4_Delware"
   column_option = "AMIP_i2_j4_Delware_offline"
@@ -712,6 +715,87 @@ do v=0,nvar-1
     plot_yy = plot_yy0(:,kmin:)
     labels = (/"ED_heat","ED_mom"/)
     plot_xx@units = ""
+
+  elseif (var1.eq."Q_qa") then
+    plot_xx0 = (/Q_qa_adv+Q_qa_eddy+Q_qa_ent, Q_qa_sub+Q_qa_det/)
+    plot_yy0 = (/plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:) * 1800.
+    plot_yy = plot_yy0(kmin:)
+    labels = (/"Q_qa_EddySrc","Q_qa_SubDet"/)
+    plot_xx@units = "1/step"
+
+  elseif (var1.eq."Q_qa_EddySrc") then
+    plot_xx0 = (/Q_qa_adv+Q_qa_eddy+Q_qa_ent, Q_qa_adv,Q_qa_eddy,Q_qa_ent/)
+    plot_yy0 = (/plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:) * 1800.
+    plot_yy = plot_yy0(kmin:)
+    labels = (/"sum","Q_qa_adv","Q_qa_eddy","Q_qa_ent"/)
+    plot_xx@units = "1/step"
+
+  elseif (var1.eq."Q_qa_SubDet") then
+    plot_xx0 = (/Q_qa_sub+Q_qa_det, Q_qa_sub,Q_qa_det/)
+    plot_yy0 = (/plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:) * 1800.
+    plot_yy = plot_yy0(kmin:)
+    labels = (/"sum","Q_qa_sub","Q_qa_det"/)
+    plot_xx@units = "1/step"
+
+  elseif (var1.eq."Q_ql") then
+    plot_xx0 = (/Q_ql_adv+Q_ql_eddy+Q_ql_ent, Q_ql_sub+Q_ql_det/)
+    plot_yy0 = (/plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:) * 1800. * 1.e+3  ; change unit from kg/kg/s to g/kg/step
+    plot_yy = plot_yy0(kmin:)
+    labels = (/"Q_ql_EddySrc","Q_ql_SubDet"/)
+    plot_xx@units = "g/kg/step"
+
+  elseif (var1.eq."Q_ql_EddySrc") then
+    plot_xx0 = (/Q_ql_adv+Q_ql_eddy+Q_ql_ent,Q_ql_adv,Q_ql_eddy,Q_ql_ent/)
+    plot_yy0 = (/plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:) * 1800. * 1.e+3  ; change unit from kg/kg/s to g/kg/step
+    plot_yy = plot_yy0(kmin:)
+    labels = (/"sum","Q_ql_adv","Q_ql_eddy","Q_ql_ent"/)
+    plot_xx@units = "g/kg/step"
+
+  elseif (var1.eq."Q_ql_SubDet") then
+    plot_xx0 = (/Q_ql_sub+Q_ql_det,Q_ql_sub,Q_ql_det/)
+    plot_yy0 = (/plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:) * 1800. * 1.e+3  ; change unit from kg/kg/s to g/kg/step
+    plot_yy = plot_yy0(kmin:)
+    labels = (/"sum","Q_ql_sub","Q_ql_det"/)
+    plot_xx@units = "g/kg/step"
+
+  elseif (var1.eq."Q_qi") then
+    plot_xx0 = (/Q_qi_adv+Q_qi_eddy+Q_qi_ent, Q_qi_sub+Q_qi_det/)
+    plot_yy0 = (/plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:) * 1800. * 1.e+3  ; change unit from kg/kg/s to g/kg/step
+    plot_yy = plot_yy0(kmin:)
+    labels = (/"Q_qi_EddySrc","Q_qi_SubDet"/)
+    plot_xx@units = "g/kg/step"
+
+  elseif (var1.eq."Q_qi_EddySrc") then
+    plot_xx0 = (/Q_qi_adv+Q_qi_eddy+Q_qi_ent,Q_qi_adv,Q_qi_eddy,Q_qi_ent/)
+    plot_yy0 = (/plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:) * 1800. * 1.e+3  ; change unit from kg/kg/s to g/kg/step
+    plot_yy = plot_yy0(kmin:)
+    labels = (/"sum","Q_qi_adv","Q_qi_eddy","Q_qi_ent"/)
+    plot_xx@units = "g/kg/step"
+
+  elseif (var1.eq."Q_qi_SubDet") then
+    plot_xx0 = (/Q_qi_sub+Q_qi_det,Q_qi_sub,Q_qi_det/)
+    plot_yy0 = (/plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:) * 1800. * 1.e+3  ; change unit from kg/kg/s to g/kg/step
+    plot_yy = plot_yy0(kmin:)
+    labels = (/"sum","Q_qi_sub","Q_qi_det"/)
+    plot_xx@units = "g/kg/step"
 
   ;elseif (var1.eq."xxxxx") then
     ;plot_xx0 = (//)
