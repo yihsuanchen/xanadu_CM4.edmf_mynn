@@ -162,8 +162,8 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    real    :: lat_range = 0.001
    real    :: lon_range = 0.001
-   !logical :: do_writeout_column_nml = .true.
-   logical :: do_writeout_column_nml = .false.
+   logical :: do_writeout_column_nml = .true.
+   !logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
    logical :: do_edmf2ls_mp = .true.
@@ -214,7 +214,8 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
 
   real    :: sgm_factor = 100.                  ! factor in computing sigma_s in MYNN
 
-  integer :: Qx_MF = 1 
+  !integer :: Qx_MF = 1 
+  integer :: Qx_MF = 2
 
   real    :: rc_MF = 10.e-6                     ! assumed cloud droplet radius in plumes (meters)
 
@@ -4433,7 +4434,8 @@ END SUBROUTINE mym_condensation
           IF (bl_mynn_edmf > 0) THEN
             CALL edmf_JPL(                            &
                &kts,kte,delt,zw,p1,                   &
-               &u1,v1,th1,thl,thetav,tk1,sqw,sqv,sqc, &
+               !&u1,v1,th1,thl,thetav,tk1,sqw,sqv,sqc, &  yhc comment out
+               &u1,v1,th1,thl,thetav,tk1,sqw,sqv,sqc,sql,sqi, &  ! yhc add sql and sqi
                &ex1,rho1,                            &
                &ust(i,j),ps(i,j),flt,flq,PBLH(i,j),       &
                & liquid_frac,                     &
@@ -5506,7 +5508,8 @@ end subroutine condensation_edmfA
 
 
 SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
-              &u,v,th,thl,thv,tk,qt,qv,qc,   &
+              !&u,v,th,thl,thv,tk,qt,qv,qc,   &  yhc comment out
+              &u,v,th,thl,thv,tk,qt,qv,qc,ql,qi,   &  ! yhc add ql and qi
               &exner,rho,                        &
               &ust,ps,wthl,wqt,pblh,            &
               & liquid_frac,                 &
@@ -5534,7 +5537,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
 
 
         INTEGER, INTENT(IN) :: KTS,KTE, kpbl
-        REAL,DIMENSION(KTS:KTE), INTENT(IN) :: U,V,TH,THL,TK,QT,QV,QC
+        REAL,DIMENSION(KTS:KTE), INTENT(IN) :: U,V,TH,THL,TK,QT,QV,QC, QL, QI  ! yhc add QL, QI
         REAL,DIMENSION(KTS:KTE), INTENT(IN) :: THV,P,exner,rho,liquid_frac
         ! zw .. heights of the updraft levels (edges of boxes)
         REAL,DIMENSION(KTS:KTE+1), INTENT(IN) :: ZW
@@ -5589,8 +5592,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
                Fng,qww,alpha,beta,bb,f,pt,t,q2p,b9,satvp,rhgrid
         
         REAL,DIMENSION(kts:kte) :: ph,lfh 
-        REAL :: THVsrfF,QTsrfF,maxS,stabF,dz,F0,F1,F2,F3,CCp1,CCp0,mf,mfp1  
-
+        REAL :: &
+          F1_ql, F1_qi, F2_ql, F2_qi, F3_ql, F3_qi, &
+          THVsrfF,QTsrfF,maxS,stabF,dz,F0,F1,F2,F3,CCp1,CCp0,mf,mfp1  
         INTEGER, DIMENSION(2) :: seedmf
     ! w parameters
         REAL,PARAMETER :: &
@@ -5632,9 +5636,10 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          qv_dry_full   
   
        REAL,DIMENSION(KTS:KTE) :: &
-         ZFULL
+         ZFULL, ice_frac
 
-       REAL :: qcp0, qcp1, cldp1, cldp0, det_temp
+       REAL :: &
+         qcp0, qcp1, qlp0, qlp1, qip0, qip1, cldp1, cldp0, det_temp
 
        REAl,DIMENSION(KTS:KTE,1:NUP) :: &
         Qql_det_i, Qqi_det_i, Qa_det_i, Qql_sub_i , Qqi_sub_i , Qa_sub_i, &
@@ -5739,6 +5744,8 @@ s_awqke=0.
 
  edmf_det = 0.
  DET=0.
+
+ ice_frac(:) = 1. - liquid_frac(:)
 
 ! This part is specific for Stratocumulus
 ! cloudflg = .false.
@@ -6244,6 +6251,20 @@ DO K=KTS,KTE-1
        qcp0 = 0.5 * (qc(K)+qc(K-1))                 ! grid-scale qc at k-1/2 level
      endif
 
+     qlp1 = 0.5 * (ql(K)+ql(K+1))                   ! grid-scale ql at k+1/2 level
+     if (K.eq.1) then
+       qlp0 = ql(K)                                 ! grid-scale ql at k-1/2 level
+     else
+       qlp0 = 0.5 * (ql(K)+ql(K-1))                 ! grid-scale ql at k-1/2 level
+     endif
+
+     qip1 = 0.5 * (qi(K)+qi(K+1))                   ! grid-scale qi at k+1/2 level
+     if (K.eq.1) then
+       qip0 = qi(K)                                 ! grid-scale qi at k-1/2 level
+     else
+       qip0 = 0.5 * (qi(K)+qi(K-1))                 ! grid-scale qi at k-1/2 level
+     endif
+
      cldp1 = 0.5 * (cldfra_bl1d(K)+cldfra_bl1d(K+1))          ! grid-scale cloud fraction at k+1/2 level
      if (K.eq.1) then
        cldp0 = cldfra_bl1d(K)                                 ! grid-scale cloud fraction at k-1/2 level
@@ -6275,34 +6296,41 @@ DO K=KTS,KTE-1
        !-----------------------------------------------
        !--- cloud condensate, eddy-flux/source form ---
        !-----------------------------------------------
-       F1=0.
-       F2=0.
-       F3=0.
+       F1=0. ; F1_ql=0. ; F1_qi=0.
+       F2=0. ; F2_ql=0. ; F2_qi=0.
+       F3=0. ; F3_ql=0. ; F3_qi=0.
 
        if (Qx_numerics.eq.1) then   ! upwind approximation
          !--- F1: eddy-flux convergence term for cloud condensate
-         if (K.eq.1) then
-           F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-0.) )  / dz     ! qc(K-1)=qc(0)=0.
-         else
-           F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-qcp0)) / dz
-         endif
+         !if (K.eq.1) then
+           !F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-0.) )  / dz     ! qc(K-1)=qc(0)=0.
+         !  F1_ql = -1./rho(k) * ( mfp1 * (liquid_frac(k+1)*UPQC(K+1,I)-qlp1) - mf * (liquid_frac(k)*UPQC(K,I)-0.) )  / dz     ! qc(K-1)=qc(0)=0.
+         !  F1_qi = -1./rho(k) * ( mfp1 * (ice_frac   (k+1)*UPQC(K+1,I)-qip1) - mf * (ice_frac   (k)*UPQC(K,I)-0.) )  / dz     ! qc(K-1)=qc(0)=0.
+         !else
+           !F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-qcp0)) / dz
+           F1_ql = -1./rho(k) * ( mfp1 * (liquid_frac(k+1)*UPQC(K+1,I)-qlp1) - mf * (liquid_frac(k)*UPQC(K,I)-qlp0) )  / dz     ! qc(K-1)=qc(0)=0.
+           F1_qi = -1./rho(k) * ( mfp1 * (ice_frac   (k+1)*UPQC(K+1,I)-qip1) - mf * (ice_frac   (k)*UPQC(K,I)-qip0) )  / dz     ! qc(K-1)=qc(0)=0.
+         !endif
   
          if (UPW(K,I).gt.0. .and. UPW(K+1,I).gt.0.) then  ! source terms are only present in the plume
            !--- F2: source/vertical advection term for cloud condensate
-           F2 = UPA(K,I) * UPW(K,I) * (UPQC(K+1,I)-UPQC(K,I)) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+           !F2 = UPA(K,I) * UPW(K,I) * (UPQC(K+1,I)-UPQC(K,I)) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+           F2_ql = UPA(K,I) * UPW(K,I) * (liquid_frac(K+1)*UPQC(K+1,I)-liquid_frac(K)*UPQC(K,I)) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+           F2_qi = UPA(K,I) * UPW(K,I) * (ice_frac   (K+1)*UPQC(K+1,I)-ice_frac   (K)*UPQC(K,I)) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
     
            !--- F3: source/entrainment term for cloud condensate
-           F3 = UPA(K,I) * UPW(K,I) * ENT(K,I) * (UPQC(K,I)-qc(K))
+           F3_ql = UPA(K,I) * UPW(K,I) * ENT(K,I) * (liquid_frac(K)*UPQC(K,I)-ql(K))
+           F3_qi = UPA(K,I) * UPW(K,I) * ENT(K,I) * (ice_frac   (K)*UPQC(K,I)-qi(K))
          endif
        endif  ! end if of Qx_numerics   
 
-         Qql_eddy_i (K,I) = liquid_frac(k)*F1
-         Qql_adv_i  (K,I) = liquid_frac(k)*F2
-         Qql_ent_i  (K,I) = liquid_frac(k)*F3
+         Qql_eddy_i (K,I) = F1_ql !liquid_frac(k)*F1
+         Qql_adv_i  (K,I) = F2_ql !liquid_frac(k)*F2
+         Qql_ent_i  (K,I) = F3_ql !liquid_frac(k)*F3
     
-         Qqi_eddy_i (K,I) = (1.-liquid_frac(k))*F1
-         Qqi_adv_i  (K,I) = (1.-liquid_frac(k))*F2
-         Qqi_ent_i  (K,I) = (1.-liquid_frac(k))*F3
+         Qqi_eddy_i (K,I) = F1_qi !(1.-liquid_frac(k))*F1
+         Qqi_adv_i  (K,I) = F2_qi !(1.-liquid_frac(k))*F2
+         Qqi_ent_i  (K,I) = F3_qi !(1.-liquid_frac(k))*F3
 
          !--- sum over the i-th plume
          Qql_eddy(k) = Qql_eddy(k) + Qql_eddy_i (K,I)
@@ -6316,17 +6344,17 @@ DO K=KTS,KTE-1
        !---------------------------------------------
        !--- cloud fraction, eddy-flux/source form ---
        !---------------------------------------------
-       F1=0.
-       F2=0.
-       F3=0.
+       F1=0. ; F1_ql=0. ; F1_qi=0.
+       F2=0. ; F2_ql=0. ; F2_qi=0.
+       F3=0. ; F3_ql=0. ; F3_qi=0.
 
        if (Qx_numerics.eq.1) then   ! upwind approximation
          !--- F1: eddy-flux convergence term for cloud fraction
-         if (K.eq.1) then
-           Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldp1) - mf*(CCp0-0.)    ) / dz     ! qc(K-1)=qc(0)=0.
-         else
+         !if (K.eq.1) then
+         !  Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldp1) - mf*(CCp0-0.)    ) / dz     ! qc(K-1)=qc(0)=0.
+         !else
            Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldp1) - mf*(CCp0-cldp0) ) / dz
-         endif
+         !endif
 
          if (UPW(K,I).gt.0. .and. UPW(K+1,I).gt.0.) then  ! source terms are only present in the plume
            !--- F2: vertical advection term
@@ -6352,23 +6380,27 @@ DO K=KTS,KTE-1
        !-----------------------------------------------------
        !--- cloud condensate, detrainment/subsidence form ---
        !-----------------------------------------------------
-       F1=0.
-       F2=0.
-       F3=0.
+       F1=0. ; F1_ql=0. ; F1_qi=0.
+       F2=0. ; F2_ql=0. ; F2_qi=0.
+       F3=0. ; F3_ql=0. ; F3_qi=0.
 
        if (Qx_numerics.eq.1) then   ! upwind approximation
          ! F1: subsidence term for cloud condensate
-         F1 = mfp1/rho(k) * (qc(K+1)-qc(K))/(ZFULL(K+1)-ZFULL(K))  
+         !F1 = mfp1/rho(k) * (qc(K+1)-qc(K))/(ZFULL(K+1)-ZFULL(K))  
+         F1_ql = mfp1/rho(k) * (ql(K+1)-ql(K))/(ZFULL(K+1)-ZFULL(K))  
+         F1_qi = mfp1/rho(k) * (qi(K+1)-qi(K))/(ZFULL(K+1)-ZFULL(K))  
 
          ! F2: detrainment term for cloud condensate
-         F2 = mf*DET(K,I)/rho(k) * (UPQC(K,I)-qc(K))
+         !F2 = mf*DET(K,I)/rho(k) * (UPQC(K,I)-qc(K))
+         F2_ql = mf*DET(K,I)/rho(k) * (liquid_frac(K)*UPQC(K,I)-ql(K))
+         F2_qi = mf*DET(K,I)/rho(k) * (ice_frac   (K)*UPQC(K,I)-qi(K))
        endif  ! end if of Qx_numerics   
 
-         Qql_sub_i (K,I) = liquid_frac(k)*F1
-         Qql_det_i (K,I) = liquid_frac(k)*F2
+         Qql_sub_i (K,I) = F1_ql !liquid_frac(k)*F1
+         Qql_det_i (K,I) = F2_ql !liquid_frac(k)*F2
 
-         Qqi_sub_i (K,I) = (1.-liquid_frac(k))*F1
-         Qqi_det_i (K,I) = (1.-liquid_frac(k))*F2
+         Qqi_sub_i (K,I) = F1_qi !(1.-liquid_frac(k))*F1
+         Qqi_det_i (K,I) = F2_qi !(1.-liquid_frac(k))*F2
 
        ! sum over all plumes
        Qql_sub(k) = Qql_sub(k) + Qql_sub_i (K,I)
@@ -6380,9 +6412,9 @@ DO K=KTS,KTE-1
        !---------------------------------------------------
        !--- cloud fraction, detrainment/subsidence form ---
        !---------------------------------------------------
-       F1=0.
-       F2=0.
-       F3=0.
+       F1=0. ; F1_ql=0. ; F1_qi=0.
+       F2=0. ; F2_ql=0. ; F2_qi=0.
+       F3=0. ; F3_ql=0. ; F3_qi=0.
 
        if (Qx_numerics.eq.1) then   ! upwind approximation
          ! F1: subsidence term for cloud condensate
@@ -6413,6 +6445,10 @@ elseif (Qx_MF.eq.2) then ! detrainment/subsidence form
 else
   print*,'ERROR: Qx_MF must be 1 or 2'
 endif
+
+  print*,'Qql',Qql
+  print*,'Qqi',Qqi
+  print*,'Qa',Qa
 
 !--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
 
@@ -8004,9 +8040,6 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
 !---------------------------------------------------------------------
-  print*,'WARNING: negative edmf_thl: ',Output_edmf%edmf_thl(1,:,1)
-  print*,'WARNING: edmf_qt: ',Output_edmf%edmf_qt(1,:,1)
-  print*,'WARNING: edmf_qc: ',Output_edmf%edmf_qc(1,:,1)
 
   call edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
 
@@ -9624,12 +9657,82 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ' '
         write(6,*)    '; liquid water mixing ratio in edmf_mynn'
         write(6,3002) ' qc_bl = (/'    ,am4_Output_edmf%qc_bl (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa, diag_full)
+        write(6,*)    '; Q_qa'
+        write(6,3002) '  Q_qa = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_adv, diag_full)
+        write(6,*)    '; Q_qa_adv'
+        write(6,3002) '  Q_qa_adv = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_eddy, diag_full)
+        write(6,*)    '; Q_qa_eddy'
+        write(6,3002) '  Q_qa_eddy = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_ent, diag_full)
+        write(6,*)    '; Q_qa_ent'
+        write(6,3002) '  Q_qa_ent = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_det, diag_full)
+        write(6,*)    '; Q_qa_det'
+        write(6,3002) '  Q_qa_det = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_sub, diag_full)
+        write(6,*)    '; Q_qa_sub'
+        write(6,3002) '  Q_qa_sub = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ''
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql, diag_full)
+        write(6,*)    '; Q_ql'
+        write(6,3002) '  Q_ql = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_adv, diag_full)
+        write(6,*)    '; Q_ql_adv'
+        write(6,3002) '  Q_ql_adv = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_eddy, diag_full)
+        write(6,*)    '; Q_ql_eddy'
+        write(6,3002) '  Q_ql_eddy = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_ent, diag_full)
+        write(6,*)    '; Q_ql_ent'
+        write(6,3002) '  Q_ql_ent = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_det, diag_full)
+        write(6,*)    '; Q_ql_det'
+        write(6,3002) '  Q_ql_det = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_sub, diag_full)
+        write(6,*)    '; Q_ql_sub'
+        write(6,3002) '  Q_ql_sub = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ''
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi, diag_full)
+        write(6,*)    '; Q_qi'
+        write(6,3002) '  Q_qi = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_adv, diag_full)
+        write(6,*)    '; Q_qi_adv'
+        write(6,3002) '  Q_qi_adv = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_eddy, diag_full)
+        write(6,*)    '; Q_qi_eddy'
+        write(6,3002) '  Q_qi_eddy = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_ent, diag_full)
+        write(6,*)    '; Q_qi_ent'
+        write(6,3002) '  Q_qi_ent = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_det, diag_full)
+        write(6,*)    '; Q_qi_det'
+        write(6,3002) '  Q_qi_det = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_sub, diag_full)
+        write(6,*)    '; Q_qi_sub'
+        write(6,3002) '  Q_qi_sub = (/'    ,diag_full (ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; k_pbl, ',am4_Output_edmf%kpbl_edmf(ii_write,jj_write)
         write(6,*)    ''
-        write(6,*)    ''
         write(6,*)    '; pbl depth,',am4_Output_edmf%pbltop(ii_write,jj_write)
-        write(6,*)    ''
         write(6,*)    ''
         write(6,*)    ';=============='
         write(6,*)    ';=============='
