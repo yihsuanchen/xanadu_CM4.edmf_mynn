@@ -11,7 +11,7 @@ load "/ncrc/home2/Yi-hsuan.Chen//script/ncl//ignorantNCL-colormaps.ncl"
 begin
 
   ;var_options = (/"ED_all","mf_all","th_all","q_all","area_all","tdt_all","qdt_all"/)
-  var_options = (/"ED_all","mf_all","th_all","q_all","area_all","tdt_all","qdt_all", \
+  var_options = (/"ED_all","mf_all","th_all","q_all","area_all","tdt_all","qdt_all", "ent_det", \
                   "Q_qa","Q_qa_EddySrc","Q_qa_SubDet", "Q_ql","Q_ql_EddySrc","Q_ql_SubDet", "Q_qi","Q_qi_EddySrc","Q_qi_SubDet" \
                 /)
 
@@ -743,10 +743,18 @@ do v=0,nvar-1
     res1@xyLineColors  = (/"red","orange"/)
     res1@xyDashPatterns = (/0,0/)
 
+  elseif (var1.eq."ent_det") then
+    plot_xx0 = (/edmf_ent,edmf_det,edmf_ent-edmf_det/)
+    plot_yy0 = (/plot_yy_zfull/)
+
+    plot_xx = plot_xx0(:,kmin:kx-1) * 1.e+3       ; change unit from 1/m to 1/km
+    plot_yy = plot_yy0(kmin:kx-1)
+    labels = (/"ent","det","ent-det"/)
+    plot_xx@units = "1/km"
+
   elseif (var1.eq."qdt_all") then
     plot_xx0 = (/qdt_edmf,qldt_edmf,qidt_edmf,qtdt_edmf/)
     plot_yy0 = (/plot_yy_zfull/)
-
 
     plot_xx = plot_xx0(:,kmin:kx-1) * 1.e+3 * 1800. ; change unit from kg/kg/s to g/kg/step
     plot_yy = plot_yy0(kmin:kx-1)
