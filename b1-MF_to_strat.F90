@@ -25,8 +25,8 @@ program test111
   !choice_profile=1 ; if (choice_profile.eq.1) conv = "s"
   !choice_profile=2 ; if (choice_profile.eq.2) conv = "d"
   !choice_profile=2 ; if (choice_profile.eq.2) conv = "s"
-  !choice_profile=3 ; if (choice_profile.eq.3) conv = "s"
-  choice_profile=3 ; if (choice_profile.eq.3) conv = "d"
+  choice_profile=3 ; if (choice_profile.eq.3) conv = "s"
+  !choice_profile=3 ; if (choice_profile.eq.3) conv = "d"
 
 
   if (choice_profile.eq.1) then
@@ -367,15 +367,25 @@ program test111
   call flip_array(kts,kte+1,cmf) 
 
   !do_print = .false.
-  do_print = .true.
+  !do_print = .true.
 
-
-  if (do_print) then
+ 
     !choice_profile=1 ; if (choice_profile.eq.1) conv = "s"
+  if (do_print) then
     print*,'--------------'
     print*,'choice_profile, ',choice_profile
     print*,'conv, ',conv
     print*,'--------------'
+
+        write(6,*)    '; Qa_sub'
+        write(6,3002) '  Qa_sub = (/'    , Qa_sub 
+        write(6,*)    ''
+        write(6,*)    '; Qql_sub'
+        write(6,3002) '  Qql_sub = (/'    , Qql_sub 
+        write(6,*)    ''
+        write(6,*)    '; Qqi_sub'
+        write(6,3002) '  Qqi_sub = (/'    , Qqi_sub 
+        write(6,*)    ''
 
     print*,'cmf',cmf
   
@@ -415,6 +425,12 @@ program test111
   endif ! end if of do_print
 
   stop
+
+3000 format (A35,2X,F10.3,',')
+3001 format (A35,2X,34(F10.3,2X,','))
+3002 format (A35,2X,34(E12.4,2X,','))
+3003 format (A35,2X,E12.4,',')
+3004 format (A35,2X,33(F10.3,2X,','),A5)
 
 end program test111
 
