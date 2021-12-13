@@ -10194,7 +10194,10 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
 !--- local variable
   integer, parameter :: nx = 5     ! number of tracers for realizability check
   real, dimension(ix,jx,kx,nx) ::  &  ! tracers for realizability check
-    tracers, tracers_tend  
+    tracers, tracers_tend
+  real, dimension(ix,jx,nx)   ::  &  ! realizability ratio for each tracer 
+    tends_ratio
+  real, dimension(ix,jx)    :: return_ratio  ! ratio for scaling the tendencies 
   real, dimension(ix,jx,kx) :: tmp_3d
   logical used
   integer i,j,k,kk
@@ -10450,8 +10453,19 @@ if (do_check_realizability) then
    call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RCCBLTEN(:,:,:), tracers_tend(:,:,:,4))
    call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQTBLTEN(:,:,:), tracers_tend(:,:,:,5))
 
-   !call check_trc_rlzbility (dt, )
+   call check_trc_rlzbility (dt, tracers, tracers_tend, &
+                             tends_ratio, return_ratio)
 
+   !--- ratio must be between 0 and 1
+   if (any(tends_ratio.le.0.) .or. any(tends_ratio.gt.1.)) then
+     call error_mesg( ' edmf_mynn',     &
+                      ' the ratio from the realizability check must be between 0 to 1',&
+                      FATAL )
+   endif
+
+   print*,'tends_ratio',tends_ratio
+   print*,'return_ratio',return_ratio
+   stop
 endif  ! end if of do_check_realizability
 
 !----------------------------
@@ -10819,20 +10833,21 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
        !--- if tracer1 is less than zero
        if (tracer0(k) > 0. .and. tracer1(k)<0.) then
           ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
-          cause = "tracer1 is less than zero"
+          !cause = "tracer1 is less than zero"
           !write(6,*),'-------'
           !write(6,*),'aa1, less than zero, k,ratio',k,ratio
           !write(6,*),'  tracer0(k), tracer1(k), ',tracer0(k), tracer1(k)
        end if
 
+       !--- yhc 2021-12-13, comment this out because MF can produce tracer values less than the original minimum 
        !--- if tracer1 is less than tracer_min
-       if (tracer1(k)<tracer_min .and. trtend(k) /= 0.0 ) then
-          ratio = MIN( ratio,(tracer0(k)-tracer_min)/(-trtend(k)*dt) )
-          cause = "tracer1 is less than tracer_min"
-          !write(6,*),'-------'
-          !write(6,*),'aa2, less than min, k,ratio',k,ratio
-          !write(6,*),'  tracer1(k), tracer_min, ',tracer1(k), tracer_min
-       end if
+       !if (tracer1(k)<tracer_min .and. trtend(k) /= 0.0 ) then
+       !   ratio = MIN( ratio,(tracer0(k)-tracer_min)/(-trtend(k)*dt) )
+       !   cause = "tracer1 is less than tracer_min"
+       !   !write(6,*),'-------'
+       !   write(6,*),'aa2, less than min, k,ratio',k,ratio
+       !   write(6,*),'  tracer1(k), tracer_min, ',tracer1(k), tracer_min
+       !end if
 
        !--- yhc 2021-12-13, comment this out because when detrainment occurs, new clouds can form so the ql>tracer_max
        !--- if tracer1 is larger than tracer_max
@@ -10850,7 +10865,6 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
     ratio = MAX(0.,MIN(1.,ratio))
 
     tends_ratio(i,j,n) = ratio
-
   enddo   ! end do of j
   enddo   ! end do of i
   enddo   ! end do of n 
