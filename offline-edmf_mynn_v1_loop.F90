@@ -176,8 +176,8 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
    !logical :: do_check_consrv = .true.
    logical :: do_check_consrv = .false.
 
-   logical :: do_check_realizability = .true.
-   !logical :: do_check_realizability = .false.
+   !logical :: do_check_realizability = .true.
+   logical :: do_check_realizability = .false.
 
    !logical :: do_check_ent_det = .true.
    logical :: do_check_ent_det = .false.
@@ -6446,9 +6446,9 @@ else
   print*,'ERROR: Qx_MF must be 1 or 2'
 endif
 
-  print*,'Qql',Qql
-  print*,'Qqi',Qqi
-  print*,'Qa',Qa
+  !print*,'Qql',Qql
+  !print*,'Qqi',Qqi
+  !print*,'Qa',Qa
 
 !--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
 
@@ -10463,10 +10463,45 @@ if (do_check_realizability) then
                       FATAL )
    endif
 
+   !--- rescale the tendencies
+   do i=1,ix
+   do j=1,jx
+     ! u and v tendencies
+     Output_edmf%RUBLTEN (i,:,j) = Output_edmf%RUBLTEN (i,:,j) * return_ratio(i,j)
+     Output_edmf%RVBLTEN (i,:,j) = Output_edmf%RVBLTEN (i,:,j) * return_ratio(i,j)
+
+     ! theta_l and q_t tendencies
+     Output_edmf%RQTBLTEN (i,:,j) = Output_edmf%RQTBLTEN (i,:,j) * return_ratio(i,j)
+     Output_edmf%RTHLBLTEN(i,:,j) = Output_edmf%RTHLBLTEN(i,:,j) * return_ratio(i,j)
+
+     ! qv, ql, qi, qa tendencies
+     Output_edmf%RQVBLTEN(i,:,j) = Output_edmf%RQVBLTEN(i,:,j) * return_ratio(i,j)
+     Output_edmf%RQLBLTEN(i,:,j) = Output_edmf%RQLBLTEN(i,:,j) * return_ratio(i,j)
+     Output_edmf%RQIBLTEN(i,:,j) = Output_edmf%RQIBLTEN(i,:,j) * return_ratio(i,j)
+     Output_edmf%RCCBLTEN(i,:,j) = Output_edmf%RCCBLTEN(i,:,j) * return_ratio(i,j)
+   enddo  ! end loop of j
+   enddo  ! end loop of i
+
+   !--- recompute the potential temperature tendencies using the rescaled theta_li, q_l, and q_i tendencies
+   Output_edmf%RTHBLTEN  (:,:,:) =   Output_edmf%RTHLBLTEN (:,:,:)  &
+                                   + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
+
+endif  ! end if of do_check_realizability
+
+   print*,'do_check_realizability = ',do_check_realizability
+   print*,'index: qv, ql, qi, qa, qt'
    print*,'tends_ratio',tends_ratio
    print*,'return_ratio',return_ratio
+   print*,'------------------------------'
+   print*,'RUBLTEN',Output_edmf%RUBLTEN
+   print*,'RVBLTEN',Output_edmf%RVBLTEN
+   print*,'RQTBLTEN',Output_edmf%RQTBLTEN
+   print*,'RTHLBLTEN',Output_edmf%RTHLBLTEN
+   print*,'RQVBLTEN',Output_edmf%RQVBLTEN
+   print*,'RQLBLTEN',Output_edmf%RQLBLTEN
+   print*,'RQIBLTEN',Output_edmf%RQIBLTEN
+   print*,'RCCBLTEN',Output_edmf%RCCBLTEN
    stop
-endif  ! end if of do_check_realizability
 
 !----------------------------
 ! printout statements 
