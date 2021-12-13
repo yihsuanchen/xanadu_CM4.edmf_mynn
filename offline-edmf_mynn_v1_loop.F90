@@ -176,8 +176,8 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
    !logical :: do_check_consrv = .true.
    logical :: do_check_consrv = .false.
 
-   !logical :: do_check_realizability = .true.
-   logical :: do_check_realizability = .false.
+   logical :: do_check_realizability = .true.
+   !logical :: do_check_realizability = .false.
 
    !logical :: do_check_ent_det = .true.
    logical :: do_check_ent_det = .false.
@@ -9272,35 +9272,35 @@ subroutine edmf_writeout_column ( &
 !                    Although I set am4_Output_edmf%qadt_edmf = -1*Physics_input_block%q(i,j,k,nqa)/dt, the problem is still
 !                    I thought there is some numeric problems in the offline program.
 !-------------------------------------------------------------------------
-  if (do_check_realizability) then
-    i=1
-    j=1
-
-    !--- qa
-    do k=1,kx
-      kk=kx-k+1
-      tt1 = Physics_input_block%q(i,j,k,nqa)
-      tt2 = Physics_input_block%q(i,j,k,nqa) + am4_Output_edmf%qadt_edmf(i,j,k) * dt
-      tt3 = Output_edmf%cldfra_bl(i,kk,j)
-      if (tt2.ne.tt3) then
-        print*,'k,qa_new,qa_bl,qa_old',k,tt2,tt3,tt1
-      endif
-    enddo
-
-    !--- ql
-    write(6,*) ''
-    do k=1,kx
-      kk=kx-k+1
-      tt1 = Physics_input_block%q(i,j,k,nql)
-      tt2 = Physics_input_block%q(i,j,k,nql) + am4_Output_edmf%qldt_edmf(i,j,k) * dt
-      tt3 = Output_edmf%qc_bl(i,kk,j)
-      if (tt2.ne.tt3) then
-        print*,'k,ql_new,qc_bl,ql_old',k,tt2,tt3,tt1
-      endif
-    enddo
-
-    write(6,*) ''
-  endif
+!  if (do_check_realizability) then
+!    i=1
+!    j=1
+!
+!    !--- qa
+!    do k=1,kx
+!      kk=kx-k+1
+!      tt1 = Physics_input_block%q(i,j,k,nqa)
+!      tt2 = Physics_input_block%q(i,j,k,nqa) + am4_Output_edmf%qadt_edmf(i,j,k) * dt
+!      tt3 = Output_edmf%cldfra_bl(i,kk,j)
+!      if (tt2.ne.tt3) then
+!        print*,'k,qa_new,qa_bl,qa_old',k,tt2,tt3,tt1
+!      endif
+!    enddo
+!
+!    !--- ql
+!    write(6,*) ''
+!    do k=1,kx
+!      kk=kx-k+1
+!      tt1 = Physics_input_block%q(i,j,k,nql)
+!      tt2 = Physics_input_block%q(i,j,k,nql) + am4_Output_edmf%qldt_edmf(i,j,k) * dt
+!      tt3 = Output_edmf%qc_bl(i,kk,j)
+!      if (tt2.ne.tt3) then
+!        print*,'k,ql_new,qc_bl,ql_old',k,tt2,tt3,tt1
+!      endif
+!    enddo
+!
+!    write(6,*) ''
+!  endif
 
 !-------------------------------------------------------------------------
 ! check water and energy conservation 
@@ -10192,6 +10192,9 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
   type(edmf_output_type)    , intent(inout)  :: Output_edmf
 
 !--- local variable
+  integer, parameter :: nx = 5     ! number of tracers for realizability check
+  real, dimension(ix,jx,kx,nx) ::  &  ! tracers for realizability check
+    tracers, tracers_tend  
   real, dimension(ix,jx,kx) :: tmp_3d
   logical used
   integer i,j,k,kk
@@ -10425,8 +10428,29 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
 !  terms uniformly for this tracer throughout convective column.
 !
 !====================================
-   
 
+if (do_check_realizability) then
+
+   !--- initialzie tracers varibles for realizability check
+   tracers      = 0.
+   tracers_tend = 0.  
+
+   !--- assign tracers values, qv, ql, qi, qa, and qt(=qv+ql+qi)
+   tracers(:,:,:,1) = Physics_input_block%q(:,:,:,nsphum) 
+   tracers(:,:,:,2) = Physics_input_block%q(:,:,:,nql) 
+   tracers(:,:,:,3) = Physics_input_block%q(:,:,:,nqi) 
+   tracers(:,:,:,4) = Physics_input_block%q(:,:,:,nqa)
+   tmp_3d (:,:,:)   = Physics_input_block%q(:,:,:,nsphum)+Physics_input_block%q(:,:,:,nql)+Physics_input_block%q(:,:,:,nqi)
+   tracers(:,:,:,5) = tmp_3d(:,:,:)
+
+   !--- assign tracers tendencies values
+   call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQVBLTEN(:,:,:), tracers_tend(:,:,:,1))
+   call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQLBLTEN(:,:,:), tracers_tend(:,:,:,2))
+   call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQIBLTEN(:,:,:), tracers_tend(:,:,:,3))
+   call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RCCBLTEN(:,:,:), tracers_tend(:,:,:,4))
+   call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQTBLTEN(:,:,:), tracers_tend(:,:,:,5))
+
+endif  ! end if of do_check_realizability
 
 !----------------------------
 ! printout statements 
