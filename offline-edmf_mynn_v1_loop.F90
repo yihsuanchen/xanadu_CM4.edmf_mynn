@@ -10689,7 +10689,7 @@ end subroutine Poisson_knuth
 !###################################
 
 subroutine check_trc_rlzbility (dt, tracer, tracer_tend, &
-                                tend_ratio)
+                                tend_ratio, return_ratio)
 
 !---------------------------------------------------------------------
 !  Check for tracer realizability. If tracer tendencies would
@@ -10705,16 +10705,19 @@ subroutine check_trc_rlzbility (dt, tracer, tracer_tend, &
 !     tracer         tracer mixing ratios            , [ kg(tracer) / kg (dry air) ]
 !     tracer_tend    tendency of tracer mixing ratios, [ kg(tracer) / kg (dry air) / sec ]
 !---------------------------------------------------------------------
-  real,    intent(in)                   :: dt
-  real,    intent(in), dimension(:,:,:) :: tracer, tracer_tend
+  real,    intent(in)                     :: dt
+  real,    intent(in), dimension(:,:,:,:) :: tracer, tracer_tend  ! dimension (nlon, nlat, nlev, ntracer)
 
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
 !     tend_ratio     ratio by which tracer tendencies need to 
 !                    be reduced to permit realizability (i.e., to prevent
 !                    negative tracer mixing ratios)
+!     return_ratio   the smallest ratio of all tracers. This would be used to scale the all tendencies (Temperature, tracerts, etc)
 !---------------------------------------------------------------------
-  real, intent(out), dimension(:,:)     :: tend_ratio
+  real, intent(out), dimension(:,:,:)     :: tend_ratio           ! dimension (nlon, nlat, ntracer)
+ 
+  real, intent(out), dimension(:,:)       :: return_ratio         ! dimension (nlon, nlat)
  
 !---------------------------------------------------------------------
 ! Arguments (Intent local)
@@ -10734,8 +10737,8 @@ subroutine check_trc_rlzbility (dt, tracer, tracer_tend, &
   character*40 cause
 
   !--- index variables & dimension
-  integer i,j,k
-  integer ix,jx,kx
+  integer i,j,k,n
+  integer ix,jx,kx,nx
 
 !--------------------------
 
@@ -10743,9 +10746,11 @@ subroutine check_trc_rlzbility (dt, tracer, tracer_tend, &
   ix  = size( tracer, 1 )
   jx  = size( tracer, 2 )
   kx  = size( tracer, 3 )
+  nx  = size( tracer, 4 )
 
 !--- initialze return variable
-  tend_ratio = 1.
+  tend_ratio   = 1.
+  return_ratio = 1.
 
 !---------------------
 ! compute tend_ratio
@@ -10754,12 +10759,13 @@ subroutine check_trc_rlzbility (dt, tracer, tracer_tend, &
 !   (2) in the range of max/min of tracer0
 !---------------------
 
-do i=1,ix
+  do n=1,nx
+  do i=1,ix
   do j=1,jx
 
     !--- set column tracer concentration
-    tracer0(:)  = tracer(i,j,:)
-    trtend (:)  = tracer_tend(i,j,:)
+    tracer0(:)  = tracer(i,j,:,n)
+    trtend (:)  = tracer_tend(i,j,:,n)
     tracer1(:)  = tracer0(:) + dt * trtend(:)
 
 !write(6,*),'tracer0',tracer0
@@ -10817,13 +10823,25 @@ do i=1,ix
     !--- make sure 1 > ratio > 0
     ratio = MAX(0.,MIN(1.,ratio))
 
-    tend_ratio(i,j) = ratio
+    tend_ratio(i,j,n) = ratio
 
+  enddo   ! end do of j
+  enddo   ! end do of i
+  enddo   ! end do of n 
+
+!----------------------------------------------
+! find out the smallest ratio in all tracers, 
+! and then return this ratio
+!----------------------------------------------
+  do i=1,ix
+  do j=1,jx
+  do n=1,nx
+    return_ratio(i,j) = MAX(0.,MIN( return_ratio(i,j),tend_ratio(i,j,n) ) )
+  enddo   ! end do of n 
   enddo   ! end do of j
   enddo   ! end do of i
 
 end subroutine check_trc_rlzbility
-
 
 !#############################
 ! Mellor-Yamada
