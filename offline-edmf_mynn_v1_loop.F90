@@ -10418,6 +10418,16 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
  
    end if  ! end if of edmf_type=2
 
+!====================================
+!
+! Check for tracer realizability. If MF tendencies would
+!  produce negative tracer mixing ratios, scale down tracer tendency
+!  terms uniformly for this tracer throughout convective column.
+!
+!====================================
+   
+
+
 !----------------------------
 ! printout statements 
 !----------------------------
@@ -10675,6 +10685,144 @@ enddo  ! end loop of n
 !print*,'ENTi',ENTi
 
 end subroutine Poisson_knuth
+
+!###################################
+
+subroutine check_trc_rlzbility (dt, tracer, tracer_tend, &
+                                tend_ratio)
+
+!---------------------------------------------------------------------
+!  Check for tracer realizability. If tracer tendencies would
+!  produce negative tracer mixing ratios, scale down tracer tendency
+!  terms uniformly for this tracer throughout convective column. 
+!
+!  Reference: subroutine don_d_check_trc_rlzbility, src/atmos_param/donner_deep/donner_deep_k.F90
+!---------------------------------------------------------------------
+
+!---------------------------------------------------------------------
+! Arguments (Intent in)
+!     dt             physics time step               , [ sec ]
+!     tracer         tracer mixing ratios            , [ kg(tracer) / kg (dry air) ]
+!     tracer_tend    tendency of tracer mixing ratios, [ kg(tracer) / kg (dry air) / sec ]
+!---------------------------------------------------------------------
+  real,    intent(in)                   :: dt
+  real,    intent(in), dimension(:,:,:) :: tracer, tracer_tend
+
+!---------------------------------------------------------------------
+! Arguments (Intent out)
+!     tend_ratio     ratio by which tracer tendencies need to 
+!                    be reduced to permit realizability (i.e., to prevent
+!                    negative tracer mixing ratios)
+!---------------------------------------------------------------------
+  real, intent(out), dimension(:,:)     :: tend_ratio
+ 
+!---------------------------------------------------------------------
+! Arguments (Intent local)
+!     tracer0        column tracer mixing ratios before MF
+!     tracer1        column tracer mixing ratios after  MF transport only
+!     trtend         column tracer mixing ratio tendencies due to convective transport [ (tracer units) / s ]
+!     tracer_min     minimum of tracer0
+!     tracer_max     maximum of tracer0
+!---------------------------------------------------------------------
+
+  real, dimension(size(tracer,3)) ::    &  ! dimension (nlay)
+    tracer0, trtend, tracer1
+
+  real :: &
+    tracer_min, tracer_max, ratio
+
+  character*40 cause
+
+  !--- index variables & dimension
+  integer i,j,k
+  integer ix,jx,kx
+
+!--------------------------
+
+!--- set dimensions
+  ix  = size( tracer, 1 )
+  jx  = size( tracer, 2 )
+  kx  = size( tracer, 3 )
+
+!--- initialze return variable
+  tend_ratio = 1.
+
+!---------------------
+! compute tend_ratio
+!   Updated tracer concentation must be 
+!   (1) not negative, 
+!   (2) in the range of max/min of tracer0
+!---------------------
+
+do i=1,ix
+  do j=1,jx
+
+    !--- set column tracer concentration
+    tracer0(:)  = tracer(i,j,:)
+    trtend (:)  = tracer_tend(i,j,:)
+    tracer1(:)  = tracer0(:) + dt * trtend(:)
+
+!write(6,*),'tracer0',tracer0
+!write(6,*),'tracer1',tracer1
+!write(6,*),'trtend',trtend
+
+    !--- get max/min of tracer0
+    tracer_min = 1.e20
+    tracer_max = -1.e20
+
+    do k = 1,kx
+       if (trtend(k) /= 0.) then
+          tracer_max = max(tracer0(k),tracer_max)
+          tracer_min = min(tracer0(k),tracer_min)
+       end if
+    end do
+
+!print*,'tracer_max',tracer_max
+!print*,'tracer_min',tracer_min
+
+    !--- compute ratio
+    ratio = 1.
+    do k = 1,kx
+
+       !--- if tracer1 is less than zero
+       if (tracer0(k) > 0. .and. tracer1(k)<0.) then
+          ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
+          cause = "tracer1 is less than zero"
+          !write(6,*),'-------'
+          !write(6,*),'aa1, less than zero, k,ratio',k,ratio
+          !write(6,*),'  tracer0(k), tracer1(k), ',tracer0(k), tracer1(k)
+       end if
+
+       !--- if tracer1 is less than tracer_min
+       if (tracer1(k)<tracer_min .and. trtend(k) /= 0.0 ) then
+          ratio = MIN( ratio,(tracer0(k)-tracer_min)/(-trtend(k)*dt) )
+          cause = "tracer1 is less than tracer_min"
+          !write(6,*),'-------'
+          !write(6,*),'aa2, less than min, k,ratio',k,ratio
+          !write(6,*),'  tracer1(k), tracer_min, ',tracer1(k), tracer_min
+       end if
+
+       !--- yhc 2021-12-13, comment this out because when detrainment occurs, new clouds can form so the ql>tracer_max
+       !--- if tracer1 is larger than tracer_max
+       !if (tracer1(k)>tracer_max  .and. trtend(k) /= 0.0 ) then
+       !   ratio = MIN( ratio,(tracer_max-tracer0(k))/(trtend(k)*dt) )
+       !   cause = "tracer1 is larger than tracer_max"
+          !write(6,*),'-------'
+          !write(6,*),'aa3, larger than max, k,ratio',k,ratio
+          !write(6,*),'  tracer1(k), tracer_max, ',tracer1(k), tracer_max
+       !end if
+
+    end do
+
+    !--- make sure 1 > ratio > 0
+    ratio = MAX(0.,MIN(1.,ratio))
+
+    tend_ratio(i,j) = ratio
+
+  enddo   ! end do of j
+  enddo   ! end do of i
+
+end subroutine check_trc_rlzbility
 
 
 !#############################
