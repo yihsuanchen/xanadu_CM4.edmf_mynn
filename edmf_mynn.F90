@@ -508,6 +508,8 @@ integer :: id_qldt_edmf_MF_adv, id_qldt_edmf_MF_eddy, id_qldt_edmf_MF_ent, id_qi
 integer :: id_a_moist_half, id_a_moist_full, id_mf_moist_half, id_mf_moist_full, id_qv_moist_half, id_qv_moist_full, id_a_dry_half, id_a_dry_full, id_mf_dry_half, id_mf_dry_full, id_qv_dry_half, id_qv_dry_full, id_mf_all_half, id_mf_all_full
 
 integer :: id_num_updraft, id_num_det, id_num_ndet_zent, id_num_ndet_pent
+
+integer :: id_return_ratio
 !---------------------------------------------------------------------
 
   contains
@@ -1112,6 +1114,10 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_num_ndet_pent = register_diag_field (mod_name, 'num_ndet_pent', axes(full), Time, &
                  'frequency of negative dentrainment with positive entrainment in edmf updrafts', 'none' , &
+                 missing_value=missing_value )
+
+  id_return_ratio = register_diag_field (mod_name, 'return_ratio', axes(1:2), Time, &
+                 'ratio for realizability limiter', 'none' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -7825,6 +7831,11 @@ subroutine edmf_mynn_driver ( &
   type(randomNumberStream), dimension(size(Physics_input_block%t,1), &
                                       size(Physics_input_block%t,2)) :: &     ! dimension (nlon,nlat)
     streams
+
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,2)) :: &  ! dimension (nlon,nlat)
+    return_ratio
+
   real :: randomNumbers
 
 !-------------------------
@@ -8031,7 +8042,7 @@ subroutine edmf_mynn_driver ( &
                                     do_writeout_column,         &
                                     Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                     size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                    Output_edmf)
+                                    Output_edmf, return_ratio)
 
 !---------------------------------------------------------------------
 ! process the outputs from the EDMF-MYNN program
@@ -8630,6 +8641,11 @@ subroutine edmf_mynn_driver ( &
       if ( id_num_ndet_pent > 0) then
         call reshape_mynn_array_to_am4(ix, jx, kx, num_nDET_pENT, diag_full)
         used = send_data (id_num_ndet_pent, diag_full, Time_next, is, js, 1 )
+      endif
+
+!------- ratio for realizability limiter (units: none) at one level -------
+      if ( id_return_ratio > 0) then
+        used = send_data (id_return_ratio, return_ratio, Time_next, is, js )
       endif
 !send_data
 
@@ -10812,7 +10828,7 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
                                         do_writeout_column, &
                                         Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                         ix, jx, kx,  &
-                                        Output_edmf)
+                                        Output_edmf, return_ratio)
 
 !--- input arguments
   integer, intent(in)                   :: is, ie, js, je
@@ -10827,6 +10843,7 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
 
 !--- input/output arguments
   type(edmf_output_type)    , intent(inout)  :: Output_edmf
+  real, dimension(ix,jx)    , intent(out)    :: return_ratio  ! ratio for scaling the tendencies 
 
 !--- local variable
   integer, parameter :: nx = 5     ! number of tracers for realizability check
@@ -10834,7 +10851,6 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
     tracers, tracers_tend
   real, dimension(ix,jx,nx)   ::  &  ! realizability ratio for each tracer 
     tends_ratio
-  real, dimension(ix,jx)    :: return_ratio  ! ratio for scaling the tendencies 
   real, dimension(ix,jx,kx) :: tmp_3d
   logical used
   integer i,j,k,kk
