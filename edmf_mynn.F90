@@ -419,7 +419,8 @@ end type edmf_ls_mp_type
   real    :: lon_range = 0.000001
   logical :: do_writeout_column_nml = .false.   ! control whether writing out the column
   logical :: do_check_consrv = .false.          ! control whether writing out the water/heat conservation
-  logical :: do_check_realizability = .false.   ! control whether writing out current and update cloud properties (qa,ql)
+  logical :: do_check_realizability = .false.   ! whether enables the realizability limiter that forces the tracers concentration
+                                                ! (q_t, q_v, q_l, q_i, q_a) not become negative after one time step 
   logical :: do_check_ent_det = .false.         ! control whether writing out entrainment and detrainment rate for debugging
   logical :: do_stop_run = .false.              ! whether to stop the simulation
   real    :: qke_min = -1.                      ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
@@ -480,7 +481,8 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
                             option_stoch_entrain, option_rng, option_pblh_MF, &
                             do_option_edmf2ls_mp, do_use_tau, Qx_MF, Qx_numerics, option_up_area, option_ent, alpha_st, &
-                            do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, ii_write, jj_write, lat_write, lon_write
+                            do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, do_check_realizability, &
+                            ii_write, jj_write, lat_write, lon_write
 
 !---------------------------------------------------------------------
 !--- Diagnostic fields       
@@ -5060,7 +5062,8 @@ END SUBROUTINE mym_condensation
           IF (bl_mynn_edmf > 0) THEN
             CALL edmf_JPL(                            &
                &kts,kte,delt,zw,p1,                   &
-               &u1,v1,th1,thl,thetav,tk1,sqw,sqv,sqc, &
+               !&u1,v1,th1,thl,thetav,tk1,sqw,sqv,sqc, &  yhc comment out
+               &u1,v1,th1,thl,thetav,tk1,sqw,sqv,sqc,sql,sqi, &  ! yhc add sql and sqi
                &ex1,rho1,                            &
                &ust(i,j),ps(i,j),flt,flq,PBLH(i,j),       &
                & liquid_frac,                     &
@@ -6133,7 +6136,8 @@ end subroutine condensation_edmfA
 
 
 SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
-              &u,v,th,thl,thv,tk,qt,qv,qc,   &
+              !&u,v,th,thl,thv,tk,qt,qv,qc,   &  yhc comment out
+              &u,v,th,thl,thv,tk,qt,qv,qc,ql,qi,   &  ! yhc add ql and qi
               &exner,rho,                        &
               &ust,ps,wthl,wqt,pblh,            &
               & liquid_frac,                 &
@@ -6161,7 +6165,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
 
 
         INTEGER, INTENT(IN) :: KTS,KTE, kpbl
-        REAL,DIMENSION(KTS:KTE), INTENT(IN) :: U,V,TH,THL,TK,QT,QV,QC
+        REAL,DIMENSION(KTS:KTE), INTENT(IN) :: U,V,TH,THL,TK,QT,QV,QC, QL, QI  ! yhc add QL, QI
         REAL,DIMENSION(KTS:KTE), INTENT(IN) :: THV,P,exner,rho,liquid_frac
         ! zw .. heights of the updraft levels (edges of boxes)
         REAL,DIMENSION(KTS:KTE+1), INTENT(IN) :: ZW
@@ -6216,8 +6220,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
                Fng,qww,alpha,beta,bb,f,pt,t,q2p,b9,satvp,rhgrid
         
         REAL,DIMENSION(kts:kte) :: ph,lfh 
-        REAL :: THVsrfF,QTsrfF,maxS,stabF,dz,F0,F1,F2,F3,CCp1,CCp0,mf,mfp1  
-
+        REAL :: &
+          F1_ql, F1_qi, F2_ql, F2_qi, F3_ql, F3_qi, &
+          THVsrfF,QTsrfF,maxS,stabF,dz,F0,F1,F2,F3,CCp1,CCp0,mf,mfp1  
         INTEGER, DIMENSION(2) :: seedmf
     ! w parameters
         REAL,PARAMETER :: &
@@ -6259,9 +6264,10 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          qv_dry_full   
   
        REAL,DIMENSION(KTS:KTE) :: &
-         ZFULL
+         ZFULL, ice_frac
 
-       REAL :: qcp0, qcp1, cldp1, cldp0, det_temp
+       REAL :: &
+         qcp0, qcp1, qlp0, qlp1, qip0, qip1, cldp1, cldp0, det_temp
 
        REAl,DIMENSION(KTS:KTE,1:NUP) :: &
         Qql_det_i, Qqi_det_i, Qa_det_i, Qql_sub_i , Qqi_sub_i , Qa_sub_i, &
@@ -6366,6 +6372,8 @@ s_awqke=0.
 
  edmf_det = 0.
  DET=0.
+
+ ice_frac(:) = 1. - liquid_frac(:)
 
 ! This part is specific for Stratocumulus
 ! cloudflg = .false.
@@ -6871,6 +6879,20 @@ DO K=KTS,KTE-1
        qcp0 = 0.5 * (qc(K)+qc(K-1))                 ! grid-scale qc at k-1/2 level
      endif
 
+     qlp1 = 0.5 * (ql(K)+ql(K+1))                   ! grid-scale ql at k+1/2 level
+     if (K.eq.1) then
+       qlp0 = ql(K)                                 ! grid-scale ql at k-1/2 level
+     else
+       qlp0 = 0.5 * (ql(K)+ql(K-1))                 ! grid-scale ql at k-1/2 level
+     endif
+
+     qip1 = 0.5 * (qi(K)+qi(K+1))                   ! grid-scale qi at k+1/2 level
+     if (K.eq.1) then
+       qip0 = qi(K)                                 ! grid-scale qi at k-1/2 level
+     else
+       qip0 = 0.5 * (qi(K)+qi(K-1))                 ! grid-scale qi at k-1/2 level
+     endif
+
      cldp1 = 0.5 * (cldfra_bl1d(K)+cldfra_bl1d(K+1))          ! grid-scale cloud fraction at k+1/2 level
      if (K.eq.1) then
        cldp0 = cldfra_bl1d(K)                                 ! grid-scale cloud fraction at k-1/2 level
@@ -6902,34 +6924,41 @@ DO K=KTS,KTE-1
        !-----------------------------------------------
        !--- cloud condensate, eddy-flux/source form ---
        !-----------------------------------------------
-       F1=0.
-       F2=0.
-       F3=0.
+       F1=0. ; F1_ql=0. ; F1_qi=0.
+       F2=0. ; F2_ql=0. ; F2_qi=0.
+       F3=0. ; F3_ql=0. ; F3_qi=0.
 
        if (Qx_numerics.eq.1) then   ! upwind approximation
          !--- F1: eddy-flux convergence term for cloud condensate
-         if (K.eq.1) then
-           F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-0.) )  / dz     ! qc(K-1)=qc(0)=0.
-         else
-           F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-qcp0)) / dz
-         endif
+         !if (K.eq.1) then
+           !F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-0.) )  / dz     ! qc(K-1)=qc(0)=0.
+         !  F1_ql = -1./rho(k) * ( mfp1 * (liquid_frac(k+1)*UPQC(K+1,I)-qlp1) - mf * (liquid_frac(k)*UPQC(K,I)-0.) )  / dz     ! qc(K-1)=qc(0)=0.
+         !  F1_qi = -1./rho(k) * ( mfp1 * (ice_frac   (k+1)*UPQC(K+1,I)-qip1) - mf * (ice_frac   (k)*UPQC(K,I)-0.) )  / dz     ! qc(K-1)=qc(0)=0.
+         !else
+           !F1 = -1./rho(k) * ( mfp1*(UPQC(K+1,I)-qcp1) - mf*(UPQC(K,I)-qcp0)) / dz
+           F1_ql = -1./rho(k) * ( mfp1 * (liquid_frac(k+1)*UPQC(K+1,I)-qlp1) - mf * (liquid_frac(k)*UPQC(K,I)-qlp0) )  / dz     ! qc(K-1)=qc(0)=0.
+           F1_qi = -1./rho(k) * ( mfp1 * (ice_frac   (k+1)*UPQC(K+1,I)-qip1) - mf * (ice_frac   (k)*UPQC(K,I)-qip0) )  / dz     ! qc(K-1)=qc(0)=0.
+         !endif
   
          if (UPW(K,I).gt.0. .and. UPW(K+1,I).gt.0.) then  ! source terms are only present in the plume
            !--- F2: source/vertical advection term for cloud condensate
-           F2 = UPA(K,I) * UPW(K,I) * (UPQC(K+1,I)-UPQC(K,I)) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+           !F2 = UPA(K,I) * UPW(K,I) * (UPQC(K+1,I)-UPQC(K,I)) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+           F2_ql = UPA(K,I) * UPW(K,I) * (liquid_frac(K+1)*UPQC(K+1,I)-liquid_frac(K)*UPQC(K,I)) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
+           F2_qi = UPA(K,I) * UPW(K,I) * (ice_frac   (K+1)*UPQC(K+1,I)-ice_frac   (K)*UPQC(K,I)) / dz  !+ENT(K,I)*mf*(UPQC(K,I)-qc(K))
     
            !--- F3: source/entrainment term for cloud condensate
-           F3 = UPA(K,I) * UPW(K,I) * ENT(K,I) * (UPQC(K,I)-qc(K))
+           F3_ql = UPA(K,I) * UPW(K,I) * ENT(K,I) * (liquid_frac(K)*UPQC(K,I)-ql(K))
+           F3_qi = UPA(K,I) * UPW(K,I) * ENT(K,I) * (ice_frac   (K)*UPQC(K,I)-qi(K))
          endif
        endif  ! end if of Qx_numerics   
 
-         Qql_eddy_i (K,I) = liquid_frac(k)*F1
-         Qql_adv_i  (K,I) = liquid_frac(k)*F2
-         Qql_ent_i  (K,I) = liquid_frac(k)*F3
+         Qql_eddy_i (K,I) = F1_ql !liquid_frac(k)*F1
+         Qql_adv_i  (K,I) = F2_ql !liquid_frac(k)*F2
+         Qql_ent_i  (K,I) = F3_ql !liquid_frac(k)*F3
     
-         Qqi_eddy_i (K,I) = (1.-liquid_frac(k))*F1
-         Qqi_adv_i  (K,I) = (1.-liquid_frac(k))*F2
-         Qqi_ent_i  (K,I) = (1.-liquid_frac(k))*F3
+         Qqi_eddy_i (K,I) = F1_qi !(1.-liquid_frac(k))*F1
+         Qqi_adv_i  (K,I) = F2_qi !(1.-liquid_frac(k))*F2
+         Qqi_ent_i  (K,I) = F3_qi !(1.-liquid_frac(k))*F3
 
          !--- sum over the i-th plume
          Qql_eddy(k) = Qql_eddy(k) + Qql_eddy_i (K,I)
@@ -6943,17 +6972,17 @@ DO K=KTS,KTE-1
        !---------------------------------------------
        !--- cloud fraction, eddy-flux/source form ---
        !---------------------------------------------
-       F1=0.
-       F2=0.
-       F3=0.
+       F1=0. ; F1_ql=0. ; F1_qi=0.
+       F2=0. ; F2_ql=0. ; F2_qi=0.
+       F3=0. ; F3_ql=0. ; F3_qi=0.
 
        if (Qx_numerics.eq.1) then   ! upwind approximation
          !--- F1: eddy-flux convergence term for cloud fraction
-         if (K.eq.1) then
-           Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldp1) - mf*(CCp0-0.)    ) / dz     ! qc(K-1)=qc(0)=0.
-         else
+         !if (K.eq.1) then
+         !  Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldp1) - mf*(CCp0-0.)    ) / dz     ! qc(K-1)=qc(0)=0.
+         !else
            Qa_eddy_i (K,I) = -1./rho(k) * ( mfp1*(CCp1-cldp1) - mf*(CCp0-cldp0) ) / dz
-         endif
+         !endif
 
          if (UPW(K,I).gt.0. .and. UPW(K+1,I).gt.0.) then  ! source terms are only present in the plume
            !--- F2: vertical advection term
@@ -6979,23 +7008,27 @@ DO K=KTS,KTE-1
        !-----------------------------------------------------
        !--- cloud condensate, detrainment/subsidence form ---
        !-----------------------------------------------------
-       F1=0.
-       F2=0.
-       F3=0.
+       F1=0. ; F1_ql=0. ; F1_qi=0.
+       F2=0. ; F2_ql=0. ; F2_qi=0.
+       F3=0. ; F3_ql=0. ; F3_qi=0.
 
        if (Qx_numerics.eq.1) then   ! upwind approximation
          ! F1: subsidence term for cloud condensate
-         F1 = mfp1/rho(k) * (qc(K+1)-qc(K))/(ZFULL(K+1)-ZFULL(K))  
+         !F1 = mfp1/rho(k) * (qc(K+1)-qc(K))/(ZFULL(K+1)-ZFULL(K))  
+         F1_ql = mfp1/rho(k) * (ql(K+1)-ql(K))/(ZFULL(K+1)-ZFULL(K))  
+         F1_qi = mfp1/rho(k) * (qi(K+1)-qi(K))/(ZFULL(K+1)-ZFULL(K))  
 
          ! F2: detrainment term for cloud condensate
-         F2 = mf*DET(K,I)/rho(k) * (UPQC(K,I)-qc(K))
+         !F2 = mf*DET(K,I)/rho(k) * (UPQC(K,I)-qc(K))
+         F2_ql = mf*DET(K,I)/rho(k) * (liquid_frac(K)*UPQC(K,I)-ql(K))
+         F2_qi = mf*DET(K,I)/rho(k) * (ice_frac   (K)*UPQC(K,I)-qi(K))
        endif  ! end if of Qx_numerics   
 
-         Qql_sub_i (K,I) = liquid_frac(k)*F1
-         Qql_det_i (K,I) = liquid_frac(k)*F2
+         Qql_sub_i (K,I) = F1_ql !liquid_frac(k)*F1
+         Qql_det_i (K,I) = F2_ql !liquid_frac(k)*F2
 
-         Qqi_sub_i (K,I) = (1.-liquid_frac(k))*F1
-         Qqi_det_i (K,I) = (1.-liquid_frac(k))*F2
+         Qqi_sub_i (K,I) = F1_qi !(1.-liquid_frac(k))*F1
+         Qqi_det_i (K,I) = F2_qi !(1.-liquid_frac(k))*F2
 
        ! sum over all plumes
        Qql_sub(k) = Qql_sub(k) + Qql_sub_i (K,I)
@@ -7007,9 +7040,9 @@ DO K=KTS,KTE-1
        !---------------------------------------------------
        !--- cloud fraction, detrainment/subsidence form ---
        !---------------------------------------------------
-       F1=0.
-       F2=0.
-       F3=0.
+       F1=0. ; F1_ql=0. ; F1_qi=0.
+       F2=0. ; F2_ql=0. ; F2_qi=0.
+       F3=0. ; F3_ql=0. ; F3_qi=0.
 
        if (Qx_numerics.eq.1) then   ! upwind approximation
          ! F1: subsidence term for cloud condensate
@@ -7040,6 +7073,10 @@ elseif (Qx_MF.eq.2) then ! detrainment/subsidence form
 else
   print*,'ERROR: Qx_MF must be 1 or 2'
 endif
+
+  !print*,'Qql',Qql
+  !print*,'Qqi',Qqi
+  !print*,'Qa',Qa
 
 !--- obtain (1) mass flux, (2) fraction, and (3) plume-averaged specific humidiry for moist and dry updrafts
 
@@ -7990,7 +8027,7 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 ! recover dry variable tendencies from mynn_edmf
 !---------------------------------------------------------------------
-  call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next,  &
+  call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next, dt,  &
                                     do_writeout_column,         &
                                     Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                     size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
@@ -8628,9 +8665,18 @@ subroutine edmf_mynn_driver ( &
     enddo
   end if
 
+  !--- check whether tracers become negative
+  if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
+    print*,'new qv',Physics_input_block%q(:,:,:,nsphum) + dt * am4_Output_edmf%qdt_edmf(:,:,:)
+    print*,'new ql',Physics_input_block%q(:,:,:,nql)    + dt * am4_Output_edmf%qldt_edmf(:,:,:)
+    print*,'new qi',Physics_input_block%q(:,:,:,nqi)    + dt * am4_Output_edmf%qidt_edmf(:,:,:)
+    print*,'new qa',Physics_input_block%q(:,:,:,nqa)    + dt * am4_Output_edmf%qadt_edmf(:,:,:)
+  endif
+
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
 !---------------------------------------------------------------------
+
   call edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
 
   !--- stop the model if prefered
@@ -8638,6 +8684,7 @@ subroutine edmf_mynn_driver ( &
     call error_mesg('edmf_mynn_driver',  &
        'stop by yihsuan', FATAL)
   endif
+
 
 end subroutine edmf_mynn_driver
 
@@ -9861,35 +9908,35 @@ subroutine edmf_writeout_column ( &
 !                    Although I set am4_Output_edmf%qadt_edmf = -1*Physics_input_block%q(i,j,k,nqa)/dt, the problem is still
 !                    I thought there is some numeric problems in the offline program.
 !-------------------------------------------------------------------------
-  if (do_check_realizability) then
-    i=1
-    j=1
-
-    !--- qa
-    do k=1,kx
-      kk=kx-k+1
-      tt1 = Physics_input_block%q(i,j,k,nqa)
-      tt2 = Physics_input_block%q(i,j,k,nqa) + am4_Output_edmf%qadt_edmf(i,j,k) * dt
-      tt3 = Output_edmf%cldfra_bl(i,kk,j)
-      if (tt2.ne.tt3) then
-        print*,'k,qa_new,qa_bl,qa_old',k,tt2,tt3,tt1
-      endif
-    enddo
-
-    !--- ql
-    write(6,*) ''
-    do k=1,kx
-      kk=kx-k+1
-      tt1 = Physics_input_block%q(i,j,k,nql)
-      tt2 = Physics_input_block%q(i,j,k,nql) + am4_Output_edmf%qldt_edmf(i,j,k) * dt
-      tt3 = Output_edmf%qc_bl(i,kk,j)
-      if (tt2.ne.tt3) then
-        print*,'k,ql_new,qc_bl,ql_old',k,tt2,tt3,tt1
-      endif
-    enddo
-
-    write(6,*) ''
-  endif
+!  if (do_check_realizability) then
+!    i=1
+!    j=1
+!
+!    !--- qa
+!    do k=1,kx
+!      kk=kx-k+1
+!      tt1 = Physics_input_block%q(i,j,k,nqa)
+!      tt2 = Physics_input_block%q(i,j,k,nqa) + am4_Output_edmf%qadt_edmf(i,j,k) * dt
+!      tt3 = Output_edmf%cldfra_bl(i,kk,j)
+!      if (tt2.ne.tt3) then
+!        print*,'k,qa_new,qa_bl,qa_old',k,tt2,tt3,tt1
+!      endif
+!    enddo
+!
+!    !--- ql
+!    write(6,*) ''
+!    do k=1,kx
+!      kk=kx-k+1
+!      tt1 = Physics_input_block%q(i,j,k,nql)
+!      tt2 = Physics_input_block%q(i,j,k,nql) + am4_Output_edmf%qldt_edmf(i,j,k) * dt
+!      tt3 = Output_edmf%qc_bl(i,kk,j)
+!      if (tt2.ne.tt3) then
+!        print*,'k,ql_new,qc_bl,ql_old',k,tt2,tt3,tt1
+!      endif
+!    enddo
+!
+!    write(6,*) ''
+!  endif
 
 !-------------------------------------------------------------------------
 ! check water and energy conservation 
@@ -10246,12 +10293,82 @@ subroutine edmf_writeout_column ( &
         write(6,*)    ' '
         write(6,*)    '; liquid water mixing ratio in edmf_mynn'
         write(6,3002) ' qc_bl = (/'    ,am4_Output_edmf%qc_bl (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa, diag_full)
+        write(6,*)    '; Q_qa'
+        write(6,3002) '  Q_qa = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_adv, diag_full)
+        write(6,*)    '; Q_qa_adv'
+        write(6,3002) '  Q_qa_adv = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_eddy, diag_full)
+        write(6,*)    '; Q_qa_eddy'
+        write(6,3002) '  Q_qa_eddy = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_ent, diag_full)
+        write(6,*)    '; Q_qa_ent'
+        write(6,3002) '  Q_qa_ent = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_det, diag_full)
+        write(6,*)    '; Q_qa_det'
+        write(6,3002) '  Q_qa_det = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qa_sub, diag_full)
+        write(6,*)    '; Q_qa_sub'
+        write(6,3002) '  Q_qa_sub = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ''
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql, diag_full)
+        write(6,*)    '; Q_ql'
+        write(6,3002) '  Q_ql = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_adv, diag_full)
+        write(6,*)    '; Q_ql_adv'
+        write(6,3002) '  Q_ql_adv = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_eddy, diag_full)
+        write(6,*)    '; Q_ql_eddy'
+        write(6,3002) '  Q_ql_eddy = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_ent, diag_full)
+        write(6,*)    '; Q_ql_ent'
+        write(6,3002) '  Q_ql_ent = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_det, diag_full)
+        write(6,*)    '; Q_ql_det'
+        write(6,3002) '  Q_ql_det = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_ql_sub, diag_full)
+        write(6,*)    '; Q_ql_sub'
+        write(6,3002) '  Q_ql_sub = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ''
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi, diag_full)
+        write(6,*)    '; Q_qi'
+        write(6,3002) '  Q_qi = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_adv, diag_full)
+        write(6,*)    '; Q_qi_adv'
+        write(6,3002) '  Q_qi_adv = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_eddy, diag_full)
+        write(6,*)    '; Q_qi_eddy'
+        write(6,3002) '  Q_qi_eddy = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_ent, diag_full)
+        write(6,*)    '; Q_qi_ent'
+        write(6,3002) '  Q_qi_ent = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_det, diag_full)
+        write(6,*)    '; Q_qi_det'
+        write(6,3002) '  Q_qi_det = (/'    ,diag_full (ii_write,jj_write,:)
+        write(6,*)    ' '
+                      call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_sub, diag_full)
+        write(6,*)    '; Q_qi_sub'
+        write(6,3002) '  Q_qi_sub = (/'    ,diag_full (ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '; k_pbl, ',am4_Output_edmf%kpbl_edmf(ii_write,jj_write)
         write(6,*)    ''
-        write(6,*)    ''
         write(6,*)    '; pbl depth,',am4_Output_edmf%pbltop(ii_write,jj_write)
-        write(6,*)    ''
         write(6,*)    ''
         write(6,*)    ';=============='
         write(6,*)    ';=============='
@@ -10691,7 +10808,7 @@ end subroutine convert_edmf_to_am4_array
 
 !###################################
 
-subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
+subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
                                         do_writeout_column, &
                                         Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                         ix, jx, kx,  &
@@ -10699,6 +10816,7 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
 
 !--- input arguments
   integer, intent(in)                   :: is, ie, js, je
+  real,    intent(in)                   :: dt
   type(time_type), intent(in)           :: Time_next
   type(physics_input_block_type), intent(in)  :: Physics_input_block
   type(edmf_input_type)     , intent(in)  :: Input_edmf
@@ -10711,6 +10829,12 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
   type(edmf_output_type)    , intent(inout)  :: Output_edmf
 
 !--- local variable
+  integer, parameter :: nx = 5     ! number of tracers for realizability check
+  real, dimension(ix,jx,kx,nx) ::  &  ! tracers for realizability check
+    tracers, tracers_tend
+  real, dimension(ix,jx,nx)   ::  &  ! realizability ratio for each tracer 
+    tends_ratio
+  real, dimension(ix,jx)    :: return_ratio  ! ratio for scaling the tendencies 
   real, dimension(ix,jx,kx) :: tmp_3d
   logical used
   integer i,j,k,kk
@@ -10936,6 +11060,91 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
                                      + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
  
    end if  ! end if of edmf_type=2
+
+!====================================
+!
+! Check for tracer realizability. If MF tendencies would
+!  produce negative tracer mixing ratios, scale down tracer tendency
+!  terms uniformly for this tracer throughout convective column.
+!
+!====================================
+
+if (do_check_realizability) then
+
+   !--- initialzie tracers varibles for realizability check
+   tracers      = 0.
+   tracers_tend = 0.  
+
+   !--- assign tracers values, qv, ql, qi, qa, and qt(=qv+ql+qi)
+   tracers(:,:,:,1) = Physics_input_block%q(:,:,:,nsphum) 
+   tracers(:,:,:,2) = Physics_input_block%q(:,:,:,nql) 
+   tracers(:,:,:,3) = Physics_input_block%q(:,:,:,nqi) 
+   tracers(:,:,:,4) = Physics_input_block%q(:,:,:,nqa)
+   tmp_3d (:,:,:)   = Physics_input_block%q(:,:,:,nsphum)+Physics_input_block%q(:,:,:,nql)+Physics_input_block%q(:,:,:,nqi)
+   tracers(:,:,:,5) = tmp_3d(:,:,:)
+
+   !--- assign tracers tendencies values
+   call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQVBLTEN(:,:,:), tracers_tend(:,:,:,1))
+   call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQLBLTEN(:,:,:), tracers_tend(:,:,:,2))
+   call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQIBLTEN(:,:,:), tracers_tend(:,:,:,3))
+   call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RCCBLTEN(:,:,:), tracers_tend(:,:,:,4))
+   call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQTBLTEN(:,:,:), tracers_tend(:,:,:,5))
+
+   call check_trc_rlzbility (dt, tracers, tracers_tend, &
+                             tends_ratio, return_ratio)
+
+   !--- ratio must be between 0 and 1
+   if (any(tends_ratio.le.0.) .or. any(tends_ratio.gt.1.)) then
+     call error_mesg( ' edmf_mynn',     &
+                      ' the ratio from the realizability check must be between 0 to 1',&
+                      FATAL )
+   endif
+
+   !--- rescale the tendencies
+   do i=1,ix
+   do j=1,jx
+     ! u and v tendencies
+     Output_edmf%RUBLTEN (i,:,j) = Output_edmf%RUBLTEN (i,:,j) * return_ratio(i,j)
+     Output_edmf%RVBLTEN (i,:,j) = Output_edmf%RVBLTEN (i,:,j) * return_ratio(i,j)
+
+     ! theta_l and q_t tendencies
+     Output_edmf%RQTBLTEN (i,:,j) = Output_edmf%RQTBLTEN (i,:,j) * return_ratio(i,j)
+     Output_edmf%RTHLBLTEN(i,:,j) = Output_edmf%RTHLBLTEN(i,:,j) * return_ratio(i,j)
+
+     ! qv, ql, qi, qa tendencies
+     Output_edmf%RQVBLTEN(i,:,j) = Output_edmf%RQVBLTEN(i,:,j) * return_ratio(i,j)
+     Output_edmf%RQLBLTEN(i,:,j) = Output_edmf%RQLBLTEN(i,:,j) * return_ratio(i,j)
+     Output_edmf%RQIBLTEN(i,:,j) = Output_edmf%RQIBLTEN(i,:,j) * return_ratio(i,j)
+     Output_edmf%RCCBLTEN(i,:,j) = Output_edmf%RCCBLTEN(i,:,j) * return_ratio(i,j)
+   enddo  ! end loop of j
+   enddo  ! end loop of i
+
+   !--- recompute the potential temperature tendencies using the rescaled theta_li, q_l, and q_i tendencies
+   Output_edmf%RTHBLTEN  (:,:,:) =   Output_edmf%RTHLBLTEN (:,:,:)  &
+                                   + (hlv*Output_edmf%RQLBLTEN (:,:,:)+hls*Output_edmf%RQIBLTEN(:,:,:)) / cp_air / Input_edmf%exner(:,:,:)
+
+endif  ! end if of do_check_realizability
+
+ !--- printout for debugging purpose
+ if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
+   print*,'**********************'
+   print*,''
+   print*,'do_check_realizability = ',do_check_realizability
+   print*,'index: qv, ql, qi, qa, qt'
+   print*,'tends_ratio',tends_ratio
+   print*,'return_ratio',return_ratio
+   print*,'------------------------------'
+   print*,'RUBLTEN',Output_edmf%RUBLTEN
+   print*,'RVBLTEN',Output_edmf%RVBLTEN
+   print*,'RQTBLTEN',Output_edmf%RQTBLTEN
+   print*,'RTHLBLTEN',Output_edmf%RTHLBLTEN
+   print*,'RQVBLTEN',Output_edmf%RQVBLTEN
+   print*,'RQLBLTEN',Output_edmf%RQLBLTEN
+   print*,'RQIBLTEN',Output_edmf%RQIBLTEN
+   print*,'RCCBLTEN',Output_edmf%RCCBLTEN
+   print*,''
+   print*,'**********************'
+ end if
 
 !----------------------------
 ! printout statements 
@@ -11194,6 +11403,163 @@ enddo  ! end loop of n
 !print*,'ENTi',ENTi
 
 end subroutine Poisson_knuth
+
+!###################################
+
+subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
+                                tends_ratio, return_ratio)
+
+!---------------------------------------------------------------------
+!  Check for tracer realizability. If tracer tendencies would
+!  produce negative tracer mixing ratios, scale down tracer tendency
+!  terms uniformly for this tracer throughout convective column. 
+!
+!  Reference: subroutine don_d_check_trc_rlzbility, src/atmos_param/donner_deep/donner_deep_k.F90
+!---------------------------------------------------------------------
+
+!---------------------------------------------------------------------
+! Arguments (Intent in)
+!     dt             physics time step               , [ sec ]
+!     tracers         tracer mixing ratios            , [ kg(tracer) / kg (dry air) ]
+!     tracers_tend    tendency of tracer mixing ratios, [ kg(tracer) / kg (dry air) / sec ]
+!---------------------------------------------------------------------
+  real,    intent(in)                     :: dt
+  real,    intent(in), dimension(:,:,:,:) :: tracers, tracers_tend  ! dimension (nlon, nlat, nlev, ntracer)
+
+!---------------------------------------------------------------------
+! Arguments (Intent out)
+!     tends_ratio     ratio by which tracer tendencies need to 
+!                    be reduced to permit realizability (i.e., to prevent
+!                    negative tracer mixing ratios)
+!     return_ratio   the smallest ratio of all tracers. This would be used to scale the all tendencies (Temperature, tracerts, etc)
+!---------------------------------------------------------------------
+  real, intent(out), dimension(:,:,:)     :: tends_ratio          ! dimension (nlon, nlat, ntracer)
+ 
+  real, intent(out), dimension(:,:)       :: return_ratio         ! dimension (nlon, nlat)
+ 
+!---------------------------------------------------------------------
+! Arguments (Intent local)
+!     tracer0        column tracer mixing ratios before MF
+!     tracer1        column tracer mixing ratios after  MF transport only
+!     trtend         column tracer mixing ratio tendencies due to convective transport [ (tracer units) / s ]
+!     tracer_min     minimum of tracer0
+!     tracer_max     maximum of tracer0
+!---------------------------------------------------------------------
+
+  real, dimension(size(tracers, 3)) ::    &  ! dimension (nlay)
+    tracer0, trtend, tracer1
+
+  real :: &
+    tracer_min, tracer_max, ratio
+
+  character*40 cause
+
+  !--- index variables & dimension
+  integer i,j,k,n
+  integer ix,jx,kx,nx
+
+!--------------------------
+
+!--- set dimensions
+  ix  = size( tracers, 1 )
+  jx  = size( tracers, 2 )
+  kx  = size( tracers, 3 )
+  nx  = size( tracers, 4 )
+
+!--- initialze return variable
+  tends_ratio  = 1.
+  return_ratio = 1.
+
+!---------------------
+! compute tend_ratio
+!   Updated tracer concentation must be 
+!   (1) not negative, 
+!   (2) in the range of max/min of tracer0
+!---------------------
+
+  do n=1,nx
+  do i=1,ix
+  do j=1,jx
+
+    !--- set column tracer concentration
+    tracer0(:)  = tracers(i,j,:,n)
+    trtend (:)  = tracers_tend(i,j,:,n)
+    tracer1(:)  = tracer0(:) + dt * trtend(:)
+
+!write(6,*),'tracer0',tracer0
+!write(6,*),'tracer1',tracer1
+!write(6,*),'trtend',trtend
+
+    !--- get max/min of tracer0
+    tracer_min = 1.e20
+    tracer_max = -1.e20
+
+    do k = 1,kx
+       if (trtend(k) /= 0.) then
+          tracer_max = max(tracer0(k),tracer_max)
+          tracer_min = min(tracer0(k),tracer_min)
+       end if
+    end do
+
+!print*,'tracer_max',tracer_max
+!print*,'tracer_min',tracer_min
+
+    !--- compute ratio
+    ratio = 1.
+    do k = 1,kx
+
+       !--- if tracer1 is less than zero
+       if (tracer0(k) > 0. .and. tracer1(k)<0.) then
+          ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
+          !cause = "tracer1 is less than zero"
+          !write(6,*),'-------'
+          !write(6,*),'aa1, less than zero, k,ratio',k,ratio
+          !write(6,*),'  tracer0(k), tracer1(k), ',tracer0(k), tracer1(k)
+       end if
+
+       !--- yhc 2021-12-13, comment this out because MF can produce tracer values less than the original minimum 
+       !--- if tracer1 is less than tracer_min
+       !if (tracer1(k)<tracer_min .and. trtend(k) /= 0.0 ) then
+       !   ratio = MIN( ratio,(tracer0(k)-tracer_min)/(-trtend(k)*dt) )
+       !   cause = "tracer1 is less than tracer_min"
+       !   !write(6,*),'-------'
+       !   write(6,*),'aa2, less than min, k,ratio',k,ratio
+       !   write(6,*),'  tracer1(k), tracer_min, ',tracer1(k), tracer_min
+       !end if
+
+       !--- yhc 2021-12-13, comment this out because when detrainment occurs, new clouds can form so the ql>tracer_max
+       !--- if tracer1 is larger than tracer_max
+       !if (tracer1(k)>tracer_max  .and. trtend(k) /= 0.0 ) then
+       !   ratio = MIN( ratio,(tracer_max-tracer0(k))/(trtend(k)*dt) )
+       !   cause = "tracer1 is larger than tracer_max"
+          !write(6,*),'-------'
+          !write(6,*),'aa3, larger than max, k,ratio',k,ratio
+          !write(6,*),'  tracer1(k), tracer_max, ',tracer1(k), tracer_max
+       !end if
+
+    end do
+
+    !--- make sure 1 > ratio > 0
+    ratio = MAX(0.,MIN(1.,ratio))
+
+    tends_ratio(i,j,n) = ratio
+  enddo   ! end do of j
+  enddo   ! end do of i
+  enddo   ! end do of n 
+
+!----------------------------------------------
+! find out the smallest ratio in all tracers, 
+! and then return this ratio
+!----------------------------------------------
+  do i=1,ix
+  do j=1,jx
+  do n=1,nx
+    return_ratio(i,j) = MAX(0.,MIN( return_ratio(i,j),tends_ratio(i,j,n) ) )
+  enddo   ! end do of n 
+  enddo   ! end do of j
+  enddo   ! end do of i
+
+end subroutine check_trc_rlzbility
 
 !#############################
 ! Mellor-Yamada
