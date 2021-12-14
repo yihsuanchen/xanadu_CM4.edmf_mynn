@@ -11492,6 +11492,717 @@ DYCOMS RF01 case
     </input>
   </experiment>
 
+  <experiment name="xb1-b86a5-BOMEX-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.5" inherit="b86a-BOMEX-mynn_DIFF_M3_EDMFexpUP_NOsm">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           1,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+ option_ent = 2
+ alpha_st = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-b86a5-BOMEX-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.3" inherit="xb1-b86a5-BOMEX-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.5">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           1,
+ OPTION_ENT      =           2,
+ ALPHA_ST        =  0.300000000000000     ,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-b86a5-BOMEX-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.7" inherit="xb1-b86a5-BOMEX-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.5">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           1,
+ OPTION_ENT      =           2,
+ ALPHA_ST        =  0.700000000000000     ,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-b86a5-BOMEX-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.0" inherit="xb1-b86a5-BOMEX-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.5">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           1,
+ OPTION_ENT      =           2,
+ ALPHA_ST        =  0.00000000000000     ,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-b86a6-BOMEX-mynn_M3_EDMFexpUP_ASpd_QxDet" inherit="b86a-BOMEX-mynn_DIFF_M3_EDMFexpUP_NOsm">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           3,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-b86a7-BOMEX-mynn_M3_EDMFexpUP_ASpd_QxEddy" inherit="b86a-BOMEX-mynn_DIFF_M3_EDMFexpUP_NOsm">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           1,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           3,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xx1-b86a6-BOMEX-mynn_M3_EDMFexpUP_ASpd_QxDet" inherit="xb1-b86a6-BOMEX-mynn_M3_EDMFexpUP_ASpd_QxDet">
+  </experiment>
+  <experiment name="xx1-b86a7-BOMEX-mynn_M3_EDMFexpUP_ASpd_QxEddy" inherit="xb1-b86a7-BOMEX-mynn_M3_EDMFexpUP_ASpd_QxEddy">
+  </experiment>
+  <experiment name="xx1-rfo86a6-RF01-mynn_M3_EDMFexpUP_ASpd_QxDet" inherit="xb1-rfo86a6-RF01-mynn_M3_EDMFexpUP_ASpd_QxDet">
+  </experiment>
+  <experiment name="xx1-rfo86a7-RF01-mynn_M3_EDMFexpUP_ASpd_QxEddy" inherit="xb1-rfo86a7-RF01-mynn_M3_EDMFexpUP_ASpd_QxEddy">
+  </experiment>
+
+  <experiment name="xx2-b86a6-BOMEX-mynn_M3_EDMFexpUP_ASpd_QxDet" inherit="xb1-b86a6-BOMEX-mynn_M3_EDMFexpUP_ASpd_QxDet">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = T,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ do_tracers_in_edmf_mynn = F
+ do_tracers_selective = 6
+ do_edmf_mynn_diffusion_smooth = F
+ do_return_edmf_mynn_diff_only = F
+ do_edmf_mynn_in_physics = "up"
+      </namelist>
+    </input>
+  </experiment>
+
+
+
+  <experiment name="xb1-rfo81e-RF01-mynn_ED_Gmy_UWlock_SFKay_NOsm" inherit="rfo71e-RF01-am4p0_mynn_ED_Gmy_UWlock_SFKay_NOsm">
+  </experiment>
+
+  <experiment name="xb1-rfo85b-RF01-mynn_DIFF_EDonly_M3_NOsm" inherit="rfo75b-RF01-mynn_DIFF_EDonly_M3_NOsm">
+  </experiment>
+
+  <experiment name="xb1-rfo86a1-RF01-mynn_M3_EDMFexpUP_UPA_QxEddy" inherit="rfo86a-RF01-mynn_DIFF_M3_EDMFexpUP_NOsm">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           1,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           1,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-rfo86a2-RF01-mynn_M3_EDMFexpUP_UPA_QxDet" inherit="rfo86a-RF01-mynn_DIFF_M3_EDMFexpUP_NOsm">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           1,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-rfo86a3-RF01-mynn_M3_EDMFexpUP_UPAn_QxEddy" inherit="rfo86a-RF01-mynn_DIFF_M3_EDMFexpUP_NOsm">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           1,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           2,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-rfo86a4-RF01-mynn_M3_EDMFexpUP_UPAn_QxDet" inherit="rfo86a-RF01-mynn_DIFF_M3_EDMFexpUP_NOsm">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           2,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-rfo86a5-RF01-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.5" inherit="xb1-rfo86a2-RF01-mynn_M3_EDMFexpUP_UPA_QxDet">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           1,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+ option_ent = 2
+ alpha_st = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-rfo86a5-RF01-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.3" inherit="xb1-rfo86a2-RF01-mynn_M3_EDMFexpUP_UPA_QxDet">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           1,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+ option_ent = 2
+ alpha_st = 0.3
+      </namelist>
+    </input>
+  </experiment>
+
+
+  <experiment name="xb1-rfo86a5-RF01-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.7" inherit="xb1-rfo86a2-RF01-mynn_M3_EDMFexpUP_UPA_QxDet">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           1,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+ option_ent = 2
+ alpha_st = 0.7
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-rfo86a5-RF01-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.0" inherit="xb1-rfo86a5-RF01-mynn_M3_EDMFexpUP_cA_QxDet_2ent0.5">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           1,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+ option_ent = 2
+ alpha_st = 0.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-rfo86a6-RF01-mynn_M3_EDMFexpUP_ASpd_QxDet" inherit="rfo86a-RF01-mynn_DIFF_M3_EDMFexpUP_NOsm">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           2,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           3,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xb1-rfo86a7-RF01-mynn_M3_EDMFexpUP_ASpd_QxEddy" inherit="rfo86a-RF01-mynn_DIFF_M3_EDMFexpUP_NOsm">
+    <input>
+      <namelist name="edmf_mynn_nml">
+ MYNN_LEVEL      =           2,
+ BL_MYNN_EDMF    =           3,
+ BL_MYNN_EDMF_DD =           0,
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ DO_QDT_SAME_AS_QTDT     = F,
+ BL_MYNN_MIXLENGTH       =           2,
+ BL_MYNN_STABFUNC        =           1,
+ L0      =   100.000000000000     ,
+ NUP     =         100,
+ UPSTAB  =   1.00000000000000     ,
+ EDMF_TYPE       =           2,
+ QKE_MIN =  -1.00000000000000     ,
+ OPTION_SURFACE_FLUX     = updated             ,
+ TDT_MAX =   500.000000000000     ,
+ DO_LIMIT_TDT    = F,
+ TDT_LIMIT       =   200.000000000000     ,
+ DO_PBLH_CONSTANT        = F,
+ FIXED_PBLH      =   2500.00000000000     ,
+ SGM_FACTOR      =   100.000000000000     ,
+ RC_MF   =  1.000000000000000E-005,
+ DO_OPTION_EDMF2LS_MP    =           4,
+ DO_USE_TAU      = F,
+ QX_MF   =           1,
+ QX_NUMERICS     =           1,
+ OPTION_UP_AREA  =           3,
+ DO_DEBUG_OPTION =                     ,
+ DO_STOP_RUN     = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ DO_CHECK_CONSRV = F,
+ II_WRITE        =           0,
+ JJ_WRITE        =           0,
+ LAT_WRITE       =  -999.990000000000     ,
+ LON_WRITE       =  -999.990000000000
+      </namelist>
+    </input>
+  </experiment>
+
+
+  <experiment name="x01-xb1-b86a1-BOMEX-mynn_M3_EDMFexpUP_UPA_QxEddy" inherit="xb1-b86a1-BOMEX-mynn_M3_EDMFexpUP_UPA_QxEddy">
+  </experiment>
 
   <experiment name="xa1-b86a-BOMEX-mynn_DIFF_M3_EDMFexpUP_NOsm_UPAn" inherit="b86a-BOMEX-mynn_DIFF_M3_EDMFexpUP_NOsm">
   </experiment>
