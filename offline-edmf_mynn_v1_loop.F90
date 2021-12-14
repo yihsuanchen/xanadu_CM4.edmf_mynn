@@ -27,8 +27,8 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_RF01_mynn_EDMFexpUP_Gmy_ADD_0.5h"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm01"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
-  !character*50 :: input_profile = "AMIP_i8_j3_Arctic"  ! negative updraft vertical velocity at the surface (wmin & wmax <0)
-  character*50 :: input_profile = "AMIP_i2_j4_Delware"
+  character*50 :: input_profile = "AMIP_i8_j3_Arctic"  ! negative updraft vertical velocity at the surface (wmin & wmax <0)
+  !character*50 :: input_profile = "AMIP_i2_j4_Delware"
 
   integer, parameter :: loop_times = 1
  ! integer, parameter :: loop_times = 10
@@ -162,8 +162,8 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
    real    :: lon_write = -999.99   ! longitude (radian) for column written out
    real    :: lat_range = 0.001
    real    :: lon_range = 0.001
-   logical :: do_writeout_column_nml = .true.
-   !logical :: do_writeout_column_nml = .false.
+   !logical :: do_writeout_column_nml = .true.
+   logical :: do_writeout_column_nml = .false.
    !logical :: do_edmf_mynn_diagnostic = .true.
    logical :: do_edmf_mynn_diagnostic = .false.
    logical :: do_edmf2ls_mp = .true.
@@ -203,6 +203,7 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
                                                 !             (rdgas/rvgas)*esat/pressure
                                                 ! same setting as module moist_processes_mod
   character*20 :: do_debug_option = ""          ! debug purpose
+  !character*20 :: do_debug_option = "check_rlz"         ! debug purpose
 
 logical :: do_return_edmf_mynn_diff_only = .false. ! .true.,  return edmf_mynn diffusion coefficients 
                                                    !          and let vert_diff do the diffusion rather than in edmf_mynn
@@ -8037,6 +8038,14 @@ subroutine edmf_mynn_driver ( &
     enddo
   end if
 
+  !--- check whether tracers become negative
+  if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
+    print*,'new qv',Physics_input_block%q(:,:,:,nsphum) + dt * am4_Output_edmf%qdt_edmf(:,:,:)
+    print*,'new ql',Physics_input_block%q(:,:,:,nql)    + dt * am4_Output_edmf%qldt_edmf(:,:,:)
+    print*,'new qi',Physics_input_block%q(:,:,:,nqi)    + dt * am4_Output_edmf%qidt_edmf(:,:,:)
+    print*,'new qa',Physics_input_block%q(:,:,:,nqa)    + dt * am4_Output_edmf%qadt_edmf(:,:,:)
+  endif
+
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
 !---------------------------------------------------------------------
@@ -10488,6 +10497,10 @@ if (do_check_realizability) then
 
 endif  ! end if of do_check_realizability
 
+ !--- printout for debugging purpose
+ if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
+   print*,'**********************'
+   print*,''
    print*,'do_check_realizability = ',do_check_realizability
    print*,'index: qv, ql, qi, qa, qt'
    print*,'tends_ratio',tends_ratio
@@ -10501,7 +10514,9 @@ endif  ! end if of do_check_realizability
    print*,'RQLBLTEN',Output_edmf%RQLBLTEN
    print*,'RQIBLTEN',Output_edmf%RQIBLTEN
    print*,'RCCBLTEN',Output_edmf%RCCBLTEN
-   stop
+   print*,''
+   print*,'**********************'
+ end if
 
 !----------------------------
 ! printout statements 
