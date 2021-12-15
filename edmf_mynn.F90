@@ -757,11 +757,11 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  missing_value=missing_value )
 
   id_edmf_qt = register_diag_field (mod_name, 'edmf_qt', axes(half), Time, &
-                 'qt in updrafts', 'kg/kg' , &
+                 'qt diff between updrafts and grid-mean', 'kg/kg' , &
                  missing_value=missing_value )
 
   id_edmf_thl = register_diag_field (mod_name, 'edmf_thl', axes(half), Time, &
-                 'thl in updrafts', 'K' , &
+                 'thl diff between updrafts and grid-mean', 'K' , &
                  missing_value=missing_value )
 
   id_edmf_ent = register_diag_field (mod_name, 'edmf_ent', axes(full), Time, &
@@ -1374,8 +1374,8 @@ end subroutine edmf_mynn_end
 !   REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME):: 
 !         edmf_a ... updraft area [-] 
 !         edmf_w ... vertical velocity of updrafts [m s^-1]
-!         edmf_qt .... qt in updrafts  [kg kg^-1]
-!         edmf_thl .... thl in updrafts  [K]
+!         edmf_qt .... qt diff between updrafts and grid-mean  [kg kg^-1]
+!         edmf_thl .... thl diff between updrafts and grid-mean  [K]
 !         edmf_ent ... entrainment in updrafts [m^-1]
 !         edmf_qc ... qc in updrafts [kg kg^-1]
 !         edmf_a_dd,edmf_w_dd,edmf_qt_dd,edmf_thl_dd,edmf_ent_dd,edmf_qc_dd ... dummy outputs (downdraft poperties)
