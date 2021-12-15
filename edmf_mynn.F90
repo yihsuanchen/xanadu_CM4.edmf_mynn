@@ -509,7 +509,7 @@ integer :: id_a_moist_half, id_a_moist_full, id_mf_moist_half, id_mf_moist_full,
 
 integer :: id_num_updraft, id_num_det, id_num_ndet_zent, id_num_ndet_pent
 
-integer :: id_return_ratio
+integer :: id_rlz_ratio, id_rlz_tracer
 !---------------------------------------------------------------------
 
   contains
@@ -1116,8 +1116,12 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  'frequency of negative dentrainment with positive entrainment in edmf updrafts', 'none' , &
                  missing_value=missing_value )
 
-  id_return_ratio = register_diag_field (mod_name, 'return_ratio', axes(1:2), Time, &
+  id_rlz_ratio = register_diag_field (mod_name, 'rlz_ratio', axes(1:2), Time, &
                  'ratio for realizability limiter', 'none' , &
+                 missing_value=missing_value )
+
+  id_rlz_tracer = register_diag_field (mod_name, 'rlz_tracer', axes(1:2), Time, &
+                 'tracer name for realizability limiter', 'none' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -7834,7 +7838,7 @@ subroutine edmf_mynn_driver ( &
 
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2)) :: &  ! dimension (nlon,nlat)
-    return_ratio
+    rlz_ratio
 
   real :: randomNumbers
 
@@ -8042,7 +8046,7 @@ subroutine edmf_mynn_driver ( &
                                     do_writeout_column,         &
                                     Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                     size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                    Output_edmf, return_ratio)
+                                    Output_edmf, rlz_ratio)
 
 !---------------------------------------------------------------------
 ! process the outputs from the EDMF-MYNN program
@@ -8644,8 +8648,8 @@ subroutine edmf_mynn_driver ( &
       endif
 
 !------- ratio for realizability limiter (units: none) at one level -------
-      if ( id_return_ratio > 0) then
-        used = send_data (id_return_ratio, return_ratio, Time_next, is, js )
+      if ( id_rlz_ratio > 0) then
+        used = send_data (id_rlz_ratio, rlz_ratio, Time_next, is, js )
       endif
 !send_data
 
@@ -10828,7 +10832,7 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
                                         do_writeout_column, &
                                         Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                         ix, jx, kx,  &
-                                        Output_edmf, return_ratio)
+                                        Output_edmf, rlz_ratio)
 
 !--- input arguments
   integer, intent(in)                   :: is, ie, js, je
@@ -10843,7 +10847,7 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
 
 !--- input/output arguments
   type(edmf_output_type)    , intent(inout)  :: Output_edmf
-  real, dimension(ix,jx)    , intent(out)    :: return_ratio  ! ratio for scaling the tendencies 
+  real, dimension(ix,jx)    , intent(out)    :: rlz_ratio  ! ratio for scaling the tendencies 
 
 !--- local variable
   integer, parameter :: nx = 5     ! number of tracers for realizability check
@@ -10851,10 +10855,14 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
     tracers, tracers_tend
   real, dimension(ix,jx,nx)   ::  &  ! realizability ratio for each tracer 
     tends_ratio
+  integer, dimension(ix,jx)    :: rlz_tracer    ! tracer name for the rlz_ratio
   real, dimension(ix,jx,kx) :: tmp_3d
   logical used
   integer i,j,k,kk
 !------------------------------------------
+
+!--- initialze return variables
+  rlz_ratio = 1.
 
 !----------------------------
 ! save the original mynn_edmf tendencies
@@ -11107,10 +11115,10 @@ if (do_check_realizability) then
    call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQTBLTEN(:,:,:), tracers_tend(:,:,:,5))
 
    call check_trc_rlzbility (dt, tracers, tracers_tend, &
-                             tends_ratio, return_ratio)
+                             tends_ratio, rlz_ratio, rlz_tracer)
 
    !--- ratio must be between 0 and 1
-   if (any(tends_ratio.le.0.) .or. any(tends_ratio.gt.1.)) then
+   if (any(tends_ratio.lt.0.) .or. any(tends_ratio.gt.1.)) then
      call error_mesg( ' edmf_mynn',     &
                       ' the ratio from the realizability check must be between 0 to 1',&
                       FATAL )
@@ -11120,18 +11128,18 @@ if (do_check_realizability) then
    do i=1,ix
    do j=1,jx
      ! u and v tendencies
-     Output_edmf%RUBLTEN (i,:,j) = Output_edmf%RUBLTEN (i,:,j) * return_ratio(i,j)
-     Output_edmf%RVBLTEN (i,:,j) = Output_edmf%RVBLTEN (i,:,j) * return_ratio(i,j)
+     Output_edmf%RUBLTEN (i,:,j) = Output_edmf%RUBLTEN (i,:,j) * rlz_ratio(i,j)
+     Output_edmf%RVBLTEN (i,:,j) = Output_edmf%RVBLTEN (i,:,j) * rlz_ratio(i,j)
 
      ! theta_l and q_t tendencies
-     Output_edmf%RQTBLTEN (i,:,j) = Output_edmf%RQTBLTEN (i,:,j) * return_ratio(i,j)
-     Output_edmf%RTHLBLTEN(i,:,j) = Output_edmf%RTHLBLTEN(i,:,j) * return_ratio(i,j)
+     Output_edmf%RQTBLTEN (i,:,j) = Output_edmf%RQTBLTEN (i,:,j) * rlz_ratio(i,j)
+     Output_edmf%RTHLBLTEN(i,:,j) = Output_edmf%RTHLBLTEN(i,:,j) * rlz_ratio(i,j)
 
      ! qv, ql, qi, qa tendencies
-     Output_edmf%RQVBLTEN(i,:,j) = Output_edmf%RQVBLTEN(i,:,j) * return_ratio(i,j)
-     Output_edmf%RQLBLTEN(i,:,j) = Output_edmf%RQLBLTEN(i,:,j) * return_ratio(i,j)
-     Output_edmf%RQIBLTEN(i,:,j) = Output_edmf%RQIBLTEN(i,:,j) * return_ratio(i,j)
-     Output_edmf%RCCBLTEN(i,:,j) = Output_edmf%RCCBLTEN(i,:,j) * return_ratio(i,j)
+     Output_edmf%RQVBLTEN(i,:,j) = Output_edmf%RQVBLTEN(i,:,j) * rlz_ratio(i,j)
+     Output_edmf%RQLBLTEN(i,:,j) = Output_edmf%RQLBLTEN(i,:,j) * rlz_ratio(i,j)
+     Output_edmf%RQIBLTEN(i,:,j) = Output_edmf%RQIBLTEN(i,:,j) * rlz_ratio(i,j)
+     Output_edmf%RCCBLTEN(i,:,j) = Output_edmf%RCCBLTEN(i,:,j) * rlz_ratio(i,j)
    enddo  ! end loop of j
    enddo  ! end loop of i
 
@@ -11148,7 +11156,8 @@ endif  ! end if of do_check_realizability
    print*,'do_check_realizability = ',do_check_realizability
    print*,'index: qv, ql, qi, qa, qt'
    print*,'tends_ratio',tends_ratio
-   print*,'return_ratio',return_ratio
+   print*,'rlz_ratio',rlz_ratio
+   print*,'rlz_tracer',rlz_tracer
    print*,'------------------------------'
    print*,'RUBLTEN',Output_edmf%RUBLTEN
    print*,'RVBLTEN',Output_edmf%RVBLTEN
@@ -11182,6 +11191,17 @@ endif  ! end if of do_check_realizability
 !     write(6,*) 'Output_edmf%Q_qi',Output_edmf%Q_qi(ii_write,:,jj_write)
 !     write(6,*) 'Output_edmf%RQIBLTEN',Output_edmf%RQIBLTEN(ii_write,:,jj_write)
 !   end if
+
+!-----------------------------
+! write out to history files
+!-----------------------------
+!
+!send_data
+!------- tracer name for realizability limiter (units: none) at one level -------
+      if ( id_rlz_tracer > 0) then
+        used = send_data (id_rlz_tracer, rlz_tracer, Time_next, is, js )
+      endif
+!send_data
 
 end subroutine modify_mynn_edmf_tendencies
 
@@ -11423,7 +11443,7 @@ end subroutine Poisson_knuth
 !###################################
 
 subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
-                                tends_ratio, return_ratio)
+                                tends_ratio, rlz_ratio, rlz_tracer)
 
 !---------------------------------------------------------------------
 !  Check for tracer realizability. If tracer tendencies would
@@ -11444,14 +11464,16 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
-!     tends_ratio     ratio by which tracer tendencies need to 
+!     tends_ratio    ratio by which tracer tendencies need to 
 !                    be reduced to permit realizability (i.e., to prevent
 !                    negative tracer mixing ratios)
-!     return_ratio   the smallest ratio of all tracers. This would be used to scale the all tendencies (Temperature, tracerts, etc)
+!     rlz_ratio      the smallest ratio of all tracers. This would be used to scale the all tendencies (Temperature, tracerts, etc)
 !---------------------------------------------------------------------
-  real, intent(out), dimension(:,:,:)     :: tends_ratio          ! dimension (nlon, nlat, ntracer)
+  real   , intent(out), dimension(:,:,:)     :: tends_ratio          ! dimension (nlon, nlat, ntracer)
  
-  real, intent(out), dimension(:,:)       :: return_ratio         ! dimension (nlon, nlat)
+  real   , intent(out), dimension(:,:)       :: rlz_ratio         ! dimension (nlon, nlat)
+
+  integer, intent(out), dimension(:,:)       :: rlz_tracer           ! dimension (nlon, nlat)
  
 !---------------------------------------------------------------------
 ! Arguments (Intent local)
@@ -11484,7 +11506,8 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 
 !--- initialze return variable
   tends_ratio  = 1.
-  return_ratio = 1.
+  rlz_ratio = 1.
+  rlz_tracer   = 0
 
 !---------------------
 ! compute tend_ratio
@@ -11570,7 +11593,8 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
   do i=1,ix
   do j=1,jx
   do n=1,nx
-    return_ratio(i,j) = MAX(0.,MIN( return_ratio(i,j),tends_ratio(i,j,n) ) )
+    rlz_ratio(i,j) = MAX(0.,MIN( rlz_ratio(i,j),tends_ratio(i,j,n) ) )
+    if (rlz_ratio(i,j).ne.1. .and. rlz_ratio(i,j).eq.tends_ratio(i,j,n)) rlz_tracer(i,j) = n   ! save the tracer name
   enddo   ! end do of n 
   enddo   ! end do of j
   enddo   ! end do of i
