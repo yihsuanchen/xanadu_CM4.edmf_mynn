@@ -1121,7 +1121,7 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                  missing_value=missing_value )
 
   id_rlz_tracer = register_diag_field (mod_name, 'rlz_tracer', axes(1:2), Time, &
-                 'tracer name for realizability limiter', 'none' , &
+                 'tracer name for realizability limiter (qv,l,i,a,t)', 'none' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -7838,7 +7838,7 @@ subroutine edmf_mynn_driver ( &
 
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2)) :: &  ! dimension (nlon,nlat)
-    rlz_ratio
+    rlz_ratio, rlz_tracer
 
   real :: randomNumbers
 
@@ -8046,7 +8046,7 @@ subroutine edmf_mynn_driver ( &
                                     do_writeout_column,         &
                                     Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                     size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                    Output_edmf, rlz_ratio)
+                                    Output_edmf, rlz_ratio, rlz_tracer)
 
 !---------------------------------------------------------------------
 ! process the outputs from the EDMF-MYNN program
@@ -8650,6 +8650,11 @@ subroutine edmf_mynn_driver ( &
 !------- ratio for realizability limiter (units: none) at one level -------
       if ( id_rlz_ratio > 0) then
         used = send_data (id_rlz_ratio, rlz_ratio, Time_next, is, js )
+      endif
+
+!------- tracer name for realizability limiter (units: none) at one level -------
+      if ( id_rlz_tracer > 0) then
+        used = send_data (id_rlz_tracer, rlz_tracer, Time_next, is, js )
       endif
 !send_data
 
@@ -10832,7 +10837,7 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
                                         do_writeout_column, &
                                         Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                         ix, jx, kx,  &
-                                        Output_edmf, rlz_ratio)
+                                        Output_edmf, rlz_ratio, rlz_tracer)
 
 !--- input arguments
   integer, intent(in)                   :: is, ie, js, je
@@ -10848,6 +10853,7 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
 !--- input/output arguments
   type(edmf_output_type)    , intent(inout)  :: Output_edmf
   real, dimension(ix,jx)    , intent(out)    :: rlz_ratio  ! ratio for scaling the tendencies 
+  real, dimension(ix,jx)    , intent(out)    :: rlz_tracer    ! tracer name for the rlz_ratio
 
 !--- local variable
   integer, parameter :: nx = 5     ! number of tracers for realizability check
@@ -10855,14 +10861,14 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
     tracers, tracers_tend
   real, dimension(ix,jx,nx)   ::  &  ! realizability ratio for each tracer 
     tends_ratio
-  integer, dimension(ix,jx)    :: rlz_tracer    ! tracer name for the rlz_ratio
   real, dimension(ix,jx,kx) :: tmp_3d
   logical used
   integer i,j,k,kk
 !------------------------------------------
 
 !--- initialze return variables
-  rlz_ratio = 1.
+  rlz_ratio  = 1.
+  rlz_tracer = 0.
 
 !----------------------------
 ! save the original mynn_edmf tendencies
@@ -11192,15 +11198,14 @@ endif  ! end if of do_check_realizability
 !     write(6,*) 'Output_edmf%RQIBLTEN',Output_edmf%RQIBLTEN(ii_write,:,jj_write)
 !   end if
 
-!-----------------------------
-! write out to history files
-!-----------------------------
 !
 !send_data
 !------- tracer name for realizability limiter (units: none) at one level -------
-      if ( id_rlz_tracer > 0) then
-        used = send_data (id_rlz_tracer, rlz_tracer, Time_next, is, js )
-      endif
+! ! yhc 2021-12-15, fail to compile, "error #6284: There is no matching specific function for this generic function reference.   [SEND_DATA]"
+! !                 I have no idea why...
+!      if ( id_rlz_tracer > 0) then
+!        used = send_data (id_rlz_tracer, rlz_tracer, Time_next, is, js )
+!      endif
 !send_data
 
 end subroutine modify_mynn_edmf_tendencies
@@ -11473,7 +11478,7 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
  
   real   , intent(out), dimension(:,:)       :: rlz_ratio         ! dimension (nlon, nlat)
 
-  integer, intent(out), dimension(:,:)       :: rlz_tracer           ! dimension (nlon, nlat)
+  real   , intent(out), dimension(:,:)       :: rlz_tracer           ! dimension (nlon, nlat)
  
 !---------------------------------------------------------------------
 ! Arguments (Intent local)
@@ -11506,8 +11511,8 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 
 !--- initialze return variable
   tends_ratio  = 1.
-  rlz_ratio = 1.
-  rlz_tracer   = 0
+  rlz_ratio    = 1.
+  rlz_tracer   = 0.
 
 !---------------------
 ! compute tend_ratio
@@ -11594,7 +11599,7 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
   do j=1,jx
   do n=1,nx
     rlz_ratio(i,j) = MAX(0.,MIN( rlz_ratio(i,j),tends_ratio(i,j,n) ) )
-    if (rlz_ratio(i,j).ne.1. .and. rlz_ratio(i,j).eq.tends_ratio(i,j,n)) rlz_tracer(i,j) = n   ! save the tracer name
+    if (rlz_ratio(i,j).ne.1. .and. rlz_ratio(i,j).eq.tends_ratio(i,j,n)) rlz_tracer(i,j) = float(n)   ! save the tracer name
   enddo   ! end do of n 
   enddo   ! end do of j
   enddo   ! end do of i
