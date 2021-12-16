@@ -427,6 +427,9 @@ end type edmf_ls_mp_type
                                                 !   set qke_min>0 may remove energy/water away and cause water mass is not conserved
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
                                                 ! 1.E-10 is same as qmin in lscloud_driver
+  real    :: qdt_min    = 1.E-15                ! minimum value for the tendencies used by the realizability limiter
+                                                ! This is to avoid nearly zero tracer concentration with extremely small negative tendency,
+                                                ! which leads to extremely small rescaled ratio
   integer :: do_option_edmf2ls_mp = 0           ! option to include EDMF cloud tendencies terms into Tiedtke
                                                 ! =0, add EDMF terms to accumulated ql and qi tendnecies
                                                 ! =1, add EDMF terms to Tiedtke and keep Tiedtke terms except turbulence heating
@@ -10860,7 +10863,8 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
   real, dimension(ix,jx,kx,nx) ::  &  ! tracers for realizability check
     tracers, tracers_tend
   real, dimension(ix,jx,nx)   ::  &  ! realizability ratio for each tracer 
-    tends_ratio
+    tends_ratio, &   ! realizability ratio for each tracer 
+    tends_ratio_k    ! level of the realizability ratio
   real, dimension(ix,jx,kx) :: tmp_3d
   logical used
   integer i,j,k,kk
@@ -11121,7 +11125,7 @@ if (do_check_realizability) then
    call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQTBLTEN(:,:,:), tracers_tend(:,:,:,5))
 
    call check_trc_rlzbility (dt, tracers, tracers_tend, &
-                             tends_ratio, rlz_ratio, rlz_tracer)
+                             tends_ratio, tends_ratio_k, rlz_ratio, rlz_tracer)
 
    !--- ratio must be between 0 and 1
    if (any(tends_ratio.lt.0.) .or. any(tends_ratio.gt.1.)) then
@@ -11129,6 +11133,31 @@ if (do_check_realizability) then
                       ' the ratio from the realizability check must be between 0 to 1',&
                       FATAL )
    endif
+
+   !--- printout for debugging purpose
+   if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
+     print*,'**********************'
+     print*,''
+     print*,'do_check_realizability = ',do_check_realizability
+     print*,'index: qv, ql, qi, qa, qt'
+     print*,'tends_ratio',tends_ratio
+     print*,'tends_ratio_k',tends_ratio_k
+     print*,'rlz_ratio',rlz_ratio
+     print*,'rlz_tracer',rlz_tracer
+     print*,'------------------------------'
+     print*,'original tendencies'
+     print*,''
+     print*,'RUBLTEN',Output_edmf%RUBLTEN
+     print*,'RVBLTEN',Output_edmf%RVBLTEN
+     print*,'RQTBLTEN',Output_edmf%RQTBLTEN
+     print*,'RTHLBLTEN',Output_edmf%RTHLBLTEN
+     print*,'RQVBLTEN',Output_edmf%RQVBLTEN
+     print*,'RQLBLTEN',Output_edmf%RQLBLTEN
+     print*,'RQIBLTEN',Output_edmf%RQIBLTEN
+     print*,'RCCBLTEN',Output_edmf%RCCBLTEN
+     print*,''
+     print*,'**********************'
+   end if
 
    !--- rescale the tendencies
    do i=1,ix
@@ -11155,27 +11184,6 @@ if (do_check_realizability) then
 
 endif  ! end if of do_check_realizability
 
- !--- printout for debugging purpose
- if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
-   print*,'**********************'
-   print*,''
-   print*,'do_check_realizability = ',do_check_realizability
-   print*,'index: qv, ql, qi, qa, qt'
-   print*,'tends_ratio',tends_ratio
-   print*,'rlz_ratio',rlz_ratio
-   print*,'rlz_tracer',rlz_tracer
-   print*,'------------------------------'
-   print*,'RUBLTEN',Output_edmf%RUBLTEN
-   print*,'RVBLTEN',Output_edmf%RVBLTEN
-   print*,'RQTBLTEN',Output_edmf%RQTBLTEN
-   print*,'RTHLBLTEN',Output_edmf%RTHLBLTEN
-   print*,'RQVBLTEN',Output_edmf%RQVBLTEN
-   print*,'RQLBLTEN',Output_edmf%RQLBLTEN
-   print*,'RQIBLTEN',Output_edmf%RQIBLTEN
-   print*,'RCCBLTEN',Output_edmf%RCCBLTEN
-   print*,''
-   print*,'**********************'
- end if
 
 !----------------------------
 ! printout statements 
@@ -11448,7 +11456,7 @@ end subroutine Poisson_knuth
 !###################################
 
 subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
-                                tends_ratio, rlz_ratio, rlz_tracer)
+                                tends_ratio, tends_ratio_k, rlz_ratio, rlz_tracer)
 
 !---------------------------------------------------------------------
 !  Check for tracer realizability. If tracer tendencies would
@@ -11475,6 +11483,8 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 !     rlz_ratio      the smallest ratio of all tracers. This would be used to scale the all tendencies (Temperature, tracerts, etc)
 !---------------------------------------------------------------------
   real   , intent(out), dimension(:,:,:)     :: tends_ratio          ! dimension (nlon, nlat, ntracer)
+
+  real   , intent(out), dimension(:,:,:)     :: tends_ratio_k        ! dimension (nlon, nlat, ntracer)
  
   real   , intent(out), dimension(:,:)       :: rlz_ratio         ! dimension (nlon, nlat)
 
@@ -11493,7 +11503,7 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
     tracer0, trtend, tracer1
 
   real :: &
-    tracer_min, tracer_max, ratio
+    tracer0_min, tracer0_max, ratio, ratio0
 
   character*40 cause
 
@@ -11510,9 +11520,10 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
   nx  = size( tracers, 4 )
 
 !--- initialze return variable
-  tends_ratio  = 1.
-  rlz_ratio    = 1.
-  rlz_tracer   = 0.
+  tends_ratio   = 1.
+  tends_ratio_k = 0.
+  rlz_ratio     = 1.
+  rlz_tracer    = 0.
 
 !---------------------
 ! compute tend_ratio
@@ -11535,13 +11546,13 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 !write(6,*),'trtend',trtend
 
     !--- get max/min of tracer0
-    tracer_min = 1.e20
-    tracer_max = -1.e20
+    tracer0_min = 1.e20
+    tracer0_max = -1.e20
 
     do k = 1,kx
        if (trtend(k) /= 0.) then
-          tracer_max = max(tracer0(k),tracer_max)
-          tracer_min = min(tracer0(k),tracer_min)
+          tracer0_max = max(tracer0(k),tracer0_max)
+          tracer0_min = min(tracer0(k),tracer0_min)
        end if
     end do
 
@@ -11553,12 +11564,22 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
     do k = 1,kx
 
        !--- if tracer1 is less than zero
-       if (tracer0(k) > 0. .and. tracer1(k)<0.) then
-          ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
-          !cause = "tracer1 is less than zero"
-          !write(6,*),'-------'
-          !write(6,*),'aa1, less than zero, k,ratio',k,ratio
-          !write(6,*),'  tracer0(k), tracer1(k), ',tracer0(k), tracer1(k)
+       !if (tracer0(k) > 0. .and. tracer1(k)<0.) then
+       if (tracer0(k)>0. .and. tracer1(k)<0. .and. abs(trtend(k))>qdt_min ) then   ! to avoid tracer0=1.E-100, trtend=-1.E-50. tracer1<0/ 
+
+          if (tracer0(k) .lt. tracer_min) then  ! if tracer0 is too small, set ratio to zero
+            ratio0 = 0. 
+            ratio  = 0.
+          else
+            ratio0 = ratio
+            ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
+          endif
+
+            !cause = "tracer1 is less than zero"
+            !write(6,*),'-------'
+            !write(6,*),'aa1, n,k,ratio',n,k,ratio
+            !write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
+            if (ratio.ne.ratio0) tends_ratio_k(i,j,n) = k          
        end if
 
        !--- yhc 2021-12-13, comment this out because MF can produce tracer values less than the original minimum 
