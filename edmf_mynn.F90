@@ -11464,6 +11464,31 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 !  terms uniformly for this tracer throughout convective column. 
 !
 !  Reference: subroutine don_d_check_trc_rlzbility, src/atmos_param/donner_deep/donner_deep_k.F90
+!
+!  In the Tiedtke scheme, it calls a subroutine "impose_realizability" to force that there are no negative or extremely small qa, ql, or qi values. Any values of the prognostic variables which are less than qmin are reset to zero, while conserving total moisture.
+!  (src/atmos_param/lscloud_driver/lscloud_driver.F90)
+!
+!  The minimum permissible value, qmin, is 1.e-10.
+!  (src/atmos_param/physics_driver/physics_driver.F90)
+!
+!  Given that Tiedtke will do the realizability check for the cloud tracers, the realizability limiter in the MYNN-EDMF does the following:
+!
+!  tracer0: the input tracer concentration at a level (qa, ql, qi, qv, or qt)
+!  tracer1: the updated tracer concentration at a level by the MYNN-EDMF
+!  qmin: the minimum permissible tracer value in Tiedtke, 1.e-10 as default
+!
+!                         | tracer0<0   |   0<tracer0<qmin (e.g. tracer0=1.e-50)   |   tracer0 > qmin
+!  ----------------------------------------------------------------------------------------------------
+!  tracer1<-qmin          | STOP the    |   Limiter. The rescaled ratio            |    Limiter 
+!  (e.g. tracer1=1.e-4)   | model       |   should be very very small              |
+!  ------------------------             ---------------------------------------------------------------
+!  -qmin < tracer1 < 0    | sth is wrong|   No Limiter. Let Tiedtke do the         |    Limiter 
+!  (e.g. tracer1=-1.e-30) |             |   realizability check                    |
+!  ----------------------------------------------------------------------------------------------------
+!  tracer1 > 0            |             |   No Limiter                             !    No Limiter
+!  ----------------------------------------------------------------------------------------------------
+!
+!
 !---------------------------------------------------------------------
 
 !---------------------------------------------------------------------
@@ -11532,7 +11557,8 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 !   (2) in the range of max/min of tracer0
 !---------------------
 
-  do n=1,nx
+  !do n=1,nx
+  do n=1,1
   do i=1,ix
   do j=1,jx
 
@@ -11540,10 +11566,23 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
     tracer0(:)  = tracers(i,j,:,n)
     trtend (:)  = tracers_tend(i,j,:,n)
     tracer1(:)  = tracer0(:) + dt * trtend(:)
+    !write(6,*),'tracer0',tracer0
+    !write(6,*),'tracer1',tracer1
+    !write(6,*),'trtend',trtend
 
-!write(6,*),'tracer0',tracer0
-!write(6,*),'tracer1',tracer1
-!write(6,*),'trtend',trtend
+    !--- testing values 
+    !tracer1(28) = 1.
+    !tracer1(28) = -1.E-25
+    !tracer0(28) = 1.E-30
+    !tracer0(28) = 1.E-8 
+
+    if (any(tracer0.lt.0.)) then
+      write(6,*) 'i,j,#tracer',i,j,n
+      write(6,*) 'tracer0',tracer0
+      call error_mesg( ' edmf_mynn',     &
+                       ' check_trc_rlzbility, tracers < 0.',&
+                       FATAL )
+    endif
 
     !--- get max/min of tracer0
     tracer0_min = 1.e20
@@ -11555,32 +11594,52 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
           tracer0_min = min(tracer0(k),tracer0_min)
        end if
     end do
-
-!print*,'tracer_max',tracer_max
-!print*,'tracer_min',tracer_min
+    !print*,'tracer_max',tracer_max
+    !print*,'tracer_min',tracer_min
 
     !--- compute ratio
     ratio = 1.
     do k = 1,kx
 
+       !--- call realizability limiter in these conditions
+       if (tracer0(k) > 0. .and. tracer1(k) < -qmin) then
+          ratio0 = ratio
+          ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
+          if (ratio.ne.ratio0) tends_ratio_k(i,j,n) = k          
+
+          write(6,*),'-------'
+          write(6,*),'aaa1, n,k,ratio',n,k,ratio
+          write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
+
+       elseif (tracer0(k) > qmin .and. tracer1(k) < 0. .and. tracer1(k) > -qmin) then  
+          ratio0 = ratio
+          ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
+          if (ratio.ne.ratio0) tends_ratio_k(i,j,n) = k          
+
+          write(6,*),'-------'
+          write(6,*),'aaa2, n,k,ratio',n,k,ratio
+          write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
+
+       endif
+
        !--- if tracer1 is less than zero
        !if (tracer0(k) > 0. .and. tracer1(k)<0.) then
-       if (tracer0(k)>0. .and. tracer1(k)<0. .and. abs(trtend(k))>qdt_min ) then   ! to avoid tracer0=1.E-100, trtend=-1.E-50. tracer1<0/ 
-
-          if (tracer0(k) .lt. tracer_min) then  ! if tracer0 is too small, set ratio to zero
-            ratio0 = 0. 
-            ratio  = 0.
-          else
-            ratio0 = ratio
-            ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
-          endif
-
-            !cause = "tracer1 is less than zero"
-            !write(6,*),'-------'
-            !write(6,*),'aa1, n,k,ratio',n,k,ratio
-            !write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
-            if (ratio.ne.ratio0) tends_ratio_k(i,j,n) = k          
-       end if
+!       if (tracer0(k)>0. .and. tracer1(k)<0. .and. abs(trtend(k))>qdt_min ) then   ! to avoid tracer0=1.E-100, trtend=-1.E-50. tracer1<0/ 
+!
+!          if (tracer0(k) .lt. tracer_min) then  ! if tracer0 is too small, set ratio to zero
+!            ratio0 = 0. 
+!            ratio  = 0.
+!          else
+!            ratio0 = ratio
+!            ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
+!          endif
+!
+!            !cause = "tracer1 is less than zero"
+!            !write(6,*),'-------'
+!            !write(6,*),'aa1, n,k,ratio',n,k,ratio
+!            !write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
+!            if (ratio.ne.ratio0) tends_ratio_k(i,j,n) = k          
+!       end if
 
        !--- yhc 2021-12-13, comment this out because MF can produce tracer values less than the original minimum 
        !--- if tracer1 is less than tracer_min
