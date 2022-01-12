@@ -442,7 +442,8 @@ end type edmf_ls_mp_type
 
   integer :: option_up_area=1                   !=1, constant updraft area assumption, i.e. the updraft area remains the same with height
                                                 !=2, updraft area is changed with height to maintain mass conservation in plumes
-
+                                                !=3, if detrainment rate>=0, assume updraft area is constant.
+                                                !    otherwise, vary the area to satisfy the mass continuity equation
   logical :: do_use_tau = .true.                ! .true.  : use the T,q at the current step
                                                 ! .false. : use the updated T,q
   logical :: do_simple =.false.                 ! do_simple = switch to turn on alternative definition of specific
@@ -11607,18 +11608,18 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
           ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
           if (ratio.ne.ratio0) tends_ratio_k(i,j,n) = k          
 
-          write(6,*),'-------'
-          write(6,*),'aaa1, n,k,ratio',n,k,ratio
-          write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
+          !write(6,*),'-------'
+          !write(6,*),'aaa1, n,k,ratio',n,k,ratio
+          !write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
 
        elseif (tracer0(k) > qmin .and. tracer1(k) < 0. .and. tracer1(k) > -qmin) then  
           ratio0 = ratio
           ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
           if (ratio.ne.ratio0) tends_ratio_k(i,j,n) = k          
 
-          write(6,*),'-------'
-          write(6,*),'aaa2, n,k,ratio',n,k,ratio
-          write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
+          !write(6,*),'-------'
+          !write(6,*),'aaa2, n,k,ratio',n,k,ratio
+          !write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
 
        endif
 
