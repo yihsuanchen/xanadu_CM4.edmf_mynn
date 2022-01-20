@@ -2084,6 +2084,8 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data qldt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nql)
         write(6,*) 'data qidt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqi)
         write(6,*) 'data qndt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqn)
+        write(6,*) 'radturbten_physics_down_begin/', radturbten(ii_write,jj_write,:)
+        write(6,*) 'radturbten_rad_tdt', Rad_flux_block%tdt_rad(ii_write,jj_write,:)
         do rr=1, size(Physics_tendency_block%q_dt,4)
           write(6,*) 'data dn_begin, rr, r'    ,rr, r(ii_write,jj_write,:,rr)
         enddo
@@ -2414,6 +2416,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'udt_after_vdiff_down ',udt(ii_write,jj_write,:)
         write(6,*) 'rdt_before_vdiff_down, 12',rdt_before_vdiff_down(ii_write,jj_write,:,12)
         write(6,*) 'rdt_after_vdiff_down , 12',rdt(ii_write,jj_write,:,12)
+        write(6,*) 'radturbten_after_vdiff_down', radturbten(ii_write,jj_write,:)
   endif
 
         !--- reset tendencies only the diffusion is handled by edmf_mynn
@@ -2540,6 +2543,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data qndt_physics_down_end/'    ,rdt(ii_write,jj_write,:,nqn)
         write(6,*) 'data diff_t_physics_down_end/', diff_t(ii_write,jj_write,:)
         write(6,*) 'data diff_m_physics_down_end/', diff_m(ii_write,jj_write,:)
+        write(6,*) 'radturbten_physics_down_end', radturbten(ii_write,jj_write,:)
         write(6,*) 'yhc, nqa, nql, nqi, nqn',nqa, nql, nqi, nqn
         do rr=1, size(Physics_tendency_block%q_dt,4)
           write(6,*) 'data dn, rr, rdr'    ,rr, rdt(ii_write,jj_write,:,rr)
@@ -3059,19 +3063,6 @@ real,dimension(:,:),    intent(inout)             :: gust
           rdt(:, :, kmax, 1) = rdt(:, :, kmax, 1) - qdt_lhf(:,:)
       endif
 
-!-----------------------------------------------------------------------
-!    add the temperature tendency due to vertical  diffusion to radturbten.
-!-----------------------------------------------------------------------
-      !radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:)
-
-!<-- yhc
-      if (.not.do_edmf_mynn) then
-        radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:)
-      elseif (do_edmf_mynn .and. do_edmf_mynn_diagnostic) then
-        radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:)
-      endif
-!--> yhc
-
       call mpp_clock_end ( diff_up_clock )
 
 !-------------------------------------------------------------------------
@@ -3158,6 +3149,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data udt_edmf_mynn/'    ,udt(ii_write,jj_write,:)
         write(6,*) 'data vdt_edmf_mynn/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_edmf_mynn/'    ,tdt(ii_write,jj_write,:)
+        write(6,*) 'data radturb_edmf_mynn/'    ,radturbten(ii_write,jj_write,:)
         write(6,*) 'data qdt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nsphum)
         write(6,*) 'data qadt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqa)
         write(6,*) 'data qldt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nql)
@@ -3170,6 +3162,18 @@ real,dimension(:,:),    intent(inout)             :: gust
 
   endif  ! end if of do_edmf_mynn
 !--> yhc
+
+!-----------------------------------------------------------------------
+!    add the temperature tendency due to vertical  diffusion to radturbten.
+!-----------------------------------------------------------------------
+      ! yhc notes: in AM4, the journey of radturbten
+      !    1. In physics_driver_down, radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + Rad_flux_block%tdt_rad(:,:,:)
+      !    2. tdt is accumulated, tdt_accu = tdt_rad + tdt_others
+      !    3. Before vert_diff_driver_down, radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) - tdt(:,:,:), 
+      !       So, radturbten(is:ie,js:je,:) = -tdt_others
+      !    4. After vert_diff_driver_up, tdt_accu = tdt_rad + tdt_others + tdt_vdif
+      !    5. Here, radturbten(is:ie,js:je,:) + tdt(:,:,:) = -tdt_others + tdt_accu = tdt_rad + tdt_vdif
+      radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:)
 
 !-----------------------------------------------------------------------
 !    prepare to call moist_processes, which calculates moist physics terms,
@@ -3286,6 +3290,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data qidt_moist_up/'    ,rdt(ii_write,jj_write,:,nqi)
         write(6,*) 'data qndt_moist_up/'    ,rdt(ii_write,jj_write,:,nqn)
         write(6,*) 'Phys_mp_exch%diff_t', Phys_mp_exch%diff_t(ii_write,jj_write,:)
+        write(6,*) 'radturbten_moist_up', radturbten(ii_write,jj_write,:)
   endif
 !--> yhc
 
