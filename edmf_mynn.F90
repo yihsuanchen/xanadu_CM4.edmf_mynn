@@ -8158,8 +8158,8 @@ subroutine edmf_mynn_driver ( &
       rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
       rdt(:,:,:,nqi)  = rdt(:,:,:,nqi) + am4_Output_edmf%qidt_edmf(:,:,:)
 
-      edmf_mc_full        (:,:,:) = am4_Output_edmf%mf_all_half  (:,:,:)
-      edmf_mc_half        (:,:,:) = am4_Output_edmf%mf_all_full  (:,:,:)
+      edmf_mc_full        (:,:,:) = am4_Output_edmf%mf_all_full  (:,:,:)
+      edmf_mc_half        (:,:,:) = am4_Output_edmf%mf_all_half  (:,:,:)
       edmf_moist_area     (:,:,:) = am4_Output_edmf%a_moist_full (:,:,:)
       edmf_moist_humidity (:,:,:) = am4_Output_edmf%qv_moist_full(:,:,:)
       edmf_dry_area       (:,:,:) = am4_Output_edmf%a_dry_full   (:,:,:)
