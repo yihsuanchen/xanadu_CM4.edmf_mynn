@@ -598,8 +598,6 @@ integer                            :: id_tdt_phys,         &
                                       id_tdt_phys_vdif_dn, &
                                       id_tdt_phys_vdif_up, &
                                       id_tdt_phys_turb,    &
-                                      id_diff_t_vdif,       &  ! yhc
-                                      id_diff_m_vdif,       &  ! yhc
                                       id_tdt_phys_moist
 
 integer, dimension(:), allocatable :: id_tracer_phys,         &
@@ -615,7 +613,9 @@ type (clouds_from_moist_block_type) :: Restart
 
 type(precip_flux_type)              :: Precip_flux
 
-
+!<-- yhc
+integer :: id_diff_t_vdif, id_diff_m_vdif, id_num_updraft, id_qldt_vdif, id_qadt_vdif, id_qidt_vdif, id_qdt_vdif_test
+!--> yhc
                             contains
 
 
@@ -1388,6 +1388,22 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       id_diff_m_vdif = register_diag_field (mod_name, 'diff_m_vdif', axes(1:3), Time, &
                        'momentum diff coeffs used by vdif', 'm2/s' , &
                        missing_value=missing_value )
+
+      id_qldt_vdif = register_diag_field (mod_name, 'qldt_vdif', axes(1:3), Time, &
+                     'liquid water tendency from vert diff', 'kg/kg/s' , &
+                     missing_value=missing_value )
+    
+      id_qadt_vdif = register_diag_field (mod_name, 'qadt_vdif', axes(1:3), Time, &
+                     'cloud fraction tendency from vert diff', '1/s' , &
+                     missing_value=missing_value )
+    
+      id_qidt_vdif = register_diag_field (mod_name, 'qidt_vdif', axes(1:3), Time, &
+                     'ice water tendency from vert diff', 'kg/kg/s' , &
+                     missing_value=missing_value )
+    
+      id_qdt_vdif_test = register_diag_field (mod_name, 'qdt_vdif_test', axes(1:3), Time, &
+                     'spec humid tendency from vert diff', 'kg/kg/s' , &
+                     missing_value=missing_value )
       !---> yhc
 
      !-------- CMIP diagnostics --------
@@ -2881,6 +2897,7 @@ real,dimension(:,:),    intent(inout)             :: gust
       udt => Physics_tendency_block%u_dt      ! yhc
       vdt => Physics_tendency_block%v_dt      ! yhc
       rdiag => Physics_tendency_block%qdiag   ! yhc
+      tdt_mf = 0. ! yhc, initialize
 
 !<-- yhc
   if (do_writeout_column) then
@@ -3009,6 +3026,27 @@ real,dimension(:,:),    intent(inout)             :: gust
 
       !--- get tracer tendencies from vert_diff
       rdt_mynn_ed_am4(:,:,:,:) =  rdt(:,:,:,:) - rdt_before_vdiff_down (:,:,:,:)
+
+      !------- liquid water tendency from vert diff (units: kg/kg/s) at full level -------
+      if ( id_qldt_vdif > 0) then
+        used = send_data (id_qldt_vdif, rdt_mynn_ed_am4(:,:,:,nql), Time_next, is, js, 1 )
+      endif
+
+      !------- cloud fraction tendency from vert diff (units: 1/s) at full level -------
+      if ( id_qadt_vdif > 0) then
+        used = send_data (id_qadt_vdif, rdt_mynn_ed_am4(:,:,:,nqa), Time_next, is, js, 1 )
+      endif
+
+      !------- ice water tendency from vert diff (units: kg/kg/s) at full level -------
+      if ( id_qidt_vdif > 0) then
+        used = send_data (id_qidt_vdif, rdt_mynn_ed_am4(:,:,:,nqi), Time_next, is, js, 1 )
+      endif
+
+      !------- spec humid tendency from vert diff (units: kg/kg/s) at full level -------
+      if ( id_qdt_vdif_test > 0) then
+        used = send_data (id_qdt_vdif_test, rdt_mynn_ed_am4(:,:,:,nsphum), Time_next, is, js, 1 )
+      endif
+
       if (do_writeout_column) then
         write(6,*) 'data qdt/        '    ,rdt(ii_write,jj_write,:,1)
         write(6,*) 'data qdt_before_ed/'  ,rdt_before_vdiff_down(ii_write,jj_write,:,1)
