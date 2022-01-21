@@ -7695,11 +7695,11 @@ END SUBROUTINE edmf_JPL
 subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-              rdt_mynn_ed_am4, &
+              tdt_mynn_ed_am4, rdt_mynn_ed_am4, &
               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, do_tracers_selective, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
-              pbltop, udt, vdt, tdt, rdt, rdiag)
+              pbltop, udt, vdt, tdt, rdt, tdt_mf, rdiag)
 
 !---------------------------------------------------------------------
 ! Arguments (Intent in)  
@@ -7720,6 +7720,9 @@ subroutine edmf_mynn_driver ( &
 !     rdt_mynn_ed_am4
 !       multiple tracer tendencies [ unit / unit / sec ] only for eddy-diffusion
 !       This is used to recover dry variable tendencies when edmf_type=2
+!
+!     tdt_mynn_ed_am4 (K/s)
+!       temperature tendency from ED, estimated by AM4 diffusion sovler with MYNN ED coefficients
 !---------------------------------------------------------------------
   integer, intent(in)                   :: is, ie, js, je, npz
   type(time_type), intent(in)           :: Time_next
@@ -7730,6 +7733,9 @@ subroutine edmf_mynn_driver ( &
 
   real, intent(in), dimension(:,:,:,:) :: &
     rdt_mynn_ed_am4
+
+  real, intent(in), dimension(:,:,:)   :: &
+    tdt_mynn_ed_am4
 
   type(physics_input_block_type)        :: Physics_input_block
   logical, intent(in)                   :: do_edmf_mynn_diagnostic
@@ -7774,6 +7780,7 @@ subroutine edmf_mynn_driver ( &
 !   diff_t_edmf		- eddy diffusion coefficient for heat (K m/s)			  	, dimension (nlon,nlat,nlay)
 !   diff_m_edmf		- eddy diffusion coefficient for momentum (m2/s)		  	, dimension (nlon,nlat,nlay)
 !   option_edmf2ls_mp 	- options for linkage to Tiedtke, same as "do_option_edmf2ls_mp" in the namelist
+!   tdt_mf              - temperature tendencies from MF (estimated) (K/s)                      , dimension (nlon,nlat,nlay)
 !
 !   Note
 !     1. diff_t_edmf is at half levels, although AM4 use dimension of nlay instead of nlay+1
@@ -7786,6 +7793,7 @@ subroutine edmf_mynn_driver ( &
   real, intent(out), dimension(:,:,:) :: &   ! (lon, lat, nlay)
     qadt_edmf, qldt_edmf, qidt_edmf, &   
     dqa_edmf,  dql_edmf, dqi_edmf,  &
+    tdt_mf,                         &
     diff_t_edmf, diff_m_edmf
 
   integer, intent(out) :: &
@@ -8091,6 +8099,12 @@ subroutine edmf_mynn_driver ( &
   edmf_moist_humidity  = 0.
   edmf_dry_area        = 0.
   edmf_dry_humidity    = 0.
+
+  if (bl_mynn_edmf > 0) then    ! ED and MF are on
+    tdt_mf(:,:,:) = am4_Output_edmf%tdt_edmf(:,:,:) - tdt_mynn_ed_am4(:,:,:)  ! estimate tdt_mf
+  else                          ! ED only, no MF
+    tdt_mf = 0.
+  endif
 
   if (.not.do_edmf_mynn_diagnostic) then
 
