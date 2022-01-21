@@ -1952,6 +1952,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                        size(Physics_tendency_block%u_dt,2), &
                        size(Physics_tendency_block%u_dt,3)  )  :: &
         udt_before_vdiff_down, vdt_before_vdiff_down, tdt_before_vdiff_down,  &
+        tdt_dum, tdt_mf_dum, &
         rdt_dum1, rdt_dum2
 
       real, dimension( size(Physics_tendency_block%q_dt,1), &
@@ -2217,11 +2218,11 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
     call edmf_mynn_driver ( &
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-               rdt_mynn_ed_am4,  &
+               tdt_dum, rdt_mynn_ed_am4,  &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, do_tracers_selective, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf(is:ie,js:je), &
                edmf_mc_full(is:ie,js:je,:), edmf_mc_half(is:ie,js:je,:), edmf_moist_area(is:ie,js:je,:), edmf_dry_area(is:ie,js:je,:), edmf_moist_humidity(is:ie,js:je,:), edmf_dry_humidity(is:ie,js:je,:), &
-               z_pbl, udt, vdt, tdt, rdt, rdiag)
+               z_pbl, udt, vdt, tdt, rdt, tdt_mf_dum, rdiag)
 
     !--- yhc note, 2021-05-03
     ! diff_t & diff_m from edmf_mynn must be (ie-is+1,je-js+1,npz) dimensions, otherwise it will have grid projection problems to diff_t and diff_m
@@ -2863,7 +2864,11 @@ real,dimension(:,:),    intent(inout)             :: gust
                        size(Physics_tendency_block%q_dt,2), &
                        size(Physics_tendency_block%q_dt,3), &
                        size(Physics_tendency_block%q_dt,4)  )  :: &
-         rdt_mynn_ed_am4
+         rdt_mynn_ed_am4, rdt_dum
+      real, dimension( size(Physics_tendency_block%q_dt,1), &
+                       size(Physics_tendency_block%q_dt,2), &
+                       size(Physics_tendency_block%q_dt,3)  )  :: &
+         tdt_mynn_ed_am4, tdt_mf, qdt_mynn_ed_am4, tdt_dum, qdt_dum
       !--> yhc        
 
       t => Physics_input_block%t
@@ -2991,10 +2996,16 @@ real,dimension(:,:),    intent(inout)             :: gust
       elseif (do_edmf_mynn .and. do_return_edmf_mynn_diff_only) then  ! 
         call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
                                   Surf_diff, tdt, rdt(:,:,:,1), rdt )
-      !elseif (do_edmf_mynn .and. .not.do_tracers_in_edmf_mynn) then
-      !  call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
-      !                            Surf_diff, tdt, rdt(:,:,:,1), rdt )
-      endif
+
+      else   ! estimate tdt, qdt from AM4 diffusion solver
+        tdt_dum=0.
+        qdt_dum=0.
+        rdt_dum=0.
+        call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
+                                  Surf_diff, tdt_dum, qdt_dum, rdt_dum )
+        tdt_mynn_ed_am4(:,:,:) = tdt_dum(:,:,:) - tdt(:,:,:)         ! here tdt is tdt_before_vdiff_down 
+        qdt_mynn_ed_am4(:,:,:) = qdt_dum(:,:,:) - rdt(:,:,:,nsphum)  ! here qdt is qdt_before_vdiff_down 
+     endif
 
       !--- get tracer tendencies from vert_diff
       rdt_mynn_ed_am4(:,:,:,:) =  rdt(:,:,:,:) - rdt_before_vdiff_down (:,:,:,:)
@@ -3012,6 +3023,10 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data qidt_before_ed/'  ,rdt_before_vdiff_down(ii_write,jj_write,:,nqi)
         write(6,*) 'data qidt_mynn_ed/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
         write(6,*) 'do_tracers_selective, nqa, nql, nqi',do_tracers_selective, nqa, nql, nqi
+        write(6,*) 'data tdt_mynn_ed_am4/        '    ,tdt_mynn_ed_am4(ii_write,jj_write,:)
+        write(6,*) 'data tdt_dum        /        '    ,tdt_dum(ii_write,jj_write,:)
+        write(6,*) 'data qdt_mynn_ed_am4/        '    ,qdt_mynn_ed_am4(ii_write,jj_write,:)
+        write(6,*) 'data qdt_dum        /        '    ,qdt_dum(ii_write,jj_write,:)
       endif
 
       if (do_tracers_selective.eq.6) then  ! because ED and MF tendencies would be computed in mynn_edmf, so resetting these
@@ -3089,11 +3104,11 @@ real,dimension(:,:),    intent(inout)             :: gust
     call edmf_mynn_driver ( &
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-               rdt_mynn_ed_am4,  &
+               tdt_mynn_ed_am4, rdt_mynn_ed_am4,  &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, do_tracers_selective, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf(is:ie,js:je), &
                edmf_mc_full(is:ie,js:je,:), edmf_mc_half(is:ie,js:je,:), edmf_moist_area(is:ie,js:je,:), edmf_dry_area(is:ie,js:je,:), edmf_moist_humidity(is:ie,js:je,:), edmf_dry_humidity(is:ie,js:je,:), &
-               z_pbl, udt, vdt, tdt, rdt, rdiag)
+               z_pbl, udt, vdt, tdt, rdt, tdt_mf, rdiag)
                !pbltop, udt, vdt, tdt, rdt, rdiag)  ! if using pbltop, amip4 run will fail and such failure happen any time and is not reproducible, yhc 2021-04-21
 
     !--- yhc note, 2021-05-03
@@ -3173,7 +3188,9 @@ real,dimension(:,:),    intent(inout)             :: gust
       !       So, radturbten(is:ie,js:je,:) = -tdt_others
       !    4. After vert_diff_driver_up, tdt_accu = tdt_rad + tdt_others + tdt_vdif
       !    5. Here, radturbten(is:ie,js:je,:) + tdt(:,:,:) = -tdt_others + tdt_accu = tdt_rad + tdt_vdif
-      radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:)
+      !    6. if tdt includes MF contribution, remove it otherwise there might be double-counting problem 
+      !       (MF appears both subsidence and turbulence heating terms)
+      radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:) - tdt_mf(:,:,:)
 
 !-----------------------------------------------------------------------
 !    prepare to call moist_processes, which calculates moist physics terms,
