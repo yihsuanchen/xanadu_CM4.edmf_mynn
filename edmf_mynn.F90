@@ -514,6 +514,9 @@ integer :: id_a_moist_half, id_a_moist_full, id_mf_moist_half, id_mf_moist_full,
 integer :: id_num_updraft, id_num_det, id_num_ndet_zent, id_num_ndet_pent
 
 integer :: id_rlz_ratio, id_rlz_tracer
+
+integer :: id_tdt_edmf_ED, id_tdt_edmf_MF
+
 !---------------------------------------------------------------------
 
   contains
@@ -1126,6 +1129,14 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_rlz_tracer = register_diag_field (mod_name, 'rlz_tracer', axes(1:2), Time, &
                  'tracer name for realizability limiter (qv,l,i,a,t)', 'none' , &
+                 missing_value=missing_value )
+
+  id_tdt_edmf_ED = register_diag_field (mod_name, 'tdt_edmf_ED', axes(full), Time, &
+                 'temperature tendency from edmf_mynn, ED', 'K/s' , &
+                 missing_value=missing_value )
+
+  id_tdt_edmf_MF = register_diag_field (mod_name, 'tdt_edmf_MF', axes(full), Time, &
+                 'tempearture tendency from edmf_mynn, MF', 'K/s' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -8673,6 +8684,16 @@ subroutine edmf_mynn_driver ( &
 !------- tracer name for realizability limiter (units: none) at one level -------
       if ( id_rlz_tracer > 0) then
         used = send_data (id_rlz_tracer, rlz_tracer, Time_next, is, js )
+      endif
+
+      !------- temperature tendency from edmf_mynn, ED (units: K/s) at full level -------
+      if ( id_tdt_edmf_ED > 0) then
+        used = send_data (id_tdt_edmf_ED, tdt_mynn_ed_am4, Time_next, is, js, 1 )
+      endif
+
+      !------- tempearture tendency from edmf_mynn, MF (units: K/s) at full level -------
+      if ( id_tdt_edmf_MF > 0) then
+        used = send_data (id_tdt_edmf_MF, tdt_mf, Time_next, is, js, 1 )
       endif
 !send_data
 
