@@ -537,6 +537,9 @@ real,    dimension(:,:,:), allocatable,target :: &  ! yhc, the description of th
 real,    dimension(:,:,:,:), allocatable,target :: & 
   rdt_before_vdiff_down
 
+real,    dimension(:,:,:), allocatable,target :: & 
+  tdt_before_vdiff_down
+
 integer, dimension(:,:), allocatable,target :: kpbl_edmf  
 
 integer,                   allocatable,target :: option_edmf2ls_mp  ! yhc
@@ -614,7 +617,7 @@ type (clouds_from_moist_block_type) :: Restart
 type(precip_flux_type)              :: Precip_flux
 
 !<-- yhc
-integer :: id_diff_t_vdif, id_diff_m_vdif, id_num_updraft, id_qldt_vdif, id_qadt_vdif, id_qidt_vdif, id_qdt_vdif_test
+integer :: id_diff_t_vdif, id_diff_m_vdif, id_num_updraft, id_qldt_vdif, id_qadt_vdif, id_qidt_vdif, id_qdt_vdif_test, id_tdt_vdif_test
 !--> yhc
                             contains
 
@@ -1157,6 +1160,7 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       allocate (  diff_m_edmf(id, jd, kd)) ; diff_m_edmf = 0.0  
       allocate (  kpbl_edmf  (id, jd))  ;  ; kpbl_edmf= 0     
       allocate (  rdt_before_vdiff_down  (id, jd, kd, ntp))  ;  rdt_before_vdiff_down= 0     
+      allocate (  tdt_before_vdiff_down  (id, jd, kd))  ;  tdt_before_vdiff_down= 0     
       allocate (  edmf_mc_full       (id, jd, kd))    ;  edmf_mc_full = 0.0  
       allocate (  edmf_mc_half       (id, jd, kd+1))  ;  edmf_mc_half = 0.0  
       allocate (  edmf_moist_area    (id, jd, kd))    ;  edmf_moist_area = 0.0  
@@ -1402,7 +1406,11 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
                      missing_value=missing_value )
     
       id_qdt_vdif_test = register_diag_field (mod_name, 'qdt_vdif_test', axes(1:3), Time, &
-                     'spec humid tendency from vert diff', 'kg/kg/s' , &
+                     'spec humid tendency from vert diff (test)', 'kg/kg/s' , &
+                     missing_value=missing_value )
+
+      id_tdt_vdif_test = register_diag_field (mod_name, 'tdt_vdif_test', axes(1:3), Time, &
+                     'Temperature tendency from vert diff (test)', 'K/s' , &
                      missing_value=missing_value )
       !---> yhc
 
@@ -1967,7 +1975,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       real, dimension( size(Physics_tendency_block%u_dt,1), &
                        size(Physics_tendency_block%u_dt,2), &
                        size(Physics_tendency_block%u_dt,3)  )  :: &
-        udt_before_vdiff_down, vdt_before_vdiff_down, tdt_before_vdiff_down,  &
+        udt_before_vdiff_down, vdt_before_vdiff_down, tdt_before_vdiff_down2,  &
         tdt_dum, tdt_mf_dum, &
         rdt_dum1, rdt_dum2
 
@@ -2363,7 +2371,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       !--- save tendencies before vert_diff_driver_down
       udt_before_vdiff_down(:,:,:) = udt(:,:,:)
       vdt_before_vdiff_down(:,:,:) = vdt(:,:,:)
-      tdt_before_vdiff_down(:,:,:) = tdt(:,:,:)
+      tdt_before_vdiff_down(is:ie,js:je,:) = tdt(:,:,:)
       rdt_before_vdiff_down(is:ie,js:je,:,:) = rdt(:,:,:,:)
       tau_x_before_vdiff_down(:,:) = tau_x(:,:)
       tau_y_before_vdiff_down(:,:) = tau_y(:,:)
@@ -2441,7 +2449,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
           !--- reset tendencies to pre-vert_diff values
           udt(:,:,:) = udt_before_vdiff_down(:,:,:)  ! yhc, even diff_m=0., udt and vdt at the lowest atm loevel are still changed.
           vdt(:,:,:) = vdt_before_vdiff_down(:,:,:)  !      make sure udt and vdt are reset to the values before vdiff_down
-          tdt(:,:,:) = tdt_before_vdiff_down(:,:,:)
+          tdt(:,:,:) = tdt_before_vdiff_down(is:ie,js:je,:)
           rdt(:,:,:,nsphum) = rdt_before_vdiff_down(is:ie,js:je,:,nsphum)
           tau_x(:,:) = tau_x_before_vdiff_down(:,:)  !      reset tau_x, tau_y, surf_diff%delta_u, and surf_diff%delta_v
           tau_y(:,:) = tau_y_before_vdiff_down(:,:) 
@@ -3004,6 +3012,8 @@ real,dimension(:,:),    intent(inout)             :: gust
         call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
                                   Surf_diff, tdt, rdt(:,:,:,1), rdt )
 
+        tdt_mynn_ed_am4(:,:,:) = tdt(:,:,:) - tdt_before_vdiff_down(:,:,:) ! compute tdt_vdif_test
+
       !--- call vert_diff_driver_up if edmf_mynn is diagnostic
       elseif (do_edmf_mynn .and. do_edmf_mynn_diagnostic) then  
         call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
@@ -3014,14 +3024,14 @@ real,dimension(:,:),    intent(inout)             :: gust
         call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
                                   Surf_diff, tdt, rdt(:,:,:,1), rdt )
 
-      else   ! estimate tdt, qdt from AM4 diffusion solver
+      else   ! do edmf_mynn. estimate tdt, qdt from AM4 diffusion solver
         tdt_dum=0.
         qdt_dum=0.
         rdt_dum=0.
         call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
                                   Surf_diff, tdt_dum, qdt_dum, rdt_dum )
-        tdt_mynn_ed_am4(:,:,:) = tdt_dum(:,:,:) - tdt(:,:,:)         ! here tdt is tdt_before_vdiff_down 
-        qdt_mynn_ed_am4(:,:,:) = qdt_dum(:,:,:) - rdt(:,:,:,nsphum)  ! here qdt is qdt_before_vdiff_down 
+        tdt_mynn_ed_am4(:,:,:) = tdt_dum(:,:,:) - tdt_before_vdiff_down(:,:,:) 
+        qdt_mynn_ed_am4(:,:,:) = qdt_dum(:,:,:) - rdt_before_vdiff_down(:,:,:,nsphum)  
      endif
 
       !--- get tracer tendencies from vert_diff
@@ -3047,6 +3057,11 @@ real,dimension(:,:),    intent(inout)             :: gust
         used = send_data (id_qdt_vdif_test, rdt_mynn_ed_am4(:,:,:,nsphum), Time_next, is, js, 1 )
       endif
 
+      !------- spec humid tendency from vert diff (units: kg/kg/s) at full level -------
+      if ( id_tdt_vdif_test > 0) then
+        used = send_data (id_tdt_vdif_test, tdt_mynn_ed_am4(:,:,:), Time_next, is, js, 1 )
+      endif
+
       if (do_writeout_column) then
         write(6,*) 'data qdt/        '    ,rdt(ii_write,jj_write,:,1)
         write(6,*) 'data qdt_before_ed/'  ,rdt_before_vdiff_down(ii_write,jj_write,:,1)
@@ -3061,8 +3076,10 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data qidt_before_ed/'  ,rdt_before_vdiff_down(ii_write,jj_write,:,nqi)
         write(6,*) 'data qidt_mynn_ed/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
         write(6,*) 'do_tracers_selective, nqa, nql, nqi',do_tracers_selective, nqa, nql, nqi
+        write(6,*) 'data tdt_before_vdiff_down/  '    ,tdt_before_vdiff_down(ii_write,jj_write,:)
         write(6,*) 'data tdt_mynn_ed_am4/        '    ,tdt_mynn_ed_am4(ii_write,jj_write,:)
         write(6,*) 'data tdt_dum        /        '    ,tdt_dum(ii_write,jj_write,:)
+        write(6,*) 'data qdt_before_vdiff_down/  '    ,rdt_before_vdiff_down(:,:,:,nsphum)
         write(6,*) 'data qdt_mynn_ed_am4/        '    ,qdt_mynn_ed_am4(ii_write,jj_write,:)
         write(6,*) 'data qdt_dum        /        '    ,qdt_dum(ii_write,jj_write,:)
       endif
@@ -3202,7 +3219,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data udt_edmf_mynn/'    ,udt(ii_write,jj_write,:)
         write(6,*) 'data vdt_edmf_mynn/'    ,vdt(ii_write,jj_write,:)
         write(6,*) 'data tdt_edmf_mynn/'    ,tdt(ii_write,jj_write,:)
-        write(6,*) 'data radturb_edmf_mynn/'    ,radturbten(ii_write,jj_write,:)
+        !write(6,*) 'data radturb_edmf_mynn/'    ,radturbten(ii_write,jj_write,:)
         write(6,*) 'data qdt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nsphum)
         write(6,*) 'data qadt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nqa)
         write(6,*) 'data qldt_edmf_mynn/'    ,rdt(ii_write,jj_write,:,nql)
@@ -3845,7 +3862,7 @@ integer :: moist_processes_term_clock, damping_term_clock, turb_term_clock, &
                   option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &  !yhc
                   dqa_edmf, dql_edmf, dqi_edmf, & ! yhc
                   edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, & ! yhc
-                  rdt_before_vdiff_down, &  ! yhc
+                  rdt_before_vdiff_down, tdt_before_vdiff_down, &  ! yhc
                   convect, radturbten, r_convect)
 
       if (do_cosp) then
