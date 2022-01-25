@@ -298,6 +298,15 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
 !-----------------------------------------------------------------------
       SA = Cloud_state%SA_out
 
+!<--- yhc 2021-04-01
+  ! add mass flux from edmf to C2ls_mp%mc_full and %mc_half, if desired
+  if (C2ls_mp%option_edmf2ls_mp.eq.4) then
+    C2ls_mp%mc_full(:,:,:) = C2ls_mp%mc_full(:,:,:) + C2ls_mp%edmf_mc_full (:,:,:)
+    C2ls_mp%mc_half(:,:,:) = C2ls_mp%mc_half(:,:,:) + C2ls_mp%edmf_mc_half (:,:,:)
+    !write(6,*) 'yaya, C2ls_mp%edmf_mc_full',C2ls_mp%edmf_mc_full
+  endif
+!---> yhc 2021-04-01
+
 !------------------------------------------------------------------------
 !    process the non-convective condensation for pdf clouds. 
 !                                                                      
@@ -550,7 +559,7 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
       Cloud_processes%dcond_ls_ice = ice_frac*Cloud_processes%dcond_ls
       Cloud_processes%dcond_ls     = liq_frac*Cloud_processes%dcond_ls   
 
-!<--- yhc111
+!<--- yhc 2021-04-01
       do k=1,kdim
       do j=1,jdim
       do i=1,idim
@@ -584,7 +593,7 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
       enddo
       enddo
       enddo
-!---> yhc111
+!---> yhc 2021-04-01
 
 !------------------------------------------------------------------------
 !    output debug diagnostics, if desired.
@@ -944,7 +953,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
       INTEGER                            :: ns, id
       INTEGER                            :: i,j,k
 
-      real, dimension(idim, jdim,kdim)   :: qa_temp   ! yhc111
+      real, dimension(idim, jdim,kdim)   :: qa_temp   ! yhc 2021-04-01
 !-----------------------------------------------------------------------
 !
 !       The first step is to compute the change in qs due to large-
@@ -1103,7 +1112,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
         END DO    
       END DO    
 
-!<-- yhc111
+!<-- yhc 2021-04-01
       if (C2ls_mp%option_edmf2ls_mp.eq.2) then      ! remove Tiedtke large-scale and erosion terms when EDMF are present
         do k=1,kdim
         do j=1,jdim
@@ -1119,8 +1128,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
         enddo
         enddo
      endif  ! end if of C2ls_mp%option_edmf2ls_mp
-!--> yhc111
-  
+!--> yhc 2021-04-01
 
 !------------------------------------------------------------------------
 !       The next step is to analytically integrate the saturated volume
@@ -1185,7 +1193,8 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
 !------------------------------------------------------------------------
 !    do analytic integration.      
 !------------------------------------------------------------------------
-            if ( (A_dt(i,j,k) .gt. Dmin) .or.   &
+            ! yhc note: either large-scale uplift or erosion is present, compute the new cloud fraction, qa1 
+            if ( (A_dt(i,j,k) .gt. Dmin) .or.   &     
                  (B_dt(i,j,k) .gt. Dmin) )  then
               qa0(i,j,k) = Cloud_state%qa_upd(i,j,k)
               qaeq(i,j,k) = A_dt(i,j,k)/(A_dt(i,j,k)  + B_dt(i,j,k))
@@ -1209,7 +1218,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
 !------------------------------------------------------------------------
 !    save some diagnostics.
 !------------------------------------------------------------------------
-            if ( (A_dt(i,j,k) .gt.     Dmin) .and.   &
+            if ( (A_dt(i,j,k) .gt.     Dmin) .and.   &     ! yhc note: when both large-scale and erosion> Dmin, save both tendencies
                  (B_dt(i,j,k) .gt.     Dmin) )  then
               if (diag_id%qadt_lsform + diag_id%qa_lsform_col > 0) then
                 diag_4d(i,j,k,diag_pt%qadt_lsform) =  A_dt(i,j,k)*  &
@@ -1220,12 +1229,14 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
                      ((qa1(i,j,k) - qa0(i,j,k))*inv_dtcloud )- &
                                      diag_4d(i,j,k,diag_pt%qadt_lsform)   
               end if
-            else if (A_dt(i,j,k) .gt. Dmin) then
+
+            else if (A_dt(i,j,k) .gt. Dmin) then           ! yhc note: save only large-scale tendency
               if (diag_id%qadt_lsform + diag_id%qa_lsform_col > 0) then
                 diag_4d(i,j,k,diag_pt%qadt_lsform) =   &
                           (qa1(i,j,k) - qa0(i,j,k))*inv_dtcloud
               end if 
-            else if (B_dt(i,j,k) .gt. Dmin)  then
+
+            else if (B_dt(i,j,k) .gt. Dmin)  then          ! yhc note save only erosion tendency
               if ( diag_id%qadt_eros + diag_id%qa_eros_col > 0 ) then
                 diag_4d(i,j,k,diag_pt%qadt_eros)  =   &
                           (qa1(i,j,k) - qa0(i,j,k))*inv_dtcloud
@@ -1235,10 +1246,14 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
         END DO    
       END DO    
 
-!<--- yhc111
+!write(6,*) 'ggqq1, qadt_lsform',diag_4d(:,:,:,diag_pt%qadt_lsform)
+!write(6,*) 'ggqq1, qadt_eros',diag_4d(:,:,:,diag_pt%qadt_eros)
+!write(6,*) 'ggqq1, qadt_edmf',C2ls_mp%qadt_edmf
+
+!<--- yhc 2021-04-01
 !------------------------------------------------------------------------
 !  modify cloud fraction when EDMF is active
-!    qa0 is qa(t) including the contribution from convection and clipping unrealistic values in impose_realizability
+!    qa0 is qa(t) includingn the contribution from convection and clipping unrealistic values in impose_realizability
 !    qa1 is qa(t+dtcloud) = qa0 + qa_Tiedtke. qa_EDMF(t+dtcloud) = qa0+qadt_edmf*dtcloud
 !------------------------------------------------------------------------
 
@@ -1284,7 +1299,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
         enddo         
         enddo         
         enddo         
-!---> yhc111
+!---> yhc 2021-04-01
 
 !-----------------------------------------------------------------------
 !   define value needed for diagnostic calculation.
