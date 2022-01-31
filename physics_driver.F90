@@ -396,7 +396,7 @@ integer :: do_tracers_selective = 0           ! determine which tracer would be 
                                               !   4: process all tracers except cloud fields: qa,ql,qi,nqn,nqi
                                               !   5: process all tracers except cloud fraction and specific humidity qa,ql,qi. Cloud number are processed by vert_diff
 
-logical :: do_edmf_mynn_diffusion_smooth = .true.  ! smooth the diffusion coefficients following AM4 "diffusion_smooth"
+logical :: do_edmf_mynn_diffusion_smooth = .false.  ! smooth the diffusion coefficients following AM4 "diffusion_smooth"
 
 integer :: ii_write = -999                    ! i index for column written out. Set to 0 if you want to write out in SCM
 integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
@@ -617,7 +617,7 @@ type (clouds_from_moist_block_type) :: Restart
 type(precip_flux_type)              :: Precip_flux
 
 !<-- yhc
-integer :: id_diff_t_vdif, id_diff_m_vdif, id_num_updraft, id_qldt_vdif, id_qadt_vdif, id_qidt_vdif, id_qdt_vdif_test, id_tdt_vdif_test
+integer :: id_diff_t_vdif, id_diff_m_vdif, id_num_updraft, id_qldt_vdif, id_qadt_vdif, id_qidt_vdif, id_qdt_vdif_test, id_tdt_vdif_test, id_tdt_radturb
 !--> yhc
                             contains
 
@@ -1412,6 +1412,10 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       id_tdt_vdif_test = register_diag_field (mod_name, 'tdt_vdif_test', axes(1:3), Time, &
                      'Temperature tendency from vert diff (test)', 'K/s' , &
                      missing_value=missing_value )
+
+      id_tdt_radturb = register_diag_field (mod_name, 'tdt_radturb', axes(1:3), Time, &
+                     'tempearture tendency from rad and vert diff', 'K/s' , &
+                     missing_value=missing_value )
       !---> yhc
 
      !-------- CMIP diagnostics --------
@@ -1976,7 +1980,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                        size(Physics_tendency_block%u_dt,2), &
                        size(Physics_tendency_block%u_dt,3)  )  :: &
         udt_before_vdiff_down, vdt_before_vdiff_down, tdt_before_vdiff_down2,  &
-        tdt_dum, tdt_mf_dum, &
+        tdt_dum, tdt_mf_dum, tdt_rad_only, &
         rdt_dum1, rdt_dum2
 
       real, dimension( size(Physics_tendency_block%q_dt,1), &
@@ -2110,7 +2114,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data qidt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqi)
         write(6,*) 'data qndt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqn)
         write(6,*) 'radturbten_physics_down_begin/', radturbten(ii_write,jj_write,:)
-        write(6,*) 'radturbten_rad_tdt', Rad_flux_block%tdt_rad(ii_write,jj_write,:)
+        write(6,*) 'Rad_flux_block%tdt_rad', Rad_flux_block%tdt_rad(ii_write,jj_write,:)
         do rr=1, size(Physics_tendency_block%q_dt,4)
           write(6,*) 'data dn_begin, rr, r'    ,rr, r(ii_write,jj_write,:,rr)
         enddo
@@ -2144,6 +2148,8 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
 
 #endif
 
+      tdt_rad_only(:,:,:) = radturbten(is:ie,js:je,:) ! yhc save tdt_rad
+
 !----------------------------------------------------------------------
 !    call damping_driver to calculate the various model dampings that
 !    are desired. 
@@ -2162,6 +2168,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) '-------------- i,j,',ii_write,jj_write
         write(6,*) 'lat',lat (ii_write,jj_write)
         write(6,*) 'lon',lon (ii_write,jj_write)
+        write(6,*) 'data tdt_rad_only/'    ,tdt_rad_only(ii_write,jj_write,:)
         write(6,*) 'data t_damping/'    ,t(ii_write,jj_write,:)
         write(6,*) 'data q_damping/'    ,r(ii_write,jj_write,:,1)
         write(6,*) 'data tdt_damping/'    ,tdt(ii_write,jj_write,:)
@@ -2455,6 +2462,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
           tau_y(:,:) = tau_y_before_vdiff_down(:,:) 
           surf_diff%delta_u(:,:) = 0.
           surf_diff%delta_v(:,:) = 0.
+          radturbten(is:ie,js:je,:) = tdt_rad_only(:,:,:)    ! reset to tdt_rad
         endif
 
         !--- select which tracers would be updated by vert_diff_driver_down. 
@@ -3245,7 +3253,16 @@ real,dimension(:,:),    intent(inout)             :: gust
       !    5. Here, radturbten(is:ie,js:je,:) + tdt(:,:,:) = -tdt_others + tdt_accu = tdt_rad + tdt_vdif
       !    6. if tdt includes MF contribution, remove it otherwise there might be double-counting problem 
       !       (MF appears both subsidence and turbulence heating terms)
-      radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:) - tdt_mf(:,:,:)
+      if (do_edmf_mynn .and. .not.do_edmf_mynn_diagnostic .and. .not.do_return_edmf_mynn_diff_only) then   ! do_edmf_mynn
+        radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt_mynn_ed_am4(:,:,:)   ! tdt_rad + tdt_vdif 
+      else   ! AM4 way
+        radturbten(is:ie,js:je,:) = radturbten(is:ie,js:je,:) + tdt(:,:,:) 
+      endif
+
+      !------- tempearture tendency from rad and vert diff (units: K/s) at full level -------
+      if ( id_tdt_radturb > 0) then
+        used = send_data (id_tdt_radturb, radturbten(is:ie,js:je,:), Time_next, is, js, 1 )
+      endif
 
 !-----------------------------------------------------------------------
 !    prepare to call moist_processes, which calculates moist physics terms,
@@ -3363,6 +3380,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         write(6,*) 'data qndt_moist_up/'    ,rdt(ii_write,jj_write,:,nqn)
         write(6,*) 'Phys_mp_exch%diff_t', Phys_mp_exch%diff_t(ii_write,jj_write,:)
         write(6,*) 'radturbten_moist_up', radturbten(ii_write,jj_write,:)
+        write(6,*) 'tdt_mynn_ed_am4', tdt_mynn_ed_am4(ii_write,jj_write,:)
   endif
 !--> yhc
 
