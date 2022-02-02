@@ -397,6 +397,7 @@ integer :: do_tracers_selective = 0           ! determine which tracer would be 
                                               !   5: process all tracers except cloud fraction and specific humidity qa,ql,qi. Cloud number are processed by vert_diff
 
 logical :: do_edmf_mynn_diffusion_smooth = .false.  ! smooth the diffusion coefficients following AM4 "diffusion_smooth"
+logical :: do_bomex_radf                 = .false.  ! add BOMEX 2K/day radiative cooling in physics_driver
 
 integer :: ii_write = -999                    ! i index for column written out. Set to 0 if you want to write out in SCM
 integer :: jj_write = -999                    ! j index for column written out. Set to 0 if you want to write out in SCM
@@ -424,7 +425,7 @@ namelist / physics_driver_nml / do_radiation, do_clubb,  do_cosp, &
                                 do_ice_num, qcvar, overlap, N_min, &
                                 min_diam_ice, dcs, min_diam_drop, &
                                 do_edmf_mynn, do_edmf_mynn_diagnostic, do_tracers_in_edmf_mynn, do_tracers_selective, do_edmf_mynn_diffusion_smooth, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, & ! yhc add
-                                do_stop_run, do_writeout_column_nml, ii_write, jj_write, lat_write, lon_write, & ! yhc add
+                                do_stop_run, do_writeout_column_nml, do_bomex_radf, ii_write, jj_write, lat_write, lon_write, & ! yhc add
                                 tdt_max, do_limit_tdt, tdt_limit, &  ! yhc add
                                 max_diam_drop, use_tau, cosp_frequency
 
@@ -1993,7 +1994,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                        size(Physics_tendency_block%u_dt,2)) :: &
         tau_x_before_vdiff_down, tau_y_before_vdiff_down,  &
         shflx, lhflx, u_flux, v_flux
-      integer ii,jj,kk,rr
+      integer ii,jj,kk,rr, kx
 !--> yhc
 
 !---------------------------------------------------------------------
@@ -2148,7 +2149,16 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
 
 #endif
 
+      !<--- yhc
+      if (do_bomex_radf) then  ! yhc add, consistent with tdt_radf in history files
+        kx = size(Physics_tendency_block%q_dt,3)
+        radturbten = 0.
+        radturbten(is:ie,js:je,kx-10:kx)    = -2. /86400.  ! prescribe -2K/day cooling rate
+        radturbten(is:ie,js:je,kx-11:kx-11) = -0.4/86400.  ! -0.4 K/day
+      endif
+
       tdt_rad_only(:,:,:) = radturbten(is:ie,js:je,:) ! yhc save tdt_rad
+      !---> yhc
 
 !----------------------------------------------------------------------
 !    call damping_driver to calculate the various model dampings that
