@@ -386,7 +386,7 @@ end type edmf_ls_mp_type
   INTEGER :: bl_mynn_edmf_part = 1         ! partition area into updrafts and remaining environment
   INTEGER :: bl_mynn_cloudmix  = 1         ! 1 - cloud species are mixed separately, 0 - not
   INTEGER :: bl_mynn_mixqt     = 2         ! will mix moist conserved variables, after mixing invokes PDF cloud scheme to convert moist variables to dry
-  INTEGER :: bl_mynn_stabfunc  = 0       !  option for stability function. 0 - MYNN, 1 - Suselj et al. (2019)
+  INTEGER :: bl_mynn_stabfunc  = 1       !  option for stability function. 0 - MYNN, 1 - Suselj et al. (2019)
   INTEGER :: icloud_bl         = 1         ! 1, cloud cover and liquid water from the PDF scheme will be on the cloud output
   INTEGER :: spp_pbl           = 0         ! 1 stochastic perturbation to condensation  
 
@@ -405,7 +405,7 @@ end type edmf_ls_mp_type
   integer :: NUP = 100                   ! the number of updrafts
   real    :: UPSTAB = 1.                 ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
 
-  integer :: edmf_type=0                 ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
+  integer :: edmf_type=2                 ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
                                          ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
                                          ! =2, approximate ql and qi tendencies from AM4 ED and MF terms, and then recover T and qv tendencies 
 
@@ -419,7 +419,7 @@ end type edmf_ls_mp_type
   real    :: lon_range = 0.000001
   logical :: do_writeout_column_nml = .false.   ! control whether writing out the column
   logical :: do_check_consrv = .false.          ! control whether writing out the water/heat conservation
-  logical :: do_check_realizability = .false.   ! whether enables the realizability limiter that forces the tracers concentration
+  logical :: do_check_realizability = .true.    ! whether enables the realizability limiter that forces the tracers concentration
                                                 ! (q_t, q_v, q_l, q_i, q_a) not become negative after one time step 
   logical :: do_check_ent_det = .false.         ! control whether writing out entrainment and detrainment rate for debugging
   logical :: do_stop_run = .false.              ! whether to stop the simulation
@@ -440,12 +440,12 @@ end type edmf_ls_mp_type
 
   integer :: Qx_numerics=1                      ! =1, use upwind approximation in computing MF eddy-flux/source and subsidence/detrainment forms
 
-  integer :: option_up_area=1                   !=1, constant updraft area assumption, i.e. the updraft area remains the same with height
+  integer :: option_up_area=3                   !=1, constant updraft area assumption, i.e. the updraft area remains the same with height
                                                 !=2, updraft area is changed with height to maintain mass conservation in plumes
                                                 !=3, if detrainment rate>=0, assume updraft area is constant.
                                                 !    otherwise, vary the area to satisfy the mass continuity equation
-  logical :: do_use_tau = .true.                ! .true.  : use the T,q at the current step
-                                                ! .false. : use the updated T,q
+  logical :: do_use_tau = .false.               ! .true.  : use the T,q at the current step
+                                                ! .false. : use the updated T,q from all prior processes
   logical :: do_simple =.false.                 ! do_simple = switch to turn on alternative definition of specific
                                                 !             humidity. When true, specific humidity =
                                                 !             (rdgas/rvgas)*esat/pressure
@@ -473,7 +473,7 @@ end type edmf_ls_mp_type
   character*20 :: option_stoch_entrain = "Poisson_knuth"  ! option for random number generator (RNG)
                                                           !   Poisson: using the Fortran intrinsic RNG
                                                           !   Poisson_knuth: using AM4 RNG
-  integer :: option_rng = 1  ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
+  integer :: option_rng = 1       ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
 
   integer :: option_pblh_MF = 0   ! 0: whenever w'thv'>0, call MF
                                   ! 1: only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
@@ -8169,6 +8169,11 @@ subroutine edmf_mynn_driver ( &
       rdt(:,:,:,nqa)  = rdt(:,:,:,nqa) + am4_Output_edmf%qadt_edmf(:,:,:)  
       rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
       rdt(:,:,:,nqi)  = rdt(:,:,:,nqi) + am4_Output_edmf%qidt_edmf(:,:,:)
+
+      !--- return these tendencies to physics_driver
+      qadt_edmf     (:,:,:) = am4_Output_edmf%qadt_edmf(:,:,:)
+      qldt_edmf     (:,:,:) = am4_Output_edmf%qldt_edmf(:,:,:)
+      qidt_edmf     (:,:,:) = am4_Output_edmf%qidt_edmf(:,:,:)
 
       ! for testing, assume cloud droplet radius (rc_MF) and then compute cloud liquid number tendency
       am4_Output_edmf%qndt_edmf(:,:,:) = am4_Output_edmf%qldt_edmf(:,:,:) / dens_h2o / (4./3.*pi*rc_MF**3)  
