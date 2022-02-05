@@ -1988,7 +1988,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                        size(Physics_tendency_block%q_dt,2), &
                        size(Physics_tendency_block%q_dt,3), &
                        size(Physics_tendency_block%q_dt,4)  )  :: &
-        rdt_before_vdiff_down2, rdt_mynn_ed_am4
+        rdt_before_vdiff_down2, rdt_dum
 
       real, dimension( size(Physics_tendency_block%u_dt,1), &
                        size(Physics_tendency_block%u_dt,2)) :: &
@@ -2256,10 +2256,13 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
     u_flux = 0.
     v_flux = 0.
 
+    rdt_dum = 0.   ! set rdt_dum and tdt_dum to zeros
+    tdt_dum = 0. 
+
     call edmf_mynn_driver ( &
                is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
                b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-               tdt_dum, rdt_mynn_ed_am4,  &
+               tdt_dum, rdt_dum,  &
                do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, do_tracers_selective, &
                option_edmf2ls_mp, qadt_edmf(is:ie,js:je,:), qldt_edmf(is:ie,js:je,:), qidt_edmf(is:ie,js:je,:), dqa_edmf(is:ie,js:je,:),  dql_edmf(is:ie,js:je,:), dqi_edmf(is:ie,js:je,:), diff_t_vert, diff_m_vert, kpbl_edmf(is:ie,js:je), &
                edmf_mc_full(is:ie,js:je,:), edmf_mc_half(is:ie,js:je,:), edmf_moist_area(is:ie,js:je,:), edmf_dry_area(is:ie,js:je,:), edmf_moist_humidity(is:ie,js:je,:), edmf_dry_humidity(is:ie,js:je,:), &
