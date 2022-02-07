@@ -17,7 +17,7 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_02_u,vdt_NaN"
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
   !character*50 :: input_profile = "AMIP_i27_j01_IndOcn"
-  !character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
+  character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
   !character*50 :: input_profile = "SCM_am4p0_RF01_01"
   ! character*50 :: input_profile = "SCM_am4p0_RF01_02"
   ! character*50 :: input_profile = "SCM_am4p0_RF01_03_cloudy"
@@ -28,7 +28,7 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm01"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
   !character*50 :: input_profile = "AMIP_i8_j3_Arctic"  ! negative updraft vertical velocity at the surface (wmin & wmax <0)
-  character*50 :: input_profile = "AMIP_i2_j4_Delware"
+  !character*50 :: input_profile = "AMIP_i2_j4_Delware"
 
   integer, parameter :: loop_times = 1
  ! integer, parameter :: loop_times = 10
@@ -233,14 +233,17 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
                                                 !     controlling by alpha_st (1 completely stochastic, 0 completely deterministic)
   real    :: alpha_st=0.5
 
-  character*20 :: option_stoch_entrain = "Poisson"  ! option for random number generator (RNG)
+  character*20 :: option_stoch_entrain = "Poisson_knuth"  ! option for random number generator (RNG)
+  !character*20 :: option_stoch_entrain = "Poisson"  ! option for random number generator (RNG)
                                                     !   Poisson: using the Fortran intrinsic RNG
 
-  integer :: option_rng = 1  ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
+  integer :: option_rng = 0  ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
 
   integer :: option_pblh_MF = 0 
 
-  integer :: num_rx     = 50000   ! number of random number drawn from AM4 RNG  
+  integer :: num_rx     = 5e+4    ! number of random number drawn from AM4 RNG  
+  real    :: ztop_stoch = 10000.  ! Above this height (m), do not call Poisson to compute stochastic entrainment rate to 
+                                  ! speed up the simulation
 
 !==================
 type edmf_input_type
@@ -5860,7 +5863,7 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
   elseif (option_stoch_entrain.eq."Poisson_knuth") then   ! use AM4 random number geneartor
     if (option_rng == 0) call random_number(rr)
     if (option_rng == 1) call getRandomNumbers (streams1,rr)
-    call Poisson_knuth (kte-kts+1, Nup, rx, rr, ENTf, ENTi)
+    call Poisson_knuth (kte-kts+1, ZW, Nup, rx, rr, ENTf, ENTi)
 
   endif    ! end if of option_stoch_entrain.eq
   !-->
@@ -10703,7 +10706,7 @@ end subroutine reshape_mynn_array_to_am4_half
 
 !###################################
 
-subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
+subroutine Poisson_knuth (kx, zw, nx, rx, rr, ENTf, ENTi)
 !----------
 ! Desecription:
 !   a Poisson random number generator attributed to Donald Knuth:
@@ -10748,11 +10751,12 @@ subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
   integer, intent(in)  :: kx, nx, rx   ! dimension of input/output variables
   real   , intent(in)  :: rr   (rx)    ! random numbers
   real   , intent(in)  :: ENTf (kx,nx)  ! Poisson parameter
+  real   , intent(in)  :: zw(:)        ! height on half levels (m)
 
   integer, intent(out) :: ENTi(kx,nx)  ! a random integer number drawn from the Poisson distribution
 
   !--- local variables
-  integer, parameter :: itermax = 500   ! maximum of iteration loop
+  integer, parameter :: itermax = 50   ! maximum of iteration loop
   real,    parameter :: step    = 70
 
   real ::        &
@@ -10766,8 +10770,12 @@ subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
 
   integer i,j,n,k
 
+  integer ktop
+  real    z1,z2
+
   character*40 method
 !-------------------------------
+
   !method = "Knuth"
   method = "Knuth_Junhao"
 
@@ -10775,9 +10783,27 @@ subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
   ENTi = 0
   j = 1
 
+  !--- get the top height where stochastic entrainment will be computed (e.g. 10km) to speed up the simulation
+  ktop = -999
+  do k=2,size(zw)
+    if (ktop > 0) exit
+    if (zw(k-1).le.ztop_stoch .and. zw(k).gt.ztop_stoch) then
+      ktop = k
+    endif
+    !print*,'k,ktop',k,ktop
+  enddo
+
+  !print*,'zw',zw
+  !print*,'ztop_stoch,ktop',ztop_stoch,ktop
+
+  !--- deterministic, do not call Poisson
+  do k=ktop,kx
+    ENTi(k,:) = int(ENTf(k,:))
+  enddo
+
 !--- loop over each element
+do k=1,ktop-1
 do n=1,nx
-do k=1,kx
 
 !======================================
 if (method == "Knuth_Junhao") then
@@ -10836,13 +10862,15 @@ end if   ! end if of method = "Knuth_Junhao"
 !============
   if (i >= itermax) then
     ENTi(k,n) = int(lambda)
-!    print*,'qq,itermax,',lambda
+    !print*,'qq,itermax,',lambda
   endif
 
-enddo  ! end loop of k
 enddo  ! end loop of n
+enddo  ! end loop of k
 
-!print*,'ENTi',ENTi
+!do n=1,nx
+!  print*,'n,ENTi',ENTi(:,n)
+!enddo
 
 end subroutine Poisson_knuth
 
