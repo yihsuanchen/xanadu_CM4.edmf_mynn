@@ -3033,7 +3033,7 @@ real,dimension(:,:),    intent(inout)             :: gust
         call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
                                   Surf_diff, tdt, rdt(:,:,:,1), rdt )
 
-        tdt_mynn_ed_am4(:,:,:) = tdt(:,:,:) - tdt_before_vdiff_down(:,:,:) ! compute tdt_vdif_test
+        tdt_mynn_ed_am4(:,:,:) = tdt(:,:,:) - tdt_before_vdiff_down(is:ie,js:je,:) ! compute tdt_vdif_test
 
       !--- call vert_diff_driver_up if edmf_mynn is diagnostic
       elseif (do_edmf_mynn .and. do_edmf_mynn_diagnostic) then  
@@ -3051,12 +3051,12 @@ real,dimension(:,:),    intent(inout)             :: gust
         rdt_dum=0.
         call vert_diff_driver_up (is, js, Time_next, dt, p_half,   &
                                   Surf_diff, tdt_dum, qdt_dum, rdt_dum )
-        tdt_mynn_ed_am4(:,:,:) = tdt_dum(:,:,:) - tdt_before_vdiff_down(:,:,:) 
-        qdt_mynn_ed_am4(:,:,:) = qdt_dum(:,:,:) - rdt_before_vdiff_down(:,:,:,nsphum)  
+        tdt_mynn_ed_am4(:,:,:) = tdt_dum(:,:,:) - tdt_before_vdiff_down(is:ie,js:je,:) 
+        qdt_mynn_ed_am4(:,:,:) = qdt_dum(:,:,:) - rdt_before_vdiff_down(is:ie,js:je,:,nsphum)  
      endif
 
       !--- get tracer tendencies from vert_diff
-      rdt_mynn_ed_am4(:,:,:,:) =  rdt(:,:,:,:) - rdt_before_vdiff_down (:,:,:,:)
+      rdt_mynn_ed_am4(:,:,:,:) =  rdt(:,:,:,:) - rdt_before_vdiff_down (is:ie,js:je,:,:)
 
       !------- liquid water tendency from vert diff (units: kg/kg/s) at full level -------
       if ( id_qldt_vdif > 0) then
