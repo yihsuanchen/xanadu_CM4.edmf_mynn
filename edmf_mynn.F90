@@ -475,6 +475,8 @@ end type edmf_ls_mp_type
                                                           !   Poisson_knuth: using AM4 RNG
   integer :: option_rng = 1       ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
 
+  integer :: num_rx     = 50000   ! number of random number drawn from AM4 RNG
+
   integer :: option_pblh_MF = 0   ! 0: whenever w'thv'>0, call MF
                                   ! 1: only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
                                   !    This is to prevent activating MF in very stable conditions.
@@ -483,7 +485,7 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
-                            option_stoch_entrain, option_rng, option_pblh_MF, &
+                            option_stoch_entrain, option_rng, num_rx, option_pblh_MF, &
                             do_option_edmf2ls_mp, do_use_tau, Qx_MF, Qx_numerics, option_up_area, option_ent, alpha_st, &
                             do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, do_check_realizability, &
                             ii_write, jj_write, lat_write, lon_write
@@ -6298,8 +6300,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         Qql_det_i, Qqi_det_i, Qa_det_i, Qql_sub_i , Qqi_sub_i , Qa_sub_i, &
         Qql_adv_i, Qqi_adv_i, Qa_adv_i, Qql_eddy_i, Qqi_eddy_i, Qa_eddy_i, Qql_ent_i, Qqi_ent_i, Qa_ent_i
 
-       integer, parameter :: rx = 500  ! AM4 random number generator
-       real :: rr(rx)
+       !integer, parameter :: rx = num_rx  ! AM4 random number generator
+       integer :: rx
+       real    :: rr(num_rx)
 
        logical :: do_MF
 
@@ -6313,6 +6316,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
 !Initialize values:
 ktop = 0
 ztop = 0.0
+rx=num_rx
 
 UPW=0.
 UPRHO=0.
@@ -11393,7 +11397,7 @@ subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
 
   !--- input/output arguments
   integer, intent(in)  :: kx, nx, rx   ! dimension of input/output variables
-  real   , intent(in)  :: rr   (rx)
+  real   , intent(in)  :: rr   (rx)    ! random numbers
   real   , intent(in)  :: ENTf (kx,nx)  ! Poisson parameter
 
   integer, intent(out) :: ENTi(kx,nx)  ! a random integer number drawn from the Poisson distribution
@@ -11440,7 +11444,6 @@ if (method == "Knuth_Junhao") then
   !************
   do i=1,itermax
   !************
-
 
     !--- restart the random number array
     if (j > rx) then
