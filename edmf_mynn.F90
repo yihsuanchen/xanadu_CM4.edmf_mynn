@@ -6861,31 +6861,31 @@ DO K=KTS,KTE-1
 
 ENDDO
 
-!--- write out
-if (do_writeout_column_nml) then
-  do I=1,NUP
-    !where (DET(:,I) .lt. 0) 
-    !  print*,'gg,i',I
-    !end where
-    F1=0  
-    DO K=KTS,KTE-1
-      if (DET(K,I) .lt. 0) then
-        F1=1  
-        exit  
-      endif 
-    ENDDO 
-  
-    if (F1.eq.1) then
-      write(6,3001) 'ZW  = (/',ZW(:)
-      write(6,3002) 'UPRHO = (/',UPRHO(:,I)
-      write(6,3002) 'UPA = (/',UPA(:,I)
-      write(6,3002) 'UPW = (/',UPW(:,I)
-      write(6,3002) 'ENT = (/',ENT(:,I)
-      write(6,3002) 'DET = (/',DET(:,I)
-      write(6,*) '---------------------------'
-    endif 
-  enddo 
-endif
+!!--- write out
+!if (do_writeout_column_nml) then
+!  do I=1,NUP
+!    !where (DET(:,I) .lt. 0) 
+!    !  print*,'gg,i',I
+!    !end where
+!    F1=0  
+!    DO K=KTS,KTE-1
+!      if (DET(K,I) .lt. 0) then
+!        F1=1  
+!        exit  
+!      endif 
+!    ENDDO 
+!  
+!    if (F1.eq.1) then
+!      write(6,3001) 'ZW  = (/',ZW(:)
+!      write(6,3002) 'UPRHO = (/',UPRHO(:,I)
+!      write(6,3002) 'UPA = (/',UPA(:,I)
+!      write(6,3002) 'UPW = (/',UPW(:,I)
+!      write(6,3002) 'ENT = (/',ENT(:,I)
+!      write(6,3002) 'DET = (/',DET(:,I)
+!      write(6,*) '---------------------------'
+!    endif 
+!  enddo 
+!endif
 
 !--- compute variables for coupling with Tiedtke
 DO K=KTS,KTE-1
