@@ -27,8 +27,8 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_RF01_mynn_EDMFexpUP_Gmy_ADD_0.5h"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm01"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
-  character*50 :: input_profile = "AMIP_i8_j3_Arctic"  ! negative updraft vertical velocity at the surface (wmin & wmax <0)
-  !character*50 :: input_profile = "AMIP_i2_j4_Delware"
+  !character*50 :: input_profile = "AMIP_i8_j3_Arctic"  ! negative updraft vertical velocity at the surface (wmin & wmax <0)
+  character*50 :: input_profile = "AMIP_i2_j4_Delware"
 
   integer, parameter :: loop_times = 1
  ! integer, parameter :: loop_times = 10
@@ -176,8 +176,8 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
    !logical :: do_check_consrv = .true.
    logical :: do_check_consrv = .false.
 
-   !logical :: do_check_realizability = .true.
-   logical :: do_check_realizability = .false.
+   logical :: do_check_realizability = .true.
+   !logical :: do_check_realizability = .false.
 
    !logical :: do_check_ent_det = .true.
    logical :: do_check_ent_det = .false.
@@ -189,6 +189,7 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
                                                 ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
   real    :: qke_min = -1.                      ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
                                                 !   set qke_min>0 may remove energy/water away and cause water mass is not conserved
+  real    :: qdt_min = 1.E-15
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
                                                 ! 1.E-10 is same as qmin in lscloud_driver
   integer :: do_option_edmf2ls_mp = 0           ! option to include EDMF cloud tendencies terms into Tiedtke
@@ -238,6 +239,8 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
   integer :: option_rng = 1  ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
 
   integer :: option_pblh_MF = 0 
+
+  integer :: num_rx     = 50000   ! number of random number drawn from AM4 RNG  
 
 !==================
 type edmf_input_type
@@ -5646,8 +5649,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
         Qql_det_i, Qqi_det_i, Qa_det_i, Qql_sub_i , Qqi_sub_i , Qa_sub_i, &
         Qql_adv_i, Qqi_adv_i, Qa_adv_i, Qql_eddy_i, Qqi_eddy_i, Qa_eddy_i, Qql_ent_i, Qqi_ent_i, Qa_ent_i
 
-       integer, parameter :: rx = 500  ! AM4 random number generator
-       real :: rr(rx)
+       !integer, parameter :: rx = num_rx  ! AM4 random number generator
+       integer :: rx
+       real    :: rr(num_rx)
 
        logical :: do_MF
 
@@ -5661,6 +5665,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
 !Initialize values:
 ktop = 0
 ztop = 0.0
+rx=num_rx
 
 UPW=0.
 UPRHO=0.
@@ -6209,31 +6214,31 @@ DO K=KTS,KTE-1
 
 ENDDO
 
-!--- write out
-if (do_writeout_column_nml) then
-  do I=1,NUP
-    !where (DET(:,I) .lt. 0) 
-    !  print*,'gg,i',I
-    !end where
-    F1=0  
-    DO K=KTS,KTE-1
-      if (DET(K,I) .lt. 0) then
-        F1=1  
-        exit  
-      endif 
-    ENDDO 
-  
-    if (F1.eq.1) then
-      write(6,3001) 'ZW  = (/',ZW(:)
-      write(6,3002) 'UPRHO = (/',UPRHO(:,I)
-      write(6,3002) 'UPA = (/',UPA(:,I)
-      write(6,3002) 'UPW = (/',UPW(:,I)
-      write(6,3002) 'ENT = (/',ENT(:,I)
-      write(6,3002) 'DET = (/',DET(:,I)
-      write(6,*) '---------------------------'
-    endif 
-  enddo 
-endif
+!!--- write out
+!if (do_writeout_column_nml) then
+!  do I=1,NUP
+!    !where (DET(:,I) .lt. 0) 
+!    !  print*,'gg,i',I
+!    !end where
+!    F1=0  
+!    DO K=KTS,KTE-1
+!      if (DET(K,I) .lt. 0) then
+!        F1=1  
+!        exit  
+!      endif 
+!    ENDDO 
+!  
+!    if (F1.eq.1) then
+!      write(6,3001) 'ZW  = (/',ZW(:)
+!      write(6,3002) 'UPRHO = (/',UPRHO(:,I)
+!      write(6,3002) 'UPA = (/',UPA(:,I)
+!      write(6,3002) 'UPW = (/',UPW(:,I)
+!      write(6,3002) 'ENT = (/',ENT(:,I)
+!      write(6,3002) 'DET = (/',DET(:,I)
+!      write(6,*) '---------------------------'
+!    endif 
+!  enddo 
+!endif
 
 !--- compute variables for coupling with Tiedtke
 DO K=KTS,KTE-1
@@ -7054,11 +7059,11 @@ END SUBROUTINE edmf_JPL
 subroutine edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-              rdt_mynn_ed_am4, &
+              tdt_mynn_ed_am4, rdt_mynn_ed_am4, &
               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, do_tracers_selective, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
-              pbltop, udt, vdt, tdt, rdt, rdiag)
+              pbltop, udt, vdt, tdt, rdt, tdt_mf, rdiag)
 
 !---------------------------------------------------------------------
 ! Arguments (Intent in)  
@@ -7079,6 +7084,9 @@ subroutine edmf_mynn_driver ( &
 !     rdt_mynn_ed_am4
 !       multiple tracer tendencies [ unit / unit / sec ] only for eddy-diffusion
 !       This is used to recover dry variable tendencies when edmf_type=2
+!
+!     tdt_mynn_ed_am4 (K/s)
+!       temperature tendency from ED, estimated by AM4 diffusion sovler with MYNN ED coefficients
 !---------------------------------------------------------------------
   integer, intent(in)                   :: is, ie, js, je, npz
   type(time_type), intent(in)           :: Time_next
@@ -7089,6 +7097,9 @@ subroutine edmf_mynn_driver ( &
 
   real, intent(in), dimension(:,:,:,:) :: &
     rdt_mynn_ed_am4
+
+  real, intent(in), dimension(:,:,:)   :: &
+    tdt_mynn_ed_am4
 
   type(physics_input_block_type)        :: Physics_input_block
   logical, intent(in)                   :: do_edmf_mynn_diagnostic
@@ -7133,6 +7144,7 @@ subroutine edmf_mynn_driver ( &
 !   diff_t_edmf		- eddy diffusion coefficient for heat (K m/s)			  	, dimension (nlon,nlat,nlay)
 !   diff_m_edmf		- eddy diffusion coefficient for momentum (m2/s)		  	, dimension (nlon,nlat,nlay)
 !   option_edmf2ls_mp 	- options for linkage to Tiedtke, same as "do_option_edmf2ls_mp" in the namelist
+!   tdt_mf              - temperature tendencies from MF (estimated) (K/s)                      , dimension (nlon,nlat,nlay)
 !
 !   Note
 !     1. diff_t_edmf is at half levels, although AM4 use dimension of nlay instead of nlay+1
@@ -7145,6 +7157,7 @@ subroutine edmf_mynn_driver ( &
   real, intent(out), dimension(:,:,:) :: &   ! (lon, lat, nlay)
     qadt_edmf, qldt_edmf, qidt_edmf, &   
     dqa_edmf,  dql_edmf, dqi_edmf,  &
+    tdt_mf,                         &
     diff_t_edmf, diff_m_edmf
 
   integer, intent(out) :: &
@@ -7198,6 +7211,11 @@ subroutine edmf_mynn_driver ( &
   type(randomNumberStream), dimension(size(Physics_input_block%t,1), &
                                       size(Physics_input_block%t,2)) :: &     ! dimension (nlon,nlat)
     streams
+
+  real, dimension (size(Physics_input_block%t,1), &
+                   size(Physics_input_block%t,2)) :: &  ! dimension (nlon,nlat)
+    rlz_ratio, rlz_tracer
+
   real :: randomNumbers
 
 !-------------------------
@@ -7400,11 +7418,11 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 ! recover dry variable tendencies from mynn_edmf
 !---------------------------------------------------------------------
-  call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next,  &
+  call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next, dt,  &
                                     do_writeout_column,         &
                                     Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                     size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
-                                    Output_edmf)
+                                    Output_edmf, rlz_ratio, rlz_tracer)
 
 !---------------------------------------------------------------------
 ! process the outputs from the EDMF-MYNN program
@@ -7445,6 +7463,12 @@ subroutine edmf_mynn_driver ( &
   edmf_moist_humidity  = 0.
   edmf_dry_area        = 0.
   edmf_dry_humidity    = 0.
+
+  if (bl_mynn_edmf > 0) then    ! ED and MF are on
+    tdt_mf(:,:,:) = am4_Output_edmf%tdt_edmf(:,:,:) - tdt_mynn_ed_am4(:,:,:)  ! estimate tdt_mf
+  else                          ! ED only, no MF
+    tdt_mf = 0.
+  endif
 
   if (.not.do_edmf_mynn_diagnostic) then
 
@@ -7499,6 +7523,11 @@ subroutine edmf_mynn_driver ( &
       rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
       rdt(:,:,:,nqi)  = rdt(:,:,:,nqi) + am4_Output_edmf%qidt_edmf(:,:,:)
 
+      !--- return these tendencies to physics_driver
+      qadt_edmf     (:,:,:) = am4_Output_edmf%qadt_edmf(:,:,:)
+      qldt_edmf     (:,:,:) = am4_Output_edmf%qldt_edmf(:,:,:)
+      qidt_edmf     (:,:,:) = am4_Output_edmf%qidt_edmf(:,:,:)
+
       ! for testing, assume cloud droplet radius (rc_MF) and then compute cloud liquid number tendency
       am4_Output_edmf%qndt_edmf(:,:,:) = am4_Output_edmf%qldt_edmf(:,:,:) / dens_h2o / (4./3.*pi*rc_MF**3)  
       rdt(:,:,:,nqn)  = rdt(:,:,:,nqn) + am4_Output_edmf%qndt_edmf(:,:,:)
@@ -7512,8 +7541,8 @@ subroutine edmf_mynn_driver ( &
       rdt(:,:,:,nql)  = rdt(:,:,:,nql) + am4_Output_edmf%qldt_edmf(:,:,:)  
       rdt(:,:,:,nqi)  = rdt(:,:,:,nqi) + am4_Output_edmf%qidt_edmf(:,:,:)
 
-      edmf_mc_full        (:,:,:) = am4_Output_edmf%mf_all_half  (:,:,:)
-      edmf_mc_half        (:,:,:) = am4_Output_edmf%mf_all_full  (:,:,:)
+      edmf_mc_full        (:,:,:) = am4_Output_edmf%mf_all_full  (:,:,:)
+      edmf_mc_half        (:,:,:) = am4_Output_edmf%mf_all_half  (:,:,:)
       edmf_moist_area     (:,:,:) = am4_Output_edmf%a_moist_full (:,:,:)
       edmf_moist_humidity (:,:,:) = am4_Output_edmf%qv_moist_full(:,:,:)
       edmf_dry_area       (:,:,:) = am4_Output_edmf%a_dry_full   (:,:,:)
@@ -8003,6 +8032,26 @@ subroutine edmf_mynn_driver ( &
 !      if ( id_num_ndet_pent > 0) then
 !        call reshape_mynn_array_to_am4(ix, jx, kx, num_nDET_pENT, diag_full)
 !        used = send_data (id_num_ndet_pent, diag_full, Time_next, is, js, 1 )
+!      endif
+!
+!!------- ratio for realizability limiter (units: none) at one level -------
+!      if ( id_rlz_ratio > 0) then
+!        used = send_data (id_rlz_ratio, rlz_ratio, Time_next, is, js )
+!      endif
+!
+!!------- tracer name for realizability limiter (units: none) at one level -------
+!      if ( id_rlz_tracer > 0) then
+!        used = send_data (id_rlz_tracer, rlz_tracer, Time_next, is, js )
+!      endif
+!
+!      !------- temperature tendency from edmf_mynn, ED (units: K/s) at full level -------
+!      if ( id_tdt_edmf_ED > 0) then
+!        used = send_data (id_tdt_edmf_ED, tdt_mynn_ed_am4, Time_next, is, js, 1 )
+!      endif
+!
+!      !------- tempearture tendency from edmf_mynn, MF (units: K/s) at full level -------
+!      if ( id_tdt_edmf_MF > 0) then
+!        used = send_data (id_tdt_edmf_MF, tdt_mf, Time_next, is, js, 1 )
 !      endif
 !!send_data
 
@@ -9216,8 +9265,8 @@ subroutine edmf_writeout_column ( &
   type(edmf_output_type), intent(in) :: Output_edmf
 
   type(am4_edmf_output_type), intent(in) :: am4_Output_edmf
-  !real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
-  real, intent(in), dimension(:,:,:,ntp+1:) :: &
+  real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
+  !real, intent(in), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
   real, intent(in), dimension(:,:,:,:) :: &
@@ -10181,14 +10230,15 @@ end subroutine convert_edmf_to_am4_array
 
 !###################################
 
-subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
+subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
                                         do_writeout_column, &
                                         Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                         ix, jx, kx,  &
-                                        Output_edmf)
+                                        Output_edmf, rlz_ratio, rlz_tracer)
 
 !--- input arguments
   integer, intent(in)                   :: is, ie, js, je
+  real,    intent(in)                   :: dt
   type(time_type), intent(in)           :: Time_next
   type(physics_input_block_type), intent(in)  :: Physics_input_block
   type(edmf_input_type)     , intent(in)  :: Input_edmf
@@ -10199,18 +10249,24 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next,      &
 
 !--- input/output arguments
   type(edmf_output_type)    , intent(inout)  :: Output_edmf
+  real, dimension(ix,jx)    , intent(out)    :: rlz_ratio  ! ratio for scaling the tendencies 
+  real, dimension(ix,jx)    , intent(out)    :: rlz_tracer    ! tracer name for the rlz_ratio
 
 !--- local variable
   integer, parameter :: nx = 5     ! number of tracers for realizability check
   real, dimension(ix,jx,kx,nx) ::  &  ! tracers for realizability check
     tracers, tracers_tend
   real, dimension(ix,jx,nx)   ::  &  ! realizability ratio for each tracer 
-    tends_ratio
-  real, dimension(ix,jx)    :: return_ratio  ! ratio for scaling the tendencies 
+    tends_ratio, &   ! realizability ratio for each tracer 
+    tends_ratio_k    ! level of the realizability ratio
   real, dimension(ix,jx,kx) :: tmp_3d
   logical used
   integer i,j,k,kk
 !------------------------------------------
+
+!--- initialze return variables
+  rlz_ratio  = 1.
+  rlz_tracer = 0.
 
 !----------------------------
 ! save the original mynn_edmf tendencies
@@ -10463,31 +10519,56 @@ if (do_check_realizability) then
    call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQTBLTEN(:,:,:), tracers_tend(:,:,:,5))
 
    call check_trc_rlzbility (dt, tracers, tracers_tend, &
-                             tends_ratio, return_ratio)
+                             tends_ratio, tends_ratio_k, rlz_ratio, rlz_tracer)
 
    !--- ratio must be between 0 and 1
-   if (any(tends_ratio.le.0.) .or. any(tends_ratio.gt.1.)) then
+   if (any(tends_ratio.lt.0.) .or. any(tends_ratio.gt.1.)) then
      call error_mesg( ' edmf_mynn',     &
                       ' the ratio from the realizability check must be between 0 to 1',&
                       FATAL )
    endif
 
+   !--- printout for debugging purpose
+   if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
+     print*,'**********************'
+     print*,''
+     print*,'do_check_realizability = ',do_check_realizability
+     print*,'index: qv, ql, qi, qa, qt'
+     print*,'tends_ratio',tends_ratio
+     print*,'tends_ratio_k',tends_ratio_k
+     print*,'rlz_ratio',rlz_ratio
+     print*,'rlz_tracer',rlz_tracer
+     print*,'------------------------------'
+     print*,'original tendencies'
+     print*,''
+     print*,'RUBLTEN',Output_edmf%RUBLTEN
+     print*,'RVBLTEN',Output_edmf%RVBLTEN
+     print*,'RQTBLTEN',Output_edmf%RQTBLTEN
+     print*,'RTHLBLTEN',Output_edmf%RTHLBLTEN
+     print*,'RQVBLTEN',Output_edmf%RQVBLTEN
+     print*,'RQLBLTEN',Output_edmf%RQLBLTEN
+     print*,'RQIBLTEN',Output_edmf%RQIBLTEN
+     print*,'RCCBLTEN',Output_edmf%RCCBLTEN
+     print*,''
+     print*,'**********************'
+   end if
+
    !--- rescale the tendencies
    do i=1,ix
    do j=1,jx
      ! u and v tendencies
-     Output_edmf%RUBLTEN (i,:,j) = Output_edmf%RUBLTEN (i,:,j) * return_ratio(i,j)
-     Output_edmf%RVBLTEN (i,:,j) = Output_edmf%RVBLTEN (i,:,j) * return_ratio(i,j)
+     Output_edmf%RUBLTEN (i,:,j) = Output_edmf%RUBLTEN (i,:,j) * rlz_ratio(i,j)
+     Output_edmf%RVBLTEN (i,:,j) = Output_edmf%RVBLTEN (i,:,j) * rlz_ratio(i,j)
 
      ! theta_l and q_t tendencies
-     Output_edmf%RQTBLTEN (i,:,j) = Output_edmf%RQTBLTEN (i,:,j) * return_ratio(i,j)
-     Output_edmf%RTHLBLTEN(i,:,j) = Output_edmf%RTHLBLTEN(i,:,j) * return_ratio(i,j)
+     Output_edmf%RQTBLTEN (i,:,j) = Output_edmf%RQTBLTEN (i,:,j) * rlz_ratio(i,j)
+     Output_edmf%RTHLBLTEN(i,:,j) = Output_edmf%RTHLBLTEN(i,:,j) * rlz_ratio(i,j)
 
      ! qv, ql, qi, qa tendencies
-     Output_edmf%RQVBLTEN(i,:,j) = Output_edmf%RQVBLTEN(i,:,j) * return_ratio(i,j)
-     Output_edmf%RQLBLTEN(i,:,j) = Output_edmf%RQLBLTEN(i,:,j) * return_ratio(i,j)
-     Output_edmf%RQIBLTEN(i,:,j) = Output_edmf%RQIBLTEN(i,:,j) * return_ratio(i,j)
-     Output_edmf%RCCBLTEN(i,:,j) = Output_edmf%RCCBLTEN(i,:,j) * return_ratio(i,j)
+     Output_edmf%RQVBLTEN(i,:,j) = Output_edmf%RQVBLTEN(i,:,j) * rlz_ratio(i,j)
+     Output_edmf%RQLBLTEN(i,:,j) = Output_edmf%RQLBLTEN(i,:,j) * rlz_ratio(i,j)
+     Output_edmf%RQIBLTEN(i,:,j) = Output_edmf%RQIBLTEN(i,:,j) * rlz_ratio(i,j)
+     Output_edmf%RCCBLTEN(i,:,j) = Output_edmf%RCCBLTEN(i,:,j) * rlz_ratio(i,j)
    enddo  ! end loop of j
    enddo  ! end loop of i
 
@@ -10497,26 +10578,6 @@ if (do_check_realizability) then
 
 endif  ! end if of do_check_realizability
 
- !--- printout for debugging purpose
- if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
-   print*,'**********************'
-   print*,''
-   print*,'do_check_realizability = ',do_check_realizability
-   print*,'index: qv, ql, qi, qa, qt'
-   print*,'tends_ratio',tends_ratio
-   print*,'return_ratio',return_ratio
-   print*,'------------------------------'
-   print*,'RUBLTEN',Output_edmf%RUBLTEN
-   print*,'RVBLTEN',Output_edmf%RVBLTEN
-   print*,'RQTBLTEN',Output_edmf%RQTBLTEN
-   print*,'RTHLBLTEN',Output_edmf%RTHLBLTEN
-   print*,'RQVBLTEN',Output_edmf%RQVBLTEN
-   print*,'RQLBLTEN',Output_edmf%RQLBLTEN
-   print*,'RQIBLTEN',Output_edmf%RQIBLTEN
-   print*,'RCCBLTEN',Output_edmf%RCCBLTEN
-   print*,''
-   print*,'**********************'
- end if
 
 !----------------------------
 ! printout statements 
@@ -10538,6 +10599,16 @@ endif  ! end if of do_check_realizability
 !     write(6,*) 'Output_edmf%Q_qi',Output_edmf%Q_qi(ii_write,:,jj_write)
 !     write(6,*) 'Output_edmf%RQIBLTEN',Output_edmf%RQIBLTEN(ii_write,:,jj_write)
 !   end if
+
+!
+!send_data
+!------- tracer name for realizability limiter (units: none) at one level -------
+! ! yhc 2021-12-15, fail to compile, "error #6284: There is no matching specific function for this generic function reference.   [SEND_DATA]"
+! !                 I have no idea why...
+!      if ( id_rlz_tracer > 0) then
+!        used = send_data (id_rlz_tracer, rlz_tracer, Time_next, is, js )
+!      endif
+!send_data
 
 end subroutine modify_mynn_edmf_tendencies
 
@@ -10675,7 +10746,7 @@ subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
 
   !--- input/output arguments
   integer, intent(in)  :: kx, nx, rx   ! dimension of input/output variables
-  real   , intent(in)  :: rr   (rx)
+  real   , intent(in)  :: rr   (rx)    ! random numbers
   real   , intent(in)  :: ENTf (kx,nx)  ! Poisson parameter
 
   integer, intent(out) :: ENTi(kx,nx)  ! a random integer number drawn from the Poisson distribution
@@ -10722,7 +10793,6 @@ if (method == "Knuth_Junhao") then
   !************
   do i=1,itermax
   !************
-
 
     !--- restart the random number array
     if (j > rx) then
@@ -10779,7 +10849,7 @@ end subroutine Poisson_knuth
 !###################################
 
 subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
-                                tends_ratio, return_ratio)
+                                tends_ratio, tends_ratio_k, rlz_ratio, rlz_tracer)
 
 !---------------------------------------------------------------------
 !  Check for tracer realizability. If tracer tendencies would
@@ -10787,6 +10857,31 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 !  terms uniformly for this tracer throughout convective column. 
 !
 !  Reference: subroutine don_d_check_trc_rlzbility, src/atmos_param/donner_deep/donner_deep_k.F90
+!
+!  In the Tiedtke scheme, it calls a subroutine "impose_realizability" to force that there are no negative or extremely small qa, ql, or qi values. Any values of the prognostic variables which are less than qmin are reset to zero, while conserving total moisture.
+!  (src/atmos_param/lscloud_driver/lscloud_driver.F90)
+!
+!  The minimum permissible value, qmin, is 1.e-10.
+!  (src/atmos_param/physics_driver/physics_driver.F90)
+!
+!  Given that Tiedtke will do the realizability check for the cloud tracers, the realizability limiter in the MYNN-EDMF does the following:
+!
+!  tracer0: the input tracer concentration at a level (qa, ql, qi, qv, or qt)
+!  tracer1: the updated tracer concentration at a level by the MYNN-EDMF
+!  qmin: the minimum permissible tracer value in Tiedtke, 1.e-10 as default
+!
+!                         | tracer0<0   |   0<tracer0<qmin (e.g. tracer0=1.e-50)   |   tracer0 > qmin
+!  ----------------------------------------------------------------------------------------------------
+!  tracer1<-qmin          | STOP the    |   Limiter. The rescaled ratio            |    Limiter 
+!  (e.g. tracer1=1.e-4)   | model       |   should be very very small              |
+!  ------------------------             ---------------------------------------------------------------
+!  -qmin < tracer1 < 0    | sth is wrong|   No Limiter. Let Tiedtke do the         |    Limiter 
+!  (e.g. tracer1=-1.e-30) |             |   realizability check                    |
+!  ----------------------------------------------------------------------------------------------------
+!  tracer1 > 0            |             |   No Limiter                             !    No Limiter
+!  ----------------------------------------------------------------------------------------------------
+!
+!
 !---------------------------------------------------------------------
 
 !---------------------------------------------------------------------
@@ -10800,14 +10895,18 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
-!     tends_ratio     ratio by which tracer tendencies need to 
+!     tends_ratio    ratio by which tracer tendencies need to 
 !                    be reduced to permit realizability (i.e., to prevent
 !                    negative tracer mixing ratios)
-!     return_ratio   the smallest ratio of all tracers. This would be used to scale the all tendencies (Temperature, tracerts, etc)
+!     rlz_ratio      the smallest ratio of all tracers. This would be used to scale the all tendencies (Temperature, tracerts, etc)
 !---------------------------------------------------------------------
-  real, intent(out), dimension(:,:,:)     :: tends_ratio          ! dimension (nlon, nlat, ntracer)
+  real   , intent(out), dimension(:,:,:)     :: tends_ratio          ! dimension (nlon, nlat, ntracer)
+
+  real   , intent(out), dimension(:,:,:)     :: tends_ratio_k        ! dimension (nlon, nlat, ntracer)
  
-  real, intent(out), dimension(:,:)       :: return_ratio         ! dimension (nlon, nlat)
+  real   , intent(out), dimension(:,:)       :: rlz_ratio         ! dimension (nlon, nlat)
+
+  real   , intent(out), dimension(:,:)       :: rlz_tracer           ! dimension (nlon, nlat)
  
 !---------------------------------------------------------------------
 ! Arguments (Intent local)
@@ -10822,7 +10921,7 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
     tracer0, trtend, tracer1
 
   real :: &
-    tracer_min, tracer_max, ratio
+    tracer0_min, tracer0_max, ratio, ratio0
 
   character*40 cause
 
@@ -10839,8 +10938,10 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
   nx  = size( tracers, 4 )
 
 !--- initialze return variable
-  tends_ratio  = 1.
-  return_ratio = 1.
+  tends_ratio   = 1.
+  tends_ratio_k = 0.
+  rlz_ratio     = 1.
+  rlz_tracer    = 0.
 
 !---------------------
 ! compute tend_ratio
@@ -10849,7 +10950,8 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 !   (2) in the range of max/min of tracer0
 !---------------------
 
-  do n=1,nx
+  !do n=1,nx
+  do n=1,1
   do i=1,ix
   do j=1,jx
 
@@ -10857,37 +10959,80 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
     tracer0(:)  = tracers(i,j,:,n)
     trtend (:)  = tracers_tend(i,j,:,n)
     tracer1(:)  = tracer0(:) + dt * trtend(:)
+    !write(6,*),'tracer0',tracer0
+    !write(6,*),'tracer1',tracer1
+    !write(6,*),'trtend',trtend
 
-!write(6,*),'tracer0',tracer0
-!write(6,*),'tracer1',tracer1
-!write(6,*),'trtend',trtend
+    !--- testing values 
+    !tracer1(28) = 1.
+    !tracer1(28) = -1.E-25
+    !tracer0(28) = 1.E-30
+    !tracer0(28) = 1.E-8 
+
+    if (any(tracer0.lt.0.)) then
+      write(6,*) 'i,j,#tracer',i,j,n
+      write(6,*) 'tracer0',tracer0
+      call error_mesg( ' edmf_mynn',     &
+                       ' check_trc_rlzbility, tracers < 0.',&
+                       FATAL )
+    endif
 
     !--- get max/min of tracer0
-    tracer_min = 1.e20
-    tracer_max = -1.e20
+    tracer0_min = 1.e20
+    tracer0_max = -1.e20
 
     do k = 1,kx
        if (trtend(k) /= 0.) then
-          tracer_max = max(tracer0(k),tracer_max)
-          tracer_min = min(tracer0(k),tracer_min)
+          tracer0_max = max(tracer0(k),tracer0_max)
+          tracer0_min = min(tracer0(k),tracer0_min)
        end if
     end do
-
-!print*,'tracer_max',tracer_max
-!print*,'tracer_min',tracer_min
+    !print*,'tracer_max',tracer_max
+    !print*,'tracer_min',tracer_min
 
     !--- compute ratio
     ratio = 1.
     do k = 1,kx
 
-       !--- if tracer1 is less than zero
-       if (tracer0(k) > 0. .and. tracer1(k)<0.) then
+       !--- call realizability limiter in these conditions
+       if (tracer0(k) > 0. .and. tracer1(k) < -qmin) then
+          ratio0 = ratio
           ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
-          !cause = "tracer1 is less than zero"
+          if (ratio.ne.ratio0) tends_ratio_k(i,j,n) = k          
+
           !write(6,*),'-------'
-          !write(6,*),'aa1, less than zero, k,ratio',k,ratio
-          !write(6,*),'  tracer0(k), tracer1(k), ',tracer0(k), tracer1(k)
-       end if
+          !write(6,*),'aaa1, n,k,ratio',n,k,ratio
+          !write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
+
+       elseif (tracer0(k) > qmin .and. tracer1(k) < 0. .and. tracer1(k) > -qmin) then  
+          ratio0 = ratio
+          ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
+          if (ratio.ne.ratio0) tends_ratio_k(i,j,n) = k          
+
+          !write(6,*),'-------'
+          !write(6,*),'aaa2, n,k,ratio',n,k,ratio
+          !write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
+
+       endif
+
+       !--- if tracer1 is less than zero
+       !if (tracer0(k) > 0. .and. tracer1(k)<0.) then
+!       if (tracer0(k)>0. .and. tracer1(k)<0. .and. abs(trtend(k))>qdt_min ) then   ! to avoid tracer0=1.E-100, trtend=-1.E-50. tracer1<0/ 
+!
+!          if (tracer0(k) .lt. tracer_min) then  ! if tracer0 is too small, set ratio to zero
+!            ratio0 = 0. 
+!            ratio  = 0.
+!          else
+!            ratio0 = ratio
+!            ratio = MIN( ratio,tracer0(k)/(-trtend(k)*dt) )
+!          endif
+!
+!            !cause = "tracer1 is less than zero"
+!            !write(6,*),'-------'
+!            !write(6,*),'aa1, n,k,ratio',n,k,ratio
+!            !write(6,*),'  tracer0(k), tracer1(k), trtend(k)',tracer0(k), tracer1(k), trtend(k)
+!            if (ratio.ne.ratio0) tends_ratio_k(i,j,n) = k          
+!       end if
 
        !--- yhc 2021-12-13, comment this out because MF can produce tracer values less than the original minimum 
        !--- if tracer1 is less than tracer_min
@@ -10926,7 +11071,8 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
   do i=1,ix
   do j=1,jx
   do n=1,nx
-    return_ratio(i,j) = MAX(0.,MIN( return_ratio(i,j),tends_ratio(i,j,n) ) )
+    rlz_ratio(i,j) = MAX(0.,MIN( rlz_ratio(i,j),tends_ratio(i,j,n) ) )
+    if (rlz_ratio(i,j).ne.1. .and. rlz_ratio(i,j).eq.tends_ratio(i,j,n)) rlz_tracer(i,j) = float(n)   ! save the tracer name
   enddo   ! end do of n 
   enddo   ! end do of j
   enddo   ! end do of i
@@ -10945,6 +11091,8 @@ subroutine error_mesg(character1, character2, fatal0)
   character character1
   character character2
   integer fatal0
+
+  !print*,'ERROR: ',character2
 end subroutine error_mesg
 
 subroutine getRandomNumbers(streams, rr)
@@ -11038,7 +11186,7 @@ program test111
   real,    dimension(ni,nj)   :: buoy_flux, w1_thv1_surf, w1_qt1_surf
 
   real,    dimension(ni,nj,nfull,ntracer) :: rdiag
-  real,    dimension(ni,nj,nfull) :: udt, vdt, tdt
+  real,    dimension(ni,nj,nfull) :: udt, vdt, tdt, tdt_mynn_ed_am4
   real,    dimension(ni,nj,nfull,tr) :: rdt 
   real,    dimension(ni,nj,nfull,tr) :: rdt_mynn_ed_am4 
 
@@ -12650,6 +12798,8 @@ endif ! end if of input profile
   !Physics_input_block%q(:,:,:,nqi) = 0.
   !Physics_input_block%q(:,:,:,nqa) = 0.
 
+  tdt_mynn_ed_am4 = 0.
+
   do mm = 1,loop_times
     ! set tendencies to zeros
     udt = 0. ; vdt = 0. ; tdt = 0.; rdt = 0.   
@@ -12695,11 +12845,20 @@ endif ! end if of input profile
   call edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
-              rdt_mynn_ed_am4, &
+              tdt_mynn_ed_am4, rdt_mynn_ed_am4, &
               do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, do_tracers_selective, &
               option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
               edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
-              pbltop, udt, vdt, tdt, rdt, rdiag)
+              pbltop, udt, vdt, tdt, rdt, tdt_mf, rdiag)
+
+!  call edmf_mynn_driver ( &
+!              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
+!              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
+!              rdt_mynn_ed_am4, &
+!              do_edmf_mynn_diagnostic, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, do_tracers_selective, &
+!              option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
+!              edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
+!              pbltop, udt, vdt, tdt, rdt, rdiag)
 
               !is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               !b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, &
