@@ -473,9 +473,13 @@ end type edmf_ls_mp_type
   character*20 :: option_stoch_entrain = "Poisson_knuth"  ! option for random number generator (RNG)
                                                           !   Poisson: using the Fortran intrinsic RNG
                                                           !   Poisson_knuth: using AM4 RNG
+                                                          !   no_stochastic: using deterministic entrainment rate
   integer :: option_rng = 1       ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
 
-  integer :: num_rx     = 50000   ! number of random number drawn from AM4 RNG
+  integer :: num_rx     = 5e+4    ! number of random number drawn from AM4 RNG
+
+  real    :: ztop_stoch = 10000.  ! Above this height (m), do not call Poisson to compute stochastic entrainment rate;
+                                  ! the entrainment rate becomes deterministic in order to speed up the simulation 
 
   integer :: option_pblh_MF = 0   ! 0: whenever w'thv'>0, call MF
                                   ! 1: only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
@@ -485,7 +489,7 @@ namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, up
                             L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
-                            option_stoch_entrain, option_rng, num_rx, option_pblh_MF, &
+                            option_stoch_entrain, option_rng, num_rx, ztop_stoch, option_pblh_MF, &
                             do_option_edmf2ls_mp, do_use_tau, Qx_MF, Qx_numerics, option_up_area, option_ent, alpha_st, &
                             do_debug_option, do_stop_run, do_writeout_column_nml, do_check_consrv, do_check_realizability, &
                             ii_write, jj_write, lat_write, lon_write
@@ -611,9 +615,9 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                      FATAL )
   endif
 
-  if (trim(option_stoch_entrain) /= 'Poisson' .and. trim(option_stoch_entrain) /= 'Poisson_knuth') then
+  if (trim(option_stoch_entrain) /= 'Poisson' .and. trim(option_stoch_entrain) /= 'Poisson_knuth' .and. trim(option_stoch_entrain) /= 'no_stochastic') then
     call error_mesg( ' edmf_mynn',     &
-                     '  option_stoch_entrain must be Poisson or Poisson_knuth',&
+                     '  option_stoch_entrain must be either [Poisson, Poisson_knuth, no_stochastic]',&
                      FATAL )
   endif
 
@@ -6511,7 +6515,12 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
   elseif (option_stoch_entrain.eq."Poisson_knuth") then   ! use AM4 random number geneartor
     if (option_rng == 0) call random_number(rr)
     if (option_rng == 1) call getRandomNumbers (streams1,rr)
-    call Poisson_knuth (kte-kts+1, Nup, rx, rr, ENTf, ENTi)
+    call Poisson_knuth (kte-kts+1, ZW, Nup, rx, rr, ENTf, ENTi)
+
+  elseif (option_stoch_entrain.eq."no_stochastic") then   ! no stochastic entrainment 
+    do k=kts,kte
+      ENTi(k,:) = int(ENTf(k,:))
+    enddo
 
   endif    ! end if of option_stoch_entrain.eq
   !-->
@@ -9916,8 +9925,8 @@ subroutine edmf_writeout_column ( &
   type(edmf_output_type), intent(in) :: Output_edmf
 
   type(am4_edmf_output_type), intent(in) :: am4_Output_edmf
-  real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
-  !real, intent(in), dimension(:,:,:,ntp+1:) :: &
+  !real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
+  real, intent(in), dimension(:,:,:,ntp+1:) :: &
     rdiag
 
   real, intent(in), dimension(:,:,:,:) :: &
@@ -11354,7 +11363,7 @@ end subroutine reshape_mynn_array_to_am4_half
 
 !###################################
 
-subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
+subroutine Poisson_knuth (kx, zw, nx, rx, rr, ENTf, ENTi)
 !----------
 ! Desecription:
 !   a Poisson random number generator attributed to Donald Knuth:
@@ -11399,11 +11408,12 @@ subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
   integer, intent(in)  :: kx, nx, rx   ! dimension of input/output variables
   real   , intent(in)  :: rr   (rx)    ! random numbers
   real   , intent(in)  :: ENTf (kx,nx)  ! Poisson parameter
+  real   , intent(in)  :: zw(:)        ! height on half levels (m)
 
   integer, intent(out) :: ENTi(kx,nx)  ! a random integer number drawn from the Poisson distribution
 
   !--- local variables
-  integer, parameter :: itermax = 500   ! maximum of iteration loop
+  integer, parameter :: itermax = 50   ! maximum of iteration loop
   real,    parameter :: step    = 70
 
   real ::        &
@@ -11417,8 +11427,12 @@ subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
 
   integer i,j,n,k
 
+  integer ktop
+  real    z1,z2
+
   character*40 method
 !-------------------------------
+
   !method = "Knuth"
   method = "Knuth_Junhao"
 
@@ -11426,13 +11440,31 @@ subroutine Poisson_knuth (kx, nx, rx, rr, ENTf, ENTi)
   ENTi = 0
   j = 1
 
-!--- loop over each element
-do n=1,nx
-do k=1,kx
+  !--- get the top height where stochastic entrainment will be computed (e.g. 10km) to speed up the simulation
+  ktop = -999
+  do k=2,size(zw)
+    if (ktop > 0) exit
+    if (zw(k-1).le.ztop_stoch .and. zw(k).gt.ztop_stoch) then
+      ktop = k
+    endif
+    !print*,'k,ktop',k,ktop
+  enddo
 
-!======================================
-if (method == "Knuth_Junhao") then
-!======================================
+  !print*,'zw',zw
+  !print*,'ztop_stoch,ktop',ztop_stoch,ktop
+
+  !--- deterministic, do not call Poisson
+  do k=ktop,kx
+    ENTi(k,:) = int(ENTf(k,:))
+  enddo
+
+!--- loop over each element
+do k=1,ktop-1
+do n=1,nx
+
+  !======================================
+  if (method == "Knuth_Junhao") then
+  !======================================
 
   !--- initialize values
   lambda = ENTf(k,n)
@@ -11482,20 +11514,24 @@ if (method == "Knuth_Junhao") then
   enddo  ! end loop of i
   !************
 
-!============
-end if   ! end if of method = "Knuth_Junhao"
-!============
+  !============
+  end if   ! end if of method = "Knuth_Junhao"
+  !============
+
   if (i >= itermax) then
     ENTi(k,n) = int(lambda)
-!    print*,'qq,itermax,',lambda
+    !print*,'qq,itermax,',lambda
   endif
 
-enddo  ! end loop of k
 enddo  ! end loop of n
+enddo  ! end loop of k
 
-!print*,'ENTi',ENTi
+!do n=1,nx
+!  print*,'n,ENTi',ENTi(:,n)
+!enddo
 
 end subroutine Poisson_knuth
+
 
 !###################################
 
