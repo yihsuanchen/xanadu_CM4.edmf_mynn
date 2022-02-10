@@ -476,7 +476,7 @@ end type edmf_ls_mp_type
                                                           !   no_stochastic: using deterministic entrainment rate
   integer :: option_rng = 1       ! in Poisson_knuth, 0 - using Fortran intrisic random_number, 1 - using AM4 RNG
 
-  integer :: num_rx     = 5e+4    ! number of random number drawn from AM4 RNG
+  integer :: num_rx     = 5000    ! number of random number drawn from AM4 RNG
 
   real    :: ztop_stoch = 10000.  ! Above this height (m), do not call Poisson to compute stochastic entrainment rate;
                                   ! the entrainment rate becomes deterministic in order to speed up the simulation 
@@ -8232,8 +8232,9 @@ subroutine edmf_mynn_driver ( &
   call edmf_writeout_column ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4,  &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, tdt_mynn_ed_am4, & 
               rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
+              rlz_ratio, rlz_tracer, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
 !---------------------------------------------------------------------
@@ -8726,8 +8727,28 @@ subroutine edmf_mynn_driver ( &
     do j=1,jx
     do k=1,kx+1
       if (diag_half(i,j,k).gt.1.) then
-        print*,'gg01, i,j,k,lon,lat,edmf_a', i,j,k,lon(i,j),lat(i,j),diag_half(i,j,k)
-      endif
+        print*,'gg01, edmf_a>1. i,j,k,lon,lat,edmf_a' 
+        print*,i,j,k,lon(i,j),lat(i,j),diag_half(i,j,k)
+
+        !--- write out problematic column
+        do_writeout_column = .true.
+        ii_write = i
+        jj_write = j
+        call edmf_writeout_column ( &
+              do_writeout_column, &
+              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, tdt_mynn_ed_am4, &
+              rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
+              rlz_ratio, rlz_tracer, &
+              Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
+
+        !--- stop the model if prefered
+        if (do_stop_run) then
+          call error_mesg('edmf_mynn_driver',  &
+                          'stop by yihsuan', FATAL)
+        endif
+
+      endif  ! end if of edmf_a>1
     enddo
     enddo
     enddo
@@ -8740,20 +8761,39 @@ subroutine edmf_mynn_driver ( &
     do j=1,jx
     do k=1,kx
       if (abs(am4_Output_edmf%tdt_edmf(i,j,k)).gt.tt1) then
-        print*,'gg02, i,j,k,lon,lat,tdt_edmf', i,j,k,lon(i,j),lat(i,j),am4_Output_edmf%tdt_edmf(i,j,k)
-      endif
+        print*,'gg02, i,j,k,lon,lat,tdt_edmf (K/day)', i,j,k,lon(i,j),lat(i,j),am4_Output_edmf%tdt_edmf(i,j,k)*86400.
+
+        !--- write out problematic column
+        do_writeout_column = .true.
+        ii_write = i
+        jj_write = j
+        call edmf_writeout_column ( &
+              do_writeout_column, &
+              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, tdt_mynn_ed_am4, &
+              rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
+              rlz_ratio, rlz_tracer, &
+              Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
+
+        !--- stop the model if prefered
+        if (do_stop_run) then
+          call error_mesg('edmf_mynn_driver',  &
+                          'stop by yihsuan', FATAL)
+        endif
+
+      endif  ! end if of tdt>tdt_max
     enddo
     enddo
     enddo
   end if
 
   !--- check whether tracers become negative
-  if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
-    print*,'new qv',Physics_input_block%q(:,:,:,nsphum) + dt * am4_Output_edmf%qdt_edmf(:,:,:)
-    print*,'new ql',Physics_input_block%q(:,:,:,nql)    + dt * am4_Output_edmf%qldt_edmf(:,:,:)
-    print*,'new qi',Physics_input_block%q(:,:,:,nqi)    + dt * am4_Output_edmf%qidt_edmf(:,:,:)
-    print*,'new qa',Physics_input_block%q(:,:,:,nqa)    + dt * am4_Output_edmf%qadt_edmf(:,:,:)
-  endif
+  !if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
+  !  print*,'new qv',Physics_input_block%q(:,:,:,nsphum) + dt * am4_Output_edmf%qdt_edmf(:,:,:)
+  !  print*,'new ql',Physics_input_block%q(:,:,:,nql)    + dt * am4_Output_edmf%qldt_edmf(:,:,:)
+  !  print*,'new qi',Physics_input_block%q(:,:,:,nqi)    + dt * am4_Output_edmf%qidt_edmf(:,:,:)
+  !  print*,'new qa',Physics_input_block%q(:,:,:,nqa)    + dt * am4_Output_edmf%qadt_edmf(:,:,:)
+  !endif
 
 !---------------------------------------------------------------------
 ! deallocate EDMF-MYNN input and output variables 
@@ -9900,8 +9940,9 @@ end subroutine edmf_dealloc
 subroutine edmf_writeout_column ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, tdt_mynn_ed_am4, &
               Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
+              rlz_ratio, rlz_tracer, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 !---------------------------------------------------------------------
 ! Arguments (Intent in)
@@ -9921,6 +9962,9 @@ subroutine edmf_writeout_column ( &
   real, intent(in), dimension(:,:,:)    :: &
     Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
 
+  real, intent(in), dimension(:,:)    :: &
+    rlz_ratio, rlz_tracer
+
   type(edmf_input_type) , intent(in) :: Input_edmf
   type(edmf_output_type), intent(in) :: Output_edmf
 
@@ -9928,6 +9972,9 @@ subroutine edmf_writeout_column ( &
   !real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
   real, intent(in), dimension(:,:,:,ntp+1:) :: &
     rdiag
+
+  real, intent(in), dimension(:,:,:)   :: &
+    tdt_mynn_ed_am4
 
   real, intent(in), dimension(:,:,:,:) :: &
     rdt_mynn_ed_am4
@@ -10218,6 +10265,9 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; rdiag(1,1,:,nqc_bl), input'
         write(6,3002) '  rdiag(1,1,:,nqc_bl) = (/'    ,Input_edmf%qc_bl(ii_write,:,jj_write)
         write(6,*)    ''
+        write(6,*)    '; tdt_mynn_ed_am4(1,1,:)'
+        write(6,3002) '  tdt_mynn_ed_am4(1,1,:) = (/'    ,tdt_mynn_ed_am4(ii_write,jj_write,:)
+        write(6,*)    ''
         write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nql)'
         write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nql) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nql)
         write(6,*)    ''
@@ -10256,6 +10306,10 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; Obukhov length (m)'
         write(6,3000) '  Obukhov_length_star    = (/',Input_edmf%Obukhov_length_star(ii_write,jj_write)
         write(6,3000) '  Obukhov_length_updated = (/',Input_edmf%Obukhov_length_updated(ii_write,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; realizability limiter '
+        write(6,*)    '; rlz_ratio, ', rlz_ratio  (ii_write,jj_write)
+        write(6,*)    '; rlz_tracer (1-5: qv,l,i,a,t)', rlz_tracer (ii_write,jj_write)
         !write(6,*)    ' '
         !write(6,*)    '; '
         !write(6,3002) '  = (/'    ,
@@ -11188,30 +11242,30 @@ if (do_check_realizability) then
                       FATAL )
    endif
 
-   !--- printout for debugging purpose
-   if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
-     print*,'**********************'
-     print*,''
-     print*,'do_check_realizability = ',do_check_realizability
-     print*,'index: qv, ql, qi, qa, qt'
-     print*,'tends_ratio',tends_ratio
-     print*,'tends_ratio_k',tends_ratio_k
-     print*,'rlz_ratio',rlz_ratio
-     print*,'rlz_tracer',rlz_tracer
-     print*,'------------------------------'
-     print*,'original tendencies'
-     print*,''
-     print*,'RUBLTEN',Output_edmf%RUBLTEN
-     print*,'RVBLTEN',Output_edmf%RVBLTEN
-     print*,'RQTBLTEN',Output_edmf%RQTBLTEN
-     print*,'RTHLBLTEN',Output_edmf%RTHLBLTEN
-     print*,'RQVBLTEN',Output_edmf%RQVBLTEN
-     print*,'RQLBLTEN',Output_edmf%RQLBLTEN
-     print*,'RQIBLTEN',Output_edmf%RQIBLTEN
-     print*,'RCCBLTEN',Output_edmf%RCCBLTEN
-     print*,''
-     print*,'**********************'
-   end if
+!   !--- printout for debugging purpose
+!   if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
+!     print*,'**********************'
+!     print*,''
+!     print*,'do_check_realizability = ',do_check_realizability
+!     print*,'index: qv, ql, qi, qa, qt'
+!     print*,'tends_ratio',tends_ratio
+!     print*,'tends_ratio_k',tends_ratio_k
+!     print*,'rlz_ratio',rlz_ratio
+!     print*,'rlz_tracer',rlz_tracer
+!     print*,'------------------------------'
+!     print*,'original tendencies'
+!     print*,''
+!     print*,'RUBLTEN',Output_edmf%RUBLTEN
+!     print*,'RVBLTEN',Output_edmf%RVBLTEN
+!     print*,'RQTBLTEN',Output_edmf%RQTBLTEN
+!     print*,'RTHLBLTEN',Output_edmf%RTHLBLTEN
+!     print*,'RQVBLTEN',Output_edmf%RQVBLTEN
+!     print*,'RQLBLTEN',Output_edmf%RQLBLTEN
+!     print*,'RQIBLTEN',Output_edmf%RQIBLTEN
+!     print*,'RCCBLTEN',Output_edmf%RCCBLTEN
+!     print*,''
+!     print*,'**********************'
+!   end if
 
    !--- rescale the tendencies
    do i=1,ix
