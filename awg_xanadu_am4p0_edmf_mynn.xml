@@ -2083,6 +2083,16 @@ $baseDate
               script="/home/Yi-hsuan.Chen/fms.ana/fre-analysis/yhc/stub/precip_atmos_av_mon2.csh"/>
          </timeAverage>
        </component>
+      <component type="atmos_level" start="$(ANA_AMIP_START)" source="atmos_month" sourceGrid="atmos-cubedsphere" xyInterp="180,288">
+        <timeSeries freq="monthly" chunkLength="$(PP_AMIP_CHUNK)"/>
+        <timeSeries freq="annual" chunkLength="$(PP_AMIP_CHUNK)">
+          <xi:include href="awg_include/analysis/analysis_amip.xml" xpointer="xpointer(*/atmosLevelAnnualTS/*)"/>
+        </timeSeries>
+        <timeAverage source="monthly" interval="$(PP_AMIP_CHUNK)"/>
+        <timeAverage source="monthly" interval="$(ANA_AMIP_LEN)">
+          <xi:include href="awg_include/analysis/analysis_amip.xml" xpointer="xpointer(*/atmosLevelMonthAve/*)"/>
+        </timeAverage>
+      </component>
      </postProcess>
    </freInclude>
 
