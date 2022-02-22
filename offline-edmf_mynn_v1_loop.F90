@@ -17,7 +17,7 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_am4p0_DCBL_C1_02_u,vdt_NaN"
   !character*50 :: input_profile = "SCM_am4p0_BOMEX_01"
   !character*50 :: input_profile = "AMIP_i27_j01_IndOcn"
-  character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
+  !character*50 :: input_profile = "SCM_am4p0_BOMEX_02"
   !character*50 :: input_profile = "SCM_am4p0_RF01_01"
   ! character*50 :: input_profile = "SCM_am4p0_RF01_02"
   ! character*50 :: input_profile = "SCM_am4p0_RF01_03_cloudy"
@@ -28,7 +28,7 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm01"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
   !character*50 :: input_profile = "AMIP_i8_j3_Arctic"  ! negative updraft vertical velocity at the surface (wmin & wmax <0)
-  !character*50 :: input_profile = "AMIP_i2_j4_Delware"
+  character*50 :: input_profile = "AMIP_i2_j4_Delware"
 
   integer, parameter :: loop_times = 1
  ! integer, parameter :: loop_times = 10
@@ -140,7 +140,7 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
   logical :: expmf = .true.              ! .true.  ... explicit mass-flux, .false. .... implicit mass-flux
   real    :: upwind = 1.                 ! upwind=1. ... use upwind approximation for mass-flux calculation
                                          ! upwind=0.5 ... use centered difference for mass-flux calculation
-  real :: L0 = 100.                      ! entrainemnt rate parameter
+  real :: L0 = 25.                      ! entrainemnt rate parameter
   integer :: NUP=10                      ! the number of updrafts
   REAL :: UPSTAB=1.            ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
   INTEGER :: bl_mynn_stabfunc  = 1       !  option for stability function. 0 - MYNN, 1 - Suselj et al. (2019)
@@ -5865,6 +5865,11 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
     if (option_rng == 1) call getRandomNumbers (streams1,rr)
     call Poisson_knuth (kte-kts+1, ZW, Nup, rx, rr, ENTf, ENTi)
 
+  elseif (option_stoch_entrain.eq."no_stochastic") then   ! no stochastic entrainment 
+    do k=kts,kte
+      ENTi(k,:) = int(ENTf(k,:))
+    enddo
+
   endif    ! end if of option_stoch_entrain.eq
   !-->
 
@@ -5983,8 +5988,10 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
               UPW(K,I)=sqrt(Wn2)
 
               !yhc, compute detrainment rate, assuming updraft area does not change
-              mf  =UPRHO(K-1,I)*UPW(K-1,I)*UPA(K-1,I)
-              mfp1=UPRHO(K,I)  *UPW(K,I)  *UPA(K-1,I)   
+              mf  =UPRHO(K-1,I)*UPW(K-1,I)      * UPA(K-1,I)
+              !mfp1=UPRHO(K,I)  *UPW(K,I)  *UPA(K-1,I)   
+              mfp1=UPRHO(K,I)  *UPW(K,I)*EntExp * UPA(K-1,I)
+
               det_temp=0.
               if (mf.gt.0) then
                 det_temp = ENT(K-1,I) - (mfp1-mf)/mf/deltaZ
@@ -6129,6 +6136,7 @@ DO k=KTS,KTE-1
         ! edmf_debug3(K)=edmf_debug3(K)+UPA(K+1,I)* UPTHL(K+1,I) !debug3 is the actual ud thl
         ! edmf_debug4(K)=THL(K+1) !debug4 is the mean thl to compare with actual output
 
+
 !        edmf_a(K)=edmf_a(K)+UPA(K+1,I)
 !        edmf_w(K)=edmf_w(K)+UPA(K+1,I)*UPW(K+1,I)
 !        edmf_qt(K)=edmf_qt(K)+UPA(K+1,I) * (UPQT(K+1,I)-QT(K+1))
@@ -6140,6 +6148,7 @@ DO k=KTS,KTE-1
 !        ! edmf_debug3(K)=edmf_debug3(K)+UPA(K+1,I)* UPTHL(K+1,I) !debug3 is the actual ud thl
 !        ! edmf_debug4(K)=THL(K+1) !debug4 is the mean thl to compare with actual output
     ENDDO
+
 
     IF (edmf_a(k)>0.) THEN
         edmf_w(k)=edmf_w(k)/edmf_a(k)
@@ -6169,6 +6178,24 @@ ENDDO
 
 
 !<--- yhc 2021-09-08
+
+!--- plume area should not increase with height
+!DO I=1,NUP
+!  DO k=2,KTE+1
+!    if (UPA(k,i) .gt. UPA(k-1,i)) then
+!     !if (edmf_a(K) > 10.) then
+!     !  print*,'gg00a,k,edmf_a',k,edmf_a(k)
+!     !  print*,'gg00a,k,UPA(I)',k,UPA(K,:)
+!     !  print*,'gg00a,k,UPW(I)',k,UPW(K,:)
+!     !  print*,'gg00a,k,UPRHO(I)',k,UPRHO(K,:)
+!      !endif
+!       print*,'gg00a,I,UPA(I)',k,UPA(:,I)
+!       print*,'gg00a,I,UPW(I)',k,UPW(:,I)
+!       print*,'gg00a,I,UPRHO(I)',k,UPRHO(:,I)
+!      exit
+!    endif
+!  ENDDO
+!ENDDO
 
 !--- compute z at full levels (where T,q are defined)
 DO K=KTS,KTE
@@ -7575,8 +7602,9 @@ subroutine edmf_mynn_driver ( &
   call edmf_writeout_column ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4,  &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, tdt_mynn_ed_am4, & 
               rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
+              rlz_ratio, rlz_tracer, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 
 !---------------------------------------------------------------------
@@ -8068,9 +8096,30 @@ subroutine edmf_mynn_driver ( &
     do i=1,ix
     do j=1,jx
     do k=1,kx+1
-      if (diag_half(i,j,k).gt.1.) then
-        print*,'gg01, i,j,k,lon,lat,edmf_a', i,j,k,lon(i,j),lat(i,j),diag_half(i,j,k)
-      endif
+      if (diag_half(i,j,k).gt.0.2) then   ! the total plume area must be smaller than its surface value ~ 0.15
+        print*,'gg01, edmf_a>1. i,j,k,lon,lat,p_half,edmf_a' 
+        print*,i,j,k,lon(i,j),lat(i,j),Physics_input_block%p_half(i,j,k),diag_half(i,j,k)
+
+        !--- write out problematic column
+        do_writeout_column = .true.
+        ii_write = i
+        jj_write = j
+        call edmf_writeout_column ( &
+              do_writeout_column, &
+              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, tdt_mynn_ed_am4, &
+              rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
+              rlz_ratio, rlz_tracer, &
+              Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
+
+        !--- stop the model if prefered
+        if (do_stop_run) then
+          call error_mesg('edmf_mynn_driver',  &
+                          'edmf_a is large than it should be (0.2)', FATAL)
+        endif
+        
+        exit ! exit the k loop 
+      endif  ! end if of edmf_a>1
     enddo
     enddo
     enddo
@@ -8083,19 +8132,50 @@ subroutine edmf_mynn_driver ( &
     do j=1,jx
     do k=1,kx
       if (abs(am4_Output_edmf%tdt_edmf(i,j,k)).gt.tt1) then
-        print*,'gg02, i,j,k,lon,lat,tdt_edmf', i,j,k,lon(i,j),lat(i,j),am4_Output_edmf%tdt_edmf(i,j,k)
-      endif
+        print*,'gg02, i,j,k,lon,lat,p_half,tdt_edmf (K/day)'
+        print*,i,j,k,lon(i,j),lat(i,j),Physics_input_block%p_full(i,j,k),am4_Output_edmf%tdt_edmf(i,j,k)*86400.
+
+        !--- write out problematic column
+        do_writeout_column = .true.
+        ii_write = i
+        jj_write = j
+        call edmf_writeout_column ( &
+              do_writeout_column, &
+              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, tdt_mynn_ed_am4, &
+              rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
+              rlz_ratio, rlz_tracer, &
+              Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
+
+        !--- stop the model if prefered
+        if (do_stop_run) then
+          call error_mesg('edmf_mynn_driver',  &
+                          'tdt_edmf is larger than tdt_max', FATAL)
+        endif
+
+      endif  ! end if of tdt>tdt_max
     enddo
     enddo
     enddo
   end if
 
   !--- check whether tracers become negative
-  if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
-    print*,'new qv',Physics_input_block%q(:,:,:,nsphum) + dt * am4_Output_edmf%qdt_edmf(:,:,:)
-    print*,'new ql',Physics_input_block%q(:,:,:,nql)    + dt * am4_Output_edmf%qldt_edmf(:,:,:)
-    print*,'new qi',Physics_input_block%q(:,:,:,nqi)    + dt * am4_Output_edmf%qidt_edmf(:,:,:)
-    print*,'new qa',Physics_input_block%q(:,:,:,nqa)    + dt * am4_Output_edmf%qadt_edmf(:,:,:)
+  !if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
+  !  print*,'new qv',Physics_input_block%q(:,:,:,nsphum) + dt * am4_Output_edmf%qdt_edmf(:,:,:)
+  !  print*,'new ql',Physics_input_block%q(:,:,:,nql)    + dt * am4_Output_edmf%qldt_edmf(:,:,:)
+  !  print*,'new qi',Physics_input_block%q(:,:,:,nqi)    + dt * am4_Output_edmf%qidt_edmf(:,:,:)
+  !  print*,'new qa',Physics_input_block%q(:,:,:,nqa)    + dt * am4_Output_edmf%qadt_edmf(:,:,:)
+  !endif
+
+!----------
+! check
+!----------
+
+  !--- the total updraft area must be less than its surface value ~ 0.13
+  if (any(Output_edmf%edmf_a.gt.0.2) .or. any(Output_edmf%edmf_a.lt.0.)) then
+    call error_mesg( ' edmf_mynn',     &
+                     ' edmf_a is larger than 0.2 or less than 0',&
+                     FATAL )
   endif
 
 !---------------------------------------------------------------------
@@ -8105,10 +8185,10 @@ subroutine edmf_mynn_driver ( &
   call edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
 
   !--- stop the model if prefered
-  if (do_stop_run) then
-    call error_mesg('edmf_mynn_driver',  &
-       'stop by yihsuan', FATAL)
-  endif
+  !if (do_stop_run) then
+  !  call error_mesg('edmf_mynn_driver',  &
+  !     'stop by yihsuan', FATAL)
+  !endif
 
 
 end subroutine edmf_mynn_driver
@@ -9243,8 +9323,9 @@ end subroutine edmf_dealloc
 subroutine edmf_writeout_column ( &
               do_writeout_column, &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
-              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, &
+              b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdt_mynn_ed_am4, tdt_mynn_ed_am4, &
               Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
+              rlz_ratio, rlz_tracer, &
               Input_edmf, Output_edmf, am4_Output_edmf, rdiag)
 !---------------------------------------------------------------------
 ! Arguments (Intent in)
@@ -9264,6 +9345,9 @@ subroutine edmf_writeout_column ( &
   real, intent(in), dimension(:,:,:)    :: &
     Qke, el_pbl, cldfra_bl, qc_bl, Sh3D
 
+  real, intent(in), dimension(:,:)    :: &
+    rlz_ratio, rlz_tracer
+
   type(edmf_input_type) , intent(in) :: Input_edmf
   type(edmf_output_type), intent(in) :: Output_edmf
 
@@ -9271,6 +9355,9 @@ subroutine edmf_writeout_column ( &
   real, intent(in), dimension(:,:,:,:) :: &   ! Mellor-Yamada, use this in offline mode
   !real, intent(in), dimension(:,:,:,ntp+1:) :: &
     rdiag
+
+  real, intent(in), dimension(:,:,:)   :: &
+    tdt_mynn_ed_am4
 
   real, intent(in), dimension(:,:,:,:) :: &
     rdt_mynn_ed_am4
@@ -9561,6 +9648,9 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; rdiag(1,1,:,nqc_bl), input'
         write(6,3002) '  rdiag(1,1,:,nqc_bl) = (/'    ,Input_edmf%qc_bl(ii_write,:,jj_write)
         write(6,*)    ''
+        write(6,*)    '; tdt_mynn_ed_am4(1,1,:)'
+        write(6,3002) '  tdt_mynn_ed_am4(1,1,:) = (/'    ,tdt_mynn_ed_am4(ii_write,jj_write,:)
+        write(6,*)    ''
         write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nql)'
         write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nql) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nql)
         write(6,*)    ''
@@ -9599,6 +9689,10 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; Obukhov length (m)'
         write(6,3000) '  Obukhov_length_star    = (/',Input_edmf%Obukhov_length_star(ii_write,jj_write)
         write(6,3000) '  Obukhov_length_updated = (/',Input_edmf%Obukhov_length_updated(ii_write,jj_write)
+        write(6,*)    ' '
+        write(6,*)    '; realizability limiter '
+        write(6,*)    '; rlz_ratio, ', rlz_ratio  (ii_write,jj_write)
+        write(6,*)    '; rlz_tracer (1-5: qv,l,i,a,t)', rlz_tracer (ii_write,jj_write)
         !write(6,*)    ' '
         !write(6,*)    '; '
         !write(6,3002) '  = (/'    ,
@@ -10531,30 +10625,30 @@ if (do_check_realizability) then
                       FATAL )
    endif
 
-   !--- printout for debugging purpose
-   if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
-     print*,'**********************'
-     print*,''
-     print*,'do_check_realizability = ',do_check_realizability
-     print*,'index: qv, ql, qi, qa, qt'
-     print*,'tends_ratio',tends_ratio
-     print*,'tends_ratio_k',tends_ratio_k
-     print*,'rlz_ratio',rlz_ratio
-     print*,'rlz_tracer',rlz_tracer
-     print*,'------------------------------'
-     print*,'original tendencies'
-     print*,''
-     print*,'RUBLTEN',Output_edmf%RUBLTEN
-     print*,'RVBLTEN',Output_edmf%RVBLTEN
-     print*,'RQTBLTEN',Output_edmf%RQTBLTEN
-     print*,'RTHLBLTEN',Output_edmf%RTHLBLTEN
-     print*,'RQVBLTEN',Output_edmf%RQVBLTEN
-     print*,'RQLBLTEN',Output_edmf%RQLBLTEN
-     print*,'RQIBLTEN',Output_edmf%RQIBLTEN
-     print*,'RCCBLTEN',Output_edmf%RCCBLTEN
-     print*,''
-     print*,'**********************'
-   end if
+!   !--- printout for debugging purpose
+!   if (do_debug_option.eq."check_rlz" .or. do_debug_option.eq."all") then
+!     print*,'**********************'
+!     print*,''
+!     print*,'do_check_realizability = ',do_check_realizability
+!     print*,'index: qv, ql, qi, qa, qt'
+!     print*,'tends_ratio',tends_ratio
+!     print*,'tends_ratio_k',tends_ratio_k
+!     print*,'rlz_ratio',rlz_ratio
+!     print*,'rlz_tracer',rlz_tracer
+!     print*,'------------------------------'
+!     print*,'original tendencies'
+!     print*,''
+!     print*,'RUBLTEN',Output_edmf%RUBLTEN
+!     print*,'RVBLTEN',Output_edmf%RVBLTEN
+!     print*,'RQTBLTEN',Output_edmf%RQTBLTEN
+!     print*,'RTHLBLTEN',Output_edmf%RTHLBLTEN
+!     print*,'RQVBLTEN',Output_edmf%RQVBLTEN
+!     print*,'RQLBLTEN',Output_edmf%RQLBLTEN
+!     print*,'RQIBLTEN',Output_edmf%RQIBLTEN
+!     print*,'RCCBLTEN',Output_edmf%RCCBLTEN
+!     print*,''
+!     print*,'**********************'
+!   end if
 
    !--- rescale the tendencies
    do i=1,ix
@@ -10805,9 +10899,9 @@ subroutine Poisson_knuth (kx, zw, nx, rx, rr, ENTf, ENTi)
 do k=1,ktop-1
 do n=1,nx
 
-!======================================
-if (method == "Knuth_Junhao") then
-!======================================
+  !======================================
+  if (method == "Knuth_Junhao") then
+  !======================================
 
   !--- initialize values
   lambda = ENTf(k,n)
@@ -10857,9 +10951,10 @@ if (method == "Knuth_Junhao") then
   enddo  ! end loop of i
   !************
 
-!============
-end if   ! end if of method = "Knuth_Junhao"
-!============
+  !============
+  end if   ! end if of method = "Knuth_Junhao"
+  !============
+
   if (i >= itermax) then
     ENTi(k,n) = int(lambda)
     !print*,'qq,itermax,',lambda
@@ -10873,6 +10968,7 @@ enddo  ! end loop of k
 !enddo
 
 end subroutine Poisson_knuth
+
 
 !###################################
 
