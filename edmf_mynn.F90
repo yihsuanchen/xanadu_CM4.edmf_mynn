@@ -10779,7 +10779,8 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   do j=1,jx
     kk=kx-Output_edmf%kpbl (i,j)+1 
 
-    am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
+    !am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
+    am4_Output_edmf%pbltop   (i,j) = Output_edmf%Pblh(i,j)
     am4_Output_edmf%kpbl_edmf(i,j) = kk
   enddo  ! end loop of j
   enddo  ! end loop of 1
