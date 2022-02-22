@@ -401,7 +401,8 @@ end type edmf_ls_mp_type
                                          ! upwind=0.5 ... use centered difference for mass-flux calculation
                                          ! explicit mass-flux can use either upwind or centered-difference
                                          ! implicit mass-flux must uses the centered differencing method.  
-  real    :: L0  = 100.                  ! entrainemnt rate parameter
+  real    :: L0_flag  = 100.             ! entrainemnt length scale (m)
+                                         !   if L0_flag = -1., set  L0 to this function, L0= (PBLH/100)**2 
   integer :: NUP = 100                   ! the number of updrafts
   real    :: UPSTAB = 1.                 ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
 
@@ -486,7 +487,7 @@ end type edmf_ls_mp_type
                                   !    This is to prevent activating MF in very stable conditions.
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
-                            L0, NUP, UPSTAB, edmf_type, qke_min, &
+                            L0_flag, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
                             option_stoch_entrain, option_rng, num_rx, ztop_stoch, option_pblh_MF, &
@@ -617,7 +618,13 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   if (trim(option_stoch_entrain) /= 'Poisson' .and. trim(option_stoch_entrain) /= 'Poisson_knuth' .and. trim(option_stoch_entrain) /= 'no_stochastic') then
     call error_mesg( ' edmf_mynn',     &
-                     '  option_stoch_entrain must be either [Poisson, Poisson_knuth, no_stochastic]',&
+                     ' option_stoch_entrain must be either [Poisson, Poisson_knuth, no_stochastic]',&
+                     FATAL )
+  endif
+
+  if (L0_flag.lt.0. .and. L0_flag.ne.-1.) then
+    call error_mesg( ' edmf_mynn',     &
+                     ' L0_flag must > 0 or = -1.',&
                      FATAL )
   endif
 
@@ -6311,6 +6318,8 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
        logical :: do_MF
 
        type(randomNumberStream), INTENT(INOUT) :: streams1
+
+       REAL :: L0
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -6424,6 +6433,16 @@ s_awqke=0.
 !ENDIF
 ! print*, "[EDMF_JPL]: Sc found at z = ", Z_i
 ! if surface buoyancy is positive we do integration otherwise not
+
+    !<-- yhc 2022-02-22
+    ! set L0 value
+    if (L0_flag > 0) then         ! set L0=constant 
+      L0 = L0_flag
+    elseif (L0_flag.eq.-1.) then  ! set L0 as a function
+      L0 = (PBLH/100)**2
+    endif
+    L0 = max(L0, 1.)              ! set minimum L0 value to prevent numerical problems (e.g. 1/L0)
+    !<-- yhc 2022-02-22
 
     !<-- yhc 2021-11-26
     z0=50.
