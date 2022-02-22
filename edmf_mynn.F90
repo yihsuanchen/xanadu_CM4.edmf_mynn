@@ -8824,9 +8824,9 @@ subroutine edmf_mynn_driver ( &
 !----------
 
   !--- the total updraft area must be less than its surface value ~ 0.13
-  if (any(Output_edmf%edmf_a.gt.0.2)) then
+  if (any(Output_edmf%edmf_a.gt.0.2) .or. any(Output_edmf%edmf_a.lt.0.)) then
     call error_mesg( ' edmf_mynn',     &
-                     ' edmf_a is larger than 0.2',&
+                     ' edmf_a is larger than 0.2 or less than 0',&
                      FATAL )
   endif
 
