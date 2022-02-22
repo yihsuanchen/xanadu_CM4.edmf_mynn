@@ -21,14 +21,14 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_am4p0_RF01_01"
   ! character*50 :: input_profile = "SCM_am4p0_RF01_02"
   ! character*50 :: input_profile = "SCM_am4p0_RF01_03_cloudy"
-  !character*50 :: input_profile = "SCM_RF01_modQDT-Gmy_aTnTtT_a3_5.0h"
+  character*50 :: input_profile = "SCM_RF01_modQDT-Gmy_aTnTtT_a3_5.0h"
   !character*50 :: input_profile = "xxx"
   !character*50 :: input_profile = "SCM_BOMEX_MYNN_ED_mixleng3"
   !character*50 :: input_profile = "SCM_RF01_mynn_EDMFexpUP_Gmy_ADD_0.5h"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm01"
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
   !character*50 :: input_profile = "AMIP_i8_j3_Arctic"  ! negative updraft vertical velocity at the surface (wmin & wmax <0)
-  character*50 :: input_profile = "AMIP_i2_j4_Delware"
+  !character*50 :: input_profile = "AMIP_i2_j4_Delware"
 
   integer, parameter :: loop_times = 1
  ! integer, parameter :: loop_times = 10
@@ -5774,6 +5774,9 @@ s_awqke=0.
 ! if surface buoyancy is positive we do integration otherwise not
 
     !<-- yhc 2021-11-26
+    print*,'kpbl',kpbl
+    print*,'PBLH',PBLH
+
     z0=50.
     do_MF = .true.
     if (option_pblh_MF.eq.1 .and. pblh < z0) then  ! only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
@@ -10127,7 +10130,8 @@ subroutine convert_edmf_to_am4_array (Physics_input_block, ix, jx, kx, &
   do j=1,jx
     kk=kx-Output_edmf%kpbl (i,j)+1 
 
-    am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
+    !am4_Output_edmf%pbltop   (i,j) = Physics_input_block%z_full(i,j,kk) - Physics_input_block%z_half(i,j,kx+1)
+    am4_Output_edmf%pbltop   (i,j) = Output_edmf%Pblh(i,j)
     am4_Output_edmf%kpbl_edmf(i,j) = kk
   enddo  ! end loop of j
   enddo  ! end loop of 1
