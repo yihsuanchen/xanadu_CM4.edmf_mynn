@@ -520,7 +520,7 @@ integer :: id_a_moist_half, id_a_moist_full, id_mf_moist_half, id_mf_moist_full,
 
 integer :: id_num_updraft, id_num_det, id_num_ndet_zent, id_num_ndet_pent
 
-integer :: id_rlz_ratio, id_rlz_tracer
+integer :: id_rlz_ratio, id_rlz_tracer, id_L0_edmf
 
 integer :: id_tdt_edmf_ED, id_tdt_edmf_MF
 
@@ -1150,6 +1150,10 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_tdt_edmf_MF = register_diag_field (mod_name, 'tdt_edmf_MF', axes(full), Time, &
                  'tempearture tendency from edmf_mynn, MF', 'K/s' , &
+                 missing_value=missing_value )
+
+  id_L0_edmf = register_diag_field (mod_name, 'L0_edmf', axes(1:2), Time, &
+                 'entrainemnt length scale in MF', 'm' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -4355,7 +4359,7 @@ END SUBROUTINE mym_condensation
        &a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half, mf_all_full, &                                                     ! yhc 2021-09-08
-       &num_updraft, num_DET, num_nDET_pENT, num_nDET_zENT, &                                        ! yhc 2021-09-08
+       &num_updraft, num_DET, num_nDET_pENT, num_nDET_zENT, L0, &                                        ! yhc 2021-09-08
        &streams, &  ! yhc 2021-11-18
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
@@ -4537,6 +4541,8 @@ END SUBROUTINE mym_condensation
       qv_moist_full,  &
       qv_dry_full
 
+    REAL, DIMENSION(IMS:IME,JMS:JME), INTENT(out) :: L0
+
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
     !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
        qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &
@@ -4573,6 +4579,7 @@ END SUBROUTINE mym_condensation
     REAL, DIMENSION(IMS:IME,JMS:JME,KMS:KME) :: &
       diag_full
 
+    REAL :: L01
     !---> yhc 2021-09-08
 
 ! 0 ... default thing 
@@ -5116,7 +5123,7 @@ END SUBROUTINE mym_condensation
                & a_moist_half1, mf_moist_half1, qv_moist_half1, a_moist_full1, mf_moist_full1, qv_moist_full1, &  ! yhc 2021-09-08
                & a_dry_half1, mf_dry_half1, qv_dry_half1, a_dry_full1, mf_dry_full1, qv_dry_full1, &            ! yhc 2021-09-08
                & mf_all_half1, mf_all_full1, edmf_det1, &                                                     ! yhc 2021-09-08
-               & num_updraft1, num_DET1, num_nDET_zENT1, num_nDET_pENT1, &                                               ! yhc 2021-09-08
+               & num_updraft1, num_DET1, num_nDET_zENT1, num_nDET_pENT1, L01, &                                               ! yhc 2021-09-08
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1,                 &
@@ -5415,7 +5422,7 @@ END SUBROUTINE mym_condensation
                num_DET      (i,k,j) = num_DET1      (k)
                num_nDET_zENT(i,k,j) = num_nDET_zENT1(k)
                num_nDET_pENT(i,k,j) = num_nDET_pENT1(k)
-
+               L0           (i,j)   = L01
                !---> yhc 2021-09-08
 
                ELSE
@@ -6194,7 +6201,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               & a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
               & a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
               & mf_all_half, mf_all_full, edmf_det, &                                                  ! yhc 2021-09-08
-              & num_updraft, num_DET, num_nDET_zENT, num_nDET_pENT, &                                               ! yhc 2021-09-08
+              & num_updraft, num_DET, num_nDET_zENT, num_nDET_pENT, L0, &                                               ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa, &
               & streams1, &    ! yhc 2021-11-18
               & Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent, Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub &
@@ -6300,7 +6307,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          mf_all_full  , & 
          qv_moist_full,  & 
          qv_dry_full   
-  
+ 
+       REAL, INTENT(OUT) :: L0
+ 
        REAL,DIMENSION(KTS:KTE) :: &
          ZFULL, ice_frac
 
@@ -6318,8 +6327,6 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
        logical :: do_MF
 
        type(randomNumberStream), INTENT(INOUT) :: streams1
-
-       REAL :: L0
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -7915,7 +7922,7 @@ subroutine edmf_mynn_driver ( &
 
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2)) :: &  ! dimension (nlon,nlat)
-    rlz_ratio, rlz_tracer
+    rlz_ratio, rlz_tracer, L0
 
   real :: randomNumbers
 
@@ -8082,7 +8089,7 @@ subroutine edmf_mynn_driver ( &
        &a_moist_half=Output_edmf%a_moist_half, mf_moist_half=Output_edmf%mf_moist_half, qv_moist_half=Output_edmf%qv_moist_half, a_moist_full=Output_edmf%a_moist_full, mf_moist_full=Output_edmf%mf_moist_full, qv_moist_full=Output_edmf%qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half=Output_edmf%a_dry_half, mf_dry_half=Output_edmf%mf_dry_half, qv_dry_half=Output_edmf%qv_dry_half, a_dry_full=Output_edmf%a_dry_full, mf_dry_full=Output_edmf%mf_dry_full, qv_dry_full=Output_edmf%qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
-       &num_updraft=num_updraft, num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, &            ! yhc 2021-09-08
+       &num_updraft=num_updraft, num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, L0=L0, &            ! yhc 2021-09-08
        &streams=streams, &  ! yhc 2021-11-18
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
@@ -8754,6 +8761,11 @@ subroutine edmf_mynn_driver ( &
       !------- tempearture tendency from edmf_mynn, MF (units: K/s) at full level -------
       if ( id_tdt_edmf_MF > 0) then
         used = send_data (id_tdt_edmf_MF, tdt_mf, Time_next, is, js, 1 )
+      endif
+
+      !------- entrainemnt length scale in MF (units: m) at one level -------
+      if ( id_L0_edmf > 0) then
+        used = send_data (id_L0_edmf, L0, Time_next, is, js )
       endif
 !send_data
 
