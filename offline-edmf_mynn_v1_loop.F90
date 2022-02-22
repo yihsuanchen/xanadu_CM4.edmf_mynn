@@ -140,7 +140,8 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
   logical :: expmf = .true.              ! .true.  ... explicit mass-flux, .false. .... implicit mass-flux
   real    :: upwind = 1.                 ! upwind=1. ... use upwind approximation for mass-flux calculation
                                          ! upwind=0.5 ... use centered difference for mass-flux calculation
-  real :: L0 = 25.                      ! entrainemnt rate parameter
+  !real :: L0 = 25.                      ! entrainemnt rate parameter
+  real :: L0_flag = 25.                      ! entrainemnt rate parameter
   integer :: NUP=10                      ! the number of updrafts
   REAL :: UPSTAB=1.            ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
   INTEGER :: bl_mynn_stabfunc  = 1       !  option for stability function. 0 - MYNN, 1 - Suselj et al. (2019)
@@ -5659,6 +5660,8 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
        logical :: do_MF
 
        type(randomNumberStream), INTENT(INOUT) :: streams1
+
+       REAL :: L0
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -5773,10 +5776,17 @@ s_awqke=0.
 ! print*, "[EDMF_JPL]: Sc found at z = ", Z_i
 ! if surface buoyancy is positive we do integration otherwise not
 
-    !<-- yhc 2021-11-26
-    print*,'kpbl',kpbl
-    print*,'PBLH',PBLH
+    !<-- yhc 2022-02-22
+    ! set L0 value
+    if (L0_flag > 0) then         ! set L0=constant 
+      L0 = L0_flag
+    elseif (L0_flag.eq.-1.) then  ! set L0 as a function
+      L0 = (PBLH/100)**2
+    endif
+    L0 = max(L0, 1.)              ! set minimum L0 value to prevent numerical problems (e.g. 1/L0)
+    !<-- yhc 2022-02-22
 
+    !<-- yhc 2021-11-26
     z0=50.
     do_MF = .true.
     if (option_pblh_MF.eq.1 .and. pblh < z0) then  ! only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
@@ -11206,6 +11216,7 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
   enddo   ! end do of i
 
 end subroutine check_trc_rlzbility
+
 
 !#############################
 ! Mellor-Yamada
