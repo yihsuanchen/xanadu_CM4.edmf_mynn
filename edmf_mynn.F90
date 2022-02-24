@@ -459,9 +459,10 @@ end type edmf_ls_mp_type
   real    :: rc_MF = 10.e-6                     ! assumed cloud droplet radius in plumes (meters)
 
   character*20 :: do_debug_option = ""          ! debugging purpose. print out problematic columns and (if needed) stop the model
-                                                !   = "all"       : do all checks listed below
-                                                !   = "edmf_a",   : check if total MF updraft area > 0.2, 
-                                                !   = "tdt_check" : check if EDMF temperature tendency > tdt_max (K/day), 
+                                                !   = "all"       		: do all checks listed below
+                                                !   = "edmf_a",   		: print out if total MF updraft area > 0.2, 
+                                                !   = "mf_stop_lowest_level"	: print out if edmf_a=0 but UP(VARs) =/= 0.
+                                                !   = "tdt_check" 		: print out if EDMF temperature tendency > tdt_max (K/day), 
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
   real    :: tdt_max     = 2000. ! K/day
@@ -6728,7 +6729,7 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
         ENDDO
     ENDDO
 
-END IF
+END IF  ! end if of do_MF
 
 ktop=MIN(ktop,KTE-1)  !  Just to be safe...
 IF (ktop == 0) THEN
@@ -6859,6 +6860,45 @@ ENDDO
 
 
 !<--- yhc 2021-09-08
+
+!--- yhc 2022-02-24
+!    The individual plume properties are initialized at the surface. 
+!    If all plumes cannot get the lowest atmospheric levels, no MF should be present.
+!    To avoid confusion and potential coding bugs, reset all individual plume properties to zeros.
+if (all(edmf_a.eq.0)) then  
+  UPA   (:,:) = 0.
+  UPW   (:,:) = 0.
+  UPTHL (:,:) = 0.
+  UPQT  (:,:) = 0.
+  UPQC  (:,:) = 0.
+  UPU   (:,:) = 0.
+  UPV   (:,:) = 0.
+endif
+
+!--- yhc 2022-02-24
+!    debugging purpose: make sure when no MF, all individual plume properties are zeros
+if (do_debug_option.eq."mf_stop_lowest_level" .or. do_debug_option.eq."all") then
+
+  !--- if MF does not reach the lowest level, all MF terms including individual plumes should be zeros
+  !if (all(edmf_a.eq.0) .and. any(UPA.gt.0.)) then
+  if (      all(edmf_a.eq.0)  &
+      .and. all(UPA.eq.0.)  .and. all(UPW.eq.0.)  .and. all(UPTHL.eq.0.) &
+      .and. all(UPQT.eq.0.) .and. all(UPQC.eq.0.) .and. all(UPU.eq.0.) .and. all(UPU.eq.0.) ) then   ! every thing is fine
+  
+  else        ! edmf_a=0 but individual plume properties are not zeros
+    
+    print*,'do_debug03, edmf_a=0 but UPA =/= 0, ktop', ktop
+    print*,'edmf_a',edmf_a
+    print*,'UPA, i=1',UPA(:,1)
+
+    !--- stop the model if prefered
+    if (do_stop_run) then
+      call error_mesg('edmf_mynn_driver',  &
+                      'edmf_a is large than it should be (0.2)', FATAL)
+    endif  ! end if of do_stop_run
+
+  endif    ! end if of all checks
+end if     ! end if of do_debug_option.eq."mf_stop_lowest_level"
 
 !--- plume area should not increase with height
 !DO I=1,NUP
