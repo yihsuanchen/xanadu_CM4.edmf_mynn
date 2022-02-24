@@ -139,7 +139,7 @@ type edmf_output_type
     mynn_ql, qc_bl, cldfra_bl, el_pbl, Sh3D
 
   real, dimension(:,:),   allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,JMS:JME)
-    maxmf
+    maxmf, L0
 
   real, dimension(:,:,:), allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
     exch_h, exch_m, &
@@ -458,8 +458,10 @@ end type edmf_ls_mp_type
   real    :: alpha_st=0.5
   real    :: rc_MF = 10.e-6                     ! assumed cloud droplet radius in plumes (meters)
 
-  character*20 :: do_debug_option = ""          ! debug purpose
-
+  character*20 :: do_debug_option = ""          ! debugging purpose. print out problematic columns and (if needed) stop the model
+                                                !   = "all"       : do all checks listed below
+                                                !   = "edmf_a",   : check if total MF updraft area > 0.2, 
+                                                !   = "tdt_check" : check if EDMF temperature tendency > tdt_max (K/day), 
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
   real    :: tdt_max     = 2000. ! K/day
@@ -6448,7 +6450,8 @@ s_awqke=0.
     elseif (L0_flag.eq.-1.) then  ! set L0 as a function
       L0 = (PBLH/100)**2
     endif
-    L0 = max(L0, 1.)              ! set minimum L0 value to prevent numerical problems (e.g. 1/L0)
+    L0 = min( max(L0, 1.), 100.)  ! set minimum L0 value to prevent numerical problems (e.g. 1/L0)
+                                  ! set maximum L0 value to 100, in case the PBL height is too large
     !<-- yhc 2022-02-22
 
     !<-- yhc 2021-11-26
@@ -7922,7 +7925,7 @@ subroutine edmf_mynn_driver ( &
 
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2)) :: &  ! dimension (nlon,nlat)
-    rlz_ratio, rlz_tracer, L0
+    rlz_ratio, rlz_tracer
 
   real :: randomNumbers
 
@@ -8089,7 +8092,7 @@ subroutine edmf_mynn_driver ( &
        &a_moist_half=Output_edmf%a_moist_half, mf_moist_half=Output_edmf%mf_moist_half, qv_moist_half=Output_edmf%qv_moist_half, a_moist_full=Output_edmf%a_moist_full, mf_moist_full=Output_edmf%mf_moist_full, qv_moist_full=Output_edmf%qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half=Output_edmf%a_dry_half, mf_dry_half=Output_edmf%mf_dry_half, qv_dry_half=Output_edmf%qv_dry_half, a_dry_full=Output_edmf%a_dry_full, mf_dry_full=Output_edmf%mf_dry_full, qv_dry_full=Output_edmf%qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
-       &num_updraft=num_updraft, num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, L0=L0, &            ! yhc 2021-09-08
+       &num_updraft=num_updraft, num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, L0=Output_edmf%L0, &            ! yhc 2021-09-08
        &streams=streams, &  ! yhc 2021-11-18
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
@@ -8126,7 +8129,7 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 ! recover dry variable tendencies from mynn_edmf
 !---------------------------------------------------------------------
-  call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next, dt,  &
+  call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next, dt, lon, lat,  &
                                     do_writeout_column,         &
                                     Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                     size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
@@ -8765,7 +8768,7 @@ subroutine edmf_mynn_driver ( &
 
       !------- entrainemnt length scale in MF (units: m) at one level -------
       if ( id_L0_edmf > 0) then
-        used = send_data (id_L0_edmf, L0, Time_next, is, js )
+        used = send_data (id_L0_edmf, Output_edmf%L0, Time_next, is, js )
       endif
 !send_data
 
@@ -8780,7 +8783,7 @@ subroutine edmf_mynn_driver ( &
     do j=1,jx
     do k=1,kx+1
       if (diag_half(i,j,k).gt.0.2) then   ! the total plume area must be smaller than its surface value ~ 0.15
-        print*,'gg01, edmf_a>1. i,j,k,lon,lat,p_half,edmf_a' 
+        print*,'do_debug01, edmf_a>1. i,j,k,lon,lat,p_half,edmf_a' 
         print*,i,j,k,lon(i,j),lat(i,j),Physics_input_block%p_half(i,j,k),diag_half(i,j,k)
 
         !--- write out problematic column
@@ -8815,7 +8818,7 @@ subroutine edmf_mynn_driver ( &
     do j=1,jx
     do k=1,kx
       if (abs(am4_Output_edmf%tdt_edmf(i,j,k)).gt.tt1) then
-        print*,'gg02, i,j,k,lon,lat,p_half,tdt_edmf (K/day)'
+        print*,'do_debug02, i,j,k,lon,lat,p_half,tdt_edmf (K/day)'
         print*,i,j,k,lon(i,j),lat(i,j),Physics_input_block%p_full(i,j,k),am4_Output_edmf%tdt_edmf(i,j,k)*86400.
 
         !--- write out problematic column
@@ -9256,6 +9259,7 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%nupdraft     (IMS:IME,JMS:JME))  ; Output_edmf%nupdraft     = 0
   allocate (Output_edmf%ktop_shallow (IMS:IME,JMS:JME))  ; Output_edmf%ktop_shallow = 0
   allocate (Output_edmf%maxmf        (IMS:IME,JMS:JME))  ; Output_edmf%maxmf        = 0.
+  allocate (Output_edmf%L0           (IMS:IME,JMS:JME))  ; Output_edmf%L0           = 0.
   !allocate (Output_edmf%(IMS:IME,JMS:JME))  ; Output_edmf% = 0.
 
   ! 3-D variable
@@ -9804,6 +9808,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%nupdraft     )  
   deallocate (Output_edmf%ktop_shallow )  
   deallocate (Output_edmf%maxmf        )  
+  deallocate (Output_edmf%L0           )  
   !deallocate (Output_edmf%)  
 
   ! 3-D variable
@@ -10343,6 +10348,12 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nqi)'
         write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nqi) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
         write(6,*)    ''
+        write(6,*)    '; k_pbl, ',am4_Output_edmf%kpbl_edmf(ii_write,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; pbl depth,',am4_Output_edmf%pbltop(ii_write,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; MF entrainment length scale L0 (m)'
+        write(6,*)    '  L0 = ', Output_edmf%L0 (ii_write,jj_write)
         write(6,*)    ';----- end of fieles needed by the offline program ---'
         write(6,*)    ''
         write(6,*)    '; friction velocity (m/s)'
@@ -10567,10 +10578,6 @@ subroutine edmf_writeout_column ( &
                       call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_sub, diag_full)
         write(6,*)    '; Q_qi_sub'
         write(6,3002) '  Q_qi_sub = (/'    ,diag_full (ii_write,jj_write,:)
-        write(6,*)    ''
-        write(6,*)    '; k_pbl, ',am4_Output_edmf%kpbl_edmf(ii_write,jj_write)
-        write(6,*)    ''
-        write(6,*)    '; pbl depth,',am4_Output_edmf%pbltop(ii_write,jj_write)
         write(6,*)    ''
         write(6,*)    ';=============='
         write(6,*)    ';=============='
@@ -11011,7 +11018,7 @@ end subroutine convert_edmf_to_am4_array
 
 !###################################
 
-subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
+subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt, lon, lat,    &
                                         do_writeout_column, &
                                         Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                         ix, jx, kx,  &
@@ -11021,6 +11028,9 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
   integer, intent(in)                   :: is, ie, js, je
   real,    intent(in)                   :: dt
   type(time_type), intent(in)           :: Time_next
+  real,    intent(in), dimension(:,:)   :: &  ! dimension(nlon,nlat)
+    lon,  &     ! longitude in radians
+    lat         ! latitude  in radians
   type(physics_input_block_type), intent(in)  :: Physics_input_block
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   integer                   , intent(in)  :: ix, jx, kx
@@ -11299,7 +11309,7 @@ if (do_check_realizability) then
    call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RCCBLTEN(:,:,:), tracers_tend(:,:,:,4))
    call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQTBLTEN(:,:,:), tracers_tend(:,:,:,5))
 
-   call check_trc_rlzbility (dt, tracers, tracers_tend, &
+   call check_trc_rlzbility (dt, tracers, tracers_tend, lon, lat, &
                              tends_ratio, tends_ratio_k, rlz_ratio, rlz_tracer)
 
    !--- ratio must be between 0 and 1
@@ -11656,7 +11666,7 @@ end subroutine Poisson_knuth
 
 !###################################
 
-subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
+subroutine check_trc_rlzbility (dt, tracers, tracers_tend, lon, lat, &
                                 tends_ratio, tends_ratio_k, rlz_ratio, rlz_tracer)
 
 !---------------------------------------------------------------------
@@ -11700,6 +11710,9 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 !---------------------------------------------------------------------
   real,    intent(in)                     :: dt
   real,    intent(in), dimension(:,:,:,:) :: tracers, tracers_tend  ! dimension (nlon, nlat, nlev, ntracer)
+  real,    intent(in), dimension(:,:)   :: &  ! dimension(nlon,nlat)
+    lon,  &     ! longitude in radians
+    lat         ! latitude  in radians
 
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
@@ -11777,8 +11790,13 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
     !tracer0(28) = 1.E-30
     !tracer0(28) = 1.E-8 
 
+    !--- yhc note 2022-02-23
+    !    Tracer0 concentraion are directly taken from Physics_input_block%q, and they supposedly are always greater than zeros.
+    !    But sometimes they can be negative. I don't know why and I assume this would be fixed in Tiedtke scheme.
+    !    So I don't stop the model when tracer concentraion is negative
     if (any(tracer0.lt.0.)) then
-      write(6,*) 'i,j,#tracer',i,j,n
+      write(6,*) 'i,j,lon,lat',i,j,lon(i,j),lat(i,j)
+      write(6,*) 'i,j,#tracer (1-5, qv,ql, qi, qa, qt)',i,j,n
       write(6,*) 'tracer0',tracer0
       call error_mesg( ' edmf_mynn',     &
                        ' check_trc_rlzbility, tracers < 0.',&
