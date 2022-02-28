@@ -425,7 +425,7 @@ end type edmf_ls_mp_type
   logical :: do_check_realizability = .true.    ! whether enables the realizability limiter that forces the tracers concentration
                                                 ! (q_t, q_v, q_l, q_i, q_a) not become negative after one time step 
   logical :: do_check_ent_det = .false.         ! control whether writing out entrainment and detrainment rate for debugging
-  logical :: do_stop_run = .false.              ! whether to stop the simulation
+  logical :: do_stop_run = .true.               ! stop the simulation if detecting problems
   real    :: qke_min = -1.                      ! qke=2*tke. If qke < qke_min, set all EDMF tendencies to zeros
                                                 !   set qke_min>0 may remove energy/water away and cause water mass is not conserved
   real    :: tracer_min = 1.E-10                ! make sure tracer value is not smaller than tracer_min
@@ -457,17 +457,18 @@ end type edmf_ls_mp_type
   integer :: option_ent=1                       ! =1, use original stochastic entrainment formula
                                                 ! =2, separate entrainment into stochastic and deterministic parts
                                                 !     controlling by alpha_st (1 completely stochastic, 0 completely deterministic)
+
+  !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
+  character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
   real    :: alpha_st=0.5
   real    :: rc_MF = 10.e-6                     ! assumed cloud droplet radius in plumes (meters)
 
-  character*20 :: do_debug_option = ""          ! debugging purpose. print out problematic columns and (if needed) stop the model
+  character*20 :: do_debug_option = "all"       ! debugging purpose. print out problematic columns and (if needed) stop the model
                                                 !   = "all"       		: do all checks listed below
                                                 !   = "edmf_a",   		: print out if total MF updraft area > 0.2, 
                                                 !   = "mf_stop_lowest_level"	: print out if edmf_a=0 but UP(VARs) =/= 0.
                                                 !   = "tdt_check" 		: print out if EDMF temperature tendency > tdt_max (K/day), 
-  !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
-  character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
-  real    :: tdt_max     = 2000. ! K/day
+  real    :: tdt_max     = 10000.               ! if EDMF temperature tendency is greater than tdt_max (K/day), call do_debug_option 
   logical :: do_limit_tdt = .false.
   real    :: tdt_limit =   200. ! K/day
 
@@ -6885,15 +6886,15 @@ if (do_debug_option.eq."mf_stop_lowest_level" .or. do_debug_option.eq."all") the
 
   !--- if MF does not reach the lowest level, all MF terms including individual plumes should be zeros
   !if (all(edmf_a.eq.0) .and. any(UPA.gt.0.)) then
-  if (  any(edmf_a.ne.0))  then    ! MF is present
-    dum1 = 0.  ! do nothing
+  if (  any(edmf_a.ne.0))  then    ! MF is present, do nothing
+    dum1 = 0.
 
   elseif (  all(edmf_a.eq.0)  &
       .and. all(UPA.eq.0.)  .and. all(UPW.eq.0.)  .and. all(UPTHL.eq.0.) &
-      .and. all(UPQT.eq.0.) .and. all(UPQC.eq.0.) .and. all(UPU.eq.0.) .and. all(UPU.eq.0.) ) then   ! no MF
-    dum1 = 0.  ! do nothing
+      .and. all(UPQT.eq.0.) .and. all(UPQC.eq.0.) .and. all(UPU.eq.0.) .and. all(UPU.eq.0.) ) then   ! no MF, do nothing
+    dum1 = 0.
   
-  else        ! edmf_a=0 but individual plume properties are not zeros
+  else        ! the total updraft area (edmf_a) is zero but individual plume properties are not zeros
     
     print*,'do_debug03, edmf_a=0 but UPA =/= 0, ktop', ktop
     print*,'edmf_a',edmf_a
@@ -6902,7 +6903,7 @@ if (do_debug_option.eq."mf_stop_lowest_level" .or. do_debug_option.eq."all") the
     !--- stop the model if prefered
     if (do_stop_run) then
       call error_mesg('edmf_mynn_driver',  &
-                      'edmf_a is large than it should be (0.2)', FATAL)
+                      'total MF area (edmf_a) is zero but individual plume area (UPA) is not zero', FATAL)
     endif  ! end if of do_stop_run
 
   endif    ! end if of all checks
@@ -11839,16 +11840,15 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, lon, lat, &
 
     !--- yhc note 2022-02-23
     !    Tracer0 concentraion are directly taken from Physics_input_block%q, and they supposedly are always greater than zeros.
-    !    But sometimes they can be negative. I don't know why and I assume this would be fixed in Tiedtke scheme.
-    !    So I don't stop the model when tracer concentraion is negative
-    if (any(tracer0.lt.0.)) then
-      write(6,*) 'i,j,lon,lat',i,j,lon(i,j),lat(i,j)
-      write(6,*) 'i,j,#tracer (1-5, qv,ql, qi, qa, qt)',i,j,n
-      write(6,*) 'tracer0',tracer0
-      call error_mesg( ' edmf_mynn',     &
-                       ' check_trc_rlzbility, tracers < 0.',&
-                       FATAL )
-    endif
+    !    But sometimes they can be negative (e.g. -1e-50). If prefered, stop the stop when detecting nagative concentration values 
+    !if (any(tracer0.lt.0.)) then
+    !  write(6,*) 'i,j,lon,lat',i,j,lon(i,j),lat(i,j)
+    !  write(6,*) 'i,j,#tracer (1-5, qv,ql, qi, qa, qt)',i,j,n
+    !  write(6,*) 'tracer0',tracer0
+    !  call error_mesg( ' edmf_mynn',     &
+    !                   ' check_trc_rlzbility, tracers < 0.',&
+    !                   FATAL )
+    !endif
 
     !--- get max/min of tracer0
     tracer0_min = 1.e20
