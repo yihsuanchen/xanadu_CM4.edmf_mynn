@@ -403,6 +403,8 @@ end type edmf_ls_mp_type
                                          ! implicit mass-flux must uses the centered differencing method.  
   real    :: L0_flag  = 100.             ! entrainemnt length scale (m)
                                          !   if L0_flag = -1., set  L0 to this function, L0= (PBLH/100)**2 
+  real    :: L0_min   = 5.               ! Minimum L0 when L0_flag=-1.
+  real    :: L0_max   = 100.             ! Maximum L0 when L0_flag=-1.
   integer :: NUP = 100                   ! the number of updrafts
   real    :: UPSTAB = 1.                 ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
 
@@ -490,7 +492,7 @@ end type edmf_ls_mp_type
                                   !    This is to prevent activating MF in very stable conditions.
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
-                            L0_flag, NUP, UPSTAB, edmf_type, qke_min, &
+                            L0_flag, L0_min, L0_max, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
                             option_stoch_entrain, option_rng, num_rx, ztop_stoch, option_pblh_MF, &
@@ -6330,6 +6332,8 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
        logical :: do_MF
 
        type(randomNumberStream), INTENT(INOUT) :: streams1
+
+       real dum1
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -6451,8 +6455,8 @@ s_awqke=0.
     elseif (L0_flag.eq.-1.) then  ! set L0 as a function
       L0 = (PBLH/100)**2
     endif
-    L0 = min( max(L0, 1.), 100.)  ! set minimum L0 value to prevent numerical problems (e.g. 1/L0)
-                                  ! set maximum L0 value to 100, in case the PBL height is too large
+    L0 = min( max(L0, L0_min), L0_max)  ! set minimum L0 value to prevent numerical problems (e.g. 1/L0)
+                                        ! set maximum L0 value in case the PBL height is too large
     !<-- yhc 2022-02-22
 
     !<-- yhc 2021-11-26
@@ -6881,9 +6885,13 @@ if (do_debug_option.eq."mf_stop_lowest_level" .or. do_debug_option.eq."all") the
 
   !--- if MF does not reach the lowest level, all MF terms including individual plumes should be zeros
   !if (all(edmf_a.eq.0) .and. any(UPA.gt.0.)) then
-  if (      all(edmf_a.eq.0)  &
+  if (  any(edmf_a.ne.0))  then    ! MF is present
+    dum1 = 0.  ! do nothing
+
+  elseif (  all(edmf_a.eq.0)  &
       .and. all(UPA.eq.0.)  .and. all(UPW.eq.0.)  .and. all(UPTHL.eq.0.) &
-      .and. all(UPQT.eq.0.) .and. all(UPQC.eq.0.) .and. all(UPU.eq.0.) .and. all(UPU.eq.0.) ) then   ! every thing is fine
+      .and. all(UPQT.eq.0.) .and. all(UPQC.eq.0.) .and. all(UPU.eq.0.) .and. all(UPU.eq.0.) ) then   ! no MF
+    dum1 = 0.  ! do nothing
   
   else        ! edmf_a=0 but individual plume properties are not zeros
     
@@ -11811,8 +11819,7 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, lon, lat, &
 !   (2) in the range of max/min of tracer0
 !---------------------
 
-  !do n=1,nx
-  do n=1,1
+  do n=1,nx
   do i=1,ix
   do j=1,jx
 
