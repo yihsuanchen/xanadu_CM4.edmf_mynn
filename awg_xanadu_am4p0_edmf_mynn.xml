@@ -1471,7 +1471,7 @@ $baseDate
 <freInclude name="c96_216_basic_30d">
         <!--run hours="2"-->
         <run days="30">
-                <resources jobWallclock="02:00:00">
+                <resources jobWallclock="00:40:00">
                 <atm ranks="216" threads="1"    layout = "3,12"    io_layout = "1,4" />
                 <lnd                            layout = "3,12"    io_layout = "1,4" />
                 <ocn ranks="0"   threads="0"    layout = "72,3"    io_layout = "1,3" />
@@ -5047,7 +5047,7 @@ Latest code version, 01/24/2021
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           1,
@@ -5730,7 +5730,7 @@ yhc, 2021/08/03, use this because using c96_864_producetion will have reproducib
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           1,
@@ -5950,7 +5950,7 @@ BL_MYNN_EDMF    =           3,
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -6677,7 +6677,7 @@ BL_MYNN_EDMF    =           3,
  UPWIND  =   1.00000000000000     ,
  do_option_edmf2ls_mp = 4
  QX_MF   =           2,
- L0 = 100.
+ L0_flag = 100.
       </namelist>
     </input>
   </experiment>
@@ -6702,7 +6702,7 @@ BL_MYNN_EDMF    =           3,
  UPWIND  =   1.00000000000000     ,
  do_option_edmf2ls_mp = 4
  QX_MF   =           2,
- L0 = 50.
+ L0_flag = 50.
       </namelist>
     </input>
   </experiment>
@@ -6727,7 +6727,43 @@ BL_MYNN_EDMF    =           3,
  UPWIND  =   1.00000000000000     ,
  do_option_edmf2ls_mp = 4
  QX_MF   =           2,
- L0 = 25.
+ L0_flag = 25.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       Note that the code verions of this is NOT the same as other v01 experiments.
+       I caught and fixed a few bugs in the code, namely, 
+
+       1. Bugs: The plumes were initialized at the surface and then grew. If all plumes could not get the lowest atmospheric level, there was no MF effect. When this happened, however, the individual plume properties at the surface did not rest, so the MF-to-Tiedtke term calculation still thought there were plumes but all of them terminated at the lowest levels. This resulted in spurious tendencies and sometimes caused the model to blow up. Fixes: When all plumes could not get the lowest atmospheric level, reset all plumes properties to zeros.
+
+       2. Bugs: An indexing error in the realizability limiter, so the limiter only checked water vapor concentration, but not other tracers (cloud liquid, cloud ice, cloud fraction, and total water mixing ratio). The MYNN-EDMF could run into realizability problems and cause the model to blow up. Fixes: Fix the indexing error in the realizability limiter. 
+
+       code version:
+         edmf_mynn.F90, da3f9025f767b308e0b86911a9625b2e8a3dc270
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = -1.
       </namelist>
     </input>
   </experiment>
@@ -6752,7 +6788,7 @@ BL_MYNN_EDMF    =           3,
  UPWIND  =   1.00000000000000     ,
  do_option_edmf2ls_mp = 4
  QX_MF   =           1,
- L0 = 100.
+ L0_flag = 100.
       </namelist>
     </input>
   </experiment>
@@ -6777,7 +6813,7 @@ BL_MYNN_EDMF    =           3,
  UPWIND  =   1.00000000000000     ,
  do_option_edmf2ls_mp = 4
  QX_MF   =           1,
- L0 = 50.
+ L0_flag = 50.
       </namelist>
     </input>
   </experiment>
@@ -6802,7 +6838,60 @@ BL_MYNN_EDMF    =           3,
  UPWIND  =   1.00000000000000     ,
  do_option_edmf2ls_mp = 4
  QX_MF   =           1,
- L0 = 25.
+ L0_flag = 25.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_03e-edmf_MFexp_QxEddy_LoSQU-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           1,
+ L0_flag = -1.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xx1-v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0" inherit="v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = T,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = -1.
+ L0_min = 10.
+ do_debug_option = "all"
+ tdt_max = 2000.
       </namelist>
     </input>
   </experiment>
@@ -6832,7 +6921,7 @@ BL_MYNN_EDMF    =           3,
  UPWIND  =   1.00000000000000     ,
  do_option_edmf2ls_mp = 4
  QX_MF   =           2,
- L0 = 25.
+ L0_flag = 25.
  do_debug_option = "all"
  tdt_max = 2000. 
       </namelist>
@@ -6854,7 +6943,7 @@ BL_MYNN_EDMF    =           3,
  UPWIND  =   1.00000000000000     ,
  do_option_edmf2ls_mp = 4
  QX_MF   =           2,
- L0 = 100.
+ L0_flag = 100.
  NUM_RX = 5000 
  ztop_stoch = 10000.
       </namelist>
@@ -6878,7 +6967,7 @@ BL_MYNN_EDMF    =           3,
  UPWIND  =   1.00000000000000     ,
  do_option_edmf2ls_mp = 4
  QX_MF   =           2,
- L0 = 25.
+ L0_flag = 25.
  NUM_RX = 100
  option_stoch_entrain = "no_stochastic"
       </namelist>
