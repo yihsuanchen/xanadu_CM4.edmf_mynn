@@ -402,9 +402,16 @@ end type edmf_ls_mp_type
                                          ! explicit mass-flux can use either upwind or centered-difference
                                          ! implicit mass-flux must uses the centered differencing method.  
   real    :: L0_flag  = 100.             ! entrainemnt length scale (m)
-                                         !   if L0_flag = -1., set  L0 to this function, L0= (PBLH/100)**2 
-  real    :: L0_min   = 5.               ! Minimum L0 when L0_flag=-1.
-  real    :: L0_max   = 100.             ! Maximum L0 when L0_flag=-1.
+                                         !   if L0_flag = -1., set L0 to this function, L0= (PBLH/100)**2 
+                                         !   if L0_flag = -2., set L0 as a step function, 
+                                         !                      L0=   100 m if z_pbl  > z_limit_L0;
+                                         !                            10  m if z_pbl <= z_limit_L0;
+
+  real    :: L0_min   = 5.               ! when L0_flag=-1., minimum L0 
+                                         ! when L0_flag=-2., L0 value for z_pbl <= z_limit_L0
+  real    :: L0_max   = 100.             ! when L0_flag=-1., maximum L0
+                                         ! when L0_flag=-2., L0 value for z_pbl > z_limit_L0
+  real    :: z_limit_L0 = 500            ! step function when L0_flag=-2.
   integer :: NUP = 100                   ! the number of updrafts
   real    :: UPSTAB = 1.                 ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
 
@@ -493,7 +500,7 @@ end type edmf_ls_mp_type
                                   !    This is to prevent activating MF in very stable conditions.
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
-                            L0_flag, L0_min, L0_max, NUP, UPSTAB, edmf_type, qke_min, &
+                            L0_flag, L0_min, L0_max, z_limit_L0, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
                             option_stoch_entrain, option_rng, num_rx, ztop_stoch, option_pblh_MF, &
@@ -628,10 +635,13 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                      FATAL )
   endif
 
-  if (L0_flag.lt.0. .and. L0_flag.ne.-1.) then
-    call error_mesg( ' edmf_mynn',     &
-                     ' L0_flag must > 0 or = -1.',&
-                     FATAL )
+  !if (L0_flag.lt.0. .and. L0_flag.ne.-1.) then
+  if (L0_flag.lt.0.) then
+    if (L0_flag.ne.-1. .and. L0_flag.ne.-2.) then
+      call error_mesg( ' edmf_mynn',     &
+                       ' L0_flag must > 0, = -1., or = -2.',&
+                       FATAL )
+    endif
   endif
 
 !  if (     do_option_edmf2ls_mp.ne.0    &
@@ -6453,11 +6463,20 @@ s_awqke=0.
     ! set L0 value
     if (L0_flag > 0) then         ! set L0=constant 
       L0 = L0_flag
+
     elseif (L0_flag.eq.-1.) then  ! set L0 as a function
       L0 = (PBLH/100)**2
-    endif
-    L0 = min( max(L0, L0_min), L0_max)  ! set minimum L0 value to prevent numerical problems (e.g. 1/L0)
-                                        ! set maximum L0 value in case the PBL height is too large
+      L0 = min( max(L0, L0_min), L0_max)  ! set minimum L0 value to prevent numerical problems (e.g. 1/L0)
+                                          ! set maximum L0 value in case the PBL height is too large
+    elseif (L0_flag.eq.-2.) then  ! set L0 as a step function
+
+      if (pblh > z_limit_L0) then
+        L0 = L0_max
+      else
+        L0 = L0_min
+      endif
+
+    endif  ! end if of L0_flag
     !<-- yhc 2022-02-22
 
     !<-- yhc 2021-11-26
