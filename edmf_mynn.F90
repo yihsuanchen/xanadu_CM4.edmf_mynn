@@ -411,7 +411,8 @@ end type edmf_ls_mp_type
                                          ! when L0_flag=-2., L0 value for z_pbl <= z_limit_L0
   real    :: L0_max   = 100.             ! when L0_flag=-1., maximum L0
                                          ! when L0_flag=-2., L0 value for z_pbl > z_limit_L0
-  real    :: z_limit_L0 = 500            ! step function when L0_flag=-2.
+  real    :: z_limit_L0 = 500.           ! step function when L0_flag=-2.
+  real    :: z0_limit   = 50.            ! shut down MF when PBL height < z0_limit
   integer :: NUP = 100                   ! the number of updrafts
   real    :: UPSTAB = 1.                 ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
 
@@ -500,7 +501,7 @@ end type edmf_ls_mp_type
                                   !    This is to prevent activating MF in very stable conditions.
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
-                            L0_flag, L0_min, L0_max, z_limit_L0, NUP, UPSTAB, edmf_type, qke_min, &
+                            L0_flag, L0_min, L0_max, z_limit_L0, z0_limit, NUP, UPSTAB, edmf_type, qke_min, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
                             option_stoch_entrain, option_rng, num_rx, ztop_stoch, option_pblh_MF, &
@@ -6480,7 +6481,7 @@ s_awqke=0.
     !<-- yhc 2022-02-22
 
     !<-- yhc 2021-11-26
-    z0=50.
+    z0=z0_limit          ! shut down MF when PBL height < z0
     do_MF = .true.
     if (option_pblh_MF.eq.1 .and. pblh < z0) then  ! only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
                                                    ! This is to prevent activating MF in very stable conditions.
