@@ -21,7 +21,7 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_am4p0_RF01_01"
   ! character*50 :: input_profile = "SCM_am4p0_RF01_02"
   ! character*50 :: input_profile = "SCM_am4p0_RF01_03_cloudy"
-  character*50 :: input_profile = "SCM_RF01_modQDT-Gmy_aTnTtT_a3_5.0h"
+  !character*50 :: input_profile = "SCM_RF01_modQDT-Gmy_aTnTtT_a3_5.0h"
   !character*50 :: input_profile = "xxx"
   !character*50 :: input_profile = "SCM_BOMEX_MYNN_ED_mixleng3"
   !character*50 :: input_profile = "SCM_RF01_mynn_EDMFexpUP_Gmy_ADD_0.5h"
@@ -29,6 +29,7 @@ MODULE module_bl_mynn
   !character*50 :: input_profile = "SCM_RF01_rfo76a-M3_EDMFexpUP_NOsm02"
   !character*50 :: input_profile = "AMIP_i8_j3_Arctic"  ! negative updraft vertical velocity at the surface (wmin & wmax <0)
   !character*50 :: input_profile = "AMIP_i2_j4_Delware"
+  character*50 :: input_profile = "AMIP_i24_j02_GreenLand_edge"
 
   integer, parameter :: loop_times = 1
  ! integer, parameter :: loop_times = 10
@@ -148,6 +149,9 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
   real    :: L0_max   = 100.             ! when L0_flag=-1., maximum L0
                                          ! when L0_flag=-2., L0 value for z_pbl > z_limit_L0
   real    :: z0_limit   = 50.            ! shut down MF when PBL height < z0_limit
+  real    ::  plev_tke_limit_MF = 900.e+2 
+  real    ::  tke_limit_MF      = 1.
+
   integer :: NUP=10                      ! the number of updrafts
   REAL :: UPSTAB=1.            ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
   INTEGER :: bl_mynn_stabfunc  = 1       !  option for stability function. 0 - MYNN, 1 - Suselj et al. (2019)
@@ -251,7 +255,7 @@ character*5 :: do_edmf_mynn_in_physics = "up"     ! where to call edmf_mynn. "up
   integer :: num_rx     = 5e+4    ! number of random number drawn from AM4 RNG  
   real    :: ztop_stoch = 10000.  ! Above this height (m), do not call Poisson to compute stochastic entrainment rate to 
                                   ! speed up the simulation
-
+  integer :: option_mf_mask = 1
 !==================
 type edmf_input_type
   integer,              allocatable ::   &
@@ -261,7 +265,9 @@ type edmf_input_type
   real,                 allocatable   :: &
     delt, dx
   real, dimension(:,:), allocatable   :: &   ! INPUT, DIMENSION(IMS:IME,JMS:JME)
-    xland, ust, ch, rmol, ts, qsfc, qcg, ps, hfx, qfx, wspd, uoce, voce, vdfg, znt
+    mf_mask, xland, ust, ch, rmol, ts, qsfc, qcg, ps, hfx, qfx, wspd, uoce, voce, vdfg, znt
+  logical, dimension(:,:), allocatable   :: &   ! INPUT, DIMENSION(IMS:IME,JMS:JME)
+    do_MF_ij
   real, dimension(:,:,:), allocatable :: &   ! INPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
     dz, u, v, w, th, qv, p, exner, rho, T3D, qc, ql, qi, qnc, qni, qa
 
@@ -3705,6 +3711,7 @@ END SUBROUTINE mym_condensation
        &mf_all_half, mf_all_full, &                                                     ! yhc 2021-09-08
        &num_updraft, num_DET, num_nDET_pENT, num_nDET_zENT, L0, &                                        ! yhc 2021-09-08
        &streams, &  ! yhc 2021-11-18
+       &do_MF_ij, & ! yhc 2022-03-10
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
        &el_pbl,                         &
@@ -3863,6 +3870,8 @@ END SUBROUTINE mym_condensation
     !--- input argument
     type(randomNumberStream), dimension(IMS:IME,JMS:JME), INTENT(INOUT) :: &     ! yhc 2021-11-18
       streams
+    LOGICAL, DIMENSION(IMS:IME,JMS:JME), INTENT(in) :: &
+      do_MF_ij
 
     !--- output argument
     REAL, DIMENSION(IMS:IME,KMS:KME+1,JMS:JME), INTENT(out) :: &
@@ -4472,6 +4481,8 @@ END SUBROUTINE mym_condensation
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1,                 &
                & streams(i,j),   & ! ych 2021-11-18
+               & do_MF_ij(i,j),   & ! ych 2021-11-18
+               & Qke1, &   ! yhc 2022-03-10
                & Q_ql1_adv,Q_qi1_adv,Q_a1_adv, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy, Q_ql1_ent,Q_qi1_ent,Q_a1_ent, Q_ql1_det,Q_qi1_det,Q_a1_det, Q_ql1_sub,Q_qi1_sub,Q_a1_sub  &
              )
 
@@ -5548,13 +5559,15 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               & num_updraft, num_DET, num_nDET_zENT, num_nDET_pENT, L0, &                                               ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa, &
               & streams1, &    ! yhc 2021-11-18
+              & do_MF_ij, &    ! yhc 2021-11-18
+              & Qke, &    ! yhc 2022-03-10
               & Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent, Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub &
               ) ! yhc 2021-09-08
 
 
 
         INTEGER, INTENT(IN) :: KTS,KTE, kpbl
-        REAL,DIMENSION(KTS:KTE), INTENT(IN) :: U,V,TH,THL,TK,QT,QV,QC, QL, QI  ! yhc add QL, QI
+        REAL,DIMENSION(KTS:KTE), INTENT(IN) :: U,V,TH,THL,TK,QT,QV,QC, QL, QI, Qke  ! yhc add QL, QI
         REAL,DIMENSION(KTS:KTE), INTENT(IN) :: THV,P,exner,rho,liquid_frac
         ! zw .. heights of the updraft levels (edges of boxes)
         REAL,DIMENSION(KTS:KTE+1), INTENT(IN) :: ZW
@@ -5632,6 +5645,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
     !    qv: specific humifity (kg/kg)
     !    moist/dry/all: moist updrafts, dry updrafts, or combined (moist+dry) updrafts
     !    full/half: on full levels (where T,q are defined) to half levels (those levels in between full levels)
+       LOGICAL, INTENT(IN) :: do_MF_ij
        REAL,DIMENSION(kts:kte+1), INTENT(OUT) :: & 
          num_updraft  , &
          a_moist_half , &   
@@ -5812,6 +5826,32 @@ s_awqke=0.
     do_MF = .true.
     if (option_pblh_MF.eq.1 .and. pblh < z0) then  ! only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
                                                    ! This is to prevent activating MF in very stable conditions.
+      do_MF = .false.
+
+    elseif (option_pblh_MF.eq.2) then    ! only call MF when TKE at a certain pressure level is greater than a threshold
+      !<-- yhc 2022-03-10
+      !print*,'plev_tke_limit_MF,tke_limit_MF',plev_tke_limit_MF,tke_limit_MF
+
+      do k=kts,kte-1
+        if ( p(k).ge.plev_tke_limit_MF .and. p(k+1).lt.plev_tke_limit_MF ) then  ! find the pressure level
+          if (Qke(k).ge.2.*tke_limit_MF) then    ! TKE > a threshold, call MF
+            do_MF = .true.
+            !print*,'ttt,p,Qke',k,p(k),Qke(k)
+          else                                   ! TKE < a threshold, no MF
+            do_MF = .false.
+            !print*,'fff,p,Qke',k,p(k),Qke(k)
+          endif
+          exit
+        endif  ! end if of plev_tke_limit_MF
+      enddo    ! end if of k
+      !--> yhc 2022-03-10
+
+    endif  ! end if of option_pblh_MF
+
+    !--- see MF mask
+    if (do_MF_ij) then
+      do_MF = .true.
+    else
       do_MF = .false.
     endif
     !--> yhc 2021-11-26
@@ -7455,7 +7495,7 @@ subroutine edmf_mynn_driver ( &
 ! allocate input and output variables for the EDMF-MYNN program
 !---------------------------------------------------------------------
   call edmf_alloc ( &
-              is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
+              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, udt, vdt, tdt, rdt, &
               rdiag(:,:,:,nQke), rdiag(:,:,:,nel_pbl), rdiag(:,:,:,ncldfra_bl), rdiag(:,:,:,nqc_bl), rdiag(:,:,:,nSh3D), &
               Input_edmf, Output_edmf, am4_Output_edmf)
@@ -7490,6 +7530,7 @@ subroutine edmf_mynn_driver ( &
        &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
        &num_updraft=num_updraft, num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, L0=Output_edmf%L0, &            ! yhc 2021-09-08
        &streams=streams, &  ! yhc 2021-11-18
+       &do_MF_ij=Input_edmf%do_MF_ij, & ! yhc 2022-03-10
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
        &el_pbl=Output_edmf%el_pbl,                         &
@@ -8278,7 +8319,7 @@ end subroutine edmf_mynn_driver
 !###########################################################
 
 subroutine edmf_alloc ( &
-              is, ie, js, je, npz, Time_next, dt, frac_land, area, u_star,  &
+              is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
               b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux, Physics_input_block, rdiag, udt, vdt, tdt, rdt, &
               Qke, el_pbl, cldfra_bl, qc_bl, Sh3D, &
               Input_edmf, Output_edmf, am4_Output_edmf )
@@ -8290,6 +8331,8 @@ subroutine edmf_alloc ( &
 !    npz                 -  number of model layers
 !    Time_next           -  variable needed for netcdf output diagnostics
 !    dt                  -  Time step               (sec)
+!    lon                 -  longitude               (radian), dimension (nlon, nlat)
+!    lat                 -  latitude                (radian), dimension (nlon, nlat)
 !    frac_land           -  fraction of surface covered by land, dimension (nlon, nlat)
 !    area                -  grid box area           (m^2)   , dimension (nlon, nlat) 
 !    u_star              -  friction velocity       (m/s)   , dimension (nlon, nlat)        ,see note 1 below
@@ -8348,7 +8391,7 @@ subroutine edmf_alloc ( &
   type(time_type), intent(in)           :: Time_next
   real,    intent(in)                   :: dt
   real,    intent(in), dimension(:,:)   :: &
-    frac_land, area, u_star, b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux
+    lon, lat, frac_land, area, u_star, b_star, q_star, shflx, lhflx, t_ref, q_ref, u_flux, v_flux
   type(physics_input_block_type)        :: Physics_input_block
   real, intent(in), dimension(:,:,:,:)  :: rdiag
   real, intent(in), dimension(:,:,:)    :: &
@@ -8528,6 +8571,8 @@ subroutine edmf_alloc ( &
     u_star_updated, shflx_updated, lhflx_updated, w1_thv1_surf_updated, w1_th1_surf_updated, w1_t1_surf_updated, w1_q1_surf_updated, Obukhov_length_updated, &
     tv_ref, thv_ref, rho_ref
 
+  real :: lon_min, lon_max, lat_min, lat_max
+
   integer :: i, j, k, kk
 
 !-------------------------------------------------------------------------
@@ -8616,6 +8661,8 @@ subroutine edmf_alloc ( &
   allocate (Input_edmf%voce  (IMS:IME,JMS:JME))  ; Input_edmf%voce  = 0.
   allocate (Input_edmf%vdfg  (IMS:IME,JMS:JME))  ; Input_edmf%vdfg  = 0.
   allocate (Input_edmf%znt   (IMS:IME,JMS:JME))  ; Input_edmf%znt   = 0.
+  allocate (Input_edmf%mf_mask(IMS:IME,JMS:JME)) ; Input_edmf%mf_mask = 0.
+  allocate (Input_edmf%do_MF_ij(IMS:IME,JMS:JME)) ; Input_edmf%do_MF_ij = .true.
   !allocate (Input_edmf%(IMS:IME,JMS:JME))  ; Input_edmf% = 0.
 
   ! 3-D variable
@@ -9076,6 +9123,30 @@ subroutine edmf_alloc ( &
   am4_Output_edmf%qt_input  (:,:,:) = qt_host    (:,:,:)
   am4_Output_edmf%th_input  (:,:,:) = th_host    (:,:,:)
 
+!-------------------------------------------------------------------------
+! create a MF mask if needed. 1: call MF, 0: does not call MF
+!-------------------------------------------------------------------------
+  Input_edmf%mf_mask = 1.
+
+  do i=1,ix    
+  do j=1,jx    
+    if (option_mf_mask.eq.1 .and. frac_land(i,j).lt.0.5) then   ! does not call MF over the marine stratocumulus region
+      lon_min=1. ; lon_max=2.; lat_min=1. ; lat_max=2.  
+      if (       lon(i,j).ge.lon_min .and. lon(i,j).lt.lon_max   & 
+           .and. lat(i,j).ge.lat_min .and. lat(i,j).lt.lat_max  ) then 
+        Input_edmf%mf_mask(i,j)  = 0.       ! does not call MF
+        Input_edmf%do_MF_ij(i,j) = .false.  ! does not call MF
+      endif
+
+    else        ! no setting
+      exit
+    endif  ! end if od option_mf_mask
+  enddo  ! end loop of j
+  enddo  ! end loop of i
+
+  print*,'lon,lat,frac_land',lon,lat,frac_land
+  print*,'do_MF_ij, ',Input_edmf%do_MF_ij
+
   ! amip run this will fail, comment out for a moment. 2021-05-03
   !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_input(:,:,:),  &
   !              am4_Output_edmf%q_input(:,:,:), rh_host(:,:,:), do_simple )
@@ -9166,6 +9237,8 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Input_edmf%voce  )  
   deallocate (Input_edmf%vdfg  )  
   deallocate (Input_edmf%znt   )  
+  deallocate (Input_edmf%mf_mask)  
+  deallocate (Input_edmf%do_MF_ij)  
   !deallocate (Input_edmf%)  
 
   ! 3-D variable
@@ -13062,6 +13135,10 @@ endif ! end if of input profile
   !            option_edmf2ls_mp, qadt_edmf, qldt_edmf, qidt_edmf, dqa_edmf,  dql_edmf, dqi_edmf, diff_t_edmf, diff_m_edmf, kpbl_edmf, &
   !            edmf_mc_full, edmf_mc_half, edmf_moist_area, edmf_dry_area, edmf_moist_humidity, edmf_dry_humidity, &
   !           pbltop, udt, vdt, tdt, rdt, rdiag)
+
+  frac_land = 0.1
+  lon = 1.5
+  lat = 1.5
 
   call edmf_mynn_driver ( &
               is, ie, js, je, npz, Time_next, dt, lon, lat, frac_land, area, u_star,  &
