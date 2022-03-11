@@ -142,6 +142,12 @@ real, public, parameter :: pi = 3.14159265358979323846  ! Ratio of circle circum
                                          ! upwind=0.5 ... use centered difference for mass-flux calculation
   !real :: L0 = 25.                      ! entrainemnt rate parameter
   real :: L0_flag = 25.                      ! entrainemnt rate parameter
+  real :: z_limit_L0 = 500.
+  real    :: L0_min   = 5.               ! when L0_flag=-1., minimum L0 
+                                         ! when L0_flag=-2., L0 value for z_pbl <= z_limit_L0
+  real    :: L0_max   = 100.             ! when L0_flag=-1., maximum L0
+                                         ! when L0_flag=-2., L0 value for z_pbl > z_limit_L0
+  real    :: z0_limit   = 50.            ! shut down MF when PBL height < z0_limit
   integer :: NUP=10                      ! the number of updrafts
   REAL :: UPSTAB=1.            ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
   INTEGER :: bl_mynn_stabfunc  = 1       !  option for stability function. 0 - MYNN, 1 - Suselj et al. (2019)
@@ -291,7 +297,7 @@ type edmf_output_type
     mynn_ql, qc_bl, cldfra_bl, el_pbl, Sh3D
 
   real, dimension(:,:),   allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,JMS:JME)
-    maxmf
+    maxmf, L0
 
   real, dimension(:,:,:), allocatable :: &   ! OUTPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
     exch_h, exch_m, &
@@ -3697,7 +3703,7 @@ END SUBROUTINE mym_condensation
        &a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half, mf_all_full, &                                                     ! yhc 2021-09-08
-       &num_updraft, num_DET, num_nDET_pENT, num_nDET_zENT, &                                        ! yhc 2021-09-08
+       &num_updraft, num_DET, num_nDET_pENT, num_nDET_zENT, L0, &                                        ! yhc 2021-09-08
        &streams, &  ! yhc 2021-11-18
        &exch_h,exch_m,                  &
        &Pblh,kpbl,                      & 
@@ -3879,6 +3885,8 @@ END SUBROUTINE mym_condensation
       qv_moist_full,  &
       qv_dry_full
 
+    REAL, DIMENSION(IMS:IME,JMS:JME), INTENT(out) :: L0
+
     REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME), INTENT(out) :: &
     !REAL, DIMENSION(IMS:IME,KMS:KME,JMS:JME) :: &
        qa_before_mix, ql_before_mix, qi_before_mix, thl_before_mix, qt_before_mix, th_before_mix, &
@@ -3915,6 +3923,7 @@ END SUBROUTINE mym_condensation
     REAL, DIMENSION(IMS:IME,JMS:JME,KMS:KME) :: &
       diag_full
 
+    REAL :: L01
     !---> yhc 2021-09-08
 
 ! 0 ... default thing 
@@ -4458,7 +4467,7 @@ END SUBROUTINE mym_condensation
                & a_moist_half1, mf_moist_half1, qv_moist_half1, a_moist_full1, mf_moist_full1, qv_moist_full1, &  ! yhc 2021-09-08
                & a_dry_half1, mf_dry_half1, qv_dry_half1, a_dry_full1, mf_dry_full1, qv_dry_full1, &            ! yhc 2021-09-08
                & mf_all_half1, mf_all_full1, edmf_det1, &                                                     ! yhc 2021-09-08
-               & num_updraft1, num_DET1, num_nDET_zENT1, num_nDET_pENT1, &                                               ! yhc 2021-09-08
+               & num_updraft1, num_DET1, num_nDET_zENT1, num_nDET_pENT1, L01, &                                               ! yhc 2021-09-08
                &ktop_shallow(i,j),ztop_shallow,   &
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1,                 &
@@ -4757,7 +4766,7 @@ END SUBROUTINE mym_condensation
                num_DET      (i,k,j) = num_DET1      (k)
                num_nDET_zENT(i,k,j) = num_nDET_zENT1(k)
                num_nDET_pENT(i,k,j) = num_nDET_pENT1(k)
-
+               L0           (i,j)   = L01
                !---> yhc 2021-09-08
 
                ELSE
@@ -5536,7 +5545,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               & a_moist_half, mf_moist_half, qv_moist_half, a_moist_full, mf_moist_full, qv_moist_full, &  ! yhc 2021-09-08
               & a_dry_half, mf_dry_half, qv_dry_half, a_dry_full, mf_dry_full, qv_dry_full, &            ! yhc 2021-09-08
               & mf_all_half, mf_all_full, edmf_det, &                                                  ! yhc 2021-09-08
-              & num_updraft, num_DET, num_nDET_zENT, num_nDET_pENT, &                                               ! yhc 2021-09-08
+              & num_updraft, num_DET, num_nDET_zENT, num_nDET_pENT, L0, &                                               ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa, &
               & streams1, &    ! yhc 2021-11-18
               & Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent, Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub &
@@ -5642,7 +5651,9 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
          mf_all_full  , & 
          qv_moist_full,  & 
          qv_dry_full   
-  
+ 
+       REAL, INTENT(OUT) :: L0
+ 
        REAL,DIMENSION(KTS:KTE) :: &
          ZFULL, ice_frac
 
@@ -5661,7 +5672,7 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
 
        type(randomNumberStream), INTENT(INOUT) :: streams1
 
-       REAL :: L0
+       real dum1
     !---> yhc 2021-09-08 
 
 ! stability parameter for massflux
@@ -5780,14 +5791,24 @@ s_awqke=0.
     ! set L0 value
     if (L0_flag > 0) then         ! set L0=constant 
       L0 = L0_flag
+
     elseif (L0_flag.eq.-1.) then  ! set L0 as a function
       L0 = (PBLH/100)**2
-    endif
-    L0 = max(L0, 1.)              ! set minimum L0 value to prevent numerical problems (e.g. 1/L0)
+      L0 = min( max(L0, L0_min), L0_max)  ! set minimum L0 value to prevent numerical problems (e.g. 1/L0)
+                                          ! set maximum L0 value in case the PBL height is too large
+    elseif (L0_flag.eq.-2.) then  ! set L0 as a step function
+
+      if (pblh > z_limit_L0) then
+        L0 = L0_max
+      else
+        L0 = L0_min
+      endif
+
+    endif  ! end if of L0_flag
     !<-- yhc 2022-02-22
 
     !<-- yhc 2021-11-26
-    z0=50.
+    z0=z0_limit          ! shut down MF when PBL height < z0
     do_MF = .true.
     if (option_pblh_MF.eq.1 .and. pblh < z0) then  ! only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
                                                    ! This is to prevent activating MF in very stable conditions.
@@ -6060,7 +6081,7 @@ seedmf(2) = 1000000 * ( 100*thl(2) - INT(100*thl(2)))
         ENDDO
     ENDDO
 
-END IF
+END IF  ! end if of do_MF
 
 ktop=MIN(ktop,KTE-1)  !  Just to be safe...
 IF (ktop == 0) THEN
@@ -6191,6 +6212,49 @@ ENDDO
 
 
 !<--- yhc 2021-09-08
+
+!--- yhc 2022-02-24
+!    The individual plume properties are initialized at the surface. 
+!    If all plumes cannot get the lowest atmospheric levels, no MF should be present.
+!    To avoid confusion and potential coding bugs, reset all individual plume properties to zeros.
+if (all(edmf_a.eq.0)) then  
+  UPA   (:,:) = 0.
+  UPW   (:,:) = 0.
+  UPTHL (:,:) = 0.
+  UPQT  (:,:) = 0.
+  UPQC  (:,:) = 0.
+  UPU   (:,:) = 0.
+  UPV   (:,:) = 0.
+endif
+
+!--- yhc 2022-02-24
+!    debugging purpose: make sure when no MF, all individual plume properties are zeros
+if (do_debug_option.eq."mf_stop_lowest_level" .or. do_debug_option.eq."all") then
+
+  !--- if MF does not reach the lowest level, all MF terms including individual plumes should be zeros
+  !if (all(edmf_a.eq.0) .and. any(UPA.gt.0.)) then
+  if (  any(edmf_a.ne.0))  then    ! MF is present, do nothing
+    dum1 = 0.
+
+  elseif (  all(edmf_a.eq.0)  &
+      .and. all(UPA.eq.0.)  .and. all(UPW.eq.0.)  .and. all(UPTHL.eq.0.) &
+      .and. all(UPQT.eq.0.) .and. all(UPQC.eq.0.) .and. all(UPU.eq.0.) .and. all(UPU.eq.0.) ) then   ! no MF, do nothing
+    dum1 = 0.
+  
+  else        ! the total updraft area (edmf_a) is zero but individual plume properties are not zeros
+    
+    print*,'do_debug03, edmf_a=0 but UPA =/= 0, ktop', ktop
+    print*,'edmf_a',edmf_a
+    print*,'UPA, i=1',UPA(:,1)
+
+    !--- stop the model if prefered
+    if (do_stop_run) then
+      call error_mesg('edmf_mynn_driver',  &
+                      'total MF area (edmf_a) is zero but individual plume area (UPA) is not zero', FATAL)
+    endif  ! end if of do_stop_run
+
+  endif    ! end if of all checks
+end if     ! end if of do_debug_option.eq."mf_stop_lowest_level"
 
 !--- plume area should not increase with height
 !DO I=1,NUP
@@ -7424,7 +7488,7 @@ subroutine edmf_mynn_driver ( &
        &a_moist_half=Output_edmf%a_moist_half, mf_moist_half=Output_edmf%mf_moist_half, qv_moist_half=Output_edmf%qv_moist_half, a_moist_full=Output_edmf%a_moist_full, mf_moist_full=Output_edmf%mf_moist_full, qv_moist_full=Output_edmf%qv_moist_full, &  ! yhc 2021-09-08
        &a_dry_half=Output_edmf%a_dry_half, mf_dry_half=Output_edmf%mf_dry_half, qv_dry_half=Output_edmf%qv_dry_half, a_dry_full=Output_edmf%a_dry_full, mf_dry_full=Output_edmf%mf_dry_full, qv_dry_full=Output_edmf%qv_dry_full, &            ! yhc 2021-09-08
        &mf_all_half=Output_edmf%mf_all_half, mf_all_full=Output_edmf%mf_all_full, &      ! yhc 2021-09-08
-       &num_updraft=num_updraft, num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, &            ! yhc 2021-09-08
+       &num_updraft=num_updraft, num_DET=num_DET, num_nDET_pENT=num_nDET_pENT, num_nDET_zENT=num_nDET_zENT, L0=Output_edmf%L0, &            ! yhc 2021-09-08
        &streams=streams, &  ! yhc 2021-11-18
        &exch_h=Output_edmf%exch_h,exch_m=Output_edmf%exch_m,                  &
        &pblh=Output_edmf%Pblh,kpbl=Output_edmf%kpbl,                      & 
@@ -7461,7 +7525,7 @@ subroutine edmf_mynn_driver ( &
 !---------------------------------------------------------------------
 ! recover dry variable tendencies from mynn_edmf
 !---------------------------------------------------------------------
-  call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next, dt,  &
+  call modify_mynn_edmf_tendencies( is, ie, js, je, Time_next, dt, lon, lat,  &
                                     do_writeout_column,         &
                                     Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                     size(Physics_input_block%t,1), size(Physics_input_block%t,2), size(Physics_input_block%t,3), &
@@ -8097,6 +8161,11 @@ subroutine edmf_mynn_driver ( &
 !      if ( id_tdt_edmf_MF > 0) then
 !        used = send_data (id_tdt_edmf_MF, tdt_mf, Time_next, is, js, 1 )
 !      endif
+!
+!      !------- entrainemnt length scale in MF (units: m) at one level -------
+!      if ( id_L0_edmf > 0) then
+!        used = send_data (id_L0_edmf, Output_edmf%L0, Time_next, is, js )
+!      endif
 !!send_data
 
 !----------
@@ -8110,7 +8179,7 @@ subroutine edmf_mynn_driver ( &
     do j=1,jx
     do k=1,kx+1
       if (diag_half(i,j,k).gt.0.2) then   ! the total plume area must be smaller than its surface value ~ 0.15
-        print*,'gg01, edmf_a>1. i,j,k,lon,lat,p_half,edmf_a' 
+        print*,'do_debug01, edmf_a>1. i,j,k,lon,lat,p_half,edmf_a' 
         print*,i,j,k,lon(i,j),lat(i,j),Physics_input_block%p_half(i,j,k),diag_half(i,j,k)
 
         !--- write out problematic column
@@ -8145,7 +8214,7 @@ subroutine edmf_mynn_driver ( &
     do j=1,jx
     do k=1,kx
       if (abs(am4_Output_edmf%tdt_edmf(i,j,k)).gt.tt1) then
-        print*,'gg02, i,j,k,lon,lat,p_half,tdt_edmf (K/day)'
+        print*,'do_debug02, i,j,k,lon,lat,p_half,tdt_edmf (K/day)'
         print*,i,j,k,lon(i,j),lat(i,j),Physics_input_block%p_full(i,j,k),am4_Output_edmf%tdt_edmf(i,j,k)*86400.
 
         !--- write out problematic column
@@ -8586,6 +8655,7 @@ subroutine edmf_alloc ( &
   allocate (Output_edmf%nupdraft     (IMS:IME,JMS:JME))  ; Output_edmf%nupdraft     = 0
   allocate (Output_edmf%ktop_shallow (IMS:IME,JMS:JME))  ; Output_edmf%ktop_shallow = 0
   allocate (Output_edmf%maxmf        (IMS:IME,JMS:JME))  ; Output_edmf%maxmf        = 0.
+  allocate (Output_edmf%L0           (IMS:IME,JMS:JME))  ; Output_edmf%L0           = 0.
   !allocate (Output_edmf%(IMS:IME,JMS:JME))  ; Output_edmf% = 0.
 
   ! 3-D variable
@@ -9134,6 +9204,7 @@ subroutine edmf_dealloc (Input_edmf, Output_edmf, am4_Output_edmf)
   deallocate (Output_edmf%nupdraft     )  
   deallocate (Output_edmf%ktop_shallow )  
   deallocate (Output_edmf%maxmf        )  
+  deallocate (Output_edmf%L0           )  
   !deallocate (Output_edmf%)  
 
   ! 3-D variable
@@ -9673,6 +9744,12 @@ subroutine edmf_writeout_column ( &
         write(6,*)    '; rdt_mynn_ed_am4(1,1,:,nqi)'
         write(6,3002) '  rdt_mynn_ed_am4(1,1,:,nqi) = (/'    ,rdt_mynn_ed_am4(ii_write,jj_write,:,nqi)
         write(6,*)    ''
+        write(6,*)    '; k_pbl, ',am4_Output_edmf%kpbl_edmf(ii_write,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; pbl depth,',am4_Output_edmf%pbltop(ii_write,jj_write)
+        write(6,*)    ''
+        write(6,*)    '; MF entrainment length scale L0 (m)'
+        write(6,*)    '  L0 = ', Output_edmf%L0 (ii_write,jj_write)
         write(6,*)    ';----- end of fieles needed by the offline program ---'
         write(6,*)    ''
         write(6,*)    '; friction velocity (m/s)'
@@ -9897,10 +9974,6 @@ subroutine edmf_writeout_column ( &
                       call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%Q_qi_sub, diag_full)
         write(6,*)    '; Q_qi_sub'
         write(6,3002) '  Q_qi_sub = (/'    ,diag_full (ii_write,jj_write,:)
-        write(6,*)    ''
-        write(6,*)    '; k_pbl, ',am4_Output_edmf%kpbl_edmf(ii_write,jj_write)
-        write(6,*)    ''
-        write(6,*)    '; pbl depth,',am4_Output_edmf%pbltop(ii_write,jj_write)
         write(6,*)    ''
         write(6,*)    ';=============='
         write(6,*)    ';=============='
@@ -10341,7 +10414,7 @@ end subroutine convert_edmf_to_am4_array
 
 !###################################
 
-subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
+subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt, lon, lat,    &
                                         do_writeout_column, &
                                         Physics_input_block, Input_edmf, rdt_mynn_ed_am4, &
                                         ix, jx, kx,  &
@@ -10351,6 +10424,9 @@ subroutine modify_mynn_edmf_tendencies (is, ie, js, je, Time_next, dt,     &
   integer, intent(in)                   :: is, ie, js, je
   real,    intent(in)                   :: dt
   type(time_type), intent(in)           :: Time_next
+  real,    intent(in), dimension(:,:)   :: &  ! dimension(nlon,nlat)
+    lon,  &     ! longitude in radians
+    lat         ! latitude  in radians
   type(physics_input_block_type), intent(in)  :: Physics_input_block
   type(edmf_input_type)     , intent(in)  :: Input_edmf
   integer                   , intent(in)  :: ix, jx, kx
@@ -10629,7 +10705,7 @@ if (do_check_realizability) then
    call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RCCBLTEN(:,:,:), tracers_tend(:,:,:,4))
    call reshape_mynn_array_to_am4(ix, jx, kx, Output_edmf%RQTBLTEN(:,:,:), tracers_tend(:,:,:,5))
 
-   call check_trc_rlzbility (dt, tracers, tracers_tend, &
+   call check_trc_rlzbility (dt, tracers, tracers_tend, lon, lat, &
                              tends_ratio, tends_ratio_k, rlz_ratio, rlz_tracer)
 
    !--- ratio must be between 0 and 1
@@ -10986,7 +11062,7 @@ end subroutine Poisson_knuth
 
 !###################################
 
-subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
+subroutine check_trc_rlzbility (dt, tracers, tracers_tend, lon, lat, &
                                 tends_ratio, tends_ratio_k, rlz_ratio, rlz_tracer)
 
 !---------------------------------------------------------------------
@@ -11030,6 +11106,9 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 !---------------------------------------------------------------------
   real,    intent(in)                     :: dt
   real,    intent(in), dimension(:,:,:,:) :: tracers, tracers_tend  ! dimension (nlon, nlat, nlev, ntracer)
+  real,    intent(in), dimension(:,:)   :: &  ! dimension(nlon,nlat)
+    lon,  &     ! longitude in radians
+    lat         ! latitude  in radians
 
 !---------------------------------------------------------------------
 ! Arguments (Intent out)
@@ -11088,8 +11167,7 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
 !   (2) in the range of max/min of tracer0
 !---------------------
 
-  !do n=1,nx
-  do n=1,1
+  do n=1,nx
   do i=1,ix
   do j=1,jx
 
@@ -11107,13 +11185,17 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, &
     !tracer0(28) = 1.E-30
     !tracer0(28) = 1.E-8 
 
-    if (any(tracer0.lt.0.)) then
-      write(6,*) 'i,j,#tracer',i,j,n
-      write(6,*) 'tracer0',tracer0
-      call error_mesg( ' edmf_mynn',     &
-                       ' check_trc_rlzbility, tracers < 0.',&
-                       FATAL )
-    endif
+    !--- yhc note 2022-02-23
+    !    Tracer0 concentraion are directly taken from Physics_input_block%q, and they supposedly are always greater than zeros.
+    !    But sometimes they can be negative (e.g. -1e-50). If prefered, stop the stop when detecting nagative concentration values 
+    !if (any(tracer0.lt.0.)) then
+    !  write(6,*) 'i,j,lon,lat',i,j,lon(i,j),lat(i,j)
+    !  write(6,*) 'i,j,#tracer (1-5, qv,ql, qi, qa, qt)',i,j,n
+    !  write(6,*) 'tracer0',tracer0
+    !  call error_mesg( ' edmf_mynn',     &
+    !                   ' check_trc_rlzbility, tracers < 0.',&
+    !                   FATAL )
+    !endif
 
     !--- get max/min of tracer0
     tracer0_min = 1.e20
