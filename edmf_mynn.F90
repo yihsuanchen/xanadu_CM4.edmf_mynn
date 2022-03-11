@@ -412,7 +412,6 @@ end type edmf_ls_mp_type
   real    :: L0_max   = 100.             ! when L0_flag=-1., maximum L0
                                          ! when L0_flag=-2., L0 value for z_pbl > z_limit_L0
   real    :: z_limit_L0 = 500.           ! step function when L0_flag=-2.
-  real    :: z0_limit   = 50.            ! shut down MF when PBL height < z0_limit
   integer :: NUP = 100                   ! the number of updrafts
   real    :: UPSTAB = 1.                 ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
 
@@ -499,9 +498,13 @@ end type edmf_ls_mp_type
   integer :: option_pblh_MF = 0   ! 0: whenever w'thv'>0, call MF
                                   ! 1: only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
                                   !    This is to prevent activating MF in very stable conditions.
+                                  ! 2: call MF only when TKE at the pressure level is greater than a threshold
+  real    :: z0_limit   = 50.             ! option_pblh_MF=1, shut down MF when PBL height < z0_limit
+  real    :: plev_tke_limit_MF = 950.e+2  ! option_pblh_MF=2, call MF only when TKE (m2/s2) > tke_limit_MF at the pressure level, 
+  real    :: tke_limit_MF      = 0.2      !                   plev_tke_limit_MF (Pa)
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
-                            L0_flag, L0_min, L0_max, z_limit_L0, z0_limit, NUP, UPSTAB, edmf_type, qke_min, &
+                            L0_flag, L0_min, L0_max, z_limit_L0, z0_limit, NUP, UPSTAB, edmf_type, qke_min, plev_tke_limit_MF, tke_limit_MF, &
                             option_surface_flux, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
                             option_stoch_entrain, option_rng, num_rx, ztop_stoch, option_pblh_MF, &
@@ -643,6 +646,12 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
                        ' L0_flag must > 0, = -1., or = -2.',&
                        FATAL )
     endif
+  endif
+
+  if (option_pblh_MF.ne.0 .and. option_pblh_MF.ne.1 .and. option_pblh_MF.ne.2) then
+      call error_mesg( ' edmf_mynn',     &
+                       ' option_pblh_MF must be 0, 1, or 2',&
+                       FATAL )
   endif
 
 !  if (     do_option_edmf2ls_mp.ne.0    &
@@ -5145,6 +5154,7 @@ END SUBROUTINE mym_condensation
                & KPBL(i,j),                        &
                & Q_ql1,Q_qi1,Q_a1,                 &
                & streams(i,j),   & ! ych 2021-11-18
+               & Qke1, &   ! yhc 2022-03-10
                & Q_ql1_adv,Q_qi1_adv,Q_a1_adv, Q_ql1_eddy,Q_qi1_eddy,Q_a1_eddy, Q_ql1_ent,Q_qi1_ent,Q_a1_ent, Q_ql1_det,Q_qi1_det,Q_a1_det, Q_ql1_sub,Q_qi1_sub,Q_a1_sub  &
              )
 
@@ -6221,13 +6231,14 @@ SUBROUTINE edmf_JPL(kts,kte,dt,zw,p,         &
               & num_updraft, num_DET, num_nDET_zENT, num_nDET_pENT, L0, &                                               ! yhc 2021-09-08
               &ktop,ztop,kpbl,Qql,Qqi,Qa, &
               & streams1, &    ! yhc 2021-11-18
+              & Qke, &    ! yhc 2022-03-10
               & Qql_adv,Qqi_adv,Qa_adv, Qql_eddy,Qqi_eddy,Qa_eddy, Qql_ent,Qqi_ent,Qa_ent, Qql_det,Qqi_det,Qa_det, Qql_sub,Qqi_sub,Qa_sub &
               ) ! yhc 2021-09-08
 
 
 
         INTEGER, INTENT(IN) :: KTS,KTE, kpbl
-        REAL,DIMENSION(KTS:KTE), INTENT(IN) :: U,V,TH,THL,TK,QT,QV,QC, QL, QI  ! yhc add QL, QI
+        REAL,DIMENSION(KTS:KTE), INTENT(IN) :: U,V,TH,THL,TK,QT,QV,QC, QL, QI, Qke  ! yhc add QL, QI, Qke
         REAL,DIMENSION(KTS:KTE), INTENT(IN) :: THV,P,exner,rho,liquid_frac
         ! zw .. heights of the updraft levels (edges of boxes)
         REAL,DIMENSION(KTS:KTE+1), INTENT(IN) :: ZW
@@ -6486,7 +6497,26 @@ s_awqke=0.
     if (option_pblh_MF.eq.1 .and. pblh < z0) then  ! only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
                                                    ! This is to prevent activating MF in very stable conditions.
       do_MF = .false.
-    endif
+
+    elseif (option_pblh_MF.eq.2) then    ! only call MF when TKE at a certain pressure level is greater than a threshold
+      !<-- yhc 2022-03-10
+      !print*,'plev_tke_limit_MF,tke_limit_MF',plev_tke_limit_MF,tke_limit_MF
+
+      do k=kts,kte-1
+        if ( p(k).ge.plev_tke_limit_MF .and. p(k+1).lt.plev_tke_limit_MF ) then  ! find the pressure level
+          if (Qke(k).ge.2.*tke_limit_MF) then    ! TKE > a threshold, call MF
+            do_MF = .true.
+            !print*,'ttt,p,Qke',k,p(k),Qke(k)
+          else                                   ! TKE < a threshold, no MF
+            do_MF = .false.
+            !print*,'fff,p,Qke',k,p(k),Qke(k)
+          endif
+          exit
+        endif  ! end if of plev_tke_limit_MF
+      enddo    ! end if of k
+      !--> yhc 2022-03-10
+
+    endif  ! end if of option_pblh_MF
     !--> yhc 2021-11-26
 
 IF ( wthv >= 0.0 .and. do_MF) then  ! yhc 2021-11-26 add
