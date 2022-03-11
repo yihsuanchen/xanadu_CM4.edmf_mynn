@@ -100,8 +100,12 @@ type edmf_input_type
     ITS,ITE,JTS,JTE,KTS,KTE
   real,                 allocatable   :: &
     delt, dx
+
   real, dimension(:,:), allocatable   :: &   ! INPUT, DIMENSION(IMS:IME,JMS:JME)
-    xland, ust, ch, rmol, ts, qsfc, qcg, ps, hfx, qfx, wspd, uoce, voce, vdfg, znt
+    mf_mask, xland, ust, ch, rmol, ts, qsfc, qcg, ps, hfx, qfx, wspd, uoce, voce, vdfg, znt
+
+  logical, dimension(:,:), allocatable   :: &   ! INPUT, DIMENSION(IMS:IME,JMS:JME)
+    do_MF_ij
 
   real, dimension(:,:,:), allocatable :: &   ! INPUT, DIMENSION(IMS:IME,KMS:KME,JMS:JME)
     dz, u, v, w, th, qv, p, exner, rho, T3D, qa, qc, ql, qi, qnc, qni
@@ -503,6 +507,8 @@ end type edmf_ls_mp_type
   real    :: plev_tke_limit_MF = 950.e+2  ! option_pblh_MF=2, call MF only when TKE (m2/s2) > tke_limit_MF at the pressure level, 
   real    :: tke_limit_MF      = 0.2      !                   plev_tke_limit_MF (Pa)
 
+  integer :: option_mf_mask = 1
+
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
                             L0_flag, L0_min, L0_max, z_limit_L0, z0_limit, NUP, UPSTAB, edmf_type, qke_min, plev_tke_limit_MF, tke_limit_MF, &
                             option_surface_flux, &
@@ -537,7 +543,7 @@ integer :: id_a_moist_half, id_a_moist_full, id_mf_moist_half, id_mf_moist_full,
 
 integer :: id_num_updraft, id_num_det, id_num_ndet_zent, id_num_ndet_pent
 
-integer :: id_rlz_ratio, id_rlz_tracer, id_L0_edmf
+integer :: id_rlz_ratio, id_rlz_tracer, id_L0_edmf, id_edmf_MF_mask
 
 integer :: id_tdt_edmf_ED, id_tdt_edmf_MF
 
@@ -1180,6 +1186,10 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_L0_edmf = register_diag_field (mod_name, 'L0_edmf', axes(1:2), Time, &
                  'entrainemnt length scale in MF', 'm' , &
+                 missing_value=missing_value )
+
+  id_edmf_MF_mask = register_diag_field (mod_name, 'edmf_MF_mask', axes(1:2), Time, &
+                 'edmf MF mask. 0: no MF. 1: MF', 'none' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -8882,6 +8892,11 @@ subroutine edmf_mynn_driver ( &
       !------- entrainemnt length scale in MF (units: m) at one level -------
       if ( id_L0_edmf > 0) then
         used = send_data (id_L0_edmf, Output_edmf%L0, Time_next, is, js )
+      endif
+
+      !------- edmf MF mask. 0: no MF. 1: MF (units: none) at one level -------
+      if ( id_edmf_MF_mask > 0) then
+        used = send_data (id_edmf_MF_mask, Input_edmf%mf_mask, Time_next, is, js )
       endif
 !send_data
 
