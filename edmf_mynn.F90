@@ -507,11 +507,12 @@ end type edmf_ls_mp_type
   real    :: plev_tke_limit_MF = 950.e+2  ! option_pblh_MF=2, call MF only when TKE (m2/s2) > tke_limit_MF at the pressure level, 
   real    :: tke_limit_MF      = 0.2      !                   plev_tke_limit_MF (Pa)
 
-  integer :: option_mf_mask = 1
+  integer :: option_mf_mask = 0   ! turn off MF in certain regions
+                                  ! =1, turn off MF over the marine stratocumulus regions (California, Peru, and Nambia cpast)
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
                             L0_flag, L0_min, L0_max, z_limit_L0, z0_limit, NUP, UPSTAB, edmf_type, qke_min, plev_tke_limit_MF, tke_limit_MF, &
-                            option_surface_flux, &
+                            option_surface_flux, option_mf_mask, &
                             tdt_max, do_limit_tdt, tdt_limit, do_pblh_constant, fixed_pblh, sgm_factor, rc_MF, &  ! for testing, no need any more 2021-08-04
                             option_stoch_entrain, option_rng, num_rx, ztop_stoch, option_pblh_MF, &
                             do_option_edmf2ls_mp, do_use_tau, Qx_MF, Qx_numerics, option_up_area, option_ent, alpha_st, &
@@ -9822,21 +9823,53 @@ subroutine edmf_alloc ( &
   do i=1,ix    
   do j=1,jx    
     if (option_mf_mask.eq.1 .and. frac_land(i,j).lt.0.5) then   ! does not call MF over the marine stratocumulus region
-      lon_min=1. ; lon_max=2.; lat_min=1. ; lat_max=2.  
+      ! California marine Sc: 20-30N, 110W-150W
+      lon_min = degrees_to_radians(-150.,"lon") ; lon_max = degrees_to_radians(-110.,"lon")
+      lat_min = degrees_to_radians(  20.,"lat") ; lat_max = degrees_to_radians(  30.,"lat")
+
       if (       lon(i,j).ge.lon_min .and. lon(i,j).lt.lon_max   & 
            .and. lat(i,j).ge.lat_min .and. lat(i,j).lt.lat_max  ) then 
-        Input_edmf%mf_mask(i,j)  = 0.       ! does not call MF
-        Input_edmf%do_MF_ij(i,j) = .false.  ! does not call MF
+        Input_edmf%mf_mask(i,j)  = 0.       
+        Input_edmf%do_MF_ij(i,j) = .false.  
       endif
 
-    else        ! no setting
+      ! Peru marine Sc: 0-30S, 70W-100W
+      lon_min = degrees_to_radians(-100.,"lon") ; lon_max = degrees_to_radians( -70.,"lon")
+      lat_min = degrees_to_radians( -30.,"lat") ; lat_max = degrees_to_radians(   0.,"lat")
+
+      if (       lon(i,j).ge.lon_min .and. lon(i,j).lt.lon_max   & 
+           .and. lat(i,j).ge.lat_min .and. lat(i,j).lt.lat_max  ) then 
+        Input_edmf%mf_mask(i,j)  = 0.       
+        Input_edmf%do_MF_ij(i,j) = .false.  
+      endif
+
+      ! Nambia marine Sc: 0-30S, 10W-10E
+      lon_min = degrees_to_radians(   0.,"lon") ; lon_max = degrees_to_radians(  10.,"lon")
+      lat_min = degrees_to_radians( -30.,"lat") ; lat_max = degrees_to_radians(   0.,"lat")
+
+      if (       lon(i,j).ge.lon_min .and. lon(i,j).lt.lon_max   & 
+           .and. lat(i,j).ge.lat_min .and. lat(i,j).lt.lat_max  ) then 
+        Input_edmf%mf_mask(i,j)  = 0.       
+        Input_edmf%do_MF_ij(i,j) = .false.  
+      endif
+
+      lon_min = degrees_to_radians( -10.,"lon") ; lon_max = degrees_to_radians(360.,"lon")
+      lat_min = degrees_to_radians( -30.,"lat") ; lat_max = degrees_to_radians(  0.,"lat")
+
+      if (       lon(i,j).ge.lon_min .and. lon(i,j).lt.lon_max   & 
+           .and. lat(i,j).ge.lat_min .and. lat(i,j).lt.lat_max  ) then 
+        Input_edmf%mf_mask(i,j)  = 0.       
+        Input_edmf%do_MF_ij(i,j) = .false.  
+      endif
+
+    else        ! option_mf_mask is not set
       exit
     endif  ! end if od option_mf_mask
   enddo  ! end loop of j
   enddo  ! end loop of i
 
-  print*,'lon,lat,frac_land',lon,lat,frac_land
-  print*,'do_MF_ij, ',Input_edmf%do_MF_ij
+  !print*,'lon,lat,frac_land',lon,lat,frac_land
+  !print*,'do_MF_ij, ',Input_edmf%do_MF_ij
 
   ! amip run this will fail, comment out for a moment. 2021-05-03
   !call rh_calc (Physics_input_block%p_full(:,:,:), am4_Output_edmf%t_input(:,:,:),  &
@@ -12062,6 +12095,38 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, lon, lat, &
   enddo   ! end do of i
 
 end subroutine check_trc_rlzbility
+
+!#############################
+
+function degrees_to_radians(degree,opt_latlon)
+! convert degress (N,E,W) to radians
+  real :: degrees_to_radians
+  real :: degree, degree_work, radian
+  character*3 :: opt_latlon
+!----------------------
+  radian = -999.99
+
+  !--- input degree is longitude
+  if (opt_latlon.eq."lon") then
+
+    if (degree.lt.0.) then   ! degrees_W
+      degree_work = 360. + degree
+    else
+      degree_work = degree
+    end if
+
+    radian = degree_work/360. * 2.*pi
+
+  !--- input degree is latitude
+  elseif (opt_latlon.eq."lat") then
+    degree_work = degree
+    radian = degree_work/360. * 2.*pi
+
+  endif
+
+  degrees_to_radians = radian
+
+end function degrees_to_radians
 
 
 !#############################
