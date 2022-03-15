@@ -6768,6 +6768,578 @@ BL_MYNN_EDMF    =           3,
     </input>
   </experiment>
 
+  <experiment name="v01_02fa-edmf_MFexp_QxDet_LoSTEP_500-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = -2.
+ z_limit_L0 = 500.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02fb-edmf_MFexp_QxDet_LoSTEP_600-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = -2.
+ z_limit_L0 = 600.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02fc-edmf_MFexp_QxDet_LoSTEP_700-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = -2.
+ z_limit_L0 = 700.
+      </namelist>
+    </input>
+ </experiment>
+
+  <experiment name="v01_02fd-edmf_MFexp_QxDet_LoSTEP_800-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = -2.
+ z_limit_L0 = 800.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02fe-edmf_MFexp_QxDet_LoSTEPmin5_500-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = -2.
+ z_limit_L0 = 500.
+ L0_min = 5.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02ff-edmf_MFexp_QxDet_LoSTEPmin5_800-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = -2.
+ z_limit_L0 = 800.
+ L0_min = 5.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02fg-edmf_MFexp_QxDet_LoSTEPmin5_1200-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = -2.
+ z_limit_L0 = 1200.
+ L0_min = 5.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02ga-edmf_MFexp_QxDet_Lo100_z500-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ z0_limit = 500.
+ OPTION_PBLH_MF  = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02gb-edmf_MFexp_QxDet_Lo100_z800-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ z0_limit = 800.
+ OPTION_PBLH_MF  = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02gc-edmf_MFexp_QxDet_Lo100_z1200-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ z0_limit = 1200.
+ OPTION_PBLH_MF  = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02gd-edmf_MFexp_QxDet_Lo100_z600-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ z0_limit = 600.
+ OPTION_PBLH_MF  = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02ge-edmf_MFexp_QxDet_Lo100_z700-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ z0_limit = 700.
+ OPTION_PBLH_MF  = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02gf-edmf_MFexp_QxDet_Lo100_z900-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ z0_limit = 900.
+ OPTION_PBLH_MF  = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02gg-edmf_MFexp_QxDet_Lo100_z1000-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ z0_limit = 1000.
+ OPTION_PBLH_MF  = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02ha-edmf_MFexp_QxDet_tkeLimMF_p900tke02-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       call MF only if TKE at a certain pressure level is greater than a threshold
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ OPTION_PBLH_MF  = 2
+ plev_tke_limit_MF = 900.e+2
+ tke_limit_MF = 0.2
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02hb-edmf_MFexp_QxDet_tkeLimMF_p950tke02-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       call MF only if TKE at a certain pressure level is greater than a threshold
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ OPTION_PBLH_MF  = 2
+ plev_tke_limit_MF = 950.e+2
+ tke_limit_MF = 0.2
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02hc-edmf_MFexp_QxDet_tkeLimMF_p900tke04-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       call MF only if TKE at a certain pressure level is greater than a threshold
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ OPTION_PBLH_MF  = 2
+ plev_tke_limit_MF = 900.e+2
+ tke_limit_MF = 0.4
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02i-edmf_MFexp_QxDet_MFoff_Sc-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       turn off MF over the marine Sc regions (California, Peru, and Nambia)
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ OPTION_PBLH_MF  = 3 
+ option_mf_mask = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02ib-edmf_MFexp_QxDet_MFoff_Sc_coast-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       turn off MF over the marine Sc regions (California, Peru, and Nambia)
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ OPTION_PBLH_MF  = 3 
+ option_mf_mask = 2
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xx1-v01_02i-edmf_MFexp_QxDet_MFoff_Sc-c96L33_am4p0" inherit="v01_02i-edmf_MFexp_QxDet_MFoff_Sc-c96L33_am4p0">
+  </experiment>
+
   <experiment name="v01_03a-edmf_MFexp_QxEddy_Lo100-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
     <input>
       <namelist name="physics_driver_nml">
@@ -6868,6 +7440,123 @@ BL_MYNN_EDMF    =           3,
     </input>
   </experiment>
 
+  <experiment name="v01_03fa-edmf_MFexp_QxEddy_LoSTEP_500-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           1,
+ L0_flag = -2.
+ z_limit_L0 = 500.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_03fb-edmf_MFexp_QxEddy_LoSTEP_600-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           1,
+ L0_flag = -2.
+ z_limit_L0 = 600.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_03fc-edmf_MFexp_QxEddy_LoSTEP_700-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           1,
+ L0_flag = -2.
+ z_limit_L0 = 700.
+      </namelist>
+    </input>
+ </experiment>
+
+  <experiment name="v01_03fd-edmf_MFexp_QxEddy_LoSTEP_800-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <description>
+       test L0 as a step function
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           1,
+ L0_flag = -2.
+ z_limit_L0 = 800.
+      </namelist>
+    </input>
+  </experiment>
+
+
   <experiment name="xx1-v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0" inherit="v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0">
     <input>
       <namelist name="physics_driver_nml">
@@ -6892,6 +7581,34 @@ BL_MYNN_EDMF    =           3,
  L0_min = 10.
  do_debug_option = "all"
  tdt_max = 2000.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xx1-v01_02f-edmf_MFexp_QxDet_LoSTEP-c96L33_am4p0" inherit="v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = T,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = -2.
+ L0_min = 10.
+ L0_max = 100.
+ do_debug_option = "all"
       </namelist>
     </input>
   </experiment>
