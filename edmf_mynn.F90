@@ -503,6 +503,7 @@ end type edmf_ls_mp_type
                                   ! 1: only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
                                   !    This is to prevent activating MF in very stable conditions.
                                   ! 2: call MF only when TKE at the pressure level is greater than a threshold
+                                  ! 3: turn off MF in certain regions, determined by option_mf_mask
   real    :: z0_limit   = 50.             ! option_pblh_MF=1, shut down MF when PBL height < z0_limit
   real    :: plev_tke_limit_MF = 950.e+2  ! option_pblh_MF=2, call MF only when TKE (m2/s2) > tke_limit_MF at the pressure level, 
   real    :: tke_limit_MF      = 0.2      !                   plev_tke_limit_MF (Pa)
@@ -655,9 +656,15 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
     endif
   endif
 
-  if (option_pblh_MF.ne.0 .and. option_pblh_MF.ne.1 .and. option_pblh_MF.ne.2) then
+  if (option_pblh_MF.ne.0 .and. option_pblh_MF.ne.1 .and. option_pblh_MF.ne.2 .and. option_pblh_MF.ne.3) then
       call error_mesg( ' edmf_mynn',     &
                        ' option_pblh_MF must be 0, 1, or 2',&
+                       FATAL )
+  endif
+
+  if (option_mf_mask.ne.0 .and. option_pblh_MF.ne.3) then
+      call error_mesg( ' edmf_mynn',     &
+                       ' if option_mf_mask =/= 0, option_pblh_MF must be 3',&
                        FATAL )
   endif
 
@@ -6511,6 +6518,7 @@ s_awqke=0.
     !<-- yhc 2021-11-26
     z0=z0_limit          ! shut down MF when PBL height < z0
     do_MF = .true.
+
     if (option_pblh_MF.eq.1 .and. pblh < z0) then  ! only when w'thv'>0 and PBL height > z0 (=50m), call MF. 
                                                    ! This is to prevent activating MF in very stable conditions.
       do_MF = .false.
@@ -6533,14 +6541,14 @@ s_awqke=0.
       enddo    ! end if of k
       !--> yhc 2022-03-10
 
-    endif  ! end if of option_pblh_MF
+    elseif (option_pblh_MF.eq.3) then    ! only call MF if MF is not masked
+      if (do_MF_ij) then
+        do_MF = .true.
+      else
+        do_MF = .false.
+      endif
 
-    !--- see MF mask
-    if (do_MF_ij) then
-      do_MF = .true.
-    else
-      do_MF = .false.
-    endif
+    endif  ! end if of option_pblh_MF
     !--> yhc 2021-11-26
 
 IF ( wthv >= 0.0 .and. do_MF) then  ! yhc 2021-11-26 add
@@ -9818,7 +9826,8 @@ subroutine edmf_alloc ( &
 !-------------------------------------------------------------------------
 ! create a MF mask if needed. 1: call MF, 0: does not call MF
 !-------------------------------------------------------------------------
-  Input_edmf%mf_mask = 1.
+  Input_edmf%mf_mask  (:,:) = 1.
+  Input_edmf%do_MF_ij (:,:) = .true.
 
   do i=1,ix    
   do j=1,jx    
