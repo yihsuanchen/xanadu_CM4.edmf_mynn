@@ -509,7 +509,8 @@ end type edmf_ls_mp_type
   real    :: tke_limit_MF      = 0.2      !                   plev_tke_limit_MF (Pa)
 
   integer :: option_mf_mask = 0   ! turn off MF in certain regions
-                                  ! =1, turn off MF over the marine stratocumulus regions (California, Peru, and Nambia cpast)
+                                  ! =1, turn off MF over the marine stratocumulus regions (California, Peru, and Nambia coasts)
+                                  ! =2, turn off MF over the marine stratocumulus regions (California, Peru, and Nambia coasts, smaller than #1)
 
 namelist / edmf_mynn_nml /  mynn_level, bl_mynn_edmf, bl_mynn_edmf_dd, expmf, upwind, do_qdt_same_as_qtdt, bl_mynn_mixlength, bl_mynn_stabfunc, &
                             L0_flag, L0_min, L0_max, z_limit_L0, z0_limit, NUP, UPSTAB, edmf_type, qke_min, plev_tke_limit_MF, tke_limit_MF, &
@@ -5011,7 +5012,7 @@ END SUBROUTINE mym_condensation
           !---> yhc 
 
     !elseif (edmf_type .eq. 1) then
-    elseif (edmf_type .eq. 1 .or. edmf_type .eq. 2) then  ! yhc add edmf_type=2, 2021-08-31
+    else if (edmf_type .eq. 1 .or. edmf_type .eq. 2) then  ! yhc add edmf_type=2, 2021-08-31
 
           !<--- yhc, save cloud fraction from the PDF cloud scheme
           CALL  mym_condensation ( kts,kte,      &
@@ -9830,8 +9831,10 @@ subroutine edmf_alloc ( &
   Input_edmf%do_MF_ij (:,:) = .true.
 
   do i=1,ix    
-  do j=1,jx    
-    if (option_mf_mask.eq.1 .and. frac_land(i,j).lt.0.5) then   ! does not call MF over the marine stratocumulus region
+  do j=1,jx 
+
+    !--- does not call MF over the marine stratocumulus region   
+    if (option_mf_mask.eq.1 .and. frac_land(i,j).lt.0.5) then   
       ! California marine Sc: 20-30N, 110W-150W
       lon_min = degrees_to_radians(-150.,"lon") ; lon_max = degrees_to_radians(-110.,"lon")
       lat_min = degrees_to_radians(  20.,"lat") ; lat_max = degrees_to_radians(  30.,"lat")
@@ -9871,9 +9874,44 @@ subroutine edmf_alloc ( &
         Input_edmf%do_MF_ij(i,j) = .false.  
       endif
 
-    else        ! option_mf_mask is not set
+    !--- does not call MF over the marine stratocumulus region (limit to coasts) 
+    elseif (option_mf_mask.eq.2 .and. frac_land(i,j).lt.0.5) then   
+      ! California marine Sc: 20-30N, 110W-130W
+      lon_min = degrees_to_radians(-130.,"lon") ; lon_max = degrees_to_radians(-110.,"lon")
+      lat_min = degrees_to_radians(  20.,"lat") ; lat_max = degrees_to_radians(  30.,"lat")
+
+      if (       lon(i,j).ge.lon_min .and. lon(i,j).lt.lon_max   & 
+           .and. lat(i,j).ge.lat_min .and. lat(i,j).lt.lat_max  ) then 
+        Input_edmf%mf_mask(i,j)  = 0.       
+        Input_edmf%do_MF_ij(i,j) = .false.  
+      endif
+
+      ! Peru marine Sc: 0-30S, 70W-90W
+      lon_min = degrees_to_radians( -90.,"lon") ; lon_max = degrees_to_radians( -70.,"lon")
+      lat_min = degrees_to_radians( -30.,"lat") ; lat_max = degrees_to_radians(   0.,"lat")
+
+      if (       lon(i,j).ge.lon_min .and. lon(i,j).lt.lon_max   & 
+           .and. lat(i,j).ge.lat_min .and. lat(i,j).lt.lat_max  ) then 
+        Input_edmf%mf_mask(i,j)  = 0.       
+        Input_edmf%do_MF_ij(i,j) = .false.  
+      endif
+
+      ! Nambia marine Sc: 0-30S, 0-10E
+      lon_min = degrees_to_radians(   0.,"lon") ; lon_max = degrees_to_radians(  10.,"lon")
+      lat_min = degrees_to_radians( -30.,"lat") ; lat_max = degrees_to_radians(   0.,"lat")
+
+      if (       lon(i,j).ge.lon_min .and. lon(i,j).lt.lon_max   & 
+           .and. lat(i,j).ge.lat_min .and. lat(i,j).lt.lat_max  ) then 
+        Input_edmf%mf_mask(i,j)  = 0.       
+        Input_edmf%do_MF_ij(i,j) = .false.  
+      endif
+
+    !--- option_mf_mask is not set
+    else        
       exit
+
     endif  ! end if od option_mf_mask
+
   enddo  ! end loop of j
   enddo  ! end loop of i
 
