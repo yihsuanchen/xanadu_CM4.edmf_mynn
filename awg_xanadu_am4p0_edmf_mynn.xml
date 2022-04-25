@@ -6378,6 +6378,94 @@ BL_MYNN_EDMF    =           3,
     </postProcess>
   </experiment>   
 
+  <experiment name="v01_00b-noSH-c96L33_am4p0" inherit="v01_00a-c96L33_am4p0">
+    <input>
+     <namelist name="uw_conv_nml">
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   -100000.     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>   
+
   <experiment name="v01_c96L33-am4p0_pblhUW_SH_noVDIFF" inherit="v01_00a-c96L33_am4p0">
     <input>
       <namelist name="vert_turb_driver_nml">
@@ -6728,6 +6816,31 @@ BL_MYNN_EDMF    =           3,
  do_option_edmf2ls_mp = 4
  QX_MF   =           2,
  L0_flag = 25.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_02ad-edmf_MFexp_QxDet_Lo250-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 250.
       </namelist>
     </input>
   </experiment>
