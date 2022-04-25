@@ -809,6 +809,24 @@ Contains an update to my25_turb.F90 to add the tridiagonal solver from tke_turb.
     </input>
   </freInclude>
 
+ <freInclude name="common_cmip6_extended_ssp585">
+    <input>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(CMIP6_ARCHIVE_ROOT)/ScenarioMIP/ssp585/cmip6_Scenario_ssp585_GHG_ODS_conc_2500.tar</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/o3.climatology.nc" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">/lustre/f2/dev/gfdl/Pu.Lin/awg/input/mmro3_ScenarioMIP-ssp585_197901-210112.nc</dataSource>
+      </dataFile>
+
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(CMIP6_ARCHIVE_ROOT)/CM4/forcings/common_cmip6/emissions.isoprene.1x1.2000.nc</dataSource>
+      </dataFile>
+       <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(CMIP6_ARCHIVE_ROOT)/CM4/forcings/common_cmip6/emissions.terpenes.1x1.2000.nc</dataSource>
+      </dataFile>
+    </input>
+  </freInclude>
+
   <freInclude name="Volcano_Solar_TimeSeries_cmip6">
     <input>
       <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
@@ -845,6 +863,26 @@ Contains an update to my25_turb.F90 to add the tridiagonal solver from tke_turb.
       </dataFile>
       <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
         <dataSource platform="$(platform)">$(CMIP6_ARCHIVE_ROOT)/CM4/forcings/Volcano_Solar_TimeSeries_cmip6_v2/lean_solar_spectral_data.dat</dataSource>
+      </dataFile>
+    </input>
+  </freInclude>
+
+  <freInclude name="Volcano_Solar_TimeSeries_cmip6_v3">
+    <input>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(CMIP6_ARCHIVE_ROOT)/CM4/forcings/Volcano_Solar_TimeSeries_cmip6_v3/extsw_data.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(CMIP6_ARCHIVE_ROOT)/CM4/forcings/Volcano_Solar_TimeSeries_cmip6_v3/omgsw_data.nc</dataSource>
+      </dataFile>
+        <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+      <dataSource platform="$(platform)">$(CMIP6_ARCHIVE_ROOT)/CM4/forcings/Volcano_Solar_TimeSeries_cmip6_v3/asmsw_data.nc</dataSource>
+      </dataFile>
+        <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+      <dataSource platform="$(platform)">$(CMIP6_ARCHIVE_ROOT)/CM4/forcings/Volcano_Solar_TimeSeries_cmip6_v3/extlw_data.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(CMIP6_ARCHIVE_ROOT)/CM4/forcings/Volcano_Solar_TimeSeries_cmip6_v3/lean_solar_spectral_data.dat</dataSource>
       </dataFile>
     </input>
   </freInclude>
@@ -957,6 +995,31 @@ Contains an update to my25_turb.F90 to add the tridiagonal solver from tke_turb.
     </input>
   </freInclude>
 
+ <freInclude name="emissions_cmip6_meic_ssp585">
+    <input>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">/lustre/f2/dev/gfdl/Vaishali.Naik/archive/input/emissions/corona/ssp585_interpolated/emissions.om.0.5x0.5.1970-2101.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">/lustre/f2/dev/gfdl/Vaishali.Naik/archive/input/emissions/corona/ssp585_interpolated/emissions.aircraft.aero.0.5x0.5.1970-2101.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">/lustre/f2/dev/gfdl/Pu.Lin/awg/input/emissions/FP/emissions.bc.0.5x0.5.1970-2101.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/anthro_so2.1970_2101.nc" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">/lustre/f2/dev/gfdl/Pu.Lin/awg/input/emissions/FP/emissions.simple.so2.0.5x0.5.1970-2101.nc</dataSource>
+      </dataFile>
+    </input>
+  </freInclude>
+
+  <freInclude name="CO2_timeseries">
+    <input>
+      <dataFile label="input" target="INPUT/co2_data.nc" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(CMIP6_ARCHIVE_ROOT)/ScenarioMIP/ssp585/co2_ssp585_3D_0to2499.nc</dataSource>
+      </dataFile>
+    </input>
+  </freInclude>
+
   <freInclude name="L32_gas_conc">
     <input>
       <dataFile label="input" target="INPUT/gas_conc_3D_am3p9.nc" chksum="" size="" timestamp="">
@@ -977,6 +1040,14 @@ Contains an update to my25_turb.F90 to add the tridiagonal solver from tke_turb.
     <input>
       <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
         <dataSource platform="$(platform)">/lustre/f2/pdata/gfdl/gfdl_M/Huan.Guo/PCMDI_sst/CMIP6_PCMDI.186901-201612.tar</dataSource>
+      </dataFile>
+    </input>
+  </freInclude>
+
+  <freInclude name="amip_sst_2020">
+    <input>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$DEV/Pu.Lin/awg/input/CMIP6_PCMDI.186901-202005.tar</dataSource>
       </dataFile>
     </input>
   </freInclude>
@@ -1282,6 +1353,40 @@ $baseDate
     </input>
   </freInclude>
 
+  <freInclude name="diag_table_lm3p2_cmip6aero">
+    <input>
+      <diagTable>
+$name
+$baseDate
+
+      </diagTable>
+      <dataFile label="diagTable" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(AWG_INPUT_HOME)/diag_table/diag_table_atmos</dataSource>
+      </dataFile>
+      <dataFile label="diagTable" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(AWG_INPUT_HOME)/diag_table/diag_table_atmos_simpleSO4</dataSource>
+      </dataFile>
+      <dataFile label="diagTable" target="INPUT/" chksum="" size="" timestamp="">
+         <dataSource platform="$(platform)">$(AWG_INPUT_HOME)/diag_table/diag_table_land_old</dataSource>
+      </dataFile>
+      <dataFile label="diagTable" target="INPUT/" chksum="" size="" timestamp="">
+         <dataSource platform="$(platform)">$(AWG_INPUT_HOME)/diag_table/cmip6/diag_table_AERmon_simple</dataSource>
+      </dataFile>
+    </input>
+  </freInclude>
+
+  <freInclude name="diag_table_nudge">
+     <input>
+      <diagTable>
+$name
+$baseDate
+      </diagTable>
+      <dataFile label="diagTable" target="INPUT/" chksum="" size="" timestamp="">
+         <dataSource platform="$(platform)">$(AWG_INPUT_HOME)/diag_table/diag_table_add_for_nudge</dataSource>
+      </dataFile>
+     </input>
+  </freInclude>
+
   <freInclude name="diag_table_3hourly">
     <input>
       <dataFile label="diagTable" target="INPUT/" chksum="" size="" timestamp="">
@@ -1368,6 +1473,74 @@ $baseDate
     </input>
   </freInclude>
 
+  <freInclude name="namelist_climate_nudge">
+    <input>
+        <namelist name="read_climate_nudge_data_nml">
+         filename_tails =  $nudging_files1
+                           $nudging_files2
+                           $nudging_files3
+         filename_head  = 'INPUT/$nudging_dataset.h'
+        </namelist>
+    </input>
+  </freInclude>
+
+  <freInclude name="csh_nudge_merra2">
+    <input>
+<!-- MYL: scripting that sets up the nudging observational data -->
+   <csh type="always">
+      <![CDATA[
+# setup for nudging
+set nudging_dataset = 'MERRA2.181x192'
+        ]]>
+      </csh>
+    </input>
+  </freInclude>
+
+  <freInclude name="csh_climate_nudge">
+    <input>
+<!-- MYL: scripting that sets up the nudging observational data -->
+   <csh type="always">
+      <![CDATA[
+# setup for nudging
+pushd INPUT
+set nudging_files = `$(AWG_INPUT_HOME)/get_nudging_data.pl.v4 -pr --dataset $nudging_dataset --calendar julian --date="$baseDate" --runtime months=$monthslist[$irun] --runtime days=$dayslist[$irun]`
+if ($status != 0) then
+   echo "ERROR: getting nudging files"
+   exit 1
+endif
+#popd
+echo $nudging_files
+set nudging_files1 = ' '
+set nudging_files2 = ' '
+set nudging_files3 = ' '
+# nlines is the number of lines the nudging files will take up in the nml
+set nlines = 3
+set n_nudge = $#nudging_files
+@ files_per_line = $#nudging_files / $nlines + 1
+set n = 1
+set m = 1
+while  ( $n <= $files_per_line  )
+    set nudging_files1 =  ($nudging_files1"'$nudging_files[$m]'",)
+    @ n ++
+    @ m ++
+end
+set n = 1
+while  ( $m <= $n_nudge && $n <=  $files_per_line )
+    set nudging_files2 =  ($nudging_files2"'$nudging_files[$m]'",)
+    @ n ++
+    @ m ++
+end
+set n = 1
+while  ( $m <= $n_nudge && $n <=  $files_per_line )
+    set nudging_files3 =  ($nudging_files3"'$nudging_files[$m]'",)
+    @ n ++
+    @ m ++
+end
+        ]]>
+      </csh>
+    </input>
+  </freInclude>
+
 <!--================================-->
 <!--= LAYOUTS FOR C96 EXPERIMENTS  =-->
 <!--================================-->
@@ -1418,6 +1591,16 @@ $baseDate
 <freInclude name="c96_864_production2">
         <resources jobWallclock="16:00:00"
                    segRuntime="2:00:00" >
+               <atm ranks="432" threads="2"    layout = "3,24"    io_layout = "1,4" />
+               <lnd                            layout = "3,24"    io_layout = "1,4" />
+               <ocn ranks="0"   threads="0"    layout = "144,3"   io_layout = "1,3" />
+               <ice                            layout = "144,3"   io_layout = "1,3" />
+        </resources>
+</freInclude>
+
+<freInclude name="c96_864_production_short">
+        <resources jobWallclock="4:00:00"
+                   segRuntime="4:00:00" >
                <atm ranks="432" threads="2"    layout = "3,24"    io_layout = "1,4" />
                <lnd                            layout = "3,24"    io_layout = "1,4" />
                <ocn ranks="0"   threads="0"    layout = "144,3"   io_layout = "1,3" />
@@ -7667,6 +7850,147 @@ BL_MYNN_EDMF    =           3,
  z_limit_L0 = 800.
       </namelist>
     </input>
+  </experiment>
+
+<!--
+nudge AM4 from Pu Lin
+-->
+
+      <experiment name="p1l_c96L33_am4p0_cm4amip_nudge2000_3" inherit="$(FMS_COMP_EXP)">
+     <description>
+        Namelist setting follows the CM4 AMIP runs. Forcings are set to historical + ssp585.
+        Nudged to MERRA2 reanalysis T3ASM. Use cmip6 diagtable (only aerosol_month) and fieldtable
+        Also fixed the "skip_top_v" in the nudgeing nml.
+        so2 and bc emission over 1970-2015 is from Fabien, which corrected emissions over China based on MEIC dataset.
+     </description>
+     <!--
+     <executable file="/lustre/f2/dev/gfdl/Pu.Lin/awg/warsaw/cm4p12_v20170512/ncrc3.intel-prod-openmp/exec/fms_cm4p12_v20170512.x"/>
+     -->
+     <input>
+      <!-- Namelist -->
+      <namelist file="$(AWG_INPUT_HOME)/nml/ocean_g12.nml"/>
+      <namelist file="$(AWG_INPUT_HOME)/nml/am4p0_cm4_amip_common.nml"/>
+      <namelist file="$(AWG_INPUT_HOME)/nml/cmip6_am4p0_physics.nml"/>
+      <namelist file="$(AWG_INPUT_HOME)/nml/am4p0_c96L33.nml"/>
+      <namelist file="$(AWG_INPUT_HOME)/nml/am4p0_amip_extended_ssp585.nml"/>
+<!-- begin cosp namelist-->
+      <!--xi:include xpointer="xpointer(//freInclude[@name='cosp_lists']/input/node())"/-->
+<!-- end cosp namelist-->
+      <namelist name="landuse_nml">
+       do_landuse_change = .true.
+       data_type   = 'luh2'
+       input_file  = '/lustre/f2/pdata/gfdl/cmip6/datasets/ScenarioMIP/ssp585/RCP8.5_SSP5_2001-2100_transitions_v20180926.nc'
+       state_file  = '/lustre/f2/pdata/gfdl/cmip6/datasets/ScenarioMIP/ssp585/RCP8.5_SSP5_2001-2100_states_v20180926.nc'
+       static_file = '/lustre/f2/pdata/gfdl/cmip6/datasets/CM4/forcings/landuse/LUH2/v2.0h/landfrac.nc'
+       distribute_transitions = 'min-n-tiles'
+      </namelist>
+      <namelist name="photosynthesis_nml">
+       photosynthesis_to_use = 'leuning'
+       co2_to_use_for_photosynthesis ='interactive'    ! slm/jgj 2016/12/16 ok to set to interactive
+       co2_for_photosynthesis = 284.262e-6             ! jgj  to match CMIP6 Jan 1 1850 co2 value
+       respiration_to_use = 'LM3'
+       Kok_effect = .False.
+       lai_eps=1.e-5
+      </namelist> 
+      <namelist name="atmos_model_nml">
+         nxblocks = 1
+         nyblocks = $atm_threads
+      </namelist>
+      <namelist name="mpp_io_nml">
+        cf_compliance = .true.
+      </namelist>
+      <namelist name="aerosolrad_driver_nml">
+        do_swaerosol_forcing = .true.
+        do_lwaerosol_forcing = .true.
+      </namelist>
+      <namelist name="physics_driver_nml">
+        n_land = 300.e6,
+        n_ocean = 100.e6,
+        donner_meso_is_largescale = .false.
+        do_cosp = .false.
+        do_modis_yim = .true.
+      </namelist>
+<!---below are the namelist needed to be changed for my purpose-->
+      <namelist name="coupler_nml">
+        months = $months,
+        days   = $days,
+        current_date = 2000,1,1,0,0,0,
+        calendar = 'julian'
+        dt_atmos = 1800,
+        dt_cpld  = 7200,
+        use_lag_fluxes = .true.
+        concurrent = .false.
+        do_ocean = .false.
+        ocean_npes = $ocn_ranks
+        atmos_npes = $atm_ranks
+        atmos_nthreads = $atm_threads
+        use_hyper_thread = $ht
+        ncores_per_node = $(NCORE_PER_NODE)
+      </namelist>
+        <namelist name="fv_climate_nudge_nml">
+         freq = 1800
+         u_tau = 21600.
+         v_tau = 21600.
+         t_tau = 21600.
+         ps_tau = 21600.
+<!-- nudging applies to all levels -->
+         skip_top_v = 0
+         skip_bot_v = 0
+         skip_top_t = 0
+         skip_bot_t = 0
+         use_pdep_nudge = .true.
+        </namelist>
+
+<!-- input dataset -->
+      <xi:include xpointer="xpointer(//freInclude[@name='common_LM4']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96_LM4']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='common_AM4_v20170208']/input/node())"/>
+      <!--xi:include xpointer="xpointer(//freInclude[@name='common_cmip6']/input/node())"/-->
+      <xi:include xpointer="xpointer(//freInclude[@name='common_cmip6_extended_ssp585']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='Volcano_Solar_TimeSeries_cmip6_v3']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='emissions_cmip6_meic_ssp585']/input/node())"/>
+
+      <xi:include xpointer="xpointer(//freInclude[@name='L32_gas_conc']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='CO2_timeseries']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='amip_sst_2020']/input/node())"/>
+
+      <xi:include xpointer="xpointer(//freInclude[@name='data_table_AM4']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='data_table_co2']/input/node())"/>
+
+      <xi:include xpointer="xpointer(//freInclude[@name='c96_grid']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96_stack_size']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='csh_adjust_dry_mass']/input/node())"/>
+
+      <xi:include xpointer="xpointer(//freInclude[@name='c96L33_initCond']/input/node())"/>
+
+      <!--xi:include xpointer="xpointer(//freInclude[@name='diag_table_lm3p2_cmip6aero']/input/node())"/-->
+      <!--xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_cmip6']/input/node())"/-->
+      <xi:include xpointer="xpointer(//freInclude[@name='diag_table_lm3p2_fullaero']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='namelist_climate_nudge']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='csh_nudge_merra2']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='csh_climate_nudge']/input/node())"/>
+     </input>
+    <runtime>
+      <!--production simTime="$(EXP_AMIP_LEN)" units="years" >
+          <segment simTime="12" units="months" />
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_production']/node())"/>
+      </production-->
+      <production simTime="240" units="months" >
+          <segment simTime="12" units="months" />
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_production_short']/node())"/>
+      </production>
+
+      <regression name="basic">
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_216_basic']/node())"/>
+      </regression>
+
+    </runtime>
+
+    <postProcess>
+      <!--xi:include xpointer="xpointer(//freInclude[@name='c96_nudge_postprocess2']/postProcess/node())"/-->
+      <xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess']/postProcess/node())"/>
+    </postProcess>
   </experiment>
 
 
