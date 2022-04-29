@@ -7994,6 +7994,24 @@ nudge AM4 from Pu Lin
   </experiment>
 
 
+  <experiment name="tt1-c96L33_am4p0_cm4amip_nudge2000" inherit="p1l_c96L33_am4p0_cm4amip_nudge2000_3">
+    <runtime>
+      <!--production simTime="$(EXP_AMIP_LEN)" units="years" >
+          <segment simTime="12" units="months" />
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_production']/node())"/>
+      </production-->
+      <!--production simTime="36" units="months" >
+          <segment simTime="12" units="months" />
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_production_short']/node())"/>
+      </production-->
+      <production simTime="18" units="months" >
+          <segment simTime="6" units="months" />
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_production_short']/node())"/>
+      </production>
+    </runtime>
+  </experiment>
+
+
   <experiment name="xx1-v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0" inherit="v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0">
     <input>
       <namelist name="physics_driver_nml">
