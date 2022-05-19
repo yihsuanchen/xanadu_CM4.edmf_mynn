@@ -136,6 +136,9 @@ logical, private               :: initialized = .false.
 logical                        :: do_netcdf_restart = .true.
 logical                        :: do_stevens = .true.   ! ZNT 05/18/2020
 logical                        :: do_aer_prof = .false. ! ZNT 03/29/2021
+logical                        :: do_init_cloud_free = .false. ! yhc 05/10/2022
+real                           :: zi_stevens = 840.     ! yhc 05/16/2022, the top of mixed layer top (m) 
+                                                        ! Stevens et al. (2005) uses 840m
 
 integer :: nsphum, nql, nqi, nqa, nqn, nqni
 integer :: vadvec_scheme
@@ -157,6 +160,8 @@ namelist /scm_rf01_nml/ tracer_vert_advec_scheme,                   &
                         ustar_sfc, flux_t_sfc, flux_q_sfc,          &
                         configuration, &
                         do_stevens, &                     ! ZNT 05/18/2020
+                        do_init_cloud_free, &             ! yhc 05/10/2022
+                        zi_stevens,         &             ! yhc 05/16/2022
                         do_aer_prof                       ! ZNT 03/29/2021
 
 
@@ -440,6 +445,12 @@ integer :: j
     endif
 
 !   Initialize cloud amount
+
+    !<--- yhc: set cloud-free initial condition
+    if (do_init_cloud_free) then
+      q(:,:,:,nql) = 0.
+    end if
+    !---> yhc
 
     where ( q(:,:,:,nql) > 0.0 )
       q(:,:,:,nqa) = 1.0
@@ -1124,7 +1135,7 @@ end subroutine  get_rf01_flx_online
 
 !      qt (specific total water content)
 
-       if ( z < 840.0 ) then
+       if ( z < zi_stevens ) then
          qt = 9.0
        else if ( z < 2400.0 ) then
          qt = 1.5
@@ -1142,10 +1153,10 @@ end subroutine  get_rf01_flx_online
 
 !      thetal
 
-       if ( z < 840.0 ) then
+       if ( z < zi_stevens ) then
          thetal = 289.0
        else if ( z < 1600.0 ) then
-         thetal = 297.5 +  (z - 840.)**(1./3.)
+         thetal = 297.5 +  (z - zi_stevens)**(1./3.)
        else
          thetal = 297.5 + (760.)**(1./3.) +  6.0E-3 * (z - 1600.)
        end if
