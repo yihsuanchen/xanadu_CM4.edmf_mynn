@@ -9997,7 +9997,7 @@ DYCOMS RF01 case
  bl_mynn_stabfunc = 1
  expmf = .true.
  upwind = 1.
- L0 = 1.
+ L0_flag = 1.
       </namelist>
     </input>
   </experiment>
@@ -10017,7 +10017,7 @@ DYCOMS RF01 case
  bl_mynn_stabfunc = 1
  expmf = .true.
  upwind = 1.
- L0 = 50.
+ L0_flag = 50.
       </namelist>
     </input>
   </experiment>
@@ -11151,7 +11151,7 @@ DYCOMS RF01 case
  bl_mynn_stabfunc = 1
  expmf = .true.
  upwind = 1.
- L0 = 1 
+ L0_flag = 1 
       </namelist>
     </input>
   </experiment>
@@ -11171,7 +11171,7 @@ DYCOMS RF01 case
  bl_mynn_stabfunc = 1
  expmf = .true.
  upwind = 1.
- L0 = 50
+ L0_flag = 50
       </namelist>
     </input>
   </experiment>
@@ -11263,7 +11263,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11345,7 +11345,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11386,7 +11386,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11427,7 +11427,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11468,7 +11468,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11509,7 +11509,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11552,7 +11552,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11595,7 +11595,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11638,7 +11638,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11681,7 +11681,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11722,7 +11722,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11772,7 +11772,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11814,7 +11814,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11857,7 +11857,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11899,7 +11899,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -11940,7 +11940,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -12169,7 +12169,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -12210,7 +12210,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -12251,7 +12251,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -12292,7 +12292,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -12333,7 +12333,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -12376,7 +12376,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -12420,7 +12420,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -12463,7 +12463,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -12506,7 +12506,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -12547,7 +12547,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -12604,7 +12604,7 @@ DYCOMS RF01 case
  DO_QDT_SAME_AS_QTDT     = F,
  BL_MYNN_MIXLENGTH       =           2,
  BL_MYNN_STABFUNC        =           1,
- L0      =   100.000000000000     ,
+ L0_flag      =   100.000000000000     ,
  NUP     =         100,
  UPSTAB  =   1.00000000000000     ,
  EDMF_TYPE       =           2,
@@ -13955,6 +13955,484 @@ DYCOMS RF01 case
     </input>
   </experiment>
 
+  <experiment name="v01_RF01-00cb-am4p0_aerT_am4RAD_sw" inherit="v01_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="physics_driver_nml">
+ do_radiation = .true.
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="radiation_driver_nml">
+        do_radiation = .true.,
+        rad_time_step= 1800,
+        rad_package = 'sea_esf',
+        do_clear_sky_pass=.true.,
+        !calc_hemi_integrals = .false.,
+        renormalize_sw_fluxes=.true.,
+        zenith_spec = 'diurnally_varying',
+        using_restart_file = .false.
+        do_conserve_energy = .true.
+        sw_rad_time_step = 1800,
+        use_single_lw_sw_ts = .false.,
+      </namelist>
+      <namelist name="scm_forc_nml">
+        experiment = 'rf01',
+        use_scm_rad = .false.,
+        do_specified_land       = .false.,
+        do_specified_flux       = .true.,
+        do_specified_tskin      = .false.,
+        do_specified_albedo     = .false.,
+        do_specified_rough_leng = .false.,
+      </namelist>
+      <namelist name="shortwave_driver_nml">
+      do_cmip_diagnostics = .true.,
+      swform = 'esfsw99'
+      solar_constant = 1360.0,
+      time_varying_solar_constant = .false.,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00a-am4p0_aerT_2Xdifv" inherit="v01_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00c-am4p0_aerT_am4RAD_2Xdifv" inherit="v01_RF01-00c-am4p0_aerT_am4RAD">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00cb-am4p0_aerT_am4RAD_sw_2Xdifv" inherit="v01_RF01-00cb-am4p0_aerT_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00a-am4p0_aerT_MERRA2sflx" inherit="v01_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00c-am4p0_aerT_am4RAD_MERRA2sflx" inherit="v01_RF01-00c-am4p0_aerT_am4RAD">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00cb-am4p0_aerT_am4RAD_sw_MERRA2sflx" inherit="v01_RF01-00cb-am4p0_aerT_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00a-am4p0_aerT_2Xdifv_MERRA2sflx" inherit="v01_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00c-am4p0_aerT_am4RAD_2Xdifv_MERRA2sflx" inherit="v01_RF01-00c-am4p0_aerT_am4RAD">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+      </namelist>
+    </input>
+  </experiment>
+
+<!--
+cloud-free initial conditions
+-->
+
+  <experiment name="v01_RF01-00a-am4p0_aerT_clr" inherit="v01_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00c-am4p0_aerT_clr_am4RAD" inherit="v01_RF01-00c-am4p0_aerT_am4RAD">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00a-am4p0_aerT_clr_MERRA2sflx" inherit="v01_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00c-am4p0_aerT_clr_am4RAD_MERRA2sflx" inherit="v01_RF01-00c-am4p0_aerT_am4RAD">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00a-am4p0_aerT_clr_2Xdifv_MERRA2sflx" inherit="v01_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00c-am4p0_aerT_clr_am4RAD_2Xdifv_MERRA2sflx" inherit="v01_RF01-00c-am4p0_aerT_am4RAD">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00c-am4p0_aerT_clr_am4RAD_2Xdifv_MERRA2sflx_zi500" inherit="v01_RF01-00c-am4p0_aerT_am4RAD">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+        zi_stevens = 500.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00c-am4p0_aerT_clr_am4RAD_2Xdifv_MERRA2sflx_zi600" inherit="v01_RF01-00c-am4p0_aerT_am4RAD">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+        zi_stevens = 600.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00c-am4p0_aerT_clr_am4RAD_2Xdifv_MERRA2sflx_zi700" inherit="v01_RF01-00c-am4p0_aerT_am4RAD">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  9.0,
+        flux_q_sfc = 80.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+        zi_stevens = 700.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00a-am4p0_aerT_clr_2Xdifv" inherit="v01_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00c-am4p0_aerT_clr_am4RAD_2Xdifv" inherit="v01_RF01-00c-am4p0_aerT_am4RAD">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xx-v01_RF01-00a-am4p0_aerT" inherit="v01_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+    </input>
+  </experiment>
 
   <experiment name="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF" inherit="v01_BOMEX-00a-am4p0">
     <input>
@@ -14168,6 +14646,116 @@ DYCOMS RF01 case
     </input>
   </experiment>
 
+  <experiment name="v01_RF01-00d-mynnED" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 0 
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99
+ option_surface_flux = "star"
+ edmf_type = 1
+      </namelist>
+     <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   8.00000000000000     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="v01_RF01-01a-edmf_EDonly" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
     <input>
       <namelist name="physics_driver_nml">
@@ -14298,6 +14886,361 @@ DYCOMS RF01 case
     </input>
   </experiment>
 
+  <experiment name="v01_RF01-02b-edmf_MFexp_QxDet_Lo50" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = 50.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-02c-edmf_MFexp_QxDet_Lo25" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = 25.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-02d-edmf_MFexp_QxDet_Lo75" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = 75.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-02e-edmf_MFexp_QxDet_LoSQU" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = -1.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-03a-edmf_MFexp_QxEddy" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-03b-edmf_MFexp_QxEddy_Lo50" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = 50.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-03c-edmf_MFexp_QxEddy_Lo25" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = 25.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-03d-edmf_MFexp_QxEddy_Lo75" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = 75.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-03e-edmf_MFexp_QxEddy_LoSQU" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = -1.
+      </namelist>
+    </input>
+  </experiment>
+ 
+  <experiment name="v01_BOMEX-00d-mynnED" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 0 
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99
+ option_surface_flux = "star"
+ edmf_type = 1
+      </namelist>
+     <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   8.00000000000000     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-01b-edmf_EDonly_noSH" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 0 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="v01_BOMEX-01a-edmf_EDonly" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
     <input>
       <namelist name="physics_driver_nml">
@@ -14404,6 +15347,303 @@ DYCOMS RF01 case
     </input>
   </experiment>
 
+  <experiment name="v01_BOMEX-02a-edmf_MFexp_QxDet" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-02b-edmf_MFexp_QxDet_Lo200" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = 200.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-02c-edmf_MFexp_QxDet_Lo300" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = 300.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-02d-edmf_MFexp_QxDet_Lo50" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = 50.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-02e-edmf_MFexp_QxDet_Lo25" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = 25.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-02f-edmf_MFexp_QxDet_LoSQU" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = -1.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-03a-edmf_MFexp_QxEddy" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-03b-edmf_MFexp_QxEddy_Lo200" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = 200.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-03c-edmf_MFexp_QxEddy_Lo300" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = 300.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-03d-edmf_MFexp_QxEddy_Lo50" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = 50.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-03e-edmf_MFexp_QxEddy_Lo25" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = 25.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_BOMEX-03f-edmf_MFexp_QxEddy_LoSQU" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = -1.
+      </namelist>
+    </input>
+  </experiment>
 
   <experiment name="v01_L203_RF01-00a-am4p0_aerT" inherit="RF01_A_$(AWG_EXPERIMENT)">
     <input>
@@ -14516,6 +15756,672 @@ DYCOMS RF01 case
       </dataFile>
     </input>
   </experiment>
+
+  <experiment name="v01_L203_RF01-00c-am4p0_aerT_am4RAD" inherit="v01_L203_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="physics_driver_nml">
+ do_radiation = .true.
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="radiation_driver_nml">
+        do_radiation = .true.,
+        rad_time_step= 1800,
+        rad_package = 'sea_esf',
+        do_clear_sky_pass=.true.,
+        !calc_hemi_integrals = .false.,
+        renormalize_sw_fluxes=.true.,
+        zenith_spec = 'diurnally_varying',
+        using_restart_file = .false.
+        do_conserve_energy = .true.
+        sw_rad_time_step = 1800,
+        use_single_lw_sw_ts = .false.,
+      </namelist>
+      <namelist name="scm_forc_nml">
+        experiment = 'rf01',
+        use_scm_rad = .false.,
+        do_specified_land       = .false.,
+        do_specified_flux       = .true.,
+        do_specified_tskin      = .false.,
+        do_specified_albedo     = .false.,
+        do_specified_rough_leng = .false.,
+      </namelist>
+      <namelist name="shortwave_driver_nml">
+      do_cmip_diagnostics = .true.,
+      swform = 'esfsw99'
+      solar_constant = 0.0,
+      time_varying_solar_constant = .false.,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF" inherit="v01_L203_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ GUST_SCHEME     = beljaars                ,
+ CONSTANT_GUST   =   1.00000000000000     ,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ GUST_FACTOR     =   1.00000000000000     ,
+ DO_SIMPLE       = F,
+ WP2_MIN =  4.000000000000000E-004,
+ ALTERNATE_ZPBL  =           0
+     </namelist>
+     <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   -100000.     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-00d-mynnED" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 0 
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99
+ option_surface_flux = "star"
+ edmf_type = 1
+      </namelist>
+     <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   8.00000000000000     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-01a-edmf_EDonly" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 0 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99
+      </namelist>
+     <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   8.00000000000000     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-02a-edmf_MFexp_QxDet" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-02b-edmf_MFexp_QxDet_Lo50" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = 50.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-02c-edmf_MFexp_QxDet_Lo25" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = 25.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-02d-edmf_MFexp_QxDet_Lo75" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = 75.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-02e-edmf_MFexp_QxDet_LoSQU" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = -1.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-03a-edmf_MFexp_QxEddy" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-03b-edmf_MFexp_QxEddy_Lo50" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = 50.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-03c-edmf_MFexp_QxEddy_Lo25" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = 25.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-03d-edmf_MFexp_QxEddy_Lo75" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = 75.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_L203_RF01-03e-edmf_MFexp_QxEddy_LoSQU" inherit="v01_L203_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           1,
+ L0_flag = -1.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xx1-v01_RF01-02c-edmf_MFexp_QxDet_Lo25" inherit="v01_RF01-02c-edmf_MFexp_QxDet_Lo25">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+ L0_flag = 25.
+ NUM_RX = 5e+4
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xx1-v01_RF01-ggg-edmf_MFexp_QxDet" inherit="v01_RF01-02c-edmf_MFexp_QxDet_Lo25">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+ z0_limit = 1000.
+ OPTION_PBLH_MF  = 2 
+ plev_tke_limit_MF = 900.e+2
+ tke_limit_MF = 20.
+      </namelist>
+    </input>
+  </experiment>
+
 
 </experimentSuite>
 
