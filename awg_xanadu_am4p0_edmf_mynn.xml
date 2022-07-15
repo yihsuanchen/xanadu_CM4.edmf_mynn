@@ -1375,6 +1375,19 @@ $baseDate
     </input>
   </freInclude>
 
+  <freInclude name="diag_table_DYCOMS">
+    <input>
+      <diagTable>
+$name
+$baseDate
+
+      </diagTable>
+      <dataFile label="diagTable" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$(AWG_INPUT_HOME)/diag_table/diag_table_DYCOMS</dataSource>
+      </dataFile>
+    </input>
+  </freInclude>
+
   <freInclude name="diag_table_nudge">
      <input>
       <diagTable>
@@ -1444,6 +1457,17 @@ $baseDate
       <!-- source: gfdl:/archive/Charles.Seman/awg/verona/cm4p10_bronx11/c96L48_am4b6_DDFull/gfdl.ncrc3-intel-prod-openmp/restart/20080101.tar -->
       <dataFile label="initCond" target="INPUT/" chksum="" size="" timestamp="">
         <dataSource platform="$(platform)">/lustre/f2/scratch/Yi-hsuan.Chen/data/xanadu/cm4p12_am4p0_bronx18/c96L33_am4p0_donner_864x1a/gfdl.ncrc4-intel19-prod-openmp/restart/20000101.tar</dataSource>
+        <!--dataSource platform="$(platform)">/lustre/f1/unswept/Charles.Seman/awg/verona/cm4p10_bronx11/c96L48_am4b6_DDFull/ncrc3.intel-prod-openmp/restart/20080101.tar</dataSource-->
+      </dataFile>
+    </input>
+  </freInclude>
+
+<!-- yhc add: initial conditions of the year 2000 from standarf am4p0 -->
+  <freInclude name="c96L33_initCond_am4p0_mynn_Jul2001_432x2a">
+    <input>
+      <!-- source: gfdl:/archive/Charles.Seman/awg/verona/cm4p10_bronx11/c96L48_am4b6_DDFull/gfdl.ncrc3-intel-prod-openmp/restart/20080101.tar -->
+      <dataFile label="initCond" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">/lustre/f2/scratch/Yi-hsuan.Chen/data/xanadu/am4p0_edmf_mynn/gfdl.ncrc4-intel19-prod-openmp/restart/20010701.tar</dataSource>
         <!--dataSource platform="$(platform)">/lustre/f1/unswept/Charles.Seman/awg/verona/cm4p10_bronx11/c96L48_am4b6_DDFull/ncrc3.intel-prod-openmp/restart/20080101.tar</dataSource-->
       </dataFile>
     </input>
@@ -7984,6 +8008,12 @@ nudge AM4 from Pu Lin
       <regression name="basic">
           <xi:include xpointer="xpointer(//freInclude[@name='c96_216_basic']/node())"/>
       </regression>
+      <regression name="basic_24node">
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_basic_24node']/node())"/>
+      </regression>
+      <regression name="basic_24node_30d">
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_basic_24node_30d']/node())"/>
+      </regression>
 
     </runtime>
 
@@ -7995,7 +8025,11 @@ nudge AM4 from Pu Lin
 
 
   <experiment name="tt1-c96L33_am4p0_cm4amip_nudge2000" inherit="p1l_c96L33_am4p0_cm4amip_nudge2000_3">
-    <runtime>
+    <!--input>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96L33_initCond_am4p0_mynn_Jul2001_432x2a']/input/node())"/>
+    </input-->
+
+    <!--runtime-->
       <!--production simTime="$(EXP_AMIP_LEN)" units="years" >
           <segment simTime="12" units="months" />
           <xi:include xpointer="xpointer(//freInclude[@name='c96_864_production']/node())"/>
@@ -8004,13 +8038,57 @@ nudge AM4 from Pu Lin
           <segment simTime="12" units="months" />
           <xi:include xpointer="xpointer(//freInclude[@name='c96_864_production_short']/node())"/>
       </production-->
-      <production simTime="18" units="months" >
+      <!--production simTime="18" units="months" >
           <segment simTime="6" units="months" />
           <xi:include xpointer="xpointer(//freInclude[@name='c96_864_production_short']/node())"/>
-      </production>
-    </runtime>
+      </production-->
+    <!--/runtime-->
+
   </experiment>
 
+  <experiment name="tt1-c96L33_am4p0_cm4amip_nudge2000_Jul2001" inherit="p1l_c96L33_am4p0_cm4amip_nudge2000_3">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='diag_table_DYCOMS']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96L33_initCond_am4p0_mynn_Jul2001_432x2a']/input/node())"/>
+    </input>
+
+    <!--runtime-->
+      <!--production simTime="$(EXP_AMIP_LEN)" units="years" >
+          <segment simTime="12" units="months" />
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_production']/node())"/>
+      </production-->
+      <!--production simTime="36" units="months" >
+          <segment simTime="12" units="months" />
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_production_short']/node())"/>
+      </production-->
+      <!--production simTime="18" units="months" >
+          <segment simTime="6" units="months" />
+          <xi:include xpointer="xpointer(//freInclude[@name='c96_864_production_short']/node())"/>
+      </production-->
+    <!--/runtime-->
+  </experiment>
+
+  <experiment name="tt2-c96L33_am4p0_cm4amip_Jul2001" inherit="tt1-c96L33_am4p0_cm4amip_nudge2000_Jul2001"   >
+    <input>
+      <namelist name="fv_climate_nudge_nml">
+ FREQ    =           0,
+ U_TAU   =  -1.00000000000000     ,
+ V_TAU   =  -1.00000000000000     ,
+ T_TAU   =  -1.00000000000000     ,
+ Q_TAU   =  -1.00000000000000     ,
+ PS_TAU  =  -1.00000000000000     ,
+ SKIP_TOP_V      =           2,
+ SKIP_BOT_V      =           0,
+ SKIP_TOP_T      =           0,
+ SKIP_BOT_T      =          21,
+ SKIP_TOP_Q      =           8,
+ SKIP_BOT_Q      =           0,
+ USE_PDEP_NUDGE  = F,
+ USE_SUB_DOMAIN  = F,
+ VERBOSE =           0
+      </namelist>
+    </input>
+  </experiment>
 
   <experiment name="xx1-v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0" inherit="v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0">
     <input>
