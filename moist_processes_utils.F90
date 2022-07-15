@@ -126,14 +126,24 @@ type mp_conv2ls_type
     real, dimension(:,:,:),   allocatable   ::    &
                             convective_humidity_ratio_clubb
 
-   integer,                   pointer :: option_edmf2ls_mp => null() ! yhc
-      real, dimension(:,:,:), pointer :: qadt_edmf   => null()   ! yhc, the description of these variables is in edmf_ls_mp_type, edmf_mynn program 
-      real, dimension(:,:,:), pointer :: qldt_edmf   => null()   ! yhc
-      real, dimension(:,:,:), pointer :: qidt_edmf   => null()   ! yhc
-      real, dimension(:,:,:), pointer :: dqa_edmf    => null()   ! yhc
-      real, dimension(:,:,:), pointer :: dql_edmf    => null()   ! yhc
-      real, dimension(:,:,:), pointer :: dqi_edmf    => null()   ! yhc
-      integer, dimension(:,:), pointer :: kpbl_edmf    => null()   ! yhc
+    !<--- yhc 2021-04-01 
+    !       the description of these variables is in edmf_ls_mp_type, edmf_mynn program
+    integer,                   pointer :: option_edmf2ls_mp => null() 
+    real, dimension(:,:,:), pointer :: qadt_edmf   => null()   
+    real, dimension(:,:,:), pointer :: qldt_edmf   => null()   
+    real, dimension(:,:,:), pointer :: qidt_edmf   => null()   
+    real, dimension(:,:,:), pointer :: dqa_edmf    => null()   
+    real, dimension(:,:,:), pointer :: dql_edmf    => null()   
+    real, dimension(:,:,:), pointer :: dqi_edmf    => null()   
+    integer, dimension(:,:), pointer :: kpbl_edmf    => null()   
+ 
+    real, dimension(:,:,:), pointer ::  edmf_mc_full         => null()
+    real, dimension(:,:,:), pointer ::  edmf_mc_half         => null()
+    real, dimension(:,:,:), pointer ::  edmf_moist_area      => null()
+    real, dimension(:,:,:), pointer ::  edmf_moist_humidity  => null()
+    real, dimension(:,:,:), pointer ::  edmf_dry_area        => null()
+    real, dimension(:,:,:), pointer ::  edmf_dry_humidity    => null()
+    !---> yhc 2021-04-01 
 end type mp_conv2ls_type
 
 type mp_nml_type
