@@ -432,6 +432,10 @@ type(mp_lsdiag_control_type),    intent(inout) :: Lsdiag_mp_control
 !    convection occur in the same layer, the erosion rate for turbulence 
 !    is selected.                
 !-----------------------------------------------------------------------
+
+!write(6,*) 'ggqq1, mc_full', C2ls_mp%mc_full
+!write(6,*) 'ggqq1, diff_t', Input_mp%diff_t
+
         if (eros_choice) then
           do k=1,kdim
             do j=1,jdim
@@ -971,6 +975,7 @@ TYPE(diag_pt_type),              intent(in)    :: diag_pt
 !       the case that da_ls is not equal to zero.
 !
 !------------------------------------------------------------------------
+
       do k=1,kdim
         do j=1,jdim
           do i=1,idim
