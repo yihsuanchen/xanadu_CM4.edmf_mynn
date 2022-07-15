@@ -111,8 +111,10 @@ use tracer_manager_mod, only: get_tracer_index, get_number_tracers
       integer, dimension(:,:), pointer :: kpbl_edmf   => null()   ! yhc
       real, dimension(:,:,:), pointer :: edmf_mc_full   => null()   ! yhc
       real, dimension(:,:,:), pointer :: edmf_mc_half   => null()   ! yhc
-      real, dimension(:,:,:), pointer :: edmf_humidity_area   => null()   ! yhc
-      real, dimension(:,:,:), pointer :: edmf_humidity_ratio   => null()   ! yhc
+      real, dimension(:,:,:), pointer :: edmf_moist_area   => null()   ! yhc
+      real, dimension(:,:,:), pointer :: edmf_moist_humidity  => null()   ! yhc
+      real, dimension(:,:,:), pointer :: edmf_dry_area   => null()   ! yhc
+      real, dimension(:,:,:), pointer :: edmf_dry_humidity  => null()   ! yhc
  end type phys_mp_exch_type
 
 public Phys2cosp_type
