@@ -618,7 +618,7 @@ type (clouds_from_moist_block_type) :: Restart
 type(precip_flux_type)              :: Precip_flux
 
 !<-- yhc
-integer :: id_diff_t_vdif, id_diff_m_vdif, id_num_updraft, id_qldt_vdif, id_qadt_vdif, id_qidt_vdif, id_qdt_vdif_test, id_tdt_vdif_test, id_tdt_radturb
+integer :: id_diff_t_vdif, id_diff_m_vdif, id_num_updraft, id_qldt_vdif, id_qadt_vdif, id_qidt_vdif, id_qdt_vdif_test, id_tdt_vdif_test, id_tdt_radturb, id_tt_phys, id_qq_phys
 !--> yhc
                             contains
 
@@ -1417,6 +1417,14 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       id_tdt_radturb = register_diag_field (mod_name, 'tdt_radturb', axes(1:3), Time, &
                      'tempearture tendency from rad and vert diff', 'K/s' , &
                      missing_value=missing_value )
+
+      id_tt_phys = register_diag_field (mod_name, 'tt_phys', axes(1:3), Time, &
+                    'temperature in physics_down', 'K' , &
+                    missing_value=missing_value )
+
+      id_qq_phys = register_diag_field (mod_name, 'qq_phys', axes(1:3), Time, &
+                    'specific humidity in physics_down', 'kg/kg' , &
+                    missing_value=missing_value )
       !---> yhc
 
      !-------- CMIP diagnostics --------
@@ -2025,6 +2033,18 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       tdt => Physics_tendency_block%t_dt
       rdt => Physics_tendency_block%q_dt
       rdiag => Physics_tendency_block%qdiag
+
+!<--- yhc, 2022-06-28
+      !------- temperature in physics_down (units: K) at full level -------
+      if ( id_tt_phys > 0) then
+        used = send_data (id_tt_phys, t, Time_next, is, js, 1 )
+      endif
+
+      !------- specific humidity in physics_down (units: kg/kg) at full level -------
+      if ( id_qq_phys > 0) then
+        used = send_data (id_qq_phys, r(:,:,:,1), Time_next, is, js, 1 )
+      endif
+!---> yhc, 2022-06-28
 
 !---------------------------------------------------------------------
 !    verify that the module is initialized.
