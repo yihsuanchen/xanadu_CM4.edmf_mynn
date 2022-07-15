@@ -2084,6 +2084,7 @@ type(diag_pt_type),         intent(in)    :: diag_pt
 !    same. save a diagnostic indicating the amount the cloud area was 
 !    reduced due to this requirenment,
 !------------------------------------------------------------------------ 
+
         Atmos_state%U01 = min(Atmos_state%U01, 1.)
         if (diag_id%qadt_rhred + diag_id%qa_rhred_col >0) then
           where (Cloud_state%qa_upd .gt. Atmos_state%U01)
@@ -2138,12 +2139,6 @@ type(diag_pt_type),         intent(in)    :: diag_pt
           qi_too_small = (Cloud_state%qi_in .le.  qmin )
         endif
       endif
- 
-!write(6,*) 'yhc, qmin, do_liq_num',qmin,do_liq_num
-!write(6,*) 'yhc, ql_too_small,',ql_too_small
-!write(6,*) 'yhc, Cloud_state%ql_in',Cloud_state%ql_in
-!write(6,*) 'yhc, Cloud_state%qa_in',Cloud_state%qa_in
-!write(6,*) 'yhc, Cloud_state%qn_in',Cloud_state%qn_in
  
 !------------------------------------------------------------------------
 !    call subroutine adjust_condensate to conservatively fill ql if needed.
@@ -2264,7 +2259,6 @@ type(diag_pt_type),         intent(in)    :: diag_pt
       endif
 
 !-----------------------------------------------------------------------
-
 
 end subroutine impose_realizability 
 
