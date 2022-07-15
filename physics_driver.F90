@@ -159,6 +159,11 @@ use monin_obukhov_mod,        only: monin_obukhov_init
 use edmf_mynn_mod,            only: edmf_mynn_init, edmf_mynn_end, &
                                     edmf_input_type, edmf_output_type, edmf_ls_mp_type, &
                                     edmf_mynn_driver
+use vert_advection_mod,       only: vert_advection, SECOND_CENTERED, &
+                                  FOURTH_CENTERED, FINITE_VOLUME_LINEAR, &
+                                  FINITE_VOLUME_PARABOLIC, &
+                                  SECOND_CENTERED_WTS, FOURTH_CENTERED_WTS, &
+                                  ADVECTIVE_FORM
 !--> yhc, add edmf_mynn
 
 #ifdef SCM
@@ -411,6 +416,13 @@ real    :: lat_lower, lat_upper, lon_lower, lon_upper
 real    :: tdt_max     = 500. ! K/day
 logical :: do_limit_tdt = .false.
 real    :: tdt_limit =   200. ! K/day
+
+
+!--- namelist for compute_vert_adv_tend_offline
+logical :: do_vert_adv_tend_offline = .false.
+integer :: input_profile = -1
+integer :: temp_vert_advec_scheme = 4
+integer :: tracer_vert_advec_scheme =4
 !--> yhc, add edmf_mynn nml
 
 
@@ -427,6 +439,7 @@ namelist / physics_driver_nml / do_radiation, do_clubb,  do_cosp, &
                                 do_edmf_mynn, do_edmf_mynn_diagnostic, do_tracers_in_edmf_mynn, do_tracers_selective, do_edmf_mynn_diffusion_smooth, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, & ! yhc add
                                 do_stop_run, do_writeout_column_nml, do_bomex_radf, ii_write, jj_write, lat_write, lon_write, & ! yhc add
                                 tdt_max, do_limit_tdt, tdt_limit, &  ! yhc add
+                                do_vert_adv_tend_offline, input_profile, temp_vert_advec_scheme, tracer_vert_advec_scheme, & ! yhc add
                                 max_diam_drop, use_tau, cosp_frequency
 
 
@@ -2045,6 +2058,13 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         used = send_data (id_qq_phys, r(:,:,:,1), Time_next, is, js, 1 )
       endif
 !---> yhc, 2022-06-28
+
+!<--- yhc, 2022-07-15
+      !--- compute vertical advection tendencies offline and stop the model
+      if (do_vert_adv_tend_offline) then
+        call compute_vert_adv_tend_offline(dt, t, temp_vert_advec_scheme, tracer_vert_advec_scheme) 
+      end if
+!---> yhc, 2022-07-15
 
 !---------------------------------------------------------------------
 !    verify that the module is initialized.
@@ -4707,6 +4727,193 @@ integer                                 :: ierr
 
       end function check_dim_4d
 
+!<--- yhc, 2022-07-15
+!#######################################################################
+  subroutine compute_vert_adv_tend_offline (dts, temp, temp_vert_advec_scheme, tracer_vert_advec_scheme)
 
+    !------------------
+    ! purpose    
+    !------------------
+    ! Given necessary information (set by input_profile), 
+    ! use AM4 vert_advection module to compute offline vertical advection of temperaure and specific humidity
+    ! This can be used to decompose full dynamical tendencies (*dt_dyn) into horizontal and vertical components
+
+    !------------------
+    ! input argument    
+    !------------------
+    real   , intent(in) :: dts                        ! time step (sec)
+    real   , intent(in) :: temp(:,:,:)                ! temperature, for getting dimension
+    integer, intent(in) :: temp_vert_advec_scheme     ! Which advection scheme should be used, =4 in SCM
+    integer, intent(in) :: tracer_vert_advec_scheme   ! Which advection scheme should be used, =4 in SCM
+
+    !------------------
+    ! local argument
+    !------------------
+    real, dimension(size(temp,1),size(temp,2),size(temp,3)+1) :: &
+      ph,        &   !  pressure at half levels (Pa)
+      omega_h        !  vertical pressure velocity at half levels (Pa/s)
+
+    real, dimension(size(temp,1),size(temp,2),size(temp,3))   :: &
+      dT_vadv,   &   !  temperature vertical advection (K/s)
+      dqv_vadv,  &   !  specific humidity vertical advection (kg/kg/s)
+      dp,        &   !  pressure thickness between half levels (Pa)
+      qq,        &   !  specific humidity at full levels (K)
+      pt             !  temperature at full levels (K)
+        
+    integer k,kdim
+    integer ii_write, jj_write
+    integer :: vadvec_scheme
  
+    character*50 input_profile_longname
+    !----------------------
+
+    !--- initialization
+    dT_vadv=0.; dqv_vadv=0. ; dp=0.
+
+    ii_write = 1
+    jj_write = 1
+    kdim = size(temp,3)
+
+    !--- determine input profile
+    if (input_profile .eq. 0) then
+      input_profile_longname = "test111"
+      ph      (ii_write, jj_write, :) = (/100.000000000000,    400.000000000000, &
+   818.602110000000,    1378.88653000000,    2091.79519000000, &
+   2983.64084000000,    4121.78960000000,    5579.22148000000, &
+   7429.32203000000,    9739.83459000000,    12573.1869600000, &
+   15988.0458500000,    20044.5383400000,    24794.7845300000, &
+   30283.9819600000,    36517.8148800000,    43391.6043100000, &
+   50609.5508700000,    57745.5530700000,    64437.0976500000, &
+   70498.0509400000,    75875.3518300000,    80577.5427300000, &
+   84639.2099500000,    88112.5613700000,    91059.5443200000, &
+   93543.5709900000,    95617.8850400000,    97335.0224200000, &
+   98736.9161300000,    99856.8968600000,    100728.562400000, &
+   101362.435000000,    101780.000000000/)
+      omega_h (ii_write, jj_write, :) = (/0.000000000000000E+000,  0.000000000000000E+000, &
+  0.000000000000000E+000,  0.000000000000000E+000,  0.000000000000000E+000, &
+  0.000000000000000E+000,  0.000000000000000E+000,  0.000000000000000E+000, &
+  0.000000000000000E+000,  0.000000000000000E+000,  0.000000000000000E+000, &
+  0.000000000000000E+000,  0.000000000000000E+000,  0.000000000000000E+000, &
+  0.000000000000000E+000,  0.000000000000000E+000,  0.000000000000000E+000, &
+  0.000000000000000E+000,  0.000000000000000E+000,  0.000000000000000E+000, &
+  0.000000000000000E+000,  0.000000000000000E+000,  2.930938536955648E-002, &
+  5.812430974580787E-002,  4.692672232055620E-002,  3.784775569538005E-002, &
+  3.007107786950254E-002,  2.271821830454597E-002,  1.649746359500637E-002, &
+  1.135228502210560E-002,  7.203072036325996E-003,  3.950445515424451E-003, &
+  1.572365337671026E-003,  0.000000000000000E+000/)
+      pt      (ii_write, jj_write, :) = (/200.000000000000,    200.000000000000, &
+   200.000000000000,    200.000000000000,    200.000000000000, &
+   200.000000000000,    200.000000000000,    200.000000000000, &
+   201.014876573338,    211.606846860821,    221.720769700700, &
+   231.308545253451,    240.342448573245,    248.804323922616, &
+   256.670990366677,    263.878216874829,    270.303508236814, &
+   275.817264667225,    280.378898054894,    284.067885838342, &
+   287.028330245440,    289.405274346612,    291.318346199574, &
+   293.170646722972,    294.305579368352,    283.586238287798, &
+   284.602464182821,    286.051031894629,    287.365367815623, &
+   288.417108332689,    289.240938553385,    289.859807312425, &
+   290.290044380658/)
+      qq      (ii_write, jj_write, :) = 10.e-3
+
+    else
+     call error_mesg('compute_vert_adv_tend_offline',  &
+                     'input_profile is not supported', FATAL)
+
+    end if ! end if of input_profile
+    
+    ! --- compute dp, pi_fac, theta
+    do k = 2,kdim+1
+      dp(:,:,k-1) = ph(:,:,k) - ph(:,:,k-1)
+    enddo
+
+    !--- compute temperature vertical advection
+    select case (temp_vert_advec_scheme)
+     case(1)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=SECOND_CENTERED,form=ADVECTIVE_FORM)
+     case(2)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FOURTH_CENTERED,form=ADVECTIVE_FORM)
+     case(3)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FINITE_VOLUME_LINEAR,form=ADVECTIVE_FORM)
+     case(4)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FINITE_VOLUME_PARABOLIC,form=ADVECTIVE_FORM)
+     case(5)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=SECOND_CENTERED_WTS,form=ADVECTIVE_FORM)
+     case(6)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FOURTH_CENTERED_WTS,form=ADVECTIVE_FORM)
+     end select
+
+    !--- compute tracer vertical advection
+     SELECT CASE (tracer_vert_advec_scheme)
+            CASE(1)
+                 vadvec_scheme = SECOND_CENTERED
+            CASE(2)
+                 vadvec_scheme = FOURTH_CENTERED
+            CASE(3)
+                 vadvec_scheme = FINITE_VOLUME_LINEAR
+            CASE(4)
+                 vadvec_scheme = FINITE_VOLUME_PARABOLIC
+            CASE(5)
+                 vadvec_scheme = SECOND_CENTERED_WTS
+            CASE(6)
+                 vadvec_scheme = FOURTH_CENTERED_WTS
+     END SELECT
+     call vert_advection(dts,omega_h,dp,qq,dqv_vadv,scheme=vadvec_scheme,form=ADVECTIVE_FORM)
+
+    
+     !--- write out
+        write(6,*)    ';@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
+        write(6,*)    ''
+        write(6,*)    ';=========================='
+        write(6,*)    ';=========================='
+        write(6,*)    ''
+        write(6,*)    ';   input '
+        write(6,*)    ';   input_profile: ', input_profile, input_profile_longname
+        write(6,*)    ''
+        write(6,*)    ';=========================='
+        write(6,*)    ';=========================='
+        write(6,*)    ''
+        write(6,*)    '; pressure at half level (Pa)'
+        write(6,3001) '  ph  = (/',ph(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '; pressure thickness (Pa)'
+        write(6,3001) '  dp  = (/',dp(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '; vertical velocity (Pa/s)'
+        write(6,3002) '  omega_h  = (/'    ,omega_h(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '; temperature at full levels (K)'
+        write(6,3001) '  pt  = (/',pt(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '; specific humidity at full levels (kg/kg)'
+        write(6,3002) '  qq  = (/'    ,qq(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    ';=========================='
+        write(6,*)    ';=========================='
+        write(6,*)    ''
+        write(6,*)    ';   output '
+        write(6,*)    ''
+        write(6,*)    ';=========================='
+        write(6,*)    ';=========================='
+        write(6,*)    ''
+        write(6,*)    '; temperature vertical advection tendency (K/s)'
+        write(6,3002) '  dT_vadv  = (/'    ,dT_vadv(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '; specific humidity vertical advection tendency (K/s)'
+        write(6,3002) '  dqv_vadv  = (/'    ,dqv_vadv(ii_write,jj_write,:)
+        write(6,*)    ''
+
+     !--- stop the model
+     call error_mesg('compute_vert_adv_tend_offline',  &
+                     'stop', FATAL)
+
+3000 format (A35,2X,F10.3,',')
+3001 format (A35,2X,34(F10.3,2X,','))
+3002 format (A35,2X,34(E12.4,2X,','))
+3003 format (A35,2X,E12.4,',')
+3004 format (A35,2X,33(F10.3,2X,','),A5)
+
+  end subroutine compute_vert_adv_tend_offline
+!---> yhc, 2022-07-15
+
+
 end module physics_driver_mod
