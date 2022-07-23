@@ -418,6 +418,7 @@ logical :: do_vert_adv_tend_offline = .false.
 integer :: input_profile = -1
 integer :: temp_vert_advec_scheme = 4
 integer :: tracer_vert_advec_scheme =4
+integer :: printout_vert_adv_tend = 1
 !--> yhc, add edmf_mynn nml
 
 
@@ -434,7 +435,7 @@ namelist / physics_driver_nml / do_radiation, do_clubb,  do_cosp, &
                                 do_edmf_mynn, do_edmf_mynn_diagnostic, do_tracers_in_edmf_mynn, do_tracers_selective, do_edmf_mynn_diffusion_smooth, do_return_edmf_mynn_diff_only, do_edmf_mynn_in_physics, & ! yhc add
                                 do_stop_run, do_writeout_column_nml, do_bomex_radf, ii_write, jj_write, lat_write, lon_write, & ! yhc add
                                 tdt_max, do_limit_tdt, tdt_limit, &  ! yhc add
-                                do_vert_adv_tend_offline, input_profile, temp_vert_advec_scheme, tracer_vert_advec_scheme, & ! yhc add
+                                do_vert_adv_tend_offline, input_profile, printout_vert_adv_tend, temp_vert_advec_scheme, tracer_vert_advec_scheme, & ! yhc add
                                 max_diam_drop, use_tau, cosp_frequency
 
 
@@ -4781,7 +4782,7 @@ integer                                 :: ierr
       qq_np,        &   !  specific humidity at full levels (K)
       pt_np             !  temperature at full levels (K)
         
-    integer k,kdim, n,ndim
+    integer i,j,k,kdim, n,ndim
     integer ii_write, jj_write
     integer :: vadvec_scheme
  
@@ -5135,8 +5136,11 @@ do n=1,ndim
      END SELECT
      call vert_advection(dts,omega_h,dp,qq,dqv_vadv,scheme=vadvec_scheme,form=ADVECTIVE_FORM)
 
-    
      !--- write out
+     !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     if (printout_vert_adv_tend.eq.1) then   ! print out input and output fields
         write(6,*)    '#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
         write(6,*)    ''
         write(6,*)    '#=========================='
@@ -5192,6 +5196,58 @@ do n=1,ndim
         write(6,*)    '# specific humidity vertical advection tendency (K/s)'
         write(6,3002) '  dqv_vadv  = ['    ,dqv_vadv(ii_write,jj_write,:)
         write(6,*)    ''
+     end if ! (printout_vert_adv_tend.eq.1) then
+
+     !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     if (printout_vert_adv_tend.eq.2) then   ! print out
+        write(6,*)    ''
+        write(6,*)    '#================================='
+        write(6,*)    '#   input_profile: ', input_profile, trim(input_profile_longname)
+        write(6,*)    '#   n-th of profile : ', n
+        write(6,*)    '#================================='
+        write(6,*)    ''
+
+       do i=1,6
+         select case (i)
+          case(1)
+             call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=SECOND_CENTERED,form=ADVECTIVE_FORM)
+          case(2)
+             call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FOURTH_CENTERED,form=ADVECTIVE_FORM)
+          case(3)
+             call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FINITE_VOLUME_LINEAR,form=ADVECTIVE_FORM)
+          case(4)
+             call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FINITE_VOLUME_PARABOLIC,form=ADVECTIVE_FORM)
+          case(5)
+             call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=SECOND_CENTERED_WTS,form=ADVECTIVE_FORM)
+          case(6)
+             call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FOURTH_CENTERED_WTS,form=ADVECTIVE_FORM)
+          end select
+     
+         !--- compute tracer vertical advection
+          SELECT CASE (i)
+                 CASE(1)
+                      vadvec_scheme = SECOND_CENTERED
+                 CASE(2)
+                      vadvec_scheme = FOURTH_CENTERED
+                 CASE(3)
+                      vadvec_scheme = FINITE_VOLUME_LINEAR
+                 CASE(4)
+                      vadvec_scheme = FINITE_VOLUME_PARABOLIC
+                 CASE(5)
+                      vadvec_scheme = SECOND_CENTERED_WTS
+                 CASE(6)
+                      vadvec_scheme = FOURTH_CENTERED_WTS
+          END SELECT
+          call vert_advection(dts,omega_h,dp,qq,dqv_vadv,scheme=vadvec_scheme,form=ADVECTIVE_FORM)
+
+          write(6,*)    '### vadvec_scheme: ', i
+          write(6,3002) '  dT_vadv   = ['    ,dT_vadv(ii_write,jj_write,:)
+          write(6,3002) '  dqv_vadv   = ['    ,dqv_vadv(ii_write,jj_write,:)
+
+        end do  ! end loop of i
+     end if ! (printout_vert_adv_tend.eq.2) then
 
 end do   ! end loop of n
 
