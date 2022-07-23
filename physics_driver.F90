@@ -159,11 +159,6 @@ use monin_obukhov_mod,        only: monin_obukhov_init
 use edmf_mynn_mod,            only: edmf_mynn_init, edmf_mynn_end, &
                                     edmf_input_type, edmf_output_type, edmf_ls_mp_type, &
                                     edmf_mynn_driver
-use vert_advection_mod,       only: vert_advection, SECOND_CENTERED, &
-                                  FOURTH_CENTERED, FINITE_VOLUME_LINEAR, &
-                                  FINITE_VOLUME_PARABOLIC, &
-                                  SECOND_CENTERED_WTS, FOURTH_CENTERED_WTS, &
-                                  ADVECTIVE_FORM
 !--> yhc, add edmf_mynn
 
 #ifdef SCM
@@ -4731,6 +4726,15 @@ integer                                 :: ierr
 !#######################################################################
   subroutine compute_vert_adv_tend_offline (dts, temp, temp_vert_advec_scheme, tracer_vert_advec_scheme)
 
+    use vert_advection_mod,       only: vert_advection, SECOND_CENTERED, &
+                                        FOURTH_CENTERED, FINITE_VOLUME_LINEAR, &
+                                        FINITE_VOLUME_PARABOLIC, &
+                                        SECOND_CENTERED_WTS, FOURTH_CENTERED_WTS, &
+                                        ADVECTIVE_FORM
+
+    use             fv_pack, only: nlev
+    use      constants_mod, only:  rdgas, rvgas, cp_air, hlv, kappa, grav, pi, SECONDS_PER_DAY
+
     !------------------
     ! purpose    
     !------------------
@@ -4757,9 +4761,13 @@ integer                                 :: ierr
 
     real, dimension(size(temp,1),size(temp,2),size(temp,3))   :: &
       dT_vadv,   &   !  temperature vertical advection (K/s)
+      dT_adi,    &   !  temperature tendencies due to adiabatic heating (K/s)
+      tdt_vadv,  &   !  sum of dT_vadv and dT_adi (K/s)
       dqv_vadv,  &   !  specific humidity vertical advection (kg/kg/s)
       dp,        &   !  pressure thickness between half levels (Pa)
       qq,        &   !  specific humidity at full levels (K)
+      omega_f,   &   !  vertical pressure velocity at full levels (Pa/s)
+      pf,        &   !  pressure at full levels (Pa)
       pt             !  temperature at full levels (K)
 
     real, dimension(nprof, size(temp,1),size(temp,2),size(temp,3)+1) :: &
@@ -4781,7 +4789,7 @@ integer                                 :: ierr
     !----------------------
 
     !--- initialization
-    dT_vadv=0.; dqv_vadv=0. ; dp=0.
+    dT_vadv=0.; dT_adi=0.; tdt_vadv=0.; dqv_vadv=0. ; dp=0.
 
     ii_write = 1
     jj_write = 1
@@ -5082,6 +5090,15 @@ do n=1,ndim
       dp(:,:,k-1) = ph(:,:,k) - ph(:,:,k-1)
     enddo
 
+    !--- get omega and pressure at full levels
+    do k = 2,kdim+1
+      omega_f(:,:,k-1) = 0.5 * (omega_h(:,:,k) + omega_h(:,:,k-1))
+      pf(:,:,k-1)      = 0.5 * (ph(:,:,k) + ph(:,:,k-1))
+    end do
+
+    !--- compute temperature tendency due to adiabatic heating
+    dT_adi=rdgas*pt(:,:,:)*omega_f(:,:,:)/cp_air/pf(:,:,:)
+
     !--- compute temperature vertical advection
     select case (temp_vert_advec_scheme)
      case(1)
@@ -5097,6 +5114,9 @@ do n=1,ndim
      case(6)
         call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FOURTH_CENTERED_WTS,form=ADVECTIVE_FORM)
      end select
+
+    !---
+    tdt_vadv = dT_vadv + dT_adi
 
     !--- compute tracer vertical advection
      SELECT CASE (tracer_vert_advec_scheme)
@@ -5132,11 +5152,17 @@ do n=1,ndim
         write(6,*)    '# pressure at half level (Pa)'
         write(6,3001) '  ph  = [',ph(ii_write,jj_write,:)
         write(6,*)    ''
+        write(6,*)    '# pressure at full level (Pa)'
+        write(6,3001) '  pf  = [',pf(ii_write,jj_write,:)
+        write(6,*)    ''
         write(6,*)    '# pressure thickness (Pa)'
         write(6,3001) '  dp  = [',dp(ii_write,jj_write,:)
         write(6,*)    ''
-        write(6,*)    '# vertical velocity (Pa/s)'
+        write(6,*)    '# vertical velocity at half levels (Pa/s)'
         write(6,3002) '  omega_h  = ['    ,omega_h(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '# vertical velocity at full levels (Pa/s)'
+        write(6,3002) '  omega_f  = ['    ,omega_f(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '# temperature at full levels (K)'
         write(6,3001) '  pt  = [',pt(ii_write,jj_write,:)
@@ -5156,6 +5182,12 @@ do n=1,ndim
         write(6,*)    ''
         write(6,*)    '# temperature vertical advection tendency (K/s)'
         write(6,3002) '  dT_vadv  = ['    ,dT_vadv(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '# temperature tendency due to adiabatic heating (K/s)'
+        write(6,3002) '  dT_adi   = ['    ,dT_adi(ii_write,jj_write,:)
+        write(6,*)    ''
+        write(6,*)    '# temperature tendency due to adiabatic heating and advection (K/s)'
+        write(6,3002) '  tdt_vadv   = ['    ,tdt_vadv(ii_write,jj_write,:)
         write(6,*)    ''
         write(6,*)    '# specific humidity vertical advection tendency (K/s)'
         write(6,3002) '  dqv_vadv  = ['    ,dqv_vadv(ii_write,jj_write,:)
