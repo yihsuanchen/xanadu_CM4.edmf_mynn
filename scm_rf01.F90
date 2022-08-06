@@ -139,6 +139,10 @@ logical                        :: do_aer_prof = .false. ! ZNT 03/29/2021
 logical                        :: do_init_cloud_free = .false. ! yhc 05/10/2022
 real                           :: zi_stevens = 840.     ! yhc 05/16/2022, the top of mixed layer top (m) 
                                                         ! Stevens et al. (2005) uses 840m
+logical                        :: do_any_profiles     = .false.         ! yhc 2022-08-06, read specified profiles as initial conditions 
+character*50                   :: option_any_profiles = "test"          ! yhc 2022-08-06, option for initial conditions
+logical                        :: do_read_rf01_forc_any = .false.       ! yhc 2022-08-06, read specified forcing profiles
+character*50                   :: option_read_rf01_forc_any = "test"    ! yhc 2022-08-06, option for specified forcing profiles
 
 integer :: nsphum, nql, nqi, nqa, nqn, nqni
 integer :: vadvec_scheme
@@ -162,6 +166,7 @@ namelist /scm_rf01_nml/ tracer_vert_advec_scheme,                   &
                         do_stevens, &                     ! ZNT 05/18/2020
                         do_init_cloud_free, &             ! yhc 05/10/2022
                         zi_stevens,         &             ! yhc 05/16/2022
+                        do_any_profiles, option_any_profiles, do_read_rf01_forc_any, option_read_rf01_forc_any, & ! yhc 2022-08-06
                         do_aer_prof                       ! ZNT 03/29/2021
 
 
@@ -174,6 +179,7 @@ integer ::  id_tdt_radf, id_tdt_vadv, id_tdt_lf,                &
             id_vdt_vadv, id_vdt_geos, id_vdt_lf,                &
             id_flx_radf, id_zi_forc,                            &
             id_pf_forc, id_ph_forc, id_zf_forc, id_zh_forc,     &
+            id_tdt_dyn_forc, id_qvdt_dyn_forc,                    &  ! yhc, 2022-08-06
             id_u_geos, id_v_geos
 
 ! ---> h1g, 2010-09-27
@@ -416,6 +422,18 @@ integer :: j
            q(:,:,k,nql) = ql_snd
 
          enddo
+
+     !--- read specified profiles, e.g. those from AM4
+     elseif (do_any_profiles) then ! yhc, 2022-08-06
+           call rf01_snd_any_profiles(u_rf01, v_rf01, T_rf01, qv_rf01, ql_rf01)
+           do k=1,kdim
+             pt(:,:,k)  = T_rf01(k)
+             ua(:,:,k) = u_rf01(k)
+             va(:,:,k) = v_rf01(k)
+             q(:,:,k,nsphum) = qv_rf01(k)
+             q(:,:,k,nql) = ql_rf01(k)
+           enddo
+
      else
          do k=1,kdim
 
@@ -585,6 +603,13 @@ id_v_geos = register_diag_field (mod_name_diag, 'v_geos', axes(1:3), Time, &
      'column integrated cloud water vertical advection', 'kg/m2/s',  missing_value = missing_value)
 ! <--- h1g, 2010-09-27
 
+!<--- yhc, 2022-08-06
+id_tdt_dyn_forc = register_diag_field (mod_name_diag, 'tdt_dyn_forc', axes(1:3), Time, &
+     'Temperature tendencies due to large-scale forcings', 'K/s', missing_value = missing_value)
+id_qvdt_dyn_forc = register_diag_field (mod_name_diag, 'qvdt_dyn_forc', axes(1:3), Time, &
+     'Vapor tendencies due to large-scale forcings', 'kg/kg/s', missing_value = missing_value)
+!---> yhc, 2022-08-06
+
 end subroutine rf01_forc_diagnostic_init
 
 !#######################################################################
@@ -653,6 +678,7 @@ real, dimension(size(pt,1),size(pt,2),size(pt,3))   :: pf,zf,th
 real, dimension(size(pt,1),size(pt,2),size(pt,3))   :: pi_fac, dp
 real, dimension(size(pt,1),size(pt,2),size(pt,3)+1) :: ph, omega_h, zh, frad
 real, dimension(size(pt,1),size(pt,2),size(pt,3))   :: dT_rad, dT_adi, dT_vadv, dT_lf, &
+                                                    tdt_any, qvdt_any, tdt_dyn_forc, qvdt_dyn_forc, & ! yhc 2022-08-06
                                                     dqv_vadv, dqv_lf, dql_vadv, dqi_vadv, dqa_vadv, dqn_vadv
 real, dimension(size(pt,1),size(pt,2),size(pt,3))   :: du_vadv, dv_vadv, du_geos, dv_geos, du_lf, dv_lf
 real,  dimension(size(pt,1),size(pt,2))    :: elev  ! znt 20200226
@@ -912,16 +938,55 @@ if (do_vadv) then
 
 end if
 
+!--- ggg
+write(6,*) 'ggg, t_dt_in', t_dt
+write(6,*) 'ggg, dT_rad', dT_rad
+write(6,*) 'ggg, dT_vadv', dT_vadv
 
-dT_vadv= dT_vadv + dT_adi
-t_dt = t_dt +  dT_rad + dT_vadv
-q_dt(:,:,:,nsphum) = dqv_vadv
-q_dt(:,:,:,nql) = dql_vadv
-q_dt(:,:,:,nqi) = dqi_vadv
-q_dt(:,:,:,nqa) = dqa_vadv
-if(nqn > 0) q_dt(:,:,:,nqn) = dqn_vadv
+!<--- yhc, 2022-08-06
+if (do_read_rf01_forc_any) then 
+  call read_rf01_forc_any(tdt_any, qvdt_any)
+  t_dt = t_dt + dT_rad + tdt_any
+  q_dt(:,:,:,nsphum) = qvdt_any
+
+  tdt_dyn_forc=0.; qvdt_dyn_forc=0.
+  tdt_dyn_forc  (:,:,:) = tdt_any
+  qvdt_dyn_forc (:,:,:) = qvdt_any
+
+  q_dt(:,:,:,nql) = dql_vadv
+  q_dt(:,:,:,nqi) = dqi_vadv
+  q_dt(:,:,:,nqa) = dqa_vadv
+  if(nqn > 0) q_dt(:,:,:,nqn) = dqn_vadv
+
+else  ! 
+  dT_vadv= dT_vadv + dT_adi
+  t_dt = t_dt +  dT_rad + dT_vadv
+  q_dt(:,:,:,nsphum) = dqv_vadv
+  q_dt(:,:,:,nql) = dql_vadv
+  q_dt(:,:,:,nqi) = dqi_vadv
+  q_dt(:,:,:,nqa) = dqa_vadv
+  if(nqn > 0) q_dt(:,:,:,nqn) = dqn_vadv
+
+  tdt_dyn_forc=0.; qvdt_dyn_forc=0.
+  tdt_dyn_forc  (:,:,:) = dT_vadv
+  qvdt_dyn_forc (:,:,:) = dqv_vadv
+
+end if   ! end if of do_any_forcings
+
+!---> yhc, 2022-08-06
 
 u_dt = du_vadv+du_geos; v_dt = dv_vadv+dv_geos;
+
+!--- ggg
+!write(6,*) 'ggg, vert_adv, dts',dts
+!write(6,*) 'ggg, vert_adv, omega_h',omega_h
+!write(6,*) 'ggg, vert_adv, ph',ph
+!write(6,*) 'ggg, vert_adv, dp',dp
+!write(6,*) 'ggg, vert_adv, pt',pt
+!write(6,*) 'ggg, vert_adv, qq',q(:,:,:,nsphum)
+!write(6,*) 'ggg, vert_adv, dT_vadv',dT_vadv
+!write(6,*) 'ggg, vert_adv, dqv_vadv',dqv_vadv
+
 
 if (id_pf_forc > 0)  used = send_data( id_pf_forc,  pf      (:,:,:), time_diag, 1, 1)
 
@@ -991,6 +1056,12 @@ if (id_v_geos > 0)   used = send_data( id_v_geos,   v_geos  (:,:,:), time_diag, 
 if ( id_qvdt_forc_col > 0 )  used = send_data(  id_qvdt_forc_col, qvdt_forcing_col(:,:), time_diag, 1, 1 )
 if ( id_qldt_vadv_col > 0 )  used = send_data(  id_qldt_vadv_col, qldt_vadv_col(:,:), time_diag, 1, 1 )
 ! <--- h1g, 2010-09-27
+
+!<-- yhc 2022-08-06
+if (id_tdt_dyn_forc > 0)  used = send_data( id_tdt_dyn_forc,  tdt_dyn_forc (:,:,:), time_diag, 1, 1)
+if (id_qvdt_dyn_forc > 0) used = send_data( id_qvdt_dyn_forc, qvdt_dyn_forc (:,:,:), time_diag, 1, 1)
+!--> yhc 2022-08-06
+
 
 end subroutine update_rf01_forc
 
@@ -1338,6 +1409,109 @@ subroutine compute_p_z (npz, phis, pe, peln, delp, pt, q_sph, p_full, p_half, z_
      enddo
 
 end subroutine compute_p_z
+
+!###################################
+
+!<-- yhc, 2022-08-06
+subroutine rf01_snd_any_profiles(u_rf01, v_rf01, T_rf01, qv_rf01, ql_rf01)
+  !=================================
+  ! Description
+  !    read specific profiles as RF01 initial conditions
+  !=================================
+
+  !-------------------
+  ! Output argument
+  !   u_rf01: zonal wind speed  (m/s)
+  !   v_rf01: meridional wind speed (m/s)
+  !   T_rf01: temperature (K) 
+  !   qv_rf01: specific humidity (kg/kg) 
+  !   ql_rf01: cloud liquid specific humidity (kg/kg)  
+  !-------------------
+  real, intent(out), dimension(:) :: &
+    u_rf01, v_rf01, T_rf01, qv_rf01, ql_rf01
+
+  !------------------
+  ! local argument
+  !------------------
+
+!------------------------------------
+
+  !--- initialize
+  u_rf01=0.; v_rf01=0.; T_rf01=0.; qv_rf01=0.; ql_rf01=0.
+
+  !--- set u and v following subsoutine rf01_snd_stevens
+  u_rf01(:) = 7.0
+  v_rf01(:) = -5.5
+
+  !--- no cloud liquid
+  ql_rf01(:) = 0.
+
+  !--- set temperature and specific humidity
+  if (trim(option_any_profiles) .eq. "test") then
+    T_rf01 (:) = 290.
+    qv_rf01(:) = 8.e-3
+
+    call error_mesg('rf01_snd_any_profiles',  &
+                    'test profile. STOP', FATAL)
+  else
+    call error_mesg('rf01_snd_any_profiles',  &
+                    'The input option_any_profiles is not supported', FATAL)
+
+  endif
+
+end subroutine rf01_snd_any_profiles
+!--> yhc, 2022-08-06
+
+!###################################
+
+!<-- yhc, 2022-08-06
+subroutine read_rf01_forc_any(tdt_any, qvdt_any)
+  !=================================
+  ! Description
+  !    read specific forcings profiles, e.g. those from AM4
+  !=================================
+
+  !-------------------
+  ! Output argument
+  !   tdt_any : temperature tendency (K/s)
+  !   qvdt_any: specific humidity tendency (kg/kg/s)
+  !-------------------
+  real, intent(out), dimension(:,:,:) :: &
+    tdt_any, qvdt_any 
+
+  !-------------------
+  ! local argument
+  !-------------------
+  integer i,j,k, ix, jx, kx
+
+!---------------------------
+  ix = size(tdt_any,1)
+  jx = size(tdt_any,2)
+  kx = size(tdt_any,3)
+
+  !--- initialize
+  tdt_any=0.;  qvdt_any=0.
+
+  !--- set temperature and specific humidity tendencies
+  if (trim(option_read_rf01_forc_any) .eq. "test") then
+    do i=1,ix
+    do j=1,jx
+      tdt_any (i,j,:) = 1./86400.       ! 1 K/day
+      qvdt_any(i,j,:) = 1.e-3 / 86400.  ! 1 g/kg/day
+    enddo
+    enddo
+
+    call error_mesg('read_rf01_forc_any',  &
+                    'test profile. STOP', FATAL)
+  else
+    call error_mesg('read_rf01_forc_any',  &
+                    'The input option_read_rf01_forc_any is not supported', FATAL)
+
+  endif
+  
+
+end subroutine read_rf01_forc_any
+
 
 
 end module scm_rf01_mod
