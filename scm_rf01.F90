@@ -140,9 +140,9 @@ logical                        :: do_init_cloud_free = .false. ! yhc 05/10/2022
 real                           :: zi_stevens = 840.     ! yhc 05/16/2022, the top of mixed layer top (m) 
                                                         ! Stevens et al. (2005) uses 840m
 logical                        :: do_any_profiles     = .false.         ! yhc 2022-08-06, read specified profiles as initial conditions 
-character*50                   :: option_any_profiles = "test"          ! yhc 2022-08-06, option for initial conditions
+character*100                  :: option_any_profiles = "test"          ! yhc 2022-08-06, option for initial conditions
 logical                        :: do_read_rf01_forc_any = .false.       ! yhc 2022-08-06, read specified forcing profiles
-character*50                   :: option_read_rf01_forc_any = "test"    ! yhc 2022-08-06, option for specified forcing profiles
+character*100                  :: option_read_rf01_forc_any = "test"    ! yhc 2022-08-06, option for specified forcing profiles
 
 integer :: nsphum, nql, nqi, nqa, nqn, nqni
 integer :: vadvec_scheme
@@ -1460,6 +1460,25 @@ subroutine rf01_snd_any_profiles(u_rf01, v_rf01, T_rf01, qv_rf01, ql_rf01)
 
     !call error_mesg('rf01_snd_any_profiles',  &
     !                'test profile. STOP', FATAL)
+
+  elseif (trim(option_any_profiles) .eq. "nudgeAM4_DYCOMS_inst_10Jul09Z") then
+    !--- T & Q profiles in nudge AM4 in DYCOMS region, instantaneous fileds at 09 UTC, July 10, 2001
+    T_rf01(:) = (/259.56537, 239.6206 , 231.85065, 227.21313, 223.41449, 219.25061,  &
+       214.79808, 209.90749, 205.66545, 204.83875, 211.55298, 219.46045, &
+       223.6038 , 230.77509, 240.62654, 251.53851, 261.03146, 268.67322, &
+       275.37033, 280.208  , 283.89157, 287.3503 , 290.03568, 292.02527, &
+       293.2338 , 288.3329 , 285.20035, 286.09076, 287.37228, 288.43158, &
+       289.269  , 289.9053 , 290.36707/)
+    qv_rf01(:) = (/1.7761973e-06, 1.8171096e-06, 1.8693468e-06, 1.8782731e-06,  &
+       1.8628867e-06, 1.8269596e-06, 1.6796785e-06, 1.6591595e-06, &
+       2.4083802e-06, 2.2477245e-06, 2.3656903e-06, 3.5571929e-06, &
+       1.2500092e-05, 5.2879685e-05, 3.4244670e-04, 6.8660267e-04, &
+       1.1139525e-03, 1.6567194e-03, 1.7963117e-03, 3.2657601e-03, &
+       4.7457293e-03, 5.1978002e-03, 4.8223357e-03, 4.5640515e-03, &
+       3.7170404e-03, 3.9796312e-03, 7.4526053e-03, 8.6870762e-03, &
+       8.9330534e-03, 9.0221390e-03, 9.0844352e-03, 9.1471216e-03, &
+       9.2648193e-03/)
+
   else
     call error_mesg('rf01_snd_any_profiles',  &
                     'The input option_any_profiles is not supported', FATAL)
@@ -1499,6 +1518,8 @@ subroutine read_rf01_forc_any(tdt_any, qvdt_any, omega_any)
   !--- initialize
   tdt_any=0.;  qvdt_any=0. ; omega_any=0.
 
+  !!!!! replace ',' to ', &'.  A,Bs/,$/, \&/gc
+
   !--- set temperature and specific humidity tendencies
   if (trim(option_read_rf01_forc_any) .eq. "test") then
     do i=1,ix
@@ -1506,6 +1527,41 @@ subroutine read_rf01_forc_any(tdt_any, qvdt_any, omega_any)
       tdt_any (i,j,:)  = 1./86400.       ! 1 K/day
       qvdt_any(i,j,:)  = 1.e-3 / 86400.  ! 1 g/kg/day
       omega_any(i,j,:) = 40.*100./86400. ! 40 hPa/day
+    enddo
+    enddo
+
+  elseif (trim(option_read_rf01_forc_any) .eq. "nudgeAM4_DYCOMS_inst_10Jul09Z_tdtDpN") then
+    !--- T & Q tendencies and omega in nudge AM4 in DYCOMS region, instantaneous fileds at 09 UTC, July 10, 2001
+    !    T tendency consist of dynamics and nudging
+    do i=1,ix
+    do j=1,jx
+      tdt_any (i,j,:)  = (/1.3144995e-06, -1.5953374e-05, -1.4663427e-05, -1.0413538e-05, &
+       -4.7731737e-06, -1.0182043e-05,  2.5994472e-05,  1.2129881e-06, &
+       -1.9836882e-05, -9.5418200e-06,  1.3509988e-05,  2.0307789e-05, &
+        4.7310405e-05,  3.2322289e-06,  9.2622759e-07,  9.7163811e-06, &
+        2.2719691e-05, -3.7756588e-05, -4.0724448e-05,  6.1348537e-06, &
+        1.1783287e-05,  1.1151913e-05,  3.2755852e-06,  1.2919715e-05, &
+       -8.0487262e-06, -4.1700496e-05, -3.3128190e-06, -1.8820676e-05, &
+       -1.3733691e-05, -1.4773523e-05, -1.4161271e-05, -1.3770061e-05, &
+       -1.3664116e-05/)
+      qvdt_any(i,j,:)  = (/1.7761973e-06, 1.8171096e-06, 1.8693468e-06, 1.8782731e-06, &
+       1.8628867e-06, 1.8269596e-06, 1.6796785e-06, 1.6591595e-06, &
+       2.4083802e-06, 2.2477245e-06, 2.3656903e-06, 3.5571929e-06, &
+       1.2500092e-05, 5.2879685e-05, 3.4244670e-04, 6.8660267e-04, &
+       1.1139525e-03, 1.6567194e-03, 1.7963117e-03, 3.2657601e-03, &
+       4.7457293e-03, 5.1978002e-03, 4.8223357e-03, 4.5640515e-03, &
+       3.7170404e-03, 3.9796312e-03, 7.4526053e-03, 8.6870762e-03, &
+       8.9330534e-03, 9.0221390e-03, 9.0844352e-03, 9.1471216e-03, &
+       9.2648193e-03/)
+      omega_any(i,j,:) = (/-4.2861629e-05, -1.8450012e-04, -2.4843027e-04, -1.4538245e-04, &
+        1.2314529e-04,  3.8904420e-04,  1.8587558e-03,  1.5435455e-03, &
+        1.6337573e-03,  1.9469643e-02,  4.0377978e-02,  3.7253466e-02, &
+        1.6697088e-02, -5.4769162e-03, -1.7506778e-02, -6.2186136e-03, &
+        2.1719443e-02,  4.1611195e-02,  5.1081970e-02,  6.2214240e-02, &
+        7.6720290e-02,  8.4804989e-02,  8.4666051e-02,  8.2148612e-02, &
+        7.9994023e-02,  7.4541010e-02,  6.1911773e-02,  4.4472393e-02, &
+        2.8503373e-02,  1.5996391e-02,  6.4679310e-03, -5.3951336e-04, &
+       -5.3057675e-03/)
     enddo
     enddo
 
