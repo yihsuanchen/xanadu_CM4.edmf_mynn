@@ -678,7 +678,7 @@ real, dimension(size(pt,1),size(pt,2),size(pt,3))   :: pf,zf,th
 real, dimension(size(pt,1),size(pt,2),size(pt,3))   :: pi_fac, dp
 real, dimension(size(pt,1),size(pt,2),size(pt,3)+1) :: ph, omega_h, zh, frad
 real, dimension(size(pt,1),size(pt,2),size(pt,3))   :: dT_rad, dT_adi, dT_vadv, dT_lf, &
-                                                    tdt_any, qvdt_any, tdt_dyn_forc, qvdt_dyn_forc, & ! yhc 2022-08-06
+                                                    tdt_any, qvdt_any, omega_any, tdt_dyn_forc, qvdt_dyn_forc, & ! yhc 2022-08-06
                                                     dqv_vadv, dqv_lf, dql_vadv, dqi_vadv, dqa_vadv, dqn_vadv
 real, dimension(size(pt,1),size(pt,2),size(pt,3))   :: du_vadv, dv_vadv, du_geos, dv_geos, du_lf, dv_lf
 real,  dimension(size(pt,1),size(pt,2))    :: elev  ! znt 20200226
@@ -778,6 +778,14 @@ du_lf = 0.0
 dv_lf = 0.0
 dT_lf = 0.0
 dqv_lf = 0.0
+
+!<-- yhc, 2022-08-07
+if (do_read_rf01_forc_any) then
+  call read_rf01_forc_any(tdt_any, qvdt_any, omega_any)
+  omega_h(:,:,:) = omega_any(:,:,:)    ! omega_h is used in vert_advection
+  omga   (:,:,:) = omega_any(:,:,:)    ! omga is in fv_point.inc
+end if
+!--> yhc, 2022-08-07
 
 ! --- longwave radiative forcing
 !     F(z) = F0*exp(-Q(z,inf))
@@ -939,13 +947,12 @@ if (do_vadv) then
 end if
 
 !--- ggg
-write(6,*) 'ggg, t_dt_in', t_dt
-write(6,*) 'ggg, dT_rad', dT_rad
-write(6,*) 'ggg, dT_vadv', dT_vadv
+!write(6,*) 'ggg, t_dt_in', t_dt
+!write(6,*) 'ggg, dT_rad', dT_rad
+!write(6,*) 'ggg, dT_vadv', dT_vadv
 
 !<--- yhc, 2022-08-06
 if (do_read_rf01_forc_any) then 
-  call read_rf01_forc_any(tdt_any, qvdt_any)
   t_dt = t_dt + dT_rad + tdt_any
   q_dt(:,:,:,nsphum) = qvdt_any
 
@@ -1451,8 +1458,8 @@ subroutine rf01_snd_any_profiles(u_rf01, v_rf01, T_rf01, qv_rf01, ql_rf01)
     T_rf01 (:) = 290.
     qv_rf01(:) = 8.e-3
 
-    call error_mesg('rf01_snd_any_profiles',  &
-                    'test profile. STOP', FATAL)
+    !call error_mesg('rf01_snd_any_profiles',  &
+    !                'test profile. STOP', FATAL)
   else
     call error_mesg('rf01_snd_any_profiles',  &
                     'The input option_any_profiles is not supported', FATAL)
@@ -1465,7 +1472,7 @@ end subroutine rf01_snd_any_profiles
 !###################################
 
 !<-- yhc, 2022-08-06
-subroutine read_rf01_forc_any(tdt_any, qvdt_any)
+subroutine read_rf01_forc_any(tdt_any, qvdt_any, omega_any)
   !=================================
   ! Description
   !    read specific forcings profiles, e.g. those from AM4
@@ -1477,7 +1484,7 @@ subroutine read_rf01_forc_any(tdt_any, qvdt_any)
   !   qvdt_any: specific humidity tendency (kg/kg/s)
   !-------------------
   real, intent(out), dimension(:,:,:) :: &
-    tdt_any, qvdt_any 
+    tdt_any, qvdt_any, omega_any 
 
   !-------------------
   ! local argument
@@ -1490,19 +1497,20 @@ subroutine read_rf01_forc_any(tdt_any, qvdt_any)
   kx = size(tdt_any,3)
 
   !--- initialize
-  tdt_any=0.;  qvdt_any=0.
+  tdt_any=0.;  qvdt_any=0. ; omega_any=0.
 
   !--- set temperature and specific humidity tendencies
   if (trim(option_read_rf01_forc_any) .eq. "test") then
     do i=1,ix
     do j=1,jx
-      tdt_any (i,j,:) = 1./86400.       ! 1 K/day
-      qvdt_any(i,j,:) = 1.e-3 / 86400.  ! 1 g/kg/day
+      tdt_any (i,j,:)  = 1./86400.       ! 1 K/day
+      qvdt_any(i,j,:)  = 1.e-3 / 86400.  ! 1 g/kg/day
+      omega_any(i,j,:) = 40.*100./86400. ! 40 hPa/day
     enddo
     enddo
 
-    call error_mesg('read_rf01_forc_any',  &
-                    'test profile. STOP', FATAL)
+    !call error_mesg('read_rf01_forc_any',  &
+    !                'test forcing profile. STOP', FATAL)
   else
     call error_mesg('read_rf01_forc_any',  &
                     'The input option_read_rf01_forc_any is not supported', FATAL)
