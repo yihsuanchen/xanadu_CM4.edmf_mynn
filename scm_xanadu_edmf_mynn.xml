@@ -3834,7 +3834,7 @@ unset occam_file
 
 <!-- Additional Experiments: ZNT 20200226 -->
   <freInclude name="scm_rf01_a_basic">
-        <run days="1" hours="0" overrideParams="fms_nml :clock_grain='ROUTINE'; soil_nml :init_temp=292.5">
+        <run days="5" hours="0" overrideParams="fms_nml :clock_grain='ROUTINE'; soil_nml :init_temp=292.5">
                                 <!-- Initialize soil temperature to initial TSKIN (even though we are over ocean!) -->
                 <resources jobWallclock="01:00:00">
                 <atm ranks="1" threads="1"    layout = "1,1"  io_layout = "1,1" />
@@ -13995,6 +13995,85 @@ DYCOMS RF01 case
     </input>
   </experiment>
 
+  <experiment name="v01_RF01-00cc-am4p0_aerT_clr_am4RAD_sw" inherit="v01_RF01-00a-am4p0_aerT">
+    <input>
+      <namelist name="physics_driver_nml">
+ do_radiation = .true.
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+      </namelist>
+      <namelist name="radiation_driver_nml">
+        do_radiation = .true.,
+        rad_time_step= 1800,
+        rad_package = 'sea_esf',
+        do_clear_sky_pass=.true.,
+        !calc_hemi_integrals = .false.,
+        renormalize_sw_fluxes=.true.,
+        zenith_spec = 'diurnally_varying',
+        using_restart_file = .false.
+        do_conserve_energy = .true.
+        sw_rad_time_step = 1800,
+        use_single_lw_sw_ts = .false.,
+      </namelist>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+      <namelist name="shortwave_driver_nml">
+      do_cmip_diagnostics = .true.,
+      swform = 'esfsw99'
+      solar_constant = 1360.0,
+      time_varying_solar_constant = .false.,
+      </namelist>
+      <namelist name="scm_forc_nml">
+        experiment = 'rf01',
+        use_scm_rad = .false.,
+        do_specified_land       = .false.,
+        do_specified_flux       = .true.,
+        do_specified_tskin      = .false.,
+        do_specified_albedo     = .false.,
+        do_specified_rough_leng = .false.,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00cc-am4p0_aerT_clr_am4RAD_sw_2Xdifv" inherit="v01_RF01-00cc-am4p0_aerT_clr_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="v01_RF01-00a-am4p0_aerT_2Xdifv" inherit="v01_RF01-00a-am4p0_aerT">
     <input>
       <namelist name="scm_rf01_nml">
@@ -14895,6 +14974,28 @@ cloud-free initial conditions
     </input>
   </experiment>
 
+  <experiment name="v01_RF01-00d-mynnED_2Xdifv" inherit="v01_RF01-00d-mynnED">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true.
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="v01_RF01-01a-edmf_EDonly" inherit="v01_RF01-am4p0_aerT_pblhUW_noSH_noVDIFF">
     <input>
       <namelist name="physics_driver_nml">
@@ -15021,6 +15122,109 @@ cloud-free initial conditions
  UPWIND  =   1.00000000000000     ,
  do_option_edmf2ls_mp = 4 
  QX_MF   =           2,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-02a-edmf_MFexp_QxDet_2Xdifv" inherit="v01_RF01-02a-edmf_MFexp_QxDet">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true.
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-02ac-edmf_MFexp_QxDet_am4RAD_sw" inherit="v01_RF01-02a-edmf_MFexp_QxDet">
+    <input>
+      <namelist name="physics_driver_nml">
+        DO_EDMF_MYNN    = T,
+        DO_EDMF_MYNN_DIAGNOSTIC    = F,
+        DO_WRITEOUT_COLUMN_NML  = T,
+        II_WRITE        =        0,
+        JJ_WRITE        =        0,
+        do_tracers_selective = 6 
+        do_radiation = .true.
+      </namelist>
+      <namelist name="radiation_driver_nml">
+        do_radiation = .true.,
+        rad_time_step= 1800,
+        rad_package = 'sea_esf',
+        do_clear_sky_pass=.true.,
+        !calc_hemi_integrals = .false.,
+        renormalize_sw_fluxes=.true.,
+        zenith_spec = 'diurnally_varying',
+        using_restart_file = .false.
+        do_conserve_energy = .true.
+        sw_rad_time_step = 1800,
+        use_single_lw_sw_ts = .false.,
+      </namelist>
+      <namelist name="shortwave_driver_nml">
+      do_cmip_diagnostics = .true.,
+      swform = 'esfsw99'
+      solar_constant = 1360.0,
+      time_varying_solar_constant = .false.,
+      </namelist>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+      </namelist>
+      <namelist name="scm_forc_nml">
+        experiment = 'rf01',
+        use_scm_rad = .false.,
+        do_specified_land       = .false.,
+        do_specified_flux       = .true.,
+        do_specified_tskin      = .false.,
+        do_specified_albedo     = .false.,
+        do_specified_rough_leng = .false.,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-02ac-edmf_MFexp_QxDet_am4RAD_sw_2Xdifv" inherit="v01_RF01-02ac-edmf_MFexp_QxDet_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
       </namelist>
     </input>
   </experiment>
@@ -15359,6 +15563,89 @@ cloud-free initial conditions
     </input>
   </experiment>
 
+  <experiment name="v01_RF01-00d-mynnED_am4RAD_sw" inherit="v01_RF01-00d-mynnED">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 0 
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+ do_radiation = .true. 
+      </namelist>
+      <namelist name="radiation_driver_nml">
+        do_radiation = .true.,
+        rad_time_step= 1800,
+        rad_package = 'sea_esf',
+        do_clear_sky_pass=.true.,
+        !calc_hemi_integrals = .false.,
+        renormalize_sw_fluxes=.true.,
+        zenith_spec = 'diurnally_varying',
+        using_restart_file = .false.
+        do_conserve_energy = .true.
+        sw_rad_time_step = 1800,
+        use_single_lw_sw_ts = .false.,
+      </namelist>
+      <namelist name="shortwave_driver_nml">
+      do_cmip_diagnostics = .true.,
+      swform = 'esfsw99'
+      solar_constant = 1360.0,
+      time_varying_solar_constant = .false.,
+      </namelist>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true.
+      </namelist>
+      <namelist name="scm_forc_nml">
+        experiment = 'rf01',
+        use_scm_rad = .false.,
+        do_specified_land       = .false.,
+        do_specified_flux       = .true.,
+        do_specified_tskin      = .false.,
+        do_specified_albedo     = .false.,
+        do_specified_rough_leng = .false.,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00d-mynnED_am4RAD_sw_2Xdifv" inherit="v01_RF01-00d-mynnED_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_stevens = .true.
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true.
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="v01_BOMEX-01b-edmf_EDonly_noSH" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
     <input>
       <namelist name="physics_driver_nml">
@@ -15379,6 +15666,7 @@ cloud-free initial conditions
       </namelist>
     </input>
   </experiment>
+
 
   <experiment name="v01_BOMEX-01a-edmf_EDonly" inherit="v01_BOMEX-am4p0_pblhUW_noSH_noVDIFF">
     <input>
@@ -16561,6 +16849,51 @@ cloud-free initial conditions
     </input>
   </experiment>
 
+  <experiment name="xx2-RF01_A-vert_adv_offline" inherit="RF01_A_$(AWG_EXPERIMENT)">
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+      <namelist name="physics_driver_nml">
+        do_vert_adv_tend_offline = T
+        input_profile = 1
+        printout_vert_adv_tend = 2
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="xx2-RF01-test_init_forc" inherit="v01_RF01-00cc-am4p0_aerT_clr_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .false.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+        do_stevens = .true.
+        do_any_profiles = .false.
+        option_any_profiles = "nudgeAM4_DYCOMS_inst_10Jul09Z"
+        do_read_rf01_forc_any = .true.
+        option_read_rf01_forc_any = "nudgeAM4_DYCOMS_inst_10Jul09Z_tdtDpN"
+      </namelist>
+    </input>
+  </experiment>
+
+<!--
+        do_stevens = .false.
+        do_any_profiles = .true.
+        option_any_profiles = "nudgeAM4_DYCOMS_inst_10Jul09Z"
+        do_read_rf01_forc_any = .true.
+        option_read_rf01_forc_any = "nudgeAM4_DYCOMS_inst_10Jul09Z_tdtDpN"
+
+-->
 
 </experimentSuite>
 
