@@ -14024,7 +14024,7 @@ DYCOMS RF01 case
         vert_advec_cond = .true.,
         divf = 3.75e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -14061,7 +14061,7 @@ DYCOMS RF01 case
         vert_advec_cond = .true.,
         divf = 7.5e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -15185,7 +15185,7 @@ cloud-free initial conditions
         vert_advec_cond = .true.,
         divf = 3.75e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -15216,7 +15216,7 @@ cloud-free initial conditions
         vert_advec_cond = .true.,
         divf = 7.5e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -15602,7 +15602,7 @@ cloud-free initial conditions
         vert_advec_cond = .true.,
         divf = 3.75e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -15633,7 +15633,7 @@ cloud-free initial conditions
         vert_advec_cond = .true.,
         divf = 7.5e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -16858,6 +16858,9 @@ cloud-free initial conditions
         printout_vert_adv_tend = 2
       </namelist>
     </input>
+  </experiment>
+
+  <experiment name="xx2-v01_RF01-00a-am4p0_aerT_clr" inherit="v01_RF01-00a-am4p0_aerT_clr">
   </experiment>
 
   <experiment name="xx2-RF01-test_init_forc" inherit="v01_RF01-00cc-am4p0_aerT_clr_am4RAD_sw">
