@@ -2150,6 +2150,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
         write(6,*) 'data qldt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nql)
         write(6,*) 'data qidt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqi)
         write(6,*) 'data qndt_physics_down_begin/'    ,rdt(ii_write,jj_write,:,nqn)
+        write(6,*) 'data omega_physics_down_begin/'    ,Physics_input_block%omega(ii_write,jj_write,:)
         write(6,*) 'radturbten_physics_down_begin/', radturbten(ii_write,jj_write,:)
         write(6,*) 'Rad_flux_block%tdt_rad', Rad_flux_block%tdt_rad(ii_write,jj_write,:)
         do rr=1, size(Physics_tendency_block%q_dt,4)
