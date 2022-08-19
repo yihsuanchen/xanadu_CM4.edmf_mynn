@@ -57,6 +57,9 @@ character(len=128) :: version = '$Id$'
 character(len=128) :: tagname = '$Name$'
 integer, dimension(1) :: restart_versions = (/ 1 /)
 
+!--- local variables
+logical, private               :: initialized = .false.
+
 !--- namelist parameters
 integer, public                :: tracer_vert_advec_scheme = 3
 integer, public                :: temp_vert_advec_scheme = 3
@@ -66,6 +69,9 @@ namelist /scm_cgils_nml/ tracer_vert_advec_scheme, &
                         temp_vert_advec_scheme,   &
                         momentum_vert_advec_scheme
 
+!#######################################################################
+
+contains
 
 !#######################################################################
 ! Subroutine to initialize case forcings
