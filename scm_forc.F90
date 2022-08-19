@@ -119,6 +119,10 @@ module scm_forc_mod
                                  update_mc3e_forc, mc3e_forc_diagnostic_init,         &
                                  get_mc3e_sst, mc3e_surface_flux_loop, get_mc3e_sfc
 
+!<--- yhc add cgils 
+   use      scm_cgils_mod, only: cgils_data_read, cgils_forc_init, cgils_forc_end, update_cgils_forc
+!--->
+
 implicit none
 
 public scm_data_read, scm_forc_init, scm_forc_end, update_scm_forc,  &
@@ -248,6 +252,11 @@ character(len=64)    :: fname_nc='INPUT/scm_forc.res.nc'
       case ('bomex')
          call bomex_data_read(kmax)
 
+! ---> yhc, 2022-08-19
+      case('cgils')
+         call  cgils_data_read()
+! <--- yhc, 2022-08-19
+
       case ('dcbl')
          call dcbl_data_read(kmax)
 
@@ -299,6 +308,7 @@ character(len=64)    :: fname_nc='INPUT/scm_forc.res.nc'
       case('Hawaii_143W_8N')
          call  Hawaii_143W_8N_data_read( )
 ! <--- h1g, 2012-3-2
+
 
     case  default
        call mpp_error ('scm_data_read',                          &
@@ -408,6 +418,9 @@ select case (trim(experiment))
 
    case ('rf01')!h1g
       call rf01_forc_init(time_interp,As,Bs)
+
+   case ('cgils')! yhc, 2022-08-19
+      call cgils_forc_init(time_interp,As,Bs)
 
    case ('rf02')!h1g
        call rf02_forc_init(time_interp,As,Bs)
@@ -526,6 +539,10 @@ select case (trim(experiment))
 
       call bomex_forc_end()
 
+   case ('cgils')  ! yhc, 2022-08-19
+
+      call cgils_forc_end()
+
    case ('dcbl')
 
       call dcbl_forc_end()
@@ -541,6 +558,7 @@ select case (trim(experiment))
    case ('rf01')
 
       call rf01_forc_end()
+
 
    case ('rf02')
 
@@ -771,6 +789,9 @@ select case (trim(experiment))
 
    case ('bomex') !h1g
       call update_bomex_forc(time_interp,time_diag,dt_int,elev)
+
+   case ('cgils') !yhc, 2022-08-19
+      call update_cgils_forc(time_interp,time_diag,dt_int)
 
    case ('dcbl') !h1g
       call update_dcbl_forc(time_interp,time_diag,dt_int,elev)
