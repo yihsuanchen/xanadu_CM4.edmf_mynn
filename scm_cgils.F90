@@ -59,11 +59,26 @@ integer, dimension(1) :: restart_versions = (/ 1 /)
 
 !--- local variables
 logical, private               :: initialized = .false.
+integer                        :: lev_cgils
+integer                        :: time_cgils
+integer  :: lat_cgils = 1
+integer  :: lon_cgils = 1
+real, allocatable, dimension(:,:,:,:) :: buffer_cgils_4D
+real, allocatable, dimension(:) :: T_cgils
+
+real,    private               :: missing_value = -999.
 
 !--- namelist parameters
 integer, public                :: tracer_vert_advec_scheme = 3
 integer, public                :: temp_vert_advec_scheme = 3
 integer, public                :: momentum_vert_advec_scheme = 3
+character(len=20) , public     :: cgils_case    = "none"
+character(len=200), public     :: cgils_ctl_s6_nc  = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s6.nc'
+character(len=200), public     :: cgils_ctl_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s11.nc'
+character(len=200), public     :: cgils_ctl_s12_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s12.nc'
+character(len=200), public     :: cgils_p2k_s6_nc  = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s6.nc'
+character(len=200), public     :: cgils_p2k_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s11.nc'
+character(len=200), public     :: cgils_p2k_s12_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s12.nc'
 
 namelist /scm_cgils_nml/ tracer_vert_advec_scheme, &
                         temp_vert_advec_scheme,   &
@@ -88,9 +103,59 @@ subroutine cgils_forc_init(time_interp,As,Bs)
 !      As, Bs          A's and B's of half levels in hybrid coordinate
 !                      ph(k) = A(k) + B(k) * psurf
 
-type(time_type)                          :: time_interp
-real,  intent (in), dimension(:)         :: As,Bs
+  type(time_type)                          :: time_interp
+  real,  intent (in), dimension(:)         :: As,Bs
+
+!------------------
+! local variables
+!------------------
+  character(len=200)     :: cgils_nc 
+
+  integer i,j,k,ix,jx,kx,tx
+
 !---------------------------------
+
+!------------------------------- 
+! Determine CGILS input file
+!------------------------------- 
+  if (trim(cgils_case) .eq. "ctl_s6") then
+    cgils_nc = cgils_ctl_s6_nc
+  elseif (trim(cgils_case) .eq. "ctl_s11") then
+    cgils_nc = cgils_ctl_s11_nc
+  elseif (trim(cgils_case) .eq. "ctl_s12") then
+    cgils_nc = cgils_ctl_s12_nc
+  elseif (trim(cgils_case) .eq. "p2k_s6") then
+    cgils_nc = cgils_p2k_s6_nc
+  elseif (trim(cgils_case) .eq. "p2k_s11") then
+    cgils_nc = cgils_p2k_s11_nc
+  elseif (trim(cgils_case) .eq. "p2k_s12") then
+    cgils_nc = cgils_p2k_s12_nc
+  else
+    call error_mesg( ' scm_cgils',     &
+                     ' nml cgils_case is not supported.',&
+                     FATAL ) 
+  endif
+
+!---------------------
+! allocate variables
+!---------------------
+
+  !--- set buffer variables
+  call field_size (cgils_nc, 'lev' , lev_cgils )
+  call field_size (cgils_nc, 'time', time_cgils)
+  
+  if (allocated(buffer_cgils_4D)) deallocate (buffer_cgils_4D)
+    allocate(buffer_cgils_4D(time_cgils, lev_cgils, lat_cgils, lon_cgils)); buffer_cgils_4D = missing_value
+
+  !--- set cgils variables
+  if (allocated(T_cgils)) deallocate(T_cgils)
+    allocate(T_cgils(lev_cgils)); T_cgils = missing_value
+
+!--------------------------------
+!  read data from cgils file
+!--------------------------------
+  call read_data(cgils_nc, 'T',   buffer_cgils_4D(:,:,:,:), no_domain=.true.)
+       T_cgils(:) = buffer_cgils_4D(1,:,1,1)
 
 end subroutine cgils_forc_init
 
