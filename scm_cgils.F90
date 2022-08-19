@@ -1,12 +1,13 @@
 module scm_cgils_mod
 
-   use            fms_mod, only:  check_nml_error,  &
+   use            fms_mod, only:  check_nml_error,                      &
                                   mpp_pe, mpp_root_pe,                  &
                                   write_version_number,                 &
                                   open_file, close_file, file_exist,    &
-                                  read_data, write_data, mpp_error,     &
-                                  error_mesg, FATAL, NOTE
-
+                                  read_data, write_data,                &
+                                  mpp_error,                            &
+                                  error_mesg, FATAL, NOTE,              &
+                                  field_exist, field_size
 #ifdef INTERNAL_FILE_NML
    USE              mpp_mod, ONLY: input_nml_file
 #else
@@ -46,7 +47,7 @@ use             fv_pack, only: nlon, mlat, nlev, beglat, endlat, beglon, &
    implicit none
    private
 
-   public cgils_forc_init, cgils_forc_end, update_cgils_forc
+   public cgils_data_read, cgils_forc_init, cgils_forc_end, update_cgils_forc
 
    character(len=8) :: mod_name = 'scm_cgils'
    character(len=7) :: mod_name_diag = 'forcing'
@@ -80,13 +81,57 @@ character(len=200), public     :: cgils_p2k_s6_nc  = '/ncrc/home2/Yi-hsuan.Chen/
 character(len=200), public     :: cgils_p2k_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s11.nc'
 character(len=200), public     :: cgils_p2k_s12_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s12.nc'
 
-namelist /scm_cgils_nml/ tracer_vert_advec_scheme, &
+namelist /scm_cgils_nml/ &
+                        cgils_case, &
+                        tracer_vert_advec_scheme, &
                         temp_vert_advec_scheme,   &
                         momentum_vert_advec_scheme
 
 !#######################################################################
 
 contains
+
+!#######################################################################
+! Subroutine to read case specific namelist
+!   Copy from subroutine bomex_data_read, scm_bomex.F90
+
+subroutine cgils_data_read()
+
+implicit none
+
+integer                                   :: i
+integer                                   :: unit,ierr,io, logunit
+    
+integer :: year, month, day
+
+   if (initialized) return
+   initialized = .true.
+
+!-------- read namelist --------
+#ifdef INTERNAL_FILE_NML
+   read (input_nml_file, nml=scm_cgils_nml, iostat=io)
+   ierr = check_nml_error(io, 'scm_cgils_nml')
+#else
+   if (file_exist('input.nml')) then
+      unit = open_namelist_file()
+      ierr=1; do while (ierr /= 0)
+         read  (unit, nml=scm_cgils_nml, iostat=io, end=10)
+         ierr = check_nml_error(io,'scm_cgils_nml')
+      enddo
+10    call close_file (unit)
+   endif
+#endif
+
+!--------- write version number and namelist --------
+
+   call write_version_number ( version, tagname )
+   if(mpp_pe() == mpp_root_pe() ) then
+     logunit =stdlog()
+     write(logunit,nml=scm_cgils_nml)
+   endif
+
+end subroutine cgils_data_read
+
 
 !#######################################################################
 ! Subroutine to initialize case forcings
@@ -110,6 +155,7 @@ subroutine cgils_forc_init(time_interp,As,Bs)
 ! local variables
 !------------------
   character(len=200)     :: cgils_nc 
+  integer, dimension(4) :: siz   
 
   integer i,j,k,ix,jx,kx,tx
 
@@ -141,8 +187,8 @@ subroutine cgils_forc_init(time_interp,As,Bs)
 !---------------------
 
   !--- set buffer variables
-  call field_size (cgils_nc, 'lev' , lev_cgils )
-  call field_size (cgils_nc, 'time', time_cgils)
+  call field_size (cgils_nc, 'lev' , siz) ; lev_cgils  = siz(1)
+  call field_size (cgils_nc, 'time', siz) ; time_cgils = siz(1)
   
   if (allocated(buffer_cgils_4D)) deallocate (buffer_cgils_4D)
     allocate(buffer_cgils_4D(time_cgils, lev_cgils, lat_cgils, lon_cgils)); buffer_cgils_4D = missing_value
