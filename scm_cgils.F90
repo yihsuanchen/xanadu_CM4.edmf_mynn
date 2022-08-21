@@ -64,7 +64,7 @@ integer                        :: lev_cgils
 integer                        :: time_cgils
 integer  :: lat_cgils = 1
 integer  :: lon_cgils = 1
-real, allocatable, dimension(:,:,:,:) :: buffer_cgils_4D
+real, allocatable, dimension(:,:,:) :: buffer_cgils_3D
 real, allocatable, dimension(:) :: T_cgils
 
 real,    private               :: missing_value = -999.
@@ -81,7 +81,10 @@ character(len=200), public     :: cgils_p2k_s6_nc  = '/ncrc/home2/Yi-hsuan.Chen/
 character(len=200), public     :: cgils_p2k_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s11.nc'
 character(len=200), public     :: cgils_p2k_s12_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s12.nc'
 
+logical :: do_debug_printout = .true.
+
 namelist /scm_cgils_nml/ &
+                        do_debug_printout, &
                         cgils_case, &
                         tracer_vert_advec_scheme, &
                         temp_vert_advec_scheme,   &
@@ -129,6 +132,12 @@ integer :: year, month, day
      logunit =stdlog()
      write(logunit,nml=scm_cgils_nml)
    endif
+
+!if (do_debug_printout) then
+!    call error_mesg( ' scm_cgils',     &
+!                     ' data_read successfully..',&
+!                     FATAL ) 
+!endif
 
 end subroutine cgils_data_read
 
@@ -190,18 +199,34 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   call field_size (cgils_nc, 'lev' , siz) ; lev_cgils  = siz(1)
   call field_size (cgils_nc, 'time', siz) ; time_cgils = siz(1)
   
-  if (allocated(buffer_cgils_4D)) deallocate (buffer_cgils_4D)
-    allocate(buffer_cgils_4D(time_cgils, lev_cgils, lat_cgils, lon_cgils)); buffer_cgils_4D = missing_value
+  if (allocated(buffer_cgils_3D)) deallocate (buffer_cgils_3D)
+    allocate(buffer_cgils_3D(lat_cgils, lon_cgils, lev_cgils)); buffer_cgils_3D = missing_value
 
   !--- set cgils variables
   if (allocated(T_cgils)) deallocate(T_cgils)
     allocate(T_cgils(lev_cgils)); T_cgils = missing_value
 
+if (do_debug_printout) then
+  write(6,*) 'lev_cgils, time_cgils',lev_cgils, time_cgils
+  write(6,*) 'siz',siz
+endif
+
 !--------------------------------
 !  read data from cgils file
+!    subroutine read_data, $scmsrc/FMS/fms/fms_io.F90
+!
+!  variable in CGILS file is T(time, lev, lat, lon). buffer_cgils_3D (lat, lon, lev)
 !--------------------------------
-  call read_data(cgils_nc, 'T',   buffer_cgils_4D(:,:,:,:), no_domain=.true.)
-       T_cgils(:) = buffer_cgils_4D(1,:,1,1)
+  call read_data(cgils_nc, 'T',   buffer_cgils_3D(:,:,:), no_domain=.true.)
+       T_cgils(:) = buffer_cgils_3D(1,1,:)
+
+
+if (do_debug_printout) then
+  write(6,*) 'T_cgils',T_cgils
+    call error_mesg( ' scm_cgils',     &
+                     ' STOP.',&
+                     FATAL ) 
+endif
 
 end subroutine cgils_forc_init
 
