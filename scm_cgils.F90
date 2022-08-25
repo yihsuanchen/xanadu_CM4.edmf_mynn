@@ -286,17 +286,18 @@ endif
   call get_eta_level(nlev, Ps_cgils(1), pfull(1,1,:), phalf(1,1,:))
 
   !--- interpolate cgils data on SCM pressure levels
-  !call interp_plev_cgils_to_SCM(pfull, pt, pfull_cgils, T_cgils)
+  call interp_cgils_to_SCM(pfull(1,1,:), pt(1,1,:), pfull_cgils(:), T_cgils(:))
 
 if (do_debug_printout) then
+  write(6,*) 'pfull_cgils',pfull_cgils
+  write(6,*) 'pfull',pfull
   write(6,*) 'T_cgils',T_cgils
+  write(6,*) 'pt',pt
   write(6,*) 'U_cgils',U_cgils
   write(6,*) 'V_cgils',V_cgils
   write(6,*) 'q_cgils',q_cgils
   write(6,*) 'Ps_cgils',Ps_cgils
-  write(6,*) 'pfull_cgils',pfull_cgils
-  write(6,*) 'pfull',pfull
-  write(6,*) 'phalf',phalf
+  !write(6,*) 'phalf',phalf
   !write(6,*) '',
     call error_mesg( ' scm_cgils',     &
                      ' STOP.',&
@@ -335,6 +336,65 @@ subroutine update_cgils_forc(time_interp,time_diag,dt_int)
 type(time_type), intent(in)              :: time_interp,time_diag,dt_int
 
 end subroutine update_cgils_forc
+
+!#######################################################################
+! Subroutine to interpolat CGILS data on SCM levels
+!   reference: subroutine dephy_ini, scm_bomex.F90
+
+subroutine interp_cgils_to_SCM (plev_SCM, var_SCM, plev_cgils, var_cgils)
+
+  !--- input argument
+  real, intent(in) , dimension(:) :: plev_SCM               ! pressure levels in SCM (Pa)  , e.g. pfull_scm (nlev_scm)
+  real, intent(in) , dimension(:) :: plev_cgils, var_cgils  ! variable and pressure levels in CGILS (Pa), 
+                                                            !   e.g. var_cgils(nlev_cgils), pfull_cgils(nlev_cgils)
+  !--- output argument
+  real, intent(out), dimension(:) :: var_SCM 
+
+  !--- local variables
+  logical :: found
+  real    :: al, ah
+  integer :: k_scm, k_cgils, kmax_scm, kmax_cgils ! d for DEPHY; k_dp = k_d + 1
+  integer :: k, k1, k1p
+!----------------------------------------
+
+  !--- initialize output
+  var_SCM = 0.
+
+  !--- find kmax
+  kmax_scm   = size(plev_SCM  ,1)
+  kmax_cgils = size(plev_cgils,1)
+
+  do k=1,kmax_scm
+    !--- below CGILS data range
+    if (plev_SCM(k) >= plev_cgils(kmax_cgils)) then
+      var_SCM(k) = var_cgils(kmax_cgils)
+
+    !--- above CGILS data range
+    elseif (plev_SCM(k) <= plev_cgils(1)) then
+      var_SCM(k) = var_cgils(1)
+
+    !--- do interpolation within CGILS profile
+    elseif (plev_SCM(k) > plev_cgils(1) .and. plev_SCM(k) < plev_cgils(kmax_cgils)) then
+      found = .false.
+
+      k1 = 1; k1p = k1 + 1
+      found = .false.
+      do while ( (k1p .le. kmax_cgils ) .and. (.not. found) )
+        if ( plev_SCM(k) >= plev_cgils(k1) .and. plev_SCM(k) < plev_cgils(k1p) ) then
+           ah = (plev_cgils(k1p) - plev_SCM(k)) / (plev_cgils(k1p) - plev_cgils(k1))
+           al = 1.0 - ah
+           var_SCM(k) = ah*var_cgils(k1) + al*var_cgils(k1p)
+           found = .true.
+        end if
+        k1 = k1p ; k1p = k1 + 1 ! step up
+      end do
+
+    endif  ! end if of plev_SCM
+  enddo    ! end loop of k
+
+
+end subroutine interp_cgils_to_SCM
+
 
 
 end module scm_cgils_mod
