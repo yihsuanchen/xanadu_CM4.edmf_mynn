@@ -60,12 +60,15 @@ integer, dimension(1) :: restart_versions = (/ 1 /)
 
 !--- local variables
 logical, private               :: initialized = .false.
-integer                        :: lev_cgils
+integer                        :: nlev_cgils
 integer                        :: time_cgils
-integer  :: lat_cgils = 1
-integer  :: lon_cgils = 1
+integer, parameter  :: nlat_cgils = 1
+integer, parameter  :: nlon_cgils = 1
 real, allocatable, dimension(:,:,:) :: buffer_cgils_3D
-real, allocatable, dimension(:) :: T_cgils
+real, allocatable, dimension(:,:)   :: buffer_cgils_2D
+real, allocatable, dimension(:)     :: buffer_cgils_1D_lev
+real, allocatable, dimension(:)     :: T_cgils, U_cgils, V_cgils, q_cgils, pfull_cgils   ! dimension (nlev)
+real, allocatable, dimension(:)     :: Ps_cgils   ! dimension (ntime)
 
 real,    private               :: missing_value = -999.
 
@@ -166,6 +169,13 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   character(len=200)     :: cgils_nc 
   integer, dimension(4) :: siz   
 
+  real, dimension(size(pt,1),size(pt,2),size(pt,3)+1) :: &   ! dimension(lat, lon, lev+1)
+    phalf   ! pressure at half levels (Pa)
+
+  real, dimension(size(pt,1),size(pt,2),size(pt,3)) :: &     ! dimension(lat, lon, lev)
+    pfull  ! pressure at full levels (Pa)
+ 
+  integer itime
   integer i,j,k,ix,jx,kx,tx
 
 !---------------------------------
@@ -196,18 +206,24 @@ subroutine cgils_forc_init(time_interp,As,Bs)
 !---------------------
 
   !--- set buffer variables
-  call field_size (cgils_nc, 'lev' , siz) ; lev_cgils  = siz(1)
+  call field_size (cgils_nc, 'lev' , siz) ; nlev_cgils  = siz(1)
   call field_size (cgils_nc, 'time', siz) ; time_cgils = siz(1)
   
   if (allocated(buffer_cgils_3D)) deallocate (buffer_cgils_3D)
-    allocate(buffer_cgils_3D(lat_cgils, lon_cgils, lev_cgils)); buffer_cgils_3D = missing_value
+    allocate(buffer_cgils_3D(nlat_cgils, nlon_cgils, nlev_cgils)); buffer_cgils_3D = missing_value
+
+  if (allocated(buffer_cgils_2D)) deallocate (buffer_cgils_2D)
+    allocate(buffer_cgils_2D(nlat_cgils, nlon_cgils)); buffer_cgils_2D = missing_value
+
+  if (allocated(buffer_cgils_1D_lev)) deallocate (buffer_cgils_1D_lev)
+    allocate(buffer_cgils_1D_lev(nlev_cgils)); buffer_cgils_1D_lev = missing_value
 
   !--- set cgils variables
-  if (allocated(T_cgils)) deallocate(T_cgils)
-    allocate(T_cgils(lev_cgils)); T_cgils = missing_value
+  !if (allocated(T_cgils)) deallocate(T_cgils)
+  !  allocate(T_cgils(nlev_cgils)); T_cgils = missing_value
 
 if (do_debug_printout) then
-  write(6,*) 'lev_cgils, time_cgils',lev_cgils, time_cgils
+  write(6,*) 'nlev_cgils, time_cgils',nlev_cgils, time_cgils
   write(6,*) 'siz',siz
 endif
 
@@ -215,14 +231,61 @@ endif
 !  read data from cgils file
 !    subroutine read_data, $scmsrc/FMS/fms/fms_io.F90
 !
-!  variable in CGILS file is T(time, lev, lat, lon). buffer_cgils_3D (lat, lon, lev)
+!  4D variable in CGILS file is var_4D(time, lev, lat, lon). buffer_cgils_3D (lat, lon, lev). Time dimension is dropped
+!  3D variable in CGILS file is var_3D(time, lat, lon).      buffer_cgils_2D (lat, lon)     . Time dimension is dropped
 !--------------------------------
+
+  !--- read CGILD 4D variables
+  if (allocated(T_cgils)) deallocate(T_cgils) ; allocate(T_cgils(nlev_cgils)); T_cgils = missing_value
   call read_data(cgils_nc, 'T',   buffer_cgils_3D(:,:,:), no_domain=.true.)
        T_cgils(:) = buffer_cgils_3D(1,1,:)
 
+  if (allocated(U_cgils)) deallocate(U_cgils) ; allocate(U_cgils(nlev_cgils)); U_cgils = missing_value
+  call read_data(cgils_nc, 'U',   buffer_cgils_3D(:,:,:), no_domain=.true.)
+       U_cgils(:) = buffer_cgils_3D(1,1,:)
+
+  if (allocated(V_cgils)) deallocate(V_cgils) ; allocate(V_cgils(nlev_cgils)); V_cgils = missing_value
+  call read_data(cgils_nc, 'V',   buffer_cgils_3D(:,:,:), no_domain=.true.)
+       V_cgils(:) = buffer_cgils_3D(1,1,:)
+
+  if (allocated(q_cgils)) deallocate(q_cgils) ; allocate(q_cgils(nlev_cgils)); q_cgils = missing_value
+  call read_data(cgils_nc, 'q',   buffer_cgils_3D(:,:,:), no_domain=.true.)
+       q_cgils(:) = buffer_cgils_3D(1,1,:)
+
+  !--- read CGILD 3D variables
+  itime = 1
+
+  if (allocated(Ps_cgils)) deallocate(Ps_cgils) ; allocate(Ps_cgils(time_cgils)); Ps_cgils = missing_value
+  !call read_data(cgils_nc, 'Ps',   buffer_cgils_2D(:,:), no_domain=.true., timelevel=itime)
+  call read_data(cgils_nc, 'Ps',   buffer_cgils_2D(:,:), no_domain=.true.)
+       Ps_cgils(:) = buffer_cgils_2D(1,1)
+
+  !--- read CGILD 1D variables
+  if (allocated(pfull_cgils)) deallocate(pfull_cgils) ; allocate(pfull_cgils(nlev_cgils)); pfull_cgils = missing_value
+  call read_data(cgils_nc, 'lev',   buffer_cgils_1D_lev(:), no_domain=.true.)
+       pfull_cgils(:) = buffer_cgils_1D_lev(:)
+
+!-------------------------------------------------
+! interpoate cgils data on SCM pressure levels
+!   variables [ua, va, pt, q] are used by SCM; they are defined in /src/atmos_fv_dynamics/model/fv_point.inc
+!-------------------------------------------------
+
+  !--- get pfull and phalf
+  call get_eta_level(nlev, Ps_cgils(1), pfull(1,1,:), phalf(1,1,:))
+
+  !--- interpolate cgils data on SCM pressure levels
+  !call interp_plev_cgils_to_SCM(pfull, pt, pfull_cgils, T_cgils)
 
 if (do_debug_printout) then
   write(6,*) 'T_cgils',T_cgils
+  write(6,*) 'U_cgils',U_cgils
+  write(6,*) 'V_cgils',V_cgils
+  write(6,*) 'q_cgils',q_cgils
+  write(6,*) 'Ps_cgils',Ps_cgils
+  write(6,*) 'pfull_cgils',pfull_cgils
+  write(6,*) 'pfull',pfull
+  write(6,*) 'phalf',phalf
+  !write(6,*) '',
     call error_mesg( ' scm_cgils',     &
                      ' STOP.',&
                      FATAL ) 
