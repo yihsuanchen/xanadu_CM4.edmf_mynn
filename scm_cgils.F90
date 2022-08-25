@@ -61,10 +61,11 @@ integer, dimension(1) :: restart_versions = (/ 1 /)
 !--- local variables
 logical, private               :: initialized = .false.
 integer                        :: nlev_cgils
-integer                        :: time_cgils
+integer                        :: ntime_cgils
 integer, parameter  :: nlat_cgils = 1
 integer, parameter  :: nlon_cgils = 1
 real, allocatable, dimension(:,:,:) :: buffer_cgils_3D
+real, allocatable, dimension(:,:,:) :: buffer_cgils_3D_time
 real, allocatable, dimension(:,:)   :: buffer_cgils_2D
 real, allocatable, dimension(:)     :: buffer_cgils_1D_lev
 real, allocatable, dimension(:)     :: T_cgils, U_cgils, V_cgils, q_cgils, pfull_cgils   ! dimension (nlev)
@@ -83,6 +84,7 @@ character(len=200), public     :: cgils_ctl_s12_nc = '/ncrc/home2/Yi-hsuan.Chen/
 character(len=200), public     :: cgils_p2k_s6_nc  = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s6.nc'
 character(len=200), public     :: cgils_p2k_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s11.nc'
 character(len=200), public     :: cgils_p2k_s12_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s12.nc'
+character(len=200), public     :: dephy_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/code/xanadu_SCM.original/BOMEX_REF_SCM_driver.nc'
 
 logical :: do_debug_printout = .true.
 
@@ -175,6 +177,8 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   real, dimension(size(pt,1),size(pt,2),size(pt,3)) :: &     ! dimension(lat, lon, lev)
     pfull  ! pressure at full levels (Pa)
  
+  real dum1
+
   integer itime
   integer i,j,k,ix,jx,kx,tx
 
@@ -207,10 +211,13 @@ subroutine cgils_forc_init(time_interp,As,Bs)
 
   !--- set buffer variables
   call field_size (cgils_nc, 'lev' , siz) ; nlev_cgils  = siz(1)
-  call field_size (cgils_nc, 'time', siz) ; time_cgils = siz(1)
+  call field_size (cgils_nc, 'time', siz) ; ntime_cgils = siz(1)
   
   if (allocated(buffer_cgils_3D)) deallocate (buffer_cgils_3D)
     allocate(buffer_cgils_3D(nlat_cgils, nlon_cgils, nlev_cgils)); buffer_cgils_3D = missing_value
+
+  if (allocated(buffer_cgils_3D_time)) deallocate (buffer_cgils_3D_time)
+    allocate(buffer_cgils_3D_time(nlat_cgils, nlon_cgils, ntime_cgils)); buffer_cgils_3D_time = missing_value
 
   if (allocated(buffer_cgils_2D)) deallocate (buffer_cgils_2D)
     allocate(buffer_cgils_2D(nlat_cgils, nlon_cgils)); buffer_cgils_2D = missing_value
@@ -223,7 +230,7 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   !  allocate(T_cgils(nlev_cgils)); T_cgils = missing_value
 
 if (do_debug_printout) then
-  write(6,*) 'nlev_cgils, time_cgils',nlev_cgils, time_cgils
+  write(6,*) 'nlev_cgils, ntime_cgils',nlev_cgils, ntime_cgils
   write(6,*) 'siz',siz
 endif
 
@@ -253,12 +260,17 @@ endif
        q_cgils(:) = buffer_cgils_3D(1,1,:)
 
   !--- read CGILD 3D variables
-  itime = 1
+  !      Using BOMEX_REF_SCM_driver.nc, sfc_sens_flx(time, lat, lon), read_data OK.
+  !        call read_data(dephy_nc, 'sfc_sens_flx', buffer_cgils_2D(:,:), no_domain=.true., timelevel=itime)
+  !        write(6,*) 'dephy_nc, sfc_sens_flx',buffer_cgils_2D
+  !
+  !      But this does not work for cgils nc. I have no idea why this happend.
+  !        "FATAL: fms_io(read_data_3d_new), field Ps in file /ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s11.nc: field size mismatch 1". 
+  !         gxsize, gysize, size(data, 3), siz_in(1), siz_in(2), siz_in(3) (1, 1, 1, 1, 1, 4)
 
-  if (allocated(Ps_cgils)) deallocate(Ps_cgils) ; allocate(Ps_cgils(time_cgils)); Ps_cgils = missing_value
-  !call read_data(cgils_nc, 'Ps',   buffer_cgils_2D(:,:), no_domain=.true., timelevel=itime)
-  call read_data(cgils_nc, 'Ps',   buffer_cgils_2D(:,:), no_domain=.true.)
-       Ps_cgils(:) = buffer_cgils_2D(1,1)
+  if (allocated(Ps_cgils)) deallocate(Ps_cgils) ; allocate(Ps_cgils(ntime_cgils)); Ps_cgils = missing_value
+  call read_data(cgils_nc, 'Ps',   buffer_cgils_3D_time(:,:,:))
+       Ps_cgils(:) = buffer_cgils_3D_time(1,1,:)
 
   !--- read CGILD 1D variables
   if (allocated(pfull_cgils)) deallocate(pfull_cgils) ; allocate(pfull_cgils(nlev_cgils)); pfull_cgils = missing_value
