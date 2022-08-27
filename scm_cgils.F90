@@ -47,7 +47,8 @@ use             fv_pack, only: nlon, mlat, nlev, beglat, endlat, beglon, &
    implicit none
    private
 
-   public cgils_data_read, cgils_forc_init, cgils_forc_end, update_cgils_forc
+   public cgils_data_read, cgils_forc_init, cgils_forc_end, update_cgils_forc, &
+          cgils_forc_diagnostic_init
 
    character(len=8) :: mod_name = 'scm_cgils'
    character(len=7) :: mod_name_diag = 'forcing'
@@ -58,8 +59,10 @@ character(len=128) :: version = '$Id$'
 character(len=128) :: tagname = '$Name$'
 integer, dimension(1) :: restart_versions = (/ 1 /)
 
-!--- local variables
+!--- puclib variables
 logical, private               :: initialized = .false.
+character(len=200)             :: cgils_nc 
+integer, dimension(4)          :: siz   
 integer                        :: nlev_cgils
 integer                        :: ntime_cgils
 integer, parameter  :: nlat_cgils = 1
@@ -68,10 +71,13 @@ real, allocatable, dimension(:,:,:) :: buffer_cgils_3D
 real, allocatable, dimension(:,:,:) :: buffer_cgils_3D_time
 real, allocatable, dimension(:,:)   :: buffer_cgils_2D
 real, allocatable, dimension(:)     :: buffer_cgils_1D_lev
-real, allocatable, dimension(:)     :: T_cgils, U_cgils, V_cgils, q_cgils, pfull_cgils   ! dimension (nlev)
+real, allocatable, dimension(:)     :: &  ! dimension (nlev)
+                                       T_cgils, U_cgils, V_cgils, q_cgils, pfull_cgils, &   ! initial conditions
+                                       omega_cgils, divT_cgils, divq_cgils                  ! forcing
 real, allocatable, dimension(:)     :: Ps_cgils   ! dimension (ntime)
 
 real,    private               :: missing_value = -999.
+integer :: nsphum, nql, nqi, nqa, nqn, nqni
 
 !--- namelist parameters
 integer, public                :: tracer_vert_advec_scheme = 3
@@ -86,7 +92,8 @@ character(len=200), public     :: cgils_p2k_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/
 character(len=200), public     :: cgils_p2k_s12_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s12.nc'
 character(len=200), public     :: dephy_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/code/xanadu_SCM.original/BOMEX_REF_SCM_driver.nc'
 
-logical :: do_debug_printout = .true.
+integer :: do_debug_printout = -1  ! =-1, do not call
+                                   ! = 1, call it in cgils_forc_init
 
 namelist /scm_cgils_nml/ &
                         do_debug_printout, &
@@ -168,8 +175,6 @@ subroutine cgils_forc_init(time_interp,As,Bs)
 !------------------
 ! local variables
 !------------------
-  character(len=200)     :: cgils_nc 
-  integer, dimension(4) :: siz   
 
   real, dimension(size(pt,1),size(pt,2),size(pt,3)+1) :: &   ! dimension(lat, lon, lev+1)
     phalf   ! pressure at half levels (Pa)
@@ -229,11 +234,6 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   !if (allocated(T_cgils)) deallocate(T_cgils)
   !  allocate(T_cgils(nlev_cgils)); T_cgils = missing_value
 
-if (do_debug_printout) then
-  write(6,*) 'nlev_cgils, ntime_cgils',nlev_cgils, ntime_cgils
-  write(6,*) 'siz',siz
-endif
-
 !--------------------------------
 !  read data from cgils file
 !    subroutine read_data, $scmsrc/FMS/fms/fms_io.F90
@@ -279,16 +279,27 @@ endif
 
 !-------------------------------------------------
 ! interpoate cgils data on SCM pressure levels
-!   variables [ua, va, pt, q] are used by SCM; they are defined in /src/atmos_fv_dynamics/model/fv_point.inc
+!   variables [ua, va, pt, q, ps] are used by SCM; they are defined in /src/atmos_fv_dynamics/model/fv_point.inc
 !-------------------------------------------------
+
+  !--- initialize
+  ua=0.; va=0.; pt=0.; q=0. ; ps=0.
+  nsphum = get_tracer_index(MODEL_ATMOS, 'sphum')
 
   !--- get pfull and phalf
   call get_eta_level(nlev, Ps_cgils(1), pfull(1,1,:), phalf(1,1,:))
 
   !--- interpolate cgils data on SCM pressure levels
+  call interp_cgils_to_SCM(pfull(1,1,:), ua(1,1,:), pfull_cgils(:), U_cgils(:))
+  call interp_cgils_to_SCM(pfull(1,1,:), va(1,1,:), pfull_cgils(:), V_cgils(:))
   call interp_cgils_to_SCM(pfull(1,1,:), pt(1,1,:), pfull_cgils(:), T_cgils(:))
+  call interp_cgils_to_SCM(pfull(1,1,:), q(1,1,:,nsphum), pfull_cgils(:), q_cgils(:))
 
-if (do_debug_printout) then
+  ps(1,1) = Ps_cgils(1)
+
+if (do_debug_printout.eq.1) then
+  write(6,*) 'nlev_cgils, ntime_cgils',nlev_cgils, ntime_cgils
+  write(6,*) 'siz',siz
   write(6,*) 'pfull_cgils',pfull_cgils
   write(6,*) 'pfull',pfull
   write(6,*) 'T_cgils',T_cgils
@@ -299,7 +310,7 @@ if (do_debug_printout) then
   write(6,*) 'Ps_cgils',Ps_cgils
   !write(6,*) 'phalf',phalf
   !write(6,*) '',
-    call error_mesg( ' scm_cgils',     &
+    call error_mesg( ' scm_cgils. cgils_forc_init',     &
                      ' STOP.',&
                      FATAL ) 
 endif
@@ -335,7 +346,57 @@ subroutine update_cgils_forc(time_interp,time_diag,dt_int)
 
 type(time_type), intent(in)              :: time_interp,time_diag,dt_int
 
+!-------------------------------------------
+
+!---------------------
+! allocate variables
+!---------------------
+
+  !--- set buffer variables
+  call field_size (cgils_nc, 'lev' , siz) ; nlev_cgils  = siz(1)
+  call field_size (cgils_nc, 'time', siz) ; ntime_cgils = siz(1)
+  
+  if (allocated(buffer_cgils_3D)) deallocate (buffer_cgils_3D)
+    allocate(buffer_cgils_3D(nlat_cgils, nlon_cgils, nlev_cgils)); buffer_cgils_3D = missing_value
+
+!--------------------------------
+!  read data from cgils file
+!    subroutine read_data, $scmsrc/FMS/fms/fms_io.F90
+!
+!  4D variable in CGILS file is var_4D(time, lev, lat, lon). buffer_cgils_3D (lat, lon, lev). Time dimension is dropped
+!--------------------------------
+
+  if (allocated(omega_cgils)) deallocate(omega_cgils) ; allocate(omega_cgils(nlev_cgils)); omega_cgils = missing_value
+  call read_data(cgils_nc, 'omega',   buffer_cgils_3D(:,:,:), no_domain=.true.)
+       omega_cgils(:) = buffer_cgils_3D(1,1,:)
+
+if (do_debug_printout.eq.2) then
+  write(6,*) 'nlev_cgils, ntime_cgils',nlev_cgils, ntime_cgils
+  write(6,*) 'omega_cgils',omega_cgils
+  !write(6,*) '',
+    call error_mesg( ' scm_cgils. update_cgils_forc',     &
+                     ' STOP.',&
+                     FATAL ) 
+endif
+
 end subroutine update_cgils_forc
+
+!#######################################################################
+! Subroutine to initialize CGILS diagnostic fields
+
+subroutine cgils_forc_diagnostic_init(axes, Time)
+
+implicit none
+
+integer, dimension(3) :: half = (/1,2,4/)
+integer, dimension(:),intent(in) :: axes
+type(time_type), intent(in)      :: Time
+
+integer i
+!---------------------------------
+  i=0
+
+end subroutine cgils_forc_diagnostic_init
 
 !#######################################################################
 ! Subroutine to interpolat CGILS data on SCM levels
