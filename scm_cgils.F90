@@ -346,6 +346,19 @@ subroutine update_cgils_forc(time_interp,time_diag,dt_int)
 
 type(time_type), intent(in)              :: time_interp,time_diag,dt_int
 
+!------------------
+! local variables
+!------------------
+
+  real, dimension(size(pt,1),size(pt,2),size(pt,3)+1) :: &   ! dimension(lat, lon, lev+1)
+    phalf   ! pressure at half levels (Pa)
+
+  real, dimension(size(pt,1),size(pt,2),size(pt,3)) :: &     ! dimension(lat, lon, lev)
+    dT_lf, dqv_lf, &   ! large-scale horizontal forcing for temperature (dT_lf) and specific humidity (dqv_lf)
+    pfull  ! pressure at full levels (Pa)
+ 
+  real dum1
+
 !-------------------------------------------
 
 !---------------------
@@ -366,14 +379,58 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
 !  4D variable in CGILS file is var_4D(time, lev, lat, lon). buffer_cgils_3D (lat, lon, lev). Time dimension is dropped
 !--------------------------------
 
+  if (allocated(Ps_cgils)) deallocate(Ps_cgils) ; allocate(Ps_cgils(ntime_cgils)); Ps_cgils = missing_value
+  call read_data(cgils_nc, 'Ps',   buffer_cgils_3D_time(:,:,:))
+       Ps_cgils(:) = buffer_cgils_3D_time(1,1,:)
+
+  !--- read CGILD 1D variables
+  if (allocated(pfull_cgils)) deallocate(pfull_cgils) ; allocate(pfull_cgils(nlev_cgils)); pfull_cgils = missing_value
+  call read_data(cgils_nc, 'lev',   buffer_cgils_1D_lev(:), no_domain=.true.)
+       pfull_cgils(:) = buffer_cgils_1D_lev(:)
+
   if (allocated(omega_cgils)) deallocate(omega_cgils) ; allocate(omega_cgils(nlev_cgils)); omega_cgils = missing_value
   call read_data(cgils_nc, 'omega',   buffer_cgils_3D(:,:,:), no_domain=.true.)
        omega_cgils(:) = buffer_cgils_3D(1,1,:)
 
+  if (allocated(divT_cgils)) deallocate(divT_cgils) ; allocate(divT_cgils(nlev_cgils)); divT_cgils = missing_value
+  call read_data(cgils_nc, 'divT',   buffer_cgils_3D(:,:,:), no_domain=.true.)
+       divT_cgils(:) = buffer_cgils_3D(1,1,:)
+
+  if (allocated(divq_cgils)) deallocate(divq_cgils) ; allocate(divq_cgils(nlev_cgils)); divq_cgils = missing_value
+  call read_data(cgils_nc, 'divq',   buffer_cgils_3D(:,:,:), no_domain=.true.)
+       divq_cgils(:) = buffer_cgils_3D(1,1,:)
+
+!-------------------------------------------------
+! interpoate cgils data on SCM pressure levels
+!   variables [omga] are used by SCM; they are defined in /src/atmos_fv_dynamics/model/fv_point.inc
+!-------------------------------------------------
+
+  !--- initialize
+  omga = 0.0; dT_lf = 0.0; dqv_lf= 0.0
+
+  !--- get pfull and phalf
+  call get_eta_level(nlev, Ps_cgils(1), pfull(1,1,:), phalf(1,1,:))
+
+  !--- interpolate cgils data on SCM pressure levels
+  call interp_cgils_to_SCM(pfull(1,1,:), omga  (1,1,:), pfull_cgils(:), omega_cgils(:))
+  call interp_cgils_to_SCM(pfull(1,1,:), dT_lf (1,1,:), pfull_cgils(:), divT_cgils(:))
+  call interp_cgils_to_SCM(pfull(1,1,:), dqv_lf(1,1,:), pfull_cgils(:), divq_cgils(:))
+
+  ps(1,1) = Ps_cgils(1)
+
 if (do_debug_printout.eq.2) then
   write(6,*) 'nlev_cgils, ntime_cgils',nlev_cgils, ntime_cgils
   write(6,*) 'omega_cgils',omega_cgils
-  !write(6,*) '',
+  write(6,*) 'omga',omga
+  write(6,*) 'divT_cgils', divT_cgils
+  write(6,*) 'dT_lf',dT_lf 
+  write(6,*) 'divq_cgils', divq_cgils
+  write(6,*) 'dqv_lf', dqv_lf 
+  !write(6,*) '', 
+
+  !write(6,*) '_cgils', _cgils
+  !write(6,*) '', 
+
     call error_mesg( ' scm_cgils. update_cgils_forc',     &
                      ' STOP.',&
                      FATAL ) 
