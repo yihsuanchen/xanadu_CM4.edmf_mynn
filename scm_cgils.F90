@@ -78,6 +78,7 @@ real, allocatable, dimension(:)     :: Ps_cgils   ! dimension (ntime)
 
 real,    private               :: missing_value = -999.
 integer :: nsphum, nql, nqi, nqa, nqn, nqni
+integer :: vadvec_scheme
 
 !--- namelist parameters
 integer, public                :: tracer_vert_advec_scheme = 3
@@ -189,6 +190,13 @@ subroutine cgils_forc_init(time_interp,As,Bs)
 
 !---------------------------------
 
+  nsphum = get_tracer_index(MODEL_ATMOS, 'sphum')
+  nql = get_tracer_index ( MODEL_ATMOS, 'liq_wat' )
+  nqi = get_tracer_index ( MODEL_ATMOS, 'ice_wat' )
+  nqa = get_tracer_index ( MODEL_ATMOS, 'cld_amt' )
+  nqn = get_tracer_index ( MODEL_ATMOS, 'liq_drp' )   
+  nqni = get_tracer_index ( MODEL_ATMOS, 'ice_num' ) 
+
 !------------------------------- 
 ! Determine CGILS input file
 !------------------------------- 
@@ -284,7 +292,6 @@ subroutine cgils_forc_init(time_interp,As,Bs)
 
   !--- initialize
   ua=0.; va=0.; pt=0.; q=0. ; ps=0.
-  nsphum = get_tracer_index(MODEL_ATMOS, 'sphum')
 
   !--- get pfull and phalf
   call get_eta_level(nlev, Ps_cgils(1), pfull(1,1,:), phalf(1,1,:))
@@ -351,15 +358,24 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
 !------------------
 
   real, dimension(size(pt,1),size(pt,2),size(pt,3)+1) :: &   ! dimension(lat, lon, lev+1)
-    phalf   ! pressure at half levels (Pa)
+    omga_half, &   ! omega at SCM half levels (Pa/s)
+    phalf          ! pressure at half levels (Pa)
 
   real, dimension(size(pt,1),size(pt,2),size(pt,3)) :: &     ! dimension(lat, lon, lev)
     dT_lf, dqv_lf, &   ! large-scale horizontal forcing for temperature (dT_lf) and specific humidity (dqv_lf)
+    dT_adi, dT_vadv, dT_adiPvadv, dqv_vadv, dql_vadv, dqi_vadv, dqa_vadv, dqn_vadv, du_vadv, dv_vadv, &  ! vertical tendencies 
     pfull  ! pressure at full levels (Pa)
- 
+
+  real    :: dts
+  integer :: dt_seconds,dt_days
+
+  integer i,j,k,kdim
+
   real dum1
 
 !-------------------------------------------
+
+  kdim = size(pt,3)
 
 !---------------------
 ! allocate variables
@@ -388,6 +404,10 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
   call read_data(cgils_nc, 'lev',   buffer_cgils_1D_lev(:), no_domain=.true.)
        pfull_cgils(:) = buffer_cgils_1D_lev(:)
 
+  if (allocated(T_cgils)) deallocate(T_cgils) ; allocate(T_cgils(nlev_cgils)); T_cgils = missing_value
+  call read_data(cgils_nc, 'T',   buffer_cgils_3D(:,:,:), no_domain=.true.)
+       T_cgils(:) = buffer_cgils_3D(1,1,:)
+
   if (allocated(omega_cgils)) deallocate(omega_cgils) ; allocate(omega_cgils(nlev_cgils)); omega_cgils = missing_value
   call read_data(cgils_nc, 'omega',   buffer_cgils_3D(:,:,:), no_domain=.true.)
        omega_cgils(:) = buffer_cgils_3D(1,1,:)
@@ -402,26 +422,105 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
 
 !-------------------------------------------------
 ! interpoate cgils data on SCM pressure levels
-!   variables [omga] are used by SCM; they are defined in /src/atmos_fv_dynamics/model/fv_point.inc
+!   variables [omga, delp] are used by SCM; they are defined in /src/atmos_fv_dynamics/model/fv_point.inc
 !-------------------------------------------------
 
   !--- initialize
-  omga = 0.0; dT_lf = 0.0; dqv_lf= 0.0
+  omga = 0.0; omga_half=0.; dT_lf = 0.0; dqv_lf= 0.0
 
-  !--- get pfull and phalf
+  !--- get pfull and phalf, and delp
   call get_eta_level(nlev, Ps_cgils(1), pfull(1,1,:), phalf(1,1,:))
 
+  do i=1,size(pt,1)
+  do j=1,size(pt,2)
+    do k=1,kdim
+      delp(i,j,k) = phalf(i,j,k+1) - phalf(i,j,k)   ! pressure layer thickness (Pa)
+    enddo
+  enddo
+  enddo
+
   !--- interpolate cgils data on SCM pressure levels
+  call interp_cgils_to_SCM(pfull(1,1,:), pt    (1,1,:), pfull_cgils(:), T_cgils(:))
   call interp_cgils_to_SCM(pfull(1,1,:), omga  (1,1,:), pfull_cgils(:), omega_cgils(:))
   call interp_cgils_to_SCM(pfull(1,1,:), dT_lf (1,1,:), pfull_cgils(:), divT_cgils(:))
   call interp_cgils_to_SCM(pfull(1,1,:), dqv_lf(1,1,:), pfull_cgils(:), divq_cgils(:))
 
+  call interp_cgils_to_SCM(phalf(1,1,:), omga_half(1,1,:), pfull_cgils(:), omega_cgils(:))
+  omga_half(:,:,1)=0. ; omga_half(:,:,kdim+1)=0.  ! omega_half is zero at the top and the bottom levels
+
   ps(1,1) = Ps_cgils(1)
+
+!-------------------------------------------------
+! compute large-scale subsidence tendencies. For temperature, this consists of adiabatic warming and temperature vertical advection
+!   module vert_advection_mod, src/atmos_shared/vert_advection/vert_advection.F90
+!-------------------------------------------------
+
+  !---initialization
+  dT_vadv=0.0; dT_adi=0.0
+  dqv_vadv=0.0; dql_vadv=0.0; dqi_vadv=0.0; dqa_vadv=0.0; dqn_vadv=0.0
+  du_vadv=0.0; dv_vadv=0.0
+
+  call get_time(dt_int,dt_seconds,dt_days)
+  dts = real(dt_seconds + 86400*dt_days)
+
+  !--- large-scale subsidence tendencies for temperature  
+  dT_adi=rdgas*pt(:,:,:)*omga(:,:,:)/cp_air/phalf(:,:,:)  ! adiabatic term
+
+  select case (temp_vert_advec_scheme)                 ! vertical advection term 
+    case(1)
+       call vert_advection(dts,omga_half,delp,pt,dT_vadv,scheme=SECOND_CENTERED,form=ADVECTIVE_FORM)
+    case(2)
+       call vert_advection(dts,omga_half,delp,pt,dT_vadv,scheme=FOURTH_CENTERED,form=ADVECTIVE_FORM)
+    case(3)
+       call vert_advection(dts,omga_half,delp,pt,dT_vadv,scheme=FINITE_VOLUME_LINEAR,form=ADVECTIVE_FORM)
+    case(4)
+       call vert_advection(dts,omga_half,delp,pt,dT_vadv,scheme=FINITE_VOLUME_PARABOLIC,form=ADVECTIVE_FORM)
+    case(5)
+       call vert_advection(dts,omga_half,delp,pt,dT_vadv,scheme=SECOND_CENTERED_WTS,form=ADVECTIVE_FORM)
+    case(6)
+       call vert_advection(dts,omga_half,delp,pt,dT_vadv,scheme=FOURTH_CENTERED_WTS,form=ADVECTIVE_FORM)
+  end select
+
+  dT_adiPvadv = dT_vadv + dT_adi   ! sum of adiabatic term and vertical advection term
+
+  !--- large-scale subsidence tendencies for tracers, namely, qv, ql, qi, qa
+  select case (tracer_vert_advec_scheme)
+    case(1)
+         vadvec_scheme = SECOND_CENTERED
+    case(2)
+         vadvec_scheme = FOURTH_CENTERED
+    case(3)
+         vadvec_scheme = FINITE_VOLUME_LINEAR
+    case(4)
+         vadvec_scheme = FINITE_VOLUME_PARABOLIC
+    case(5)
+         vadvec_scheme = SECOND_CENTERED_WTS
+    case(6)
+         vadvec_scheme = FOURTH_CENTERED_WTS
+  end select
+
+  call vert_advection(dts,omga_half,delp,q(:,:,:,nsphum),dqv_vadv,scheme=vadvec_scheme,form=ADVECTIVE_FORM)
+  call vert_advection(dts,omga_half,delp,q(:,:,:,nql),dql_vadv,scheme=vadvec_scheme,form=ADVECTIVE_FORM)
+  call vert_advection(dts,omga_half,delp,q(:,:,:,nqi),dqi_vadv,scheme=vadvec_scheme,form=ADVECTIVE_FORM)
+  call vert_advection(dts,omga_half,delp,q(:,:,:,nqa),dqa_vadv,scheme=vadvec_scheme,form=ADVECTIVE_FORM)
+
+  if( nqn > 0 ) &
+  call vert_advection(dts,omga_half,delp,q(:,:,:,nqn),dqn_vadv,scheme=vadvec_scheme,form=ADVECTIVE_FORM)
+
+  !--- large-scale subsidence tendencies for momentum
+  select case (momentum_vert_advec_scheme)
+  case(1)
+     call vert_advection(dts,omga_half,delp,ua,du_vadv,scheme=SECOND_CENTERED,form=ADVECTIVE_FORM)
+     call vert_advection(dts,omga_half,delp,va,dv_vadv,scheme=SECOND_CENTERED,form=ADVECTIVE_FORM)
+  end select
+
+
 
 if (do_debug_printout.eq.2) then
   write(6,*) 'nlev_cgils, ntime_cgils',nlev_cgils, ntime_cgils
   write(6,*) 'omega_cgils',omega_cgils
   write(6,*) 'omga',omga
+  write(6,*) 'omga_half',omga_half
   write(6,*) 'divT_cgils', divT_cgils
   write(6,*) 'dT_lf',dT_lf 
   write(6,*) 'divq_cgils', divq_cgils
