@@ -120,7 +120,8 @@ module scm_forc_mod
                                  get_mc3e_sst, mc3e_surface_flux_loop, get_mc3e_sfc
 
 !<--- yhc add cgils 
-   use      scm_cgils_mod, only: cgils_data_read, cgils_forc_init, cgils_forc_end, update_cgils_forc
+   use      scm_cgils_mod, only: cgils_data_read, cgils_forc_init, cgils_forc_end, update_cgils_forc,  &
+                                 cgils_forc_diagnostic_init
 !--->
 
 implicit none
@@ -665,6 +666,9 @@ select case (trim(experiment))
    case ('bomex')
 
       call bomex_forc_diagnostic_init(axes, Time)
+
+   case ('cgils')  ! yhc, 2022-08-27
+      call cgils_forc_diagnostic_init(axes, Time)
 
    case ('dcbl')
 
