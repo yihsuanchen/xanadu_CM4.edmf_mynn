@@ -48,6 +48,7 @@ use             fv_pack, only: nlon, mlat, nlev, beglat, endlat, beglon, &
    private
 
    public cgils_data_read, cgils_forc_init, cgils_forc_end, update_cgils_forc, &
+          get_cgils_flx, &
           cgils_forc_diagnostic_init
 
    character(len=8) :: mod_name = 'scm_cgils'
@@ -84,6 +85,7 @@ integer :: vadvec_scheme
 integer, public                :: tracer_vert_advec_scheme = 3
 integer, public                :: temp_vert_advec_scheme = 3
 integer, public                :: momentum_vert_advec_scheme = 3
+character(len=20) , public     :: do_surface_fluxes = 'none'
 character(len=20) , public     :: cgils_case    = "none"
 character(len=200), public     :: cgils_ctl_s6_nc  = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s6.nc'
 character(len=200), public     :: cgils_ctl_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s11.nc'
@@ -98,10 +100,18 @@ integer :: do_debug_printout = -1  ! =-1, do not call
 
 namelist /scm_cgils_nml/ &
                         do_debug_printout, &
-                        cgils_case, &
+                        cgils_case, do_surface_fluxes, &
                         tracer_vert_advec_scheme, &
                         temp_vert_advec_scheme,   &
                         momentum_vert_advec_scheme
+
+!--- diagnostics
+integer ::  id_tdt_vadv, id_tdt_adi, id_tdt_adiPvadv, id_tdt_lf,                                         &
+            id_qvdt_vadv, id_qvdt_lf,                                       &
+            id_qldt_vadv, id_qidt_vadv, id_qadt_vadv,     id_qndt_vadv,     & 
+            id_udt_vadv, id_udt_nudge,                                      &
+            id_vdt_vadv, id_vdt_nudge,                                      &
+            id_pf_forc, id_ph_forc 
 
 !#######################################################################
 
@@ -371,6 +381,8 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
 
   integer i,j,k,kdim
 
+  logical                                          :: used
+
   real dum1
 
 !-------------------------------------------
@@ -514,7 +526,37 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
      call vert_advection(dts,omga_half,delp,va,dv_vadv,scheme=SECOND_CENTERED,form=ADVECTIVE_FORM)
   end select
 
+!----------------------------
+! write out history files
+!----------------------------
 
+if (id_pf_forc > 0)  used = send_data( id_pf_forc,  pfull  (:,:,:), time_diag, 1, 1)
+
+if (id_ph_forc > 0)  used = send_data( id_ph_forc,  phalf  (:,:,:), time_diag, 1, 1)
+
+if (id_tdt_adi > 0)  used = send_data( id_tdt_vadv, dT_adi (:,:,:), time_diag, 1, 1)
+
+if (id_tdt_vadv > 0) used = send_data( id_tdt_vadv, dT_vadv (:,:,:), time_diag, 1, 1)
+
+if (id_tdt_adiPvadv > 0)  used = send_data( id_tdt_vadv, dT_adiPvadv (:,:,:), time_diag, 1, 1)
+
+if (id_udt_vadv > 0) used = send_data( id_udt_vadv, du_vadv (:,:,:), time_diag, 1, 1)
+
+if (id_vdt_vadv > 0) used = send_data( id_vdt_vadv, du_vadv (:,:,:), time_diag, 1, 1)
+
+if (id_qvdt_vadv> 0) used = send_data( id_qvdt_vadv,dqv_vadv(:,:,:), time_diag, 1, 1)
+
+if (id_qldt_vadv> 0) used = send_data( id_qldt_vadv,dql_vadv(:,:,:), time_diag, 1, 1)
+
+if (id_qidt_vadv> 0) used = send_data( id_qidt_vadv,dqi_vadv(:,:,:), time_diag, 1, 1)
+
+if (id_qadt_vadv> 0) used = send_data( id_qadt_vadv,dqa_vadv(:,:,:), time_diag, 1, 1)
+
+
+
+!-------------
+! debugging
+!-------------
 
 if (do_debug_printout.eq.2) then
   write(6,*) 'nlev_cgils, ntime_cgils',nlev_cgils, ntime_cgils
@@ -537,6 +579,58 @@ endif
 
 end subroutine update_cgils_forc
 
+!########################################################################
+! This subroutine returns surface fluxes
+
+subroutine get_cgils_flx( rho, u_star, flux_t, flux_q )
+
+  !--- input argument
+  real, intent(in), dimension(:) :: rho
+
+  !--- output argument
+  real, intent(out), dimension(:) :: &
+     u_star,   & ! friction velocity (m/s)
+     flux_t,   & ! surface sensible flux (W/m2)
+     flux_q      ! surface latent heat flux (W/m2)
+
+  !--- local variables
+
+!-------------------------------------
+
+  !--- intialize
+  u_star=0.; flux_t=0.; flux_q=0.
+
+  !--- get surface fluxes
+
+  !--- prescribed surface fluxes
+  if (trim(do_surface_fluxes).eq.'prescribed') then
+    u_star = 0.25  ! use the same value in RF01
+
+    call read_data(cgils_nc, 'shflx',   buffer_cgils_3D_time(:,:,:))
+         flux_t(:) = buffer_cgils_3D_time(1,1,1)
+
+    call read_data(cgils_nc, 'lhflx',   buffer_cgils_3D_time(:,:,:))
+         flux_q(:) = buffer_cgils_3D_time(1,1,1)
+    
+  else
+    call error_mesg( ' scm_cgils. get_cgils_flx. The value of do_surface_fluxes is not supported',     &
+                     ' STOP.',&
+                     FATAL ) 
+  endif
+
+if (do_debug_printout.eq.3) then
+  write(6,*) 'flux_t',flux_t
+  write(6,*) 'flux_q',flux_q
+  write(6,*) 'u_star',u_star
+
+  call error_mesg( ' scm_cgils. get_cgils_flx',     &
+                   ' STOP.',&
+                   FATAL ) 
+endif
+
+end subroutine get_cgils_flx
+
+
 !#######################################################################
 ! Subroutine to initialize CGILS diagnostic fields
 
@@ -548,9 +642,57 @@ integer, dimension(3) :: half = (/1,2,4/)
 integer, dimension(:),intent(in) :: axes
 type(time_type), intent(in)      :: Time
 
-integer i
 !---------------------------------
-  i=0
+
+! --- initialize axes -------------------------------------------------!
+id_pf_forc = register_diag_field (mod_name_diag, 'pf_forc', axes(1:3), Time, &
+     'Pressure at full level', 'hPa',  missing_value = missing_value)
+
+id_ph_forc = register_diag_field (mod_name_diag, 'ph_forc', axes(half), Time, &
+     'Pressure at half level', 'hPa',  missing_value = missing_value)
+
+id_tdt_vadv = register_diag_field (mod_name_diag, 'tdt_vadv', axes(1:3), Time, &
+     'Temperature tendencies due to vertical advection', 'K/s', missing_value = missing_value)
+
+id_tdt_adi = register_diag_field (mod_name_diag, 'tdt_adi', axes(1:3), Time, &
+     'Temperature tendencies due to subsidence adiabatic warming', 'K/s', missing_value = missing_value)
+
+id_tdt_adiPvadv = register_diag_field (mod_name_diag, 'tdt_adiPvadv', axes(1:3), Time, &
+     'Temperature tendencies due to adiabatic warming and vertical advection', 'K/s', missing_value = missing_value)
+
+id_udt_vadv = register_diag_field (mod_name_diag, 'udt_vadv', axes(1:3), Time, &
+     'U tendencies due to vertical advection', 'm/s2', missing_value = missing_value)
+
+id_vdt_vadv = register_diag_field (mod_name_diag, 'vdt_vadv', axes(1:3), Time, &
+     'V tendencies due to vertical advection', 'm/s2', missing_value = missing_value)
+
+id_qvdt_vadv = register_diag_field (mod_name_diag, 'qvdt_vadv', axes(1:3), Time, &
+     'Vapor tendencies due to vertical advection', 'kg/kg/s', missing_value = missing_value)
+
+id_qldt_vadv = register_diag_field (mod_name_diag, 'qldt_vadv', axes(1:3), Time, &
+     'liquid tendencies due to vertical advection', 'kg/kg/s', missing_value = missing_value)
+
+id_qidt_vadv = register_diag_field (mod_name_diag, 'qidt_vadv', axes(1:3), Time, &
+     'ice tendencies due to vertical advection', 'kg/kg/s', missing_value = missing_value)
+
+id_qadt_vadv = register_diag_field (mod_name_diag, 'qadt_vadv', axes(1:3), Time, &
+     'cloud amount tendencies due to vertical advection', '1/s', missing_value = missing_value)
+
+id_qndt_vadv = register_diag_field (mod_name_diag, 'qndt_vadv', axes(1:3), Time, &
+     'liquid droplet number concentration tendencies due to vertical advection', '1/cm3/s', missing_value = missing_value)
+
+id_udt_nudge = register_diag_field (mod_name_diag, 'udt_nudge', axes(1:3), Time, &
+     'U tendencies due to nudging', 'm/s2', missing_value = missing_value)
+
+id_vdt_nudge = register_diag_field (mod_name_diag, 'vdt_nudge', axes(1:3), Time, &
+     'V tendencies due to nudging', 'm/s2', missing_value = missing_value)
+
+id_tdt_lf = register_diag_field (mod_name_diag, 'tdt_lf', axes(1:3), Time, &
+     'Temperature tendencies due to large-scale forcing', 'K/s', missing_value = missing_value)
+
+id_qvdt_lf = register_diag_field (mod_name_diag, 'qvdt_lf', axes(1:3), Time, &
+     'Vapor tendencies due to large-scale forcing', 'kg/kg/s', missing_value = missing_value)
+
 
 end subroutine cgils_forc_diagnostic_init
 
