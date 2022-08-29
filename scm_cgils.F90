@@ -95,7 +95,7 @@ character(len=200), public     :: cgils_p2k_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/
 character(len=200), public     :: cgils_p2k_s12_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s12.nc'
 character(len=200), public     :: dephy_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/code/xanadu_SCM.original/BOMEX_REF_SCM_driver.nc'
 
-logical :: do_stop = .false.
+integer :: do_stop = -1
 integer :: do_debug_printout = -1  ! =-1, do not call
                                    ! = 1, call it in cgils_forc_init
 
@@ -322,6 +322,42 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   call interp_cgils_to_SCM(pfull(1,1,:), pt(1,1,:), pfull_cgils(:), T_cgils(:))
   call interp_cgils_to_SCM(pfull(1,1,:), q(1,1,:,nsphum), pfull_cgils(:), q_cgils(:))
 
+!-------------------------------------------------
+! use subroutine p_var to set up varialbes in fv_point.inc, namely, delp, pk, pe, pkz, and peln.
+!
+! If these variables are not set properly, the SCM would fail in longwave_utilities.F90. The error message would be like
+!
+!   NOTE: lw_gases_stdtf_mod: Reading NetCDF formatted input data file: INPUT/cns_co2_600_HITRAN2012_10701200_495lyr.nc
+!   NOTE: lw_gases_stdtf_mod: Reading NetCDF formatted input data file: INPUT/cns_co2_360_HITRAN2012_10701200_495lyr.nc
+!   forrtl: severe (174): SIGSEGV, segmentation fault occurred
+!   Image              PC                Routine            Line        Source
+!   fms_SCM_am4_xanad  0000000004FA31F3  Unknown               Unknown  Unknown
+!   fms_SCM_am4_xanad  0000000003096040  Unknown               Unknown  Unknown
+!   fms_SCM_am4_xanad  00000000017613DC  longwave_utilitie         477  longwave_utilities.F90
+!   fms_SCM_am4_xanad  00000000009A1FD8  sealw99_mod_mp_e1        4105  sealw99.F90
+!   fms_SCM_am4_xanad  00000000009662CE  sealw99_mod_mp_se        1394  sealw99.F90
+!   fms_SCM_am4_xanad  000000000139E58A  longwave_driver_m         481  longwave_driver.F90
+!   fms_SCM_am4_xanad  00000000008CF03B  radiation_driver_        4247  radiation_driver.F90
+!   fms_SCM_am4_xanad  00000000008AB286  radiation_driver_        2025  radiation_driver.F90
+!   fms_SCM_am4_xanad  0000000000488954  atmos_model_mod_m         384  atmos_model.F90
+!
+!-------------------------------------------------
+
+  ! --- Create delp (from hydro_eq in init_dry_atm.F90)
+  do k=1,size(pt,3)
+    do j=1,size(pt,2)
+      do i=1,size(pt,1)
+        delp(i,j,k) = As(k+1)-As(k) + ps(i,j)*(Bs(k+1)-Bs(k))
+      enddo
+    enddo
+  enddo
+  call p_var(nlon, mlat, nlev, beglat, endlat, ptop, delp, ps,     &
+             pe, peln,  pk,  pkz,  kappa, q, ng_d, ncnst, .false. )
+
+!------------
+! debug
+!------------
+
 if (do_debug_printout.eq.1 .or. do_debug_printout.eq.99) then
   write(6,*) 'nlev_cgils, ntime_cgils',nlev_cgils, ntime_cgils
   write(6,*) 'siz',siz
@@ -336,7 +372,7 @@ if (do_debug_printout.eq.1 .or. do_debug_printout.eq.99) then
   !write(6,*) 'phalf',phalf
   !write(6,*) '',
 
-  if (do_stop) then
+  if (do_stop.eq.1) then
     call error_mesg( ' scm_cgils. cgils_forc_init',     &
                      ' STOP.',&
                      FATAL ) 
@@ -583,7 +619,7 @@ if (do_debug_printout.eq.2  .or. do_debug_printout.eq.99) then
   !write(6,*) '_cgils', _cgils
   !write(6,*) '', 
 
-  if (do_stop) then
+  if (do_stop.eq.2) then
     call error_mesg( ' scm_cgils. update_cgils_forc',     &
                      ' STOP.',&
                      FATAL ) 
@@ -637,7 +673,7 @@ if (do_debug_printout.eq.3  .or. do_debug_printout.eq.99) then
   write(6,*) 'flux_q',flux_q
   write(6,*) 'u_star',u_star
 
-  if (do_stop) then
+  if (do_stop.eq.3) then
     call error_mesg( ' scm_cgils. get_cgils_flx',     &
                      ' STOP.',&
                      FATAL ) 
