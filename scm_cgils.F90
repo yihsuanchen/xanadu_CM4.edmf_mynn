@@ -95,11 +95,12 @@ character(len=200), public     :: cgils_p2k_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/
 character(len=200), public     :: cgils_p2k_s12_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s12.nc'
 character(len=200), public     :: dephy_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/code/xanadu_SCM.original/BOMEX_REF_SCM_driver.nc'
 
+logical :: do_stop = .false.
 integer :: do_debug_printout = -1  ! =-1, do not call
                                    ! = 1, call it in cgils_forc_init
 
 namelist /scm_cgils_nml/ &
-                        do_debug_printout, &
+                        do_stop, do_debug_printout, &
                         cgils_case, do_surface_fluxes, &
                         tracer_vert_advec_scheme, &
                         temp_vert_advec_scheme,   &
@@ -277,7 +278,9 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   call read_data(cgils_nc, 'q',   buffer_cgils_3D(:,:,:), no_domain=.true.)
        q_cgils(:) = buffer_cgils_3D(1,1,:)
 
-  !--- read CGILD 3D variables
+  !--- read CGILD 3D variables & save to SCM
+  !      [ps, u_srf, v_srf] are used by SCM; they are defined in /src/atmos_fv_dynamics/model/fv_point.inc
+  !
   !      Using BOMEX_REF_SCM_driver.nc, sfc_sens_flx(time, lat, lon), read_data OK.
   !        call read_data(dephy_nc, 'sfc_sens_flx', buffer_cgils_2D(:,:), no_domain=.true., timelevel=itime)
   !        write(6,*) 'dephy_nc, sfc_sens_flx',buffer_cgils_2D
@@ -289,6 +292,13 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   if (allocated(Ps_cgils)) deallocate(Ps_cgils) ; allocate(Ps_cgils(ntime_cgils)); Ps_cgils = missing_value
   call read_data(cgils_nc, 'Ps',   buffer_cgils_3D_time(:,:,:))
        Ps_cgils(:) = buffer_cgils_3D_time(1,1,:)
+       ps(1,1) = Ps_cgils(1)
+
+  call read_data(cgils_nc, 'u_srf',   buffer_cgils_3D_time(:,:,:))
+       u_srf(:,:) = buffer_cgils_3D_time(:,:,1)
+
+  call read_data(cgils_nc, 'v_srf',   buffer_cgils_3D_time(:,:,:))
+       v_srf(:,:) = buffer_cgils_3D_time(:,:,1)
 
   !--- read CGILD 1D variables
   if (allocated(pfull_cgils)) deallocate(pfull_cgils) ; allocate(pfull_cgils(nlev_cgils)); pfull_cgils = missing_value
@@ -301,10 +311,10 @@ subroutine cgils_forc_init(time_interp,As,Bs)
 !-------------------------------------------------
 
   !--- initialize
-  ua=0.; va=0.; pt=0.; q=0. ; ps=0.
+  ua=0.; va=0.; pt=0.; q=0.
 
   !--- get pfull and phalf
-  call get_eta_level(nlev, Ps_cgils(1), pfull(1,1,:), phalf(1,1,:))
+  call get_eta_level(nlev, ps(1,1), pfull(1,1,:), phalf(1,1,:))
 
   !--- interpolate cgils data on SCM pressure levels
   call interp_cgils_to_SCM(pfull(1,1,:), ua(1,1,:), pfull_cgils(:), U_cgils(:))
@@ -312,9 +322,7 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   call interp_cgils_to_SCM(pfull(1,1,:), pt(1,1,:), pfull_cgils(:), T_cgils(:))
   call interp_cgils_to_SCM(pfull(1,1,:), q(1,1,:,nsphum), pfull_cgils(:), q_cgils(:))
 
-  ps(1,1) = Ps_cgils(1)
-
-if (do_debug_printout.eq.1) then
+if (do_debug_printout.eq.1 .or. do_debug_printout.eq.99) then
   write(6,*) 'nlev_cgils, ntime_cgils',nlev_cgils, ntime_cgils
   write(6,*) 'siz',siz
   write(6,*) 'pfull_cgils',pfull_cgils
@@ -327,9 +335,12 @@ if (do_debug_printout.eq.1) then
   write(6,*) 'Ps_cgils',Ps_cgils
   !write(6,*) 'phalf',phalf
   !write(6,*) '',
+
+  if (do_stop) then
     call error_mesg( ' scm_cgils. cgils_forc_init',     &
                      ' STOP.',&
                      FATAL ) 
+  endif
 endif
 
 end subroutine cgils_forc_init
@@ -558,7 +569,7 @@ if (id_qadt_vadv> 0) used = send_data( id_qadt_vadv,dqa_vadv(:,:,:), time_diag, 
 ! debugging
 !-------------
 
-if (do_debug_printout.eq.2) then
+if (do_debug_printout.eq.2  .or. do_debug_printout.eq.99) then
   write(6,*) 'nlev_cgils, ntime_cgils',nlev_cgils, ntime_cgils
   write(6,*) 'omega_cgils',omega_cgils
   write(6,*) 'omga',omga
@@ -572,9 +583,12 @@ if (do_debug_printout.eq.2) then
   !write(6,*) '_cgils', _cgils
   !write(6,*) '', 
 
+  if (do_stop) then
     call error_mesg( ' scm_cgils. update_cgils_forc',     &
                      ' STOP.',&
                      FATAL ) 
+  endif
+
 endif
 
 end subroutine update_cgils_forc
@@ -618,14 +632,16 @@ subroutine get_cgils_flx( rho, u_star, flux_t, flux_q )
                      FATAL ) 
   endif
 
-if (do_debug_printout.eq.3) then
+if (do_debug_printout.eq.3  .or. do_debug_printout.eq.99) then
   write(6,*) 'flux_t',flux_t
   write(6,*) 'flux_q',flux_q
   write(6,*) 'u_star',u_star
 
-  call error_mesg( ' scm_cgils. get_cgils_flx',     &
-                   ' STOP.',&
-                   FATAL ) 
+  if (do_stop) then
+    call error_mesg( ' scm_cgils. get_cgils_flx',     &
+                     ' STOP.',&
+                     FATAL ) 
+  endif
 endif
 
 end subroutine get_cgils_flx
