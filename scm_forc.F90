@@ -121,6 +121,7 @@ module scm_forc_mod
 
 !<--- yhc add cgils 
    use      scm_cgils_mod, only: cgils_data_read, cgils_forc_init, cgils_forc_end, update_cgils_forc,  &
+                                 get_cgils_flx, &
                                  cgils_forc_diagnostic_init
 !--->
 
@@ -979,6 +980,8 @@ subroutine scm_surface_flux(                                           &
 ! ------------------------------------------------------------------------------------------
 
     nsum =   size(t_atm)
+write(6,*) 'dddd, case',trim(experiment)
+
     select case (trim(experiment))
 
      case ('arm')
@@ -1163,6 +1166,33 @@ subroutine scm_surface_flux(                                           &
                               flux_q/rho*d608*t_atm) /u_star
       q_star = flux_q/rho / u_star  ! moisture scale
 
+     case ('cgils')  ! yhc, 2022-08-27
+
+      tv_atm = t_atm  * (1.0 + d608*q_atm)
+      rho = p_atm / (rdgas * tv_atm)
+      call get_cgils_flx(rho, u_star, flux_t, flux_q)
+
+      w_atm = max( sqrt(u_atm*u_atm + v_atm*v_atm), gust_const )  
+      flux_u  = - rho*u_atm*u_star*u_star/w_atm  
+      flux_v  = - rho*v_atm*u_star*u_star/w_atm
+
+      flux_q  = flux_q/hlv  ! latent heat convert from (W/m2) to (kg/m2/s)
+
+      b_star = grav/tv_atm * (flux_t/(cp_air*rho)*(1.0+d608*q_atm) + &
+                              flux_q/rho*d608*t_atm) /u_star
+      q_star = flux_q/rho / u_star  ! moisture scale
+
+      dtaudu_atm = 0.0   ! set d*_datm to zeros so that the surface fluxes are not updated implicitly.
+      dtaudv_atm = 0.0   ! in other words, the surface fluxes are the same in physics_down and physics_up.
+      dhdt_atm = 0.0
+      dedq_atm = 0.0
+
+write(6,*) 'cgils, ddddd'
+write(6,*) 'cgils, p_atm, tv_atm, w_atm', p_atm, tv_atm, w_atm
+write(6,*) 'cgils, u_star, flux_t, flux_q', u_star, flux_t, flux_q
+write(6,*) 'cgils, flux_u, flux_v',flux_u, flux_v
+write(6,*) 'cgils, b_star, q_star',b_star, q_star
+
      case ('dcbl')
       tv_atm = t_atm  * (1.0 + d608*q_atm)
       rho = p_atm / (rdgas * tv_atm)
@@ -1197,7 +1227,7 @@ subroutine scm_surface_flux(                                           &
        call get_rf01_flx( u_star, flux_t, flux_q )
       !  call  get_rf01_flx_online( u_atm, v_atm,  thlm_atm, q_atm,  rho, & 
       !                                          flux_t, flux_q,  u_star)
-          
+
       w_atm = max( sqrt(u_atm*u_atm + v_atm*v_atm), gust_const )  
       ! flux_u  = - u_atm*u_star*u_star/w_atm
       ! flux_v  = - v_atm*u_star*u_star/w_atm
@@ -1217,6 +1247,10 @@ subroutine scm_surface_flux(                                           &
                               flux_q/rho*d608*t_atm) /u_star
 
       q_star = flux_q/rho / u_star  ! moisture scale
+
+write(6,*) 'rf01_dddd, u_star, flux_t, flux_q',u_star, flux_t, flux_q          
+write(6,*) 'rf01_dddd, b_star, q_star',b_star, q_star
+write(6,*) 'rf01_dddd, flux_u, flux_v',flux_u, flux_v
 
      case ('rf02')
 
