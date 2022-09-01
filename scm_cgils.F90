@@ -86,6 +86,9 @@ integer, public                :: tracer_vert_advec_scheme = 3
 integer, public                :: temp_vert_advec_scheme = 3
 integer, public                :: momentum_vert_advec_scheme = 3
 character(len=20) , public     :: do_surface_fluxes = 'none'
+character(len=20) , public     :: do_nudge_terms = 'u_v_t_q'
+real, public                   :: tao_nudging = 3600.         ! nudging scale. units: second
+real, public                   :: plev_nudging = 600.e+2      ! nudging above this pressure level (Pa) 
 character(len=20) , public     :: cgils_case    = "none"
 character(len=200), public     :: cgils_ctl_s6_nc  = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s6.nc'
 character(len=200), public     :: cgils_ctl_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s11.nc'
@@ -101,17 +104,17 @@ integer :: do_debug_printout = -1  ! =-1, do not call
 
 namelist /scm_cgils_nml/ &
                         do_stop, do_debug_printout, &
-                        cgils_case, do_surface_fluxes, &
+                        cgils_case, do_surface_fluxes, do_nudge_terms, tao_nudging, plev_nudging, &
                         tracer_vert_advec_scheme, &
                         temp_vert_advec_scheme,   &
                         momentum_vert_advec_scheme
 
 !--- diagnostics
-integer ::  id_tdt_vadv, id_tdt_adi, id_tdt_adiPvadv, id_tdt_lf,                                         &
-            id_qvdt_vadv, id_qvdt_lf,                                       &
+integer ::  id_tdt_vadv, id_tdt_adi, id_tdt_adiPvadv, id_tdt_lf, id_tdt_nudge,                      &
+            id_qvdt_vadv, id_qvdt_lf, id_qvdt_nudge,                                 &
             id_qldt_vadv, id_qidt_vadv, id_qadt_vadv,     id_qndt_vadv,     & 
-            id_udt_vadv, id_udt_nudge,                                      &
-            id_vdt_vadv, id_vdt_nudge,                                      &
+            id_udt_vadv, id_udt_nudge, id_udt_lf,                                   &
+            id_vdt_vadv, id_vdt_nudge, id_vdt_lf,                                      &
             id_pf_forc, id_ph_forc 
 
 !#######################################################################
@@ -419,8 +422,10 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
     phalf          ! pressure at half levels (Pa)
 
   real, dimension(size(pt,1),size(pt,2),size(pt,3)) :: &     ! dimension(lat, lon, lev)
-    dT_lf, dqv_lf, &   ! large-scale horizontal forcing for temperature (dT_lf) and specific humidity (dqv_lf)
+    T_cgils_scm, U_cgils_scm, V_cgils_scm, q_cgils_scm,  &   ! T, q, U, V of CGILS on SCM vertical levels 
     dT_adi, dT_vadv, dT_adiPvadv, dqv_vadv, dql_vadv, dqi_vadv, dqa_vadv, dqn_vadv, du_vadv, dv_vadv, &  ! vertical tendencies 
+    dT_nudge, dqv_nudge, du_nudge, dv_nudge,  &   ! nudging tendencies
+    dT_lf, dqv_lf, du_lf, dv_lf,              &   ! large-scale horizontal tendencies
     pfull  ! pressure at full levels (Pa)
 
   real    :: dts
@@ -467,6 +472,18 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
   call read_data(cgils_nc, 'T',   buffer_cgils_3D(:,:,:), no_domain=.true.)
        T_cgils(:) = buffer_cgils_3D(1,1,:)
 
+  if (allocated(U_cgils)) deallocate(U_cgils) ; allocate(U_cgils(nlev_cgils)); U_cgils = missing_value
+  call read_data(cgils_nc, 'U',   buffer_cgils_3D(:,:,:), no_domain=.true.)
+       U_cgils(:) = buffer_cgils_3D(1,1,:)
+
+  if (allocated(V_cgils)) deallocate(V_cgils) ; allocate(V_cgils(nlev_cgils)); V_cgils = missing_value
+  call read_data(cgils_nc, 'V',   buffer_cgils_3D(:,:,:), no_domain=.true.)
+       V_cgils(:) = buffer_cgils_3D(1,1,:)
+
+  if (allocated(q_cgils)) deallocate(q_cgils) ; allocate(q_cgils(nlev_cgils)); q_cgils = missing_value
+  call read_data(cgils_nc, 'q',   buffer_cgils_3D(:,:,:), no_domain=.true.)
+       q_cgils(:) = buffer_cgils_3D(1,1,:)
+
   if (allocated(omega_cgils)) deallocate(omega_cgils) ; allocate(omega_cgils(nlev_cgils)); omega_cgils = missing_value
   call read_data(cgils_nc, 'omega',   buffer_cgils_3D(:,:,:), no_domain=.true.)
        omega_cgils(:) = buffer_cgils_3D(1,1,:)
@@ -485,7 +502,7 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
 !-------------------------------------------------
 
   !--- initialize
-  omga = 0.0; omga_half=0.; dT_lf = 0.0; dqv_lf= 0.0
+  omga = 0.0; omga_half=0.; dT_lf = 0.0; dqv_lf= 0.0; du_lf=0.; dv_lf=0.
 
   !--- get pfull and phalf, and delp
   call get_eta_level(nlev, Ps_cgils(1), pfull(1,1,:), phalf(1,1,:))
@@ -499,10 +516,13 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
   enddo
 
   !--- interpolate cgils data on SCM pressure levels
-  call interp_cgils_to_SCM(pfull(1,1,:), pt    (1,1,:), pfull_cgils(:), T_cgils(:))
-  call interp_cgils_to_SCM(pfull(1,1,:), omga  (1,1,:), pfull_cgils(:), omega_cgils(:))
-  call interp_cgils_to_SCM(pfull(1,1,:), dT_lf (1,1,:), pfull_cgils(:), divT_cgils(:))
-  call interp_cgils_to_SCM(pfull(1,1,:), dqv_lf(1,1,:), pfull_cgils(:), divq_cgils(:))
+  call interp_cgils_to_SCM(pfull(1,1,:), T_cgils_scm (1,1,:), pfull_cgils(:), T_cgils(:))
+  call interp_cgils_to_SCM(pfull(1,1,:), U_cgils_scm (1,1,:), pfull_cgils(:), U_cgils(:))
+  call interp_cgils_to_SCM(pfull(1,1,:), V_cgils_scm (1,1,:), pfull_cgils(:), V_cgils(:))
+  call interp_cgils_to_SCM(pfull(1,1,:), q_cgils_scm (1,1,:), pfull_cgils(:), q_cgils(:))
+  call interp_cgils_to_SCM(pfull(1,1,:), omga        (1,1,:), pfull_cgils(:), omega_cgils(:))
+  call interp_cgils_to_SCM(pfull(1,1,:), dT_lf       (1,1,:), pfull_cgils(:), divT_cgils(:))
+  call interp_cgils_to_SCM(pfull(1,1,:), dqv_lf      (1,1,:), pfull_cgils(:), divq_cgils(:))
 
   call interp_cgils_to_SCM(phalf(1,1,:), omga_half(1,1,:), pfull_cgils(:), omega_cgils(:))
   omga_half(:,:,1)=0. ; omga_half(:,:,kdim+1)=0.  ! omega_half is zero at the top and the bottom levels
@@ -573,6 +593,69 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
      call vert_advection(dts,omga_half,delp,va,dv_vadv,scheme=SECOND_CENTERED,form=ADVECTIVE_FORM)
   end select
 
+!-------------------------------------------------
+! compute nudging tendencies
+!   [ua, va, pt, q] are updated by SCM. Nudge these variables to CGILS profiles
+!-------------------------------------------------
+
+  du_nudge = 0.; dv_nudge = 0.; dT_nudge = 0.; dqv_nudge = 0.
+
+  if (do_nudge_terms .eq. "none") then
+    du_nudge  = 0.
+    dv_nudge  = 0.
+    dT_nudge  = 0.
+    dqv_nudge = 0.
+
+  elseif (do_nudge_terms .eq. "u_v_t_q") then
+    do k=1, kdim
+      if (pfull(1,1,k) < plev_nudging) then
+        du_nudge (1, 1, k) = ( U_cgils_scm(1, 1, k) - ua(1, 1, k) ) / tao_nudging
+        dv_nudge (1, 1, k) = ( V_cgils_scm(1, 1, k) - va(1, 1, k) ) / tao_nudging
+        dT_nudge (1, 1, k) = ( T_cgils_scm(1, 1, k) - pt(1, 1, k) ) / tao_nudging
+        dqv_nudge(1, 1, k) = ( T_cgils_scm(1, 1, k) - q(1, 1, k, nsphum) ) / tao_nudging
+      endif
+    enddo   
+
+  elseif (do_nudge_terms .eq. "u_v") then
+    do k=1, kdim
+      if (pfull(1,1,k) < plev_nudging) then
+        du_nudge(1, 1, k) = ( U_cgils_scm(1, 1, k) - ua(1, 1, k) ) / tao_nudging
+        dv_nudge(1, 1, k) = ( V_cgils_scm(1, 1, k) - va(1, 1, k) ) / tao_nudging
+      endif
+    enddo   
+
+  elseif (do_nudge_terms .eq. "t_q") then
+    do k=1, kdim
+      if (pfull(1,1,k) < plev_nudging) then
+        dT_nudge (1, 1, k) = ( T_cgils_scm(1, 1, k) - pt(1, 1, k) ) / tao_nudging
+        dqv_nudge(1, 1, k) = ( T_cgils_scm(1, 1, k) - q(1, 1, k, nsphum) ) / tao_nudging
+      endif
+    enddo   
+
+  else
+    call error_mesg( ' scm_cgils',     &
+                     ' The value of do_nudge_terms is not supported. STOP',&
+                     FATAL ) 
+  endif
+
+!----------------------------
+! sum all tendencies
+!----------------------------
+
+  !--- wind
+  u_dt = du_vadv + du_lf + du_nudge
+  v_dt = dv_vadv + dv_lf + dv_nudge
+
+  !--- temperature
+  t_dt = dT_vadv + dT_adi + dT_lf
+
+  !--- tracers
+  q_dt(:,:,:,nsphum) = dqv_vadv + dqv_lf
+  q_dt(:,:,:,nql) = dql_vadv
+  q_dt(:,:,:,nqi) = dqi_vadv
+  q_dt(:,:,:,nqa) = dqa_vadv
+  if(nqn > 0) q_dt(:,:,:,nqn) = dqn_vadv
+
 !----------------------------
 ! write out history files
 !----------------------------
@@ -581,25 +664,28 @@ if (id_pf_forc > 0)  used = send_data( id_pf_forc,  pfull  (:,:,:), time_diag, 1
 
 if (id_ph_forc > 0)  used = send_data( id_ph_forc,  phalf  (:,:,:), time_diag, 1, 1)
 
-if (id_tdt_adi > 0)  used = send_data( id_tdt_vadv, dT_adi (:,:,:), time_diag, 1, 1)
-
+!--- subsidence
+if (id_tdt_adi > 0)  used = send_data( id_tdt_adi, dT_adi (:,:,:), time_diag, 1, 1)
 if (id_tdt_vadv > 0) used = send_data( id_tdt_vadv, dT_vadv (:,:,:), time_diag, 1, 1)
-
-if (id_tdt_adiPvadv > 0)  used = send_data( id_tdt_vadv, dT_adiPvadv (:,:,:), time_diag, 1, 1)
-
+if (id_tdt_adiPvadv > 0)  used = send_data( id_tdt_adiPvadv, dT_adiPvadv (:,:,:), time_diag, 1, 1)
 if (id_udt_vadv > 0) used = send_data( id_udt_vadv, du_vadv (:,:,:), time_diag, 1, 1)
-
-if (id_vdt_vadv > 0) used = send_data( id_vdt_vadv, du_vadv (:,:,:), time_diag, 1, 1)
-
+if (id_vdt_vadv > 0) used = send_data( id_vdt_vadv, dv_vadv (:,:,:), time_diag, 1, 1)
 if (id_qvdt_vadv> 0) used = send_data( id_qvdt_vadv,dqv_vadv(:,:,:), time_diag, 1, 1)
-
 if (id_qldt_vadv> 0) used = send_data( id_qldt_vadv,dql_vadv(:,:,:), time_diag, 1, 1)
-
 if (id_qidt_vadv> 0) used = send_data( id_qidt_vadv,dqi_vadv(:,:,:), time_diag, 1, 1)
-
 if (id_qadt_vadv> 0) used = send_data( id_qadt_vadv,dqa_vadv(:,:,:), time_diag, 1, 1)
 
+!--- nudging
+if (id_tdt_nudge > 0) used = send_data( id_tdt_nudge, dT_nudge (:,:,:), time_diag, 1, 1)
+if (id_udt_nudge > 0) used = send_data( id_udt_nudge, du_nudge (:,:,:), time_diag, 1, 1)
+if (id_vdt_nudge > 0) used = send_data( id_vdt_nudge, dv_nudge (:,:,:), time_diag, 1, 1)
+if (id_qvdt_nudge> 0) used = send_data( id_qvdt_nudge,dqv_nudge(:,:,:), time_diag, 1, 1)
 
+!--- horizontal advection
+if (id_udt_lf > 0) used = send_data( id_udt_lf, du_lf (:,:,:), time_diag, 1, 1)
+if (id_vdt_lf > 0) used = send_data( id_vdt_lf, dv_lf (:,:,:), time_diag, 1, 1)
+if (id_tdt_lf > 0) used = send_data( id_tdt_lf, dT_lf (:,:,:), time_diag, 1, 1)
+if (id_qvdt_lf > 0) used = send_data( id_qvdt_lf, dqv_lf (:,:,:), time_diag, 1, 1)
 
 !-------------
 ! debugging
@@ -607,13 +693,24 @@ if (id_qadt_vadv> 0) used = send_data( id_qadt_vadv,dqa_vadv(:,:,:), time_diag, 
 
 if (do_debug_printout.eq.2  .or. do_debug_printout.eq.99) then
   write(6,*) 'nlev_cgils, ntime_cgils',nlev_cgils, ntime_cgils
-  write(6,*) 'omega_cgils',omega_cgils
-  write(6,*) 'omga',omga
-  write(6,*) 'omga_half',omga_half
-  write(6,*) 'divT_cgils', divT_cgils
-  write(6,*) 'dT_lf',dT_lf 
-  write(6,*) 'divq_cgils', divq_cgils
-  write(6,*) 'dqv_lf', dqv_lf 
+  write(6,*) '2omega_cgils',omega_cgils
+  write(6,*) '2omga',omga
+  write(6,*) '2omga_half',omga_half
+  write(6,*) '2divT_cgils', divT_cgils
+  write(6,*) '2dT_lf',dT_lf 
+  write(6,*) '2divq_cgils', divq_cgils
+  write(6,*) '2dqv_lf', dqv_lf 
+  write(6,*) '2ua',ua
+  write(6,*) '2va',va
+  write(6,*) '2pt',pt
+  write(6,*) '2qv',q(1,1,:,nsphum)
+  write(6,*) '2T_cgils_scm',T_cgils_scm 
+  write(6,*) '2U_cgils_scm',U_cgils_scm 
+  write(6,*) '2V_cgils_scm',V_cgils_scm 
+  write(6,*) '2q_cgils_scm',q_cgils_scm 
+  write(6,*) '2dT_adi',dT_adi
+  write(6,*) '2phalf',phalf
+
   !write(6,*) '', 
 
   !write(6,*) '_cgils', _cgils
@@ -669,9 +766,9 @@ subroutine get_cgils_flx( rho, u_star, flux_t, flux_q )
   endif
 
 if (do_debug_printout.eq.3  .or. do_debug_printout.eq.99) then
-  write(6,*) 'flux_t',flux_t
-  write(6,*) 'flux_q',flux_q
-  write(6,*) 'u_star',u_star
+  write(6,*) 'gg3, flux_t',flux_t
+  write(6,*) 'gg3, flux_q',flux_q
+  write(6,*) 'gg3, u_star',u_star
 
   if (do_stop.eq.3) then
     call error_mesg( ' scm_cgils. get_cgils_flx',     &
@@ -739,11 +836,23 @@ id_udt_nudge = register_diag_field (mod_name_diag, 'udt_nudge', axes(1:3), Time,
 id_vdt_nudge = register_diag_field (mod_name_diag, 'vdt_nudge', axes(1:3), Time, &
      'V tendencies due to nudging', 'm/s2', missing_value = missing_value)
 
+id_tdt_nudge = register_diag_field (mod_name_diag, 'tdt_nudge', axes(1:3), Time, &
+     'Temperature tendencies due to nudging', 'K/s', missing_value = missing_value)
+
+id_qvdt_nudge = register_diag_field (mod_name_diag, 'qvdt_nudge', axes(1:3), Time, &
+     'Vapor tendencies due to nudging', 'kg/kg/s', missing_value = missing_value)
+
+id_udt_lf = register_diag_field (mod_name_diag, 'udt_lf', axes(1:3), Time, &
+     'U tendencies due to large-scale horizontal forcing', 'm/s2', missing_value = missing_value)
+
+id_vdt_lf = register_diag_field (mod_name_diag, 'vdt_lf', axes(1:3), Time, &
+     'V tendencies due to large-scale horizontal forcing', 'm/s2', missing_value = missing_value)
+
 id_tdt_lf = register_diag_field (mod_name_diag, 'tdt_lf', axes(1:3), Time, &
-     'Temperature tendencies due to large-scale forcing', 'K/s', missing_value = missing_value)
+     'Temperature tendencies due to large-scale horizontal forcing', 'K/s', missing_value = missing_value)
 
 id_qvdt_lf = register_diag_field (mod_name_diag, 'qvdt_lf', axes(1:3), Time, &
-     'Vapor tendencies due to large-scale forcing', 'kg/kg/s', missing_value = missing_value)
+     'Vapor tendencies due to large-scale horizontal forcing', 'kg/kg/s', missing_value = missing_value)
 
 
 end subroutine cgils_forc_diagnostic_init
