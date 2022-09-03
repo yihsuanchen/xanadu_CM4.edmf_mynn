@@ -43,6 +43,8 @@ use             fv_pack, only: nlon, mlat, nlev, beglat, endlat, beglon, &
                                fv_end, change_time, p_var, restart_format, area, &
                                ak, bk, rlon, rlat, ng_d, f_d, nt_prog, get_eta_level
 
+  use scm_rf01_mod, only: rf01_aer_init
+
 
    implicit none
    private
@@ -85,6 +87,7 @@ integer :: vadvec_scheme
 integer, public                :: tracer_vert_advec_scheme = 3
 integer, public                :: temp_vert_advec_scheme = 3
 integer, public                :: momentum_vert_advec_scheme = 3
+logical, public                :: do_aer_prof = .true.
 character(len=20) , public     :: do_surface_fluxes = 'none'
 character(len=20) , public     :: do_nudge_terms = 'u_v_t_q'
 real, public                   :: tao_nudging = 3600.         ! nudging scale. units: second
@@ -104,6 +107,7 @@ integer :: do_debug_printout = -1  ! =-1, do not call
 
 namelist /scm_cgils_nml/ &
                         do_stop, do_debug_printout, &
+                        do_aer_prof, &
                         cgils_case, do_surface_fluxes, do_nudge_terms, tao_nudging, plev_nudging, &
                         tracer_vert_advec_scheme, &
                         temp_vert_advec_scheme,   &
@@ -200,7 +204,7 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   real dum1
 
   integer itime
-  integer i,j,k,ix,jx,kx,tx
+  integer i,j,k,kdim
 
 !---------------------------------
 
@@ -210,6 +214,8 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   nqa = get_tracer_index ( MODEL_ATMOS, 'cld_amt' )
   nqn = get_tracer_index ( MODEL_ATMOS, 'liq_drp' )   
   nqni = get_tracer_index ( MODEL_ATMOS, 'ice_num' ) 
+
+  kdim = size(pt,3)
 
 !------------------------------- 
 ! Determine CGILS input file
@@ -356,6 +362,12 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   enddo
   call p_var(nlon, mlat, nlev, beglat, endlat, ptop, delp, ps,     &
              pe, peln,  pk,  pkz,  kappa, q, ng_d, ncnst, .false. )
+
+  ! --- Initialize aerosol profiles from AM4 AMIP July Climatology
+  !     rf01_aer_init is in scm_rf01.F90, written by ZNT 03/29/2021
+    if (do_aer_prof) then
+       call rf01_aer_init(kdim)
+    end if
 
 !------------
 ! debug
