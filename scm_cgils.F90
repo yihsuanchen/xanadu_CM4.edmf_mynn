@@ -90,8 +90,11 @@ integer, public                :: momentum_vert_advec_scheme = 3
 logical, public                :: do_aer_prof = .true.
 character(len=20) , public     :: do_surface_fluxes = 'none'
 character(len=20) , public     :: do_nudge_terms = 'u_v_t_q'
-real, public                   :: tao_nudging = 3600.         ! nudging scale. units: second
+real, public                   :: tau_nudging = 10800.        ! nudging scale (seconds). Default is 3h.
 real, public                   :: plev_nudging = 600.e+2      ! nudging above this pressure level (Pa) 
+real, public                   :: c_T = 0.                    ! bulk tranfer conefficient (m/s) in bulk surface flux calculation 
+                                                              ! set in reading cgils_case. c_T=0.0081 in S6 and S11, =0.0104 in S12. 
+                                                              ! Ref: Blossey et al. (2013 JAMES), Table 1 and Eq A2 & A3 
 character(len=20) , public     :: cgils_case    = "none"
 character(len=200), public     :: cgils_ctl_s6_nc  = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s6.nc'
 character(len=200), public     :: cgils_ctl_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s11.nc'
@@ -108,17 +111,17 @@ integer :: do_debug_printout = -1  ! =-1, do not call
 namelist /scm_cgils_nml/ &
                         do_stop, do_debug_printout, &
                         do_aer_prof, &
-                        cgils_case, do_surface_fluxes, do_nudge_terms, tao_nudging, plev_nudging, &
+                        cgils_case, do_surface_fluxes, do_nudge_terms, tau_nudging, plev_nudging, &
                         tracer_vert_advec_scheme, &
                         temp_vert_advec_scheme,   &
                         momentum_vert_advec_scheme
 
 !--- diagnostics
-integer ::  id_tdt_vadv, id_tdt_adi, id_tdt_adiPvadv, id_tdt_lf, id_tdt_nudge,                      &
-            id_qvdt_vadv, id_qvdt_lf, id_qvdt_nudge,                                 &
+integer ::  id_tdt_vadv, id_tdt_adi, id_tdt_adiPvadv, id_tdt_lf, id_tdt_nudge, id_tdt_forc,                     &
+            id_qvdt_vadv, id_qvdt_lf, id_qvdt_nudge, id_qvdt_forc,                                 &
             id_qldt_vadv, id_qidt_vadv, id_qadt_vadv,     id_qndt_vadv,     & 
-            id_udt_vadv, id_udt_nudge, id_udt_lf,                                   &
-            id_vdt_vadv, id_vdt_nudge, id_vdt_lf,                                      &
+            id_udt_vadv, id_udt_nudge, id_udt_lf, id_udt_forc,                                  &
+            id_vdt_vadv, id_vdt_nudge, id_vdt_lf, id_vdt_forc,                                     &
             id_pf_forc, id_ph_forc 
 
 !#######################################################################
@@ -206,6 +209,10 @@ subroutine cgils_forc_init(time_interp,As,Bs)
   integer itime
   integer i,j,k,kdim
 
+  real, parameter :: c_T_s6  = 0.0081    ! bulk tranfer conefficient (m/s) in bulk surface flux calculation 
+  real, parameter :: c_T_s11 = 0.0081    ! c_T=0.0081 in S6 and S11, =0.0104 in S12
+  real, parameter :: c_T_s12 = 0.0104    ! Ref: Blossey et al. (2013 JAMES), Table 1 and Eq A2 & A3
+
 !---------------------------------
 
   nsphum = get_tracer_index(MODEL_ATMOS, 'sphum')
@@ -222,16 +229,28 @@ subroutine cgils_forc_init(time_interp,As,Bs)
 !------------------------------- 
   if (trim(cgils_case) .eq. "ctl_s6") then
     cgils_nc = cgils_ctl_s6_nc
+    c_T = c_T_s6
+
   elseif (trim(cgils_case) .eq. "ctl_s11") then
     cgils_nc = cgils_ctl_s11_nc
+    c_T = c_T_s11
+
   elseif (trim(cgils_case) .eq. "ctl_s12") then
     cgils_nc = cgils_ctl_s12_nc
+    c_T = c_T_s12
+
   elseif (trim(cgils_case) .eq. "p2k_s6") then
     cgils_nc = cgils_p2k_s6_nc
+    c_T = c_T_s6
+
   elseif (trim(cgils_case) .eq. "p2k_s11") then
     cgils_nc = cgils_p2k_s11_nc
+    c_T = c_T_s11
+
   elseif (trim(cgils_case) .eq. "p2k_s12") then
     cgils_nc = cgils_p2k_s12_nc
+    c_T = c_T_s12
+
   else
     call error_mesg( ' scm_cgils',     &
                      ' nml cgils_case is not supported.',&
@@ -621,26 +640,26 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
   elseif (do_nudge_terms .eq. "u_v_t_q") then
     do k=1, kdim
       if (pfull(1,1,k) < plev_nudging) then
-        du_nudge (1, 1, k) = ( U_cgils_scm(1, 1, k) - ua(1, 1, k) ) / tao_nudging
-        dv_nudge (1, 1, k) = ( V_cgils_scm(1, 1, k) - va(1, 1, k) ) / tao_nudging
-        dT_nudge (1, 1, k) = ( T_cgils_scm(1, 1, k) - pt(1, 1, k) ) / tao_nudging
-        dqv_nudge(1, 1, k) = ( T_cgils_scm(1, 1, k) - q(1, 1, k, nsphum) ) / tao_nudging
+        du_nudge (1, 1, k) = ( U_cgils_scm(1, 1, k) - ua(1, 1, k) ) / tau_nudging
+        dv_nudge (1, 1, k) = ( V_cgils_scm(1, 1, k) - va(1, 1, k) ) / tau_nudging
+        dT_nudge (1, 1, k) = ( T_cgils_scm(1, 1, k) - pt(1, 1, k) ) / tau_nudging
+        dqv_nudge(1, 1, k) = ( q_cgils_scm(1, 1, k) - q(1, 1, k, nsphum) ) / tau_nudging
       endif
     enddo   
 
   elseif (do_nudge_terms .eq. "u_v") then
     do k=1, kdim
       if (pfull(1,1,k) < plev_nudging) then
-        du_nudge(1, 1, k) = ( U_cgils_scm(1, 1, k) - ua(1, 1, k) ) / tao_nudging
-        dv_nudge(1, 1, k) = ( V_cgils_scm(1, 1, k) - va(1, 1, k) ) / tao_nudging
+        du_nudge(1, 1, k) = ( U_cgils_scm(1, 1, k) - ua(1, 1, k) ) / tau_nudging
+        dv_nudge(1, 1, k) = ( V_cgils_scm(1, 1, k) - va(1, 1, k) ) / tau_nudging
       endif
     enddo   
 
   elseif (do_nudge_terms .eq. "t_q") then
     do k=1, kdim
       if (pfull(1,1,k) < plev_nudging) then
-        dT_nudge (1, 1, k) = ( T_cgils_scm(1, 1, k) - pt(1, 1, k) ) / tao_nudging
-        dqv_nudge(1, 1, k) = ( T_cgils_scm(1, 1, k) - q(1, 1, k, nsphum) ) / tao_nudging
+        dT_nudge (1, 1, k) = ( T_cgils_scm(1, 1, k) - pt(1, 1, k) ) / tau_nudging
+        dqv_nudge(1, 1, k) = ( q_cgils_scm(1, 1, k) - q(1, 1, k, nsphum) ) / tau_nudging
       endif
     enddo   
 
@@ -659,13 +678,13 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
   v_dt = dv_vadv + dv_lf + dv_nudge
 
   !--- temperature
-  t_dt = dT_vadv + dT_adi + dT_lf
+  t_dt = dT_vadv + dT_adi + dT_lf + dT_nudge
 
   !--- tracers
-  q_dt(:,:,:,nsphum) = dqv_vadv + dqv_lf
-  q_dt(:,:,:,nql) = dql_vadv
-  q_dt(:,:,:,nqi) = dqi_vadv
-  q_dt(:,:,:,nqa) = dqa_vadv
+  q_dt(:,:,:,nsphum) = dqv_vadv + dqv_lf + dqv_nudge
+  q_dt(:,:,:,nql)    = dql_vadv
+  q_dt(:,:,:,nqi)    = dqi_vadv
+  q_dt(:,:,:,nqa)    = dqa_vadv
   if(nqn > 0) q_dt(:,:,:,nqn) = dqn_vadv
 
 !----------------------------
@@ -675,6 +694,12 @@ type(time_type), intent(in)              :: time_interp,time_diag,dt_int
 if (id_pf_forc > 0)  used = send_data( id_pf_forc,  pfull  (:,:,:), time_diag, 1, 1)
 
 if (id_ph_forc > 0)  used = send_data( id_ph_forc,  phalf  (:,:,:), time_diag, 1, 1)
+
+!--- nudging
+if (id_tdt_forc > 0) used = send_data( id_tdt_forc, t_dt (:,:,:), time_diag, 1, 1)
+if (id_udt_forc > 0) used = send_data( id_udt_forc, u_dt (:,:,:), time_diag, 1, 1)
+if (id_vdt_forc > 0) used = send_data( id_vdt_forc, v_dt (:,:,:), time_diag, 1, 1)
+if (id_qvdt_forc> 0) used = send_data( id_qvdt_forc, q_dt(:,:,:,nsphum), time_diag, 1, 1)
 
 !--- subsidence
 if (id_tdt_adi > 0)  used = send_data( id_tdt_adi, dT_adi (:,:,:), time_diag, 1, 1)
@@ -741,10 +766,18 @@ end subroutine update_cgils_forc
 !########################################################################
 ! This subroutine returns surface fluxes
 
-subroutine get_cgils_flx( rho, u_star, flux_t, flux_q )
+subroutine get_cgils_flx( rho, u_star, flux_t, flux_q, &
+                          t_atm,     q_atm,      u_atm,     v_atm,     p_atm,     z_atm, &
+                          t_surf,    q_surf,     u_surf,    v_surf,    p_surf)
 
   !--- input argument
   real, intent(in), dimension(:) :: rho
+
+  real, intent(in),  dimension(:) :: &
+    t_atm,     q_atm,      u_atm,     v_atm,     p_atm,     z_atm, &  ! *_atm: values at the first atmos full level above the surface
+                                                                      !        i.e. the N-th level
+    t_surf,    q_surf,     u_surf,    v_surf,    p_surf               ! *_surf: p_surf is the surface pressure, u_surf=0=v_surf
+                                                                      !         t_surf and q_surf seems likt 2-m T and Q?
 
   !--- output argument
   real, intent(out), dimension(:) :: &
@@ -753,6 +786,8 @@ subroutine get_cgils_flx( rho, u_star, flux_t, flux_q )
      flux_q      ! surface latent heat flux (W/m2)
 
   !--- local variables
+  real, dimension(size(t_atm,1)) :: &     ! dimension(?), in SCM, t_atm(2)
+     SST_cgils, w1T1, w1q1, qsat
 
 !-------------------------------------
 
@@ -770,7 +805,27 @@ subroutine get_cgils_flx( rho, u_star, flux_t, flux_q )
 
     call read_data(cgils_nc, 'lhflx',   buffer_cgils_3D_time(:,:,:))
          flux_q(:) = buffer_cgils_3D_time(1,1,1)
+  
+  !--- bulk surface flux formula following Blossey et al. (2013, JAMES), Eq A2 and A3
+  elseif (trim(do_surface_fluxes).eq.'bulk') then
+
+    u_star = 0.25  ! use the same value in RF01
     
+    !--- read SST
+    call read_data(cgils_nc, 'Tg',   buffer_cgils_3D_time(:,:,:))
+         SST_cgils(:) = buffer_cgils_3D_time(1,1,:)
+
+    !--- compute turbulent heat and moisture fluxes, w'T' and w'q'
+    w1T1(:) = c_T * (SST_cgils(:) - t_atm(:))
+
+    call compute_qs (SST_cgils(:), p_surf(:), qsat(:))   ! compute saturation vapor pressure
+    w1q1(:) = c_T * (0.98*qsat(:) - q_atm(:))
+
+    !--- convert turbulent fluxes to sensible and latent heat fluxes
+    flux_t(:) = w1T1(:) * rho(:) * cp_air
+    
+    flux_q(:) = w1q1(:) * rho(:) * hlv    
+
   else
     call error_mesg( ' scm_cgils. get_cgils_flx. The value of do_surface_fluxes is not supported',     &
                      ' STOP.',&
@@ -781,6 +836,22 @@ if (do_debug_printout.eq.3  .or. do_debug_printout.eq.99) then
   write(6,*) 'gg3, flux_t',flux_t
   write(6,*) 'gg3, flux_q',flux_q
   write(6,*) 'gg3, u_star',u_star
+  write(6,*) 'gg3, t_atm', t_atm
+  write(6,*) 'gg3, q_atm', q_atm
+  write(6,*) 'gg3, u_atm', u_atm
+  write(6,*) 'gg3, v_atm', v_atm
+  write(6,*) 'gg3, p_atm', p_atm
+  write(6,*) 'gg3, z_atm', z_atm
+  write(6,*) 'gg3, t_surf', t_surf
+  write(6,*) 'gg3, q_surf', q_surf
+  write(6,*) 'gg3, u_surf', u_surf
+  write(6,*) 'gg3, v_surf', v_surf
+  write(6,*) 'gg3, p_surf', p_surf
+  write(6,*) 'gg3, c_T', c_T
+  write(6,*) 'gg3, SST_cgils', SST_cgils
+  write(6,*) 'gg3, w1T1', w1T1
+  write(6,*) 'gg3, w1q1', w1q1
+  !write(6,*) 'gg3, ',
 
   if (do_stop.eq.3) then
     call error_mesg( ' scm_cgils. get_cgils_flx',     &
@@ -865,6 +936,18 @@ id_tdt_lf = register_diag_field (mod_name_diag, 'tdt_lf', axes(1:3), Time, &
 
 id_qvdt_lf = register_diag_field (mod_name_diag, 'qvdt_lf', axes(1:3), Time, &
      'Vapor tendencies due to large-scale horizontal forcing', 'kg/kg/s', missing_value = missing_value)
+
+id_udt_forc = register_diag_field (mod_name_diag, 'udt_forc', axes(1:3), Time, &
+     'U tendencies due to total forcing (dynamics+nudge)', 'm/s2', missing_value = missing_value)
+
+id_vdt_forc = register_diag_field (mod_name_diag, 'vdt_forc', axes(1:3), Time, &
+     'V tendencies due to total forcing (dynamics+nudge)', 'm/s2', missing_value = missing_value)
+
+id_tdt_forc = register_diag_field (mod_name_diag, 'tdt_forc', axes(1:3), Time, &
+     'Temperature tendencies due to total forcing (dynamics+nudge)', 'K/s', missing_value = missing_value)
+
+id_qvdt_forc = register_diag_field (mod_name_diag, 'qvdt_forc', axes(1:3), Time, &
+     'Vapor tendencies due to total forcing (dynamics+nudge)', 'kg/kg/s', missing_value = missing_value)
 
 
 end subroutine cgils_forc_diagnostic_init
