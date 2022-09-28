@@ -980,7 +980,6 @@ subroutine scm_surface_flux(                                           &
 ! ------------------------------------------------------------------------------------------
 
     nsum =   size(t_atm)
-write(6,*) 'dddd, case',trim(experiment)
 
     select case (trim(experiment))
 
@@ -1170,7 +1169,9 @@ write(6,*) 'dddd, case',trim(experiment)
 
       tv_atm = t_atm  * (1.0 + d608*q_atm)
       rho = p_atm / (rdgas * tv_atm)
-      call get_cgils_flx(rho, u_star, flux_t, flux_q)
+      call get_cgils_flx(rho, u_star, flux_t, flux_q, &
+                         t_atm,     q_atm,      u_atm,     v_atm,     p_atm,     z_atm,  &
+                         t_surf,    q_surf,     u_surf,    v_surf,    p_surf)
 
       w_atm = max( sqrt(u_atm*u_atm + v_atm*v_atm), gust_const )  
       flux_u  = - rho*u_atm*u_star*u_star/w_atm  
@@ -1187,11 +1188,11 @@ write(6,*) 'dddd, case',trim(experiment)
       dhdt_atm = 0.0
       dedq_atm = 0.0
 
-write(6,*) 'cgils, ddddd'
-write(6,*) 'cgils, p_atm, tv_atm, w_atm', p_atm, tv_atm, w_atm
-write(6,*) 'cgils, u_star, flux_t, flux_q', u_star, flux_t, flux_q
-write(6,*) 'cgils, flux_u, flux_v',flux_u, flux_v
-write(6,*) 'cgils, b_star, q_star',b_star, q_star
+     !write(6,*) 'cgils, ddddd'
+     !write(6,*) 'cgils, p_atm, tv_atm, w_atm', p_atm, tv_atm, w_atm
+     !write(6,*) 'cgils, u_star, flux_t, flux_q', u_star, flux_t, flux_q
+     !write(6,*) 'cgils, flux_u, flux_v',flux_u, flux_v
+     !irite(6,*) 'cgils, b_star, q_star',b_star, q_star
 
      case ('dcbl')
       tv_atm = t_atm  * (1.0 + d608*q_atm)
@@ -1247,10 +1248,6 @@ write(6,*) 'cgils, b_star, q_star',b_star, q_star
                               flux_q/rho*d608*t_atm) /u_star
 
       q_star = flux_q/rho / u_star  ! moisture scale
-
-write(6,*) 'rf01_dddd, u_star, flux_t, flux_q',u_star, flux_t, flux_q          
-write(6,*) 'rf01_dddd, b_star, q_star',b_star, q_star
-write(6,*) 'rf01_dddd, flux_u, flux_v',flux_u, flux_v
 
      case ('rf02')
 
