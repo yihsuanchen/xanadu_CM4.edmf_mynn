@@ -48,6 +48,7 @@ use             fv_pack, only: nlon, mlat, nlev, beglat, endlat, beglon, &
 
    public rf01_data_read, rf01_forc_init, rf01_forc_end, update_rf01_forc, &
           rf01_forc_diagnostic_init, add_rf01_tdtlw, add_rf01_tdtsw,       &
+          rf01_aer_init,  &  ! yhc add
           get_rf01_flx,  get_rf01_flx_online
 
    character(len=8) :: mod_name = 'scm_rf01'
@@ -143,6 +144,8 @@ logical                        :: do_any_profiles     = .false.         ! yhc 20
 character*100                  :: option_any_profiles = "test"          ! yhc 2022-08-06, option for initial conditions
 logical                        :: do_read_rf01_forc_any = .false.       ! yhc 2022-08-06, read specified forcing profiles
 character*100                  :: option_read_rf01_forc_any = "test"    ! yhc 2022-08-06, option for specified forcing profiles
+character*100                  :: option_lf_forcing = "none"            ! horizontal advective tendencies.
+                                                                        !   availabe: "MERRA2_DYCOMS_3hr_10Jul1030Z"
 
 integer :: nsphum, nql, nqi, nqa, nqn, nqni
 integer :: vadvec_scheme
@@ -167,6 +170,7 @@ namelist /scm_rf01_nml/ tracer_vert_advec_scheme,                   &
                         do_init_cloud_free, &             ! yhc 05/10/2022
                         zi_stevens,         &             ! yhc 05/16/2022
                         do_any_profiles, option_any_profiles, do_read_rf01_forc_any, option_read_rf01_forc_any, & ! yhc 2022-08-06
+                        option_lf_forcing,  & ! yhc 2022-09-21
                         do_aer_prof                       ! ZNT 03/29/2021
 
 
@@ -777,7 +781,84 @@ end if
 du_lf = 0.0
 dv_lf = 0.0
 dT_lf = 0.0
-dqv_lf = 0.0
+dqv_lf = 0.
+
+if (trim(option_lf_forcing).eq."test") then
+  ! the horizontal forcing is diagnosed from MERRA-2 3-hourly data *data*. The horizontal advective tendencies
+  ! are diagnosed by NCL advect_variable function.
+
+  dT_lf = -1./86400.
+  dqv_lf = 1.e-3/86400.
+
+  do k=1,kdim
+    if ( zf(1,1,k) > 2400.0 ) then   ! set horizontal forcings to zero where omega is zero
+         dT_lf (:,:,k) = 0.
+         dqv_lf(:,:,k) = 0.
+    end if
+  end do
+
+elseif (trim(option_lf_forcing).eq."PBL_MERRA2_wCGILSsty_FreeTrop_0") then
+  ! Similar to DYCOMS SCM setup,
+  !   Z<1600m, CGILS-style horizontal advection using MERRA-2 data
+  !   2400m>Z>1600m, Linear interpolation by using the values at 1600m and 2400m
+  !   Z>2400m, No horizontal advection
+
+  dT_lf(1,1,:) = (/ &
+        0.000000e+00,  0.000000e+00,  0.000000e+00,  0.000000e+00, &
+        0.000000e+00,  0.000000e+00,  0.000000e+00,  0.000000e+00, &
+        0.000000e+00,  0.000000e+00,  0.000000e+00,  0.000000e+00, &
+        0.000000e+00,  0.000000e+00,  0.000000e+00,  0.000000e+00, &
+        0.000000e+00,  0.000000e+00,  0.000000e+00,  0.000000e+00, &
+        0.000000e+00, -4.629755e-06, -1.835072e-05, -2.360223e-05, &
+       -2.360223e-05, -2.360223e-05, -2.360223e-05, -2.360223e-05, &
+       -2.360223e-05, -2.360223e-05, -2.360223e-05, -2.360223e-05, &
+       -2.360223e-05/)
+
+  dqv_lf(1,1,:) = (/ &
+        0.000000e+00,  0.000000e+00,  0.000000e+00,  0.000000e+00, &
+        0.000000e+00,  0.000000e+00,  0.000000e+00,  0.000000e+00, &
+        0.000000e+00,  0.000000e+00,  0.000000e+00,  0.000000e+00, &
+        0.000000e+00,  0.000000e+00,  0.000000e+00,  0.000000e+00, &
+        0.000000e+00,  0.000000e+00,  0.000000e+00,  0.000000e+00, &
+        0.000000e+00, -3.066373e-09, -1.215403e-08, -1.563220e-08, &
+       -1.563220e-08, -1.563220e-08, -1.563220e-08, -1.563220e-08, &
+       -1.563220e-08, -1.563220e-08, -1.563220e-08, -1.563220e-08, &
+       -1.563220e-08 /)
+
+elseif (trim(option_lf_forcing).eq."PBL_MERRA2_wCGILSsty_FreeTrop_MERRA2") then
+  ! Simiar to CGILS setup, &
+  ! P>900hPa, CGILS-style horizontal advection using MERRA-2 data
+  ! 800hPa > P > 900hPa, Linear interpolation by using the values at 900 hPa and 800 hPa
+  ! P<800hPa, MERRA-2 horizontal advection
+
+  dT_lf(1,1,:) = (/ &
+       -1.464067e-05,  4.225336e-05,  8.497543e-07, -2.187984e-05, &
+       -1.101093e-05, -2.185082e-06, -7.134623e-06, -1.959490e-05, &
+       -4.012173e-05, -8.633712e-05, -1.050757e-04, -1.093736e-04, &
+       -3.294569e-05,  1.376715e-05,  5.901304e-06, -7.226663e-06, &
+        3.141057e-06, -3.530690e-05, -4.581254e-05, -4.330122e-05, &
+       -3.292953e-05, -2.428754e-05, -2.407418e-05, -2.389075e-05, &
+       -2.373444e-05, -2.360223e-05, -2.360223e-05, -2.360223e-05, &
+       -2.360223e-05, -2.360223e-05, -2.360223e-05, -2.360223e-05, &
+       -2.360223e-05 /)
+
+  dqv_lf(1,1,:) = (/ &
+        4.233625e-13,  7.152405e-13, -4.695386e-13,  9.734660e-14, &
+       -2.571354e-13, -1.187783e-13, -1.400123e-13, -5.445460e-14, &
+        8.269690e-13, -1.635144e-12,  1.432642e-12,  4.472376e-11, &
+        2.996606e-10, -8.855314e-11,  2.046432e-12,  2.496785e-09, &
+       -3.834130e-09,  1.496060e-08,  1.833367e-08,  2.273357e-08, &
+        4.736444e-09, -1.438761e-08, -1.477508e-08, -1.510822e-08, &
+       -1.539208e-08, -1.563220e-08, -1.563220e-08, -1.563220e-08, &
+       -1.563220e-08, -1.563220e-08, -1.563220e-08, -1.563220e-08, &
+       -1.563220e-08/)
+
+else
+  call error_mesg('update_rf01_forc',  &
+                  'option_lf_forcing nml value is not supported', FATAL)
+
+endif  ! end if of option_lf_forcing
+
 
 !<-- yhc, 2022-08-07
 if (do_read_rf01_forc_any) then
@@ -967,16 +1048,16 @@ if (do_read_rf01_forc_any) then
 
 else  ! 
   dT_vadv= dT_vadv + dT_adi
-  t_dt = t_dt +  dT_rad + dT_vadv
-  q_dt(:,:,:,nsphum) = dqv_vadv
+  t_dt = t_dt +  dT_rad + dT_vadv + dT_lf  ! adding large-scale term
+  q_dt(:,:,:,nsphum) = dqv_vadv   + dqv_lf ! adding large-scale term
   q_dt(:,:,:,nql) = dql_vadv
   q_dt(:,:,:,nqi) = dqi_vadv
   q_dt(:,:,:,nqa) = dqa_vadv
   if(nqn > 0) q_dt(:,:,:,nqn) = dqn_vadv
 
   tdt_dyn_forc=0.; qvdt_dyn_forc=0.
-  tdt_dyn_forc  (:,:,:) = dT_vadv
-  qvdt_dyn_forc (:,:,:) = dqv_vadv
+  tdt_dyn_forc  (:,:,:) = dT_vadv  + dT_lf
+  qvdt_dyn_forc (:,:,:) = dqv_vadv + dqv_lf
 
 end if   ! end if of do_any_forcings
 
