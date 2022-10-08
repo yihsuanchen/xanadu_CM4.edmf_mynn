@@ -3717,6 +3717,69 @@ unset occam_file
     </input>
   </experiment>
 
+  <!-- yhc 2022-08-02, add CGILS_gridspec, following RF01_gridspec-->
+  <experiment name="CGILS_gridspec">
+    <input>
+      <csh><![CDATA[
+# All this needs to be in the INPUT directory
+cd $workDir/INPUT
+rm -f input.nml
+rm -f grid_spec.nc
+
+set machinename = `uname -m`
+
+if ( $(platform) =~ '*ncrc*' ) then
+  alias make_xgrids /ncrc/home2/Seth.Underwood/bin/make_xgrids.x86_64
+  alias grid_gen /ncrc/home2/Charles.Seman/bin/grid_gen_perth.pl
+  set occam_file = $PDATA/gfdl/fms/SCM/perth/OCCAM_p5degree.nc
+else if ( $(platform) =~ '*gfdl*' ) then
+  alias make_xgrids /home/sdu/bin/make_xgrids_perth.$machinename
+  alias grid_gen /home/sdu/bin/grid_gen_perth.pl
+  set occam_file = /archive/fms/SCM/perth/OCCAM_p5degree.nc
+  dmget $occam_file
+endif
+
+# CGILS S11 centered at 129W, 32N (CGILS does not care about lat/lon, so set the same for S6, S11, & S12?)
+# set up the grid box bound
+  set lon_min =  230.25
+  set lon_max =  231.75
+  set lat_min =  30.5
+  set lat_max =  32.5
+
+# x_min should be less than lon_min and x_max should be greater than lon_max
+# y_min should be less than lat_min and y_max should be greater than lat_max
+
+  set x_min   =  230.0
+  set x_max   =  240.0
+  set y_min   =  29.5
+  set y_max   =  33.5
+
+#set the ocean grid file used to create grid_spec file
+ set ocean_grid_file = "ocean_grid"
+
+#generate the ocean grid
+grid_gen -nx 2 -ny 2 -nz 3 -x $x_min,$x_max -dx 2.5,2.5 \
+                 -y $y_min,$y_max -dy 2.0,2.0 -z 0.0,220.,5500., -dz 10.,10.,367.14286 \
+                 -i "$occam_file" -f "topo" -o $ocean_grid_file
+  cat >x.dat <<EOF
+  $lon_min
+  $lon_max
+EOF
+  cat >y.dat <<EOF
+  $lat_min
+  $lat_max
+EOF
+ make_xgrids -o $ocean_grid_file.nc -a x.dat,y.dat -l x.dat,y.dat >&make_xgrids.out
+
+# Unset aliases and unneeded variables
+unalias make_xgrids
+unalias grid_gen
+unset ocean_grid_file
+unset occam_file
+      ]]></csh>
+    </input>
+  </experiment>
+
 
 <!--===============================-->
 <!--= LAYOUTS FOR SCM EXPERIMENTS =-->
@@ -3860,6 +3923,28 @@ unset occam_file
   <freInclude name="scm_gcss_arm_basic">
         <run days="0" hours="15" overrideParams="fms_nml :clock_grain='ROUTINE'; soil_nml :init_temp=291.5">
                                 <!-- Initialize soil temperature to initial TSKIN -->
+                <resources jobWallclock="01:00:00">
+                <atm ranks="1" threads="1"    layout = "1,1"  io_layout = "1,1" />
+                <lnd                          layout = "1,1"  io_layout = "1,1" />
+                <ocn ranks="0" threads="0"    layout = "1,1"  io_layout = "1,1" />
+                <ice                          layout = "1,1"  io_layout = "1,1" />
+                </resources>
+        </run>
+  </freInclude>
+
+  <freInclude name="scm_cgils_basic">
+        <run days="1" hours="0" overrideParams="fms_nml :clock_grain='ROUTINE'; soil_nml :init_temp=292.5">
+                <resources jobWallclock="01:00:00">
+                <atm ranks="1" threads="1"    layout = "1,1"  io_layout = "1,1" />
+                <lnd                          layout = "1,1"  io_layout = "1,1" />
+                <ocn ranks="0" threads="0"    layout = "1,1"  io_layout = "1,1" />
+                <ice                          layout = "1,1"  io_layout = "1,1" />
+                </resources>
+        </run>
+  </freInclude>
+
+  <freInclude name="scm_cgils_basic_100d">
+        <run days="100" hours="0" overrideParams="fms_nml :clock_grain='ROUTINE'; soil_nml :init_temp=292.5">
                 <resources jobWallclock="01:00:00">
                 <atm ranks="1" threads="1"    layout = "1,1"  io_layout = "1,1" />
                 <lnd                          layout = "1,1"  io_layout = "1,1" />
@@ -5341,6 +5426,19 @@ unset occam_file
       </namelist>
     </input>
   </experiment>
+
+  <experiment name="xx2-RF02_test" inherit="RF02_$(AWG_EXPERIMENT)">
+    <input>
+      <dataFile label="diagTable" target="INPUT/"
+                chksum="" size="" timestamp="">
+        <dataSource site="$(site)">
+          $(SCM_INCLUDE)/diag_table/diag_table_scm_edmf_mynn <!-- yihsuan -->
+        </dataSource>
+      </dataFile>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+    </input>
+  </experiment>
+
 
 
 <!--======================-->
@@ -14049,6 +14147,21 @@ DYCOMS RF01 case
         do_specified_albedo     = .false.,
         do_specified_rough_leng = .false.,
       </namelist>
+      <namelist name="coupler_nml">
+        months = $months,
+        days   = $days,
+        hours  = $hours,
+        dt_atmos = 1800,
+        dt_cpld = 1800,
+        current_date = 2001, 7, 10, 6, 0, 0,
+        calendar = 'julian'
+        concurrent = .false.
+        do_ocean = .false.
+	do_land  = .false.
+        ocean_npes = 0
+        atmos_npes = $atm_ranks
+        atmos_nthreads = $atm_threads
+      </namelist>
     </input>
   </experiment>
 
@@ -16985,6 +17098,146 @@ cloud-free initial conditions
         do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
         do_init_cloud_free = .true. 
         do_stevens = .false.
+        do_any_profiles = .false.
+        option_any_profiles = "MERRA2_DYCOMS_3hr_10Jul1030Z"
+        do_read_rf01_forc_any = .false.
+        option_read_rf01_forc_any = "MERRA2_DYCOMS_3hr_10Jul1030Z"
+        option_lf_forcing = "-00PBL_MERRA2_wCGILSsty_FreeTrop_MERRA2"
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00cd-am4p0_aerT_clr_am4RAD_sw" inherit="v01_RF01-00cc-am4p0_aerT_clr_am4RAD_sw">
+  </experiment>
+
+  <experiment name="v01_RF01-00cd-am4p0_aerT_clr_am4RAD_sw_2Xdivf" inherit="v01_RF01-00cc-am4p0_aerT_clr_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .false.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+        do_stevens = .true.
+        do_any_profiles = .false.
+        option_any_profiles = "xxx"
+        do_read_rf01_forc_any = .false.
+        option_read_rf01_forc_any = "xxx"
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00cd-am4p0_aerT_clr_am4RAD_sw_FMRA" inherit="v01_RF01-00cc-am4p0_aerT_clr_am4RAD_sw_ICStv_FMRA">
+  </experiment>
+  
+  <experiment name="v01_RF01-00cd-am4p0_aerT_clr_am4RAD_sw_FMRACg_FT0" inherit="v01_RF01-00cd-am4p0_aerT_clr_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .false.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+        do_stevens = .true.
+        do_any_profiles = .false.
+        option_any_profiles = "xxx"
+        do_read_rf01_forc_any = .false.
+        option_read_rf01_forc_any = "xxx"
+        option_lf_forcing = "PBL_MERRA2_wCGILSsty_FreeTrop_0"
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00cd-am4p0_aerT_clr_am4RAD_sw_FMRACg_FT0_2Xdivf" inherit="v01_RF01-00cd-am4p0_aerT_clr_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 7.5e-6,
+        p_omega_zero = 90000.,
+        do_rad = .false.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+        do_stevens = .true.
+        do_any_profiles = .false.
+        option_any_profiles = "xxx"
+        do_read_rf01_forc_any = .false.
+        option_read_rf01_forc_any = "xxx"
+        option_lf_forcing = "PBL_MERRA2_wCGILSsty_FreeTrop_0"
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00cd-am4p0_aerT_clr_am4RAD_sw_FMRACg_FTMRA" inherit="v01_RF01-00cd-am4p0_aerT_clr_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .false.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true. 
+        do_stevens = .true.
+        do_any_profiles = .false.
+        option_any_profiles = "xxx"
+        do_read_rf01_forc_any = .false.
+        option_read_rf01_forc_any = "xxx"
+        option_lf_forcing = "PBL_MERRA2_wCGILSsty_FreeTrop_MERRA2"
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="v01_RF01-00cd-am4p0_aerT_clr_am4RAD_sw_ICMRA_FMRA" inherit="v01_RF01-00cd-am4p0_aerT_clr_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .false.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .true.
+        do_stevens = .false.
         do_any_profiles = .true.
         option_any_profiles = "MERRA2_DYCOMS_3hr_10Jul1030Z"
         do_read_rf01_forc_any = .true.
@@ -16992,6 +17245,442 @@ cloud-free initial conditions
       </namelist>
     </input>
   </experiment>
+
+
+<!--===========================-->
+<!--= CGILS EXPERIMENTS =-->
+<!--===========================-->
+  <!--experiment name="CGILS_$(AWG_EXPERIMENT)" inherit="$(AWG_EXPERIMENT)"-->
+  <experiment name="CGILS_$(AWG_EXPERIMENT)" inherit="$(AWG_EXPERIMENT)">
+        <description>
+      Single Column Model for CGILS cases
+      (Reference: Zhang et al., 2012, doi:10.1029/2012MS000182)
+    </description>
+   <executable file="$(SCM_EXECUTABLE)"/>
+    <input>
+      <namelist name="atmos_model_nml">
+         nxblocks = 1
+         nyblocks = $atm_threads
+      </namelist>
+      <namelist name="coupler_nml">
+        months = $months,
+        days   = $days,
+        hours  = $hours,
+        dt_atmos = 1800,
+        dt_cpld = 1800,
+        current_date = 2003, 7, 1, 0, 0, 0,
+        calendar = 'julian'
+        concurrent = .false.
+        do_ocean = .false.
+        do_land  = .false.
+        ocean_npes = 0
+        atmos_npes = $atm_ranks
+        atmos_nthreads = $atm_threads
+      </namelist>
+      <namelist name="diag_manager_nml">
+        mix_snapshot_average_fields = .false.,
+        max_input_fields = 2000,
+        max_output_fields = 2000
+        max_axes = 100
+        max_num_axis_sets = 50
+        max_files = 40
+        issue_oor_warnings = .false.
+        max_axis_attributes=4
+      </namelist>
+      <namelist name="fv_core_nml">
+        layout = $atm_layout
+        nlon=1
+        mlat=1
+        nlev= $(NMODEL_LEVELS)
+        adjust_dry_mass = .false.
+        full_phys = .false.
+        pft_phys  = .false.
+      </namelist>
+      <namelist name="xgrid_nml">
+        make_exchange_reproduce=.true.
+        interp_method = 'first_order'
+        do_alltoall = .false.
+      </namelist>
+      <namelist name="fms_io_nml">
+        threading_read  = 'multi',
+        max_files_r = 100,
+        max_files_w = 100,
+        dr_set_size = 1
+      </namelist>
+      <namelist name="topography_nml">
+        topog_file = 'INPUT/navy_topography.data.nc',
+        water_file = 'INPUT/navy_pctwater.data.nc'
+      </namelist>
+      <namelist name="river_nml">
+        do_rivers = .false.
+        dt_slow     = 86400.
+        land_area_called_cellarea = .true.
+        all_big_outlet_ctn0 = .true.
+        ave_DHG_exp = 0.55, 0.45, 0.0
+        ave_DHG_coef = 7.5, 0.3, 0.444444444
+        ave_AAS_exp = 0.26, 0.40, 0.34
+      </namelist>
+      <namelist name="static_veg_nml">
+        use_static_veg = .false.
+        write_static_veg = .false.
+        timeline   = 'loop'
+        start_loop = 1981, 1, 1, 0, 0, 0
+        end_loop   = 1982, 1, 1, 0, 0, 0
+        fill_land_mask = .TRUE.
+        input_file = 'INPUT/19810101.static_veg_out.nc'
+      </namelist>
+      <namelist name="damping_driver_nml">
+        trayfric = 0.,
+        nlev_rayfric = 1,
+        do_mg_drag = $(DO_MG_DRAG),
+        do_cg_drag = .true.
+        do_topo_drag = $(DO_TOPO_ROUGH),
+        do_conserve_energy = .true.,
+        kstart= 0
+      </namelist>
+      <namelist name="topo_rough_nml">
+        use_topo_rough    = $(DO_TOPO_ROUGH)
+        max_topo_rough    = 100.0
+        topo_rough_factor = 0.01
+        topo_rough_source = 'input',
+        topo_rough_file = 'INPUT/$(TOPO_ROUGH_FILE)',
+      </namelist>
+      <namelist name="scm_forc_nml">
+        experiment = 'cgils'
+        use_scm_rad = .false.,
+        do_specified_land       = .false.,
+        do_specified_flux       = .true.,
+        do_specified_tskin      = .false.,
+        do_specified_albedo     = .false.,
+        do_specified_rough_leng = .false.,
+      </namelist>
+      <namelist name="scm_cgils_nml">
+        cgils_case = 'ctl_s12'
+        do_stop = -1
+        do_debug_printout = -1
+        do_surface_fluxes = 'prescribed'
+      </namelist>
+      <namelist name="physics_driver_nml">
+ do_radiation = .true.
+      </namelist>
+      <namelist name="radiation_driver_nml">
+        do_radiation = .true.,
+        rad_time_step= 1800,
+        rad_package = 'sea_esf',
+        do_clear_sky_pass=.true.,
+        !calc_hemi_integrals = .false.,
+        renormalize_sw_fluxes=.true.,
+        zenith_spec = 'diurnally_varying',
+        using_restart_file = .false.
+        do_conserve_energy = .true.
+        sw_rad_time_step = 1800,
+        use_single_lw_sw_ts = .false.,
+      </namelist>
+      <namelist name="shortwave_driver_nml">
+      do_cmip_diagnostics = .true.,
+      swform = 'esfsw99'
+      solar_constant = 1360.0,
+      time_varying_solar_constant = .false.,
+      </namelist>
+      <xi:include xpointer="xpointer(//experiment[@name='CGILS_gridspec']/input/node())"/>
+      <xi:include xpointer="xpointer(//experiment[@name='navy_data']/input/node())"/>
+
+<!-- the following are common to all the AWG_EXPERIMENT AM4 global models -->
+
+      <xi:include xpointer="xpointer(//freInclude[@name='common_LM4']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96_LM4']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='amip_sst_cmip6']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='data_table_AM4']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='data_table_co2']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96_grid_only']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96_stack_size']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='csh_adjust_dry_mass']/input/node())"/>
+
+<!-- use for AM4 prototype configuration g11r11 AMIP experiments -->
+
+      <xi:include xpointer="xpointer(//freInclude[@name='common_AM4_v20170208']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='emissions_cmip6_v20161213']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='common_cmip6']/input/node())"/>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource platform="$(platform)">$DEV/Charles.Seman/awg/input/cmip5/chemlbf</dataSource>
+      </dataFile>
+      <xi:include xpointer="xpointer(//freInclude[@name='Volcano_Solar_TimeSeries_cmip6']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='diag_table_lm3p2_fullaero']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11']/input/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='L32_gas_conc']/input/node())"/>
+
+      <dataFile label="diagTable" target="INPUT/"
+                chksum="" size="" timestamp="">
+        <dataSource site="$(site)">
+          $(SCM_INCLUDE)/diag_table/diag_table_scm_edmf_mynn <!-- yihsuan -->
+        </dataSource>
+      </dataFile>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+
+    </input>
+    <runtime>
+      <regression name="basic">
+          <xi:include xpointer="xpointer(//freInclude[@name='scm_cgils_basic_100d']/node())"/>
+      </regression>
+      <regression name="basic_1d">
+          <xi:include xpointer="xpointer(//freInclude[@name='scm_cgils_basic']/node())"/>
+      </regression>
+      <regression name="basic_100d">
+          <xi:include xpointer="xpointer(//freInclude[@name='scm_cgils_basic_100d']/node())"/>
+      </regression>
+    </runtime>
+  </experiment>
+
+  <experiment name="CGILS_test" inherit="CGILS_$(AWG_EXPERIMENT)">
+    <input>
+      <namelist name="scm_cgils_nml">
+        cgils_case = 'ctl_s12'
+        do_stop = -1
+        do_debug_printout = 99
+        do_surface_fluxes = 'bulk'
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="CGILS-mynnED" inherit="CGILS_$(AWG_EXPERIMENT)">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 0 
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+      </namelist>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ GUST_SCHEME     = beljaars                ,
+ CONSTANT_GUST   =   1.00000000000000     ,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ GUST_FACTOR     =   1.00000000000000     ,
+ DO_SIMPLE       = F,
+ WP2_MIN =  4.000000000000000E-004,
+ ALTERNATE_ZPBL  =           0
+     </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99
+ option_surface_flux = "star"
+ edmf_type = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="CGILS_pblhUW_noSH_noVDIFF" inherit="CGILS_$(AWG_EXPERIMENT)">
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ GUST_SCHEME     = beljaars                ,
+ CONSTANT_GUST   =   1.00000000000000     ,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ GUST_FACTOR     =   1.00000000000000     ,
+ DO_SIMPLE       = F,
+ WP2_MIN =  4.000000000000000E-004,
+ ALTERNATE_ZPBL  =           0
+     </namelist>
+     <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   -100000.     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="CGILS_mynn_edmf_MFexp_QxDet" inherit="CGILS_pblhUW_noSH_noVDIFF">
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6 
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = T,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4 
+ QX_MF   =           2,
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="CGILS_mynn_edmf_ctl_s12_sflx_pscrb" inherit="CGILS_mynn_edmf_MFexp_QxDet">
+    <input>
+      <namelist name="scm_cgils_nml">
+        cgils_case = 'ctl_s12'
+        do_stop = -1
+        do_debug_printout = -1
+        do_surface_fluxes = 'prescribed'
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="CGILS_mynn_edmf_ctl_s12_sflx_bulk" inherit="CGILS_mynn_edmf_MFexp_QxDet">
+    <input>
+      <namelist name="scm_cgils_nml">
+        cgils_case = 'ctl_s12'
+        do_stop = -1
+        do_debug_printout = -1
+        do_surface_fluxes = 'bulk'
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="CGILS_mynn_edmf_ctl_s11_sflx_pscrb" inherit="CGILS_mynn_edmf_MFexp_QxDet">
+    <input>
+      <namelist name="scm_cgils_nml">
+        cgils_case = 'ctl_s11'
+        do_stop = -1
+        do_debug_printout = -1
+        do_surface_fluxes = 'prescribed'
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="CGILS_mynn_edmf_ctl_s11_sflx_bulk" inherit="CGILS_mynn_edmf_MFexp_QxDet">
+    <input>
+      <namelist name="scm_cgils_nml">
+        cgils_case = 'ctl_s11'
+        do_stop = -1
+        do_debug_printout = -1
+        do_surface_fluxes = 'bulk'
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="CGILS_mynn_ED_ctl_s12_sflx_bulk" inherit="CGILS-mynnED">
+    <input>
+      <namelist name="scm_cgils_nml">
+        cgils_case = 'ctl_s12'
+        do_stop = -1
+        do_debug_printout = -1
+        do_surface_fluxes = 'bulk'
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="CGILS_mynn_ED_ctl_s11_sflx_bulk" inherit="CGILS-mynnED">
+    <input>
+      <namelist name="scm_cgils_nml">
+        cgils_case = 'ctl_s11'
+        do_stop = -1
+        do_debug_printout = -1
+        do_surface_fluxes = 'bulk'
+      </namelist>
+    </input>
+  </experiment>
+
+
+
 
 <!--
         do_stevens = .false.
