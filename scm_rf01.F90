@@ -797,6 +797,12 @@ if (trim(option_lf_forcing).eq."test") then
     end if
   end do
 
+elseif (trim(option_lf_forcing).eq."none") then
+  ! no horizontal forcing
+
+  dT_lf = 0. 
+  dqv_lf = 0.
+
 elseif (trim(option_lf_forcing).eq."PBL_MERRA2_wCGILSsty_FreeTrop_0") then
   ! Similar to DYCOMS SCM setup,
   !   Z<1600m, CGILS-style horizontal advection using MERRA-2 data
