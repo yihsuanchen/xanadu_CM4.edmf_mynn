@@ -32,15 +32,158 @@ this_dir=`pwd`  # this directory
 
 #--- set CM4 experiment name, which is must defined in the xml_file
 exp_names=(\
-          "a00-c96L33_am4p0_donner"
-          #"e00-c96L33_am4p0_qmf_allqmf_off_MFent500"
-          #"e01-c96L33_am4p0_donner-ED_up2_expMFent500_qmfALLoff"
-          #"e02-c96L33_am4p0_donner-ED_up2_impMFent500_qmfALLoff"
+          #"tt2-c96L33_am4p0_cm4amip_Jul2001"
+          #"tt1-c96L33_am4p0_cm4amip_nudge2000_Jul2001"
+          #"tt1-c96L33_am4p0_cm4amip_nudge2000"
+          #-----
+          #"p1l_c96L33_am4p0_cm4amip_nudge2000_3"
+          #-----
+          #"v01_02ad-edmf_MFexp_QxDet_Lo250-c96L33_am4p0"
+          #"v01_00b-noSH-c96L33_am4p0"
+          #"xx1-v01_02i-edmf_MFexp_QxDet_MFoff_Sc-c96L33_am4p0"
+          #-----
+          #"v01_02ha-edmf_MFexp_QxDet_tkeLimMF_p900tke02-c96L33_am4p0"
+          #"v01_02hb-edmf_MFexp_QxDet_tkeLimMF_p950tke02-c96L33_am4p0"
+          #"v01_02hc-edmf_MFexp_QxDet_tkeLimMF_p900tke04-c96L33_am4p0"
+          #"v01_02i-edmf_MFexp_QxDet_MFoff_Sc-c96L33_am4p0"
+          #"v01_02ib-edmf_MFexp_QxDet_MFoff_Sc_coast-c96L33_am4p0"
+          #"v01_02a-edmf_MFexp_QxDet_Lo100-c96L33_am4p0"
+          #-----
+          #"v01_02ga-edmf_MFexp_QxDet_Lo100_z500-c96L33_am4p0"
+          #"v01_02gb-edmf_MFexp_QxDet_Lo100_z800-c96L33_am4p0"
+          #"v01_02gc-edmf_MFexp_QxDet_Lo100_z1200-c96L33_am4p0"
+          #"v01_02gd-edmf_MFexp_QxDet_Lo100_z600-c96L33_am4p0"
+          #"v01_02ge-edmf_MFexp_QxDet_Lo100_z700-c96L33_am4p0"
+          #"v01_02gf-edmf_MFexp_QxDet_Lo100_z900-c96L33_am4p0"
+          #"v01_02gg-edmf_MFexp_QxDet_Lo100_z1000-c96L33_am4p0"
+          #-----
+          #"v01_02fg-edmf_MFexp_QxDet_LoSTEPmin5_1200-c96L33_am4p0"
+          #"v01_02fe-edmf_MFexp_QxDet_LoSTEPmin5_500-c96L33_am4p0"
+          #"v01_02ff-edmf_MFexp_QxDet_LoSTEPmin5_800-c96L33_am4p0"
+          #-----
+          #"xx1-v01_02f-edmf_MFexp_QxDet_LoSTEP-c96L33_am4p0"
+          #"xx1-v01_AAa-edmf_MFexp_QxDet_noStoch-c96L33_am4p0"
+          #"xx1-v01_00d-mynnED-c96L33_am4p0"
+          #"xx1-v01_01a-edmf_EDonly-c96L33_am4p0"
+          #"xx1-v01_02a-edmf_MFexp_QxDet_Lo100-c96L33_am4p0"
+          #"xx1-v01_02c-edmf_MFexp_QxDet_Lo25-c96L33_am4p0"
+          #"xx1-v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0"
+          #-----
+          #"v01_00a-c96L33_am4p0"
+          #"v01_00d-mynnED-c96L33_am4p0"
+          #"v01_01a-edmf_EDonly-c96L33_am4p0"
+          #"v01_01b-edmf_EDonly_noSH-c96L33_am4p0"
+          #"v01_02a-edmf_MFexp_QxDet_Lo100-c96L33_am4p0"
+          #"v01_02b-edmf_MFexp_QxDet_Lo50-c96L33_am4p0"
+          #"v01_02c-edmf_MFexp_QxDet_Lo25-c96L33_am4p0"
+          #"v01_02e-edmf_MFexp_QxDet_LoSQU-c96L33_am4p0"
+#          "v01_02fa-edmf_MFexp_QxDet_LoSTEP_500-c96L33_am4p0"
+#          "v01_02fb-edmf_MFexp_QxDet_LoSTEP_600-c96L33_am4p0"
+#          "v01_02fc-edmf_MFexp_QxDet_LoSTEP_700-c96L33_am4p0"
+#          "v01_02fd-edmf_MFexp_QxDet_LoSTEP_800-c96L33_am4p0"
+#          #
+#          #"v01_03a-edmf_MFexp_QxEddy_Lo100-c96L33_am4p0"
+#          #"v01_03b-edmf_MFexp_QxEddy_Lo50-c96L33_am4p0"
+#          #"v01_03c-edmf_MFexp_QxEddy_Lo25-c96L33_am4p0"
+#          #"v01_03e-edmf_MFexp_QxEddy_LoSQU-c96L33_am4p0"
+#          "v01_03fa-edmf_MFexp_QxEddy_LoSTEP_500-c96L33_am4p0"
+#          "v01_03fb-edmf_MFexp_QxEddy_LoSTEP_600-c96L33_am4p0"
+#          "v01_03fc-edmf_MFexp_QxEddy_LoSTEP_700-c96L33_am4p0"
+#          "v01_03fd-edmf_MFexp_QxEddy_LoSTEP_800-c96L33_am4p0"
+          #-----
+          "xx1-a00a-c96L33_am4p0_donner"
+          #"xx1-m25a4-c96L33_am4p0_MYNN_M3_EDMFexp_ASpd_QxEddy_pblhLARGE"
+          #"xx2-m25a4-c96L33_am4p0_MYNN_M3_EDMFexp_ASpd_QxEddy_sEROS"
+          #"xx1-m25a2-c96L33_am4p0_MYNN_M3_EDMFexp_ASpd_QxDet_pblhLARGE"
+          #"xx2-m25a2-c96L33_am4p0_MYNN_M3_EDMFexp_ASpd_QxDet_sEROS"
+          #-----
+          #"m25a3-c96L33_am4p0_MYNN_M3_EDMFexp_ASpd_QxEddy_pblhALL"
+          #"m25a4-c96L33_am4p0_MYNN_M3_EDMFexp_ASpd_QxEddy_pblhLARGE"
+          #"m25a1-c96L33_am4p0_MYNN_M3_EDMFexp_ASpd_QxDet_pblhALL"
+          #"m25a2-c96L33_am4p0_MYNN_M3_EDMFexp_ASpd_QxDet_pblhLARGE"
+          #-----
           #"a00-c96L33_am4p0_donner"
-          #"d01-c96L33_am4p0_donner-EDonly"
-          #"d02-c96L33_am4p0_donner-EDonly_down"
-          #"d03-c96L33_am4p0_donner-EDonly_up_twice"
-          #"d04-c96L33_am4p0_donner-EDonly_up_difft0"
+          #"a00a-c96L33_am4p0_donner"
+          #"m25a-c96L33_am4p0_MYNN_M3_EDMFexp_ASpd_QxDet"
+          #-----
+          #"x01-m14a-c96L33_am4p0_mynn_diff_M3_EDonly_sfK_UWlock_NOsm"
+          #"x01-m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_rdpI0.4"
+          #"m23-c96L33_am4p0_MYNN_ED_sfK_dPG"
+          #"m23a-c96L33_am4p0_MYNN_ED_sfK_dPG_NOsm"
+          #"m24a-c96L33_am4p0_MYNN_M3_sfK_dPG_NOsm"
+          #"y3seq_m23-c96L33_am4p0_MYNN_ED_sfK_dPG"
+          #"y3seq_m23a-c96L33_am4p0_MYNN_ED_sfK_dPG_NOsm"
+          #"y3seq_m24a-c96L33_am4p0_MYNN_M3_sfK_dPG_NOsm"
+          #-----
+          #"m13b2a-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_rdpI0.4_NOsm"
+          #"m14a-c96L33_am4p0_mynn_diff_M3_EDonly_sfK_UWlock_NOsm"
+          #"m14-c96L33_am4p0_mynn_diff_M3_EDonly_sfK_UWlock"
+          #"m14-c96L33_am4p0_mynn_diff_M3_EDonly_sfK_UWlock_ICam4p0_2000"
+          #-----
+          #"m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_rdpI0.4"
+          #-----
+          #"x01-m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_rdpI0.4"
+          #"x01-m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_ICam4p0_2000_rdpI0.4"
+          #-----
+          #"m13b2-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_ICam4p0_2000_rdpI0.4"
+          #"m13b5-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_ICam4p0_2000_rdpI0.45"
+          #"m13b6-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_ICam4p0_2000_rdpI0.5"
+          #"m13-c96L33_am4p0_mynn_diff_Gmy_sfK_UWlock_ICam4p0_2000"
+          #"x01-m12-c96L33_am4p0_mynn_diff_Gmy_UWlock_ICam4p0_2000"
+          #"x01-m12b5-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_rdpI0.45"
+          #-----
+          #"m12b5-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_rdpI0.45"
+          #"m12b6-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_rdpI0.5"
+          #"m12b4-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_rdpI0.3"
+          #"m12a4-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_ei9"
+          #"m12a5-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_ei10"
+          #-----
+          #"m12a1-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_ei4"
+          #"m12a2-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_ei6"
+          #"m12a3-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_ei8"
+          #"m12b1-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_rdpI0.2"
+          #"m12b2-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_rdpI0.4"
+          #"m12b3-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_rdpI0.8"
+          #------
+          #"x01-m12-c96L33_am4p0_mynn_diff_Gmy_UWlock_ICam4p0_2000"
+          #"x02-m12-c96L33_am4p0_mynn_diff_Gmy_UWlock_ICam4p0_2000"
+          #"x01-m12b2-c96L33_am4p0_mynn_ED_Gmy_UWlock_ICam4p0_2000_rdpI0.4"
+          #------
+          #"m12-c96L33_am4p0_mynn_diff_Gmy_UWlock_ICam4p0_2000"
+          #"x01-a00-c96L33_am4p0_donner"
+          #"x01-m11-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000"
+          #------
+          #"m11-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000"
+          #"m00-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000_diag"
+          #"x02-m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000"
+          #"x01-m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000"
+          #"m01-c96L33_am4p0_mynn_diff_Gmy_ICam4p0_2000"
+          #"m01-c96L33_am4p0_mynn_diff_Gmy"
+          #---------------
+          #"x81b-c96L33_am4p0_mynn_MODqdt"
+          #"x81a-c96L33_am4p0_mynn"
+          #"x01-x61a-c96L33_am4p0_mynn"
+          #"x70a-c96L33_am4p0_mynn_diag"
+          #"x71a-c96L33_am4p0_mynn"
+          #"x61b-c96L33_am4p0_mynn_MODqdt"
+          #"x61a-c96L33_am4p0_mynn"
+          #"x51a-c96L33_am4p0_mynn_MODqdt"
+          #"x41a-c96L33_am4p0_mynn"
+          #"x31d-c96L33_am4p0_mynn"
+          #"x11e-c96L33_am4p0_mynn_diag"
+          #"x21d-c96L33_am4p0_mynn"
+          #"x11b-c96L33_am4p0_mynn_diag"
+          #"x11a_debug-c96L33_am4p0_mynn_diag"
+          #"x11a-c96L33_am4p0_mynn_diag"
+          #"x01c-c96L33_am4p0_mynn_fakePBL_sfcfluxSTAR"
+          #"x01d-c96L33_am4p0_mynn_fakePBL_sfcfluxUPDT"
+          #"a00-c96L33_am4p0_donner"
+          #"b01-c96L33_am4p0_donner_mynn"
+          #"x01a-c96L33_am4p0_mynn_diag"
+          #"x01b-c96L33_am4p0_mynn"
+          #"x01a_debug-c96L33_am4p0_mynn_diag"
+          #"x01b_debug-c96L33_am4p0_mynn"
+          #"x01c-c96L33_am4p0_mynn_fakePBL"
           )
 
 name1=$1               # you can give the file name from command line
@@ -70,22 +213,29 @@ xml_file="$xml_dir/$xml_name"
 
 PLATFORM=`grep "PLATFORM=" $setting_file | cut -d '=' -f 2`
 TARGET=`grep "TARGET=" $setting_file | cut -d '=' -f 2`
+#TARGET="debug"
 
 #regression="debug"        
 #regression="debug_30d"
-regression="basic"
+#regression="basic"
+#regression="basic_30d"
+#regression="basic_24node"
+regression="basic_24node_30d"
+#regression="basic_864_1thread"
+#regression="basic_864_1thread_30d"
 
 #qos="debug"
 qos="normal"
+#qos="urgent"
 
 run_type="regression"
 #run_type="AMIP"
 #run_type="restart_AMIP"
 
 #frerun_others="-o"
-#frerun_others="-o -s"
+frerun_others="-o -s"
 #frerun_others="-u"
-frerun_others="-u -s"
+#frerun_others="-u -s"
 
 if [ $run_type == "regression" ]; then
   ## regression test
@@ -93,7 +243,7 @@ if [ $run_type == "regression" ]; then
 
 elif [ $run_type == "AMIP" ]; then
   ## AMIP run
-  comd_frerun="frerun $frerun_others -x $xml_name -p $PLATFORM -t $TARGET ${exp_names[@]}"
+  comd_frerun="frerun $frerun_others -x $xml_name -p $PLATFORM -t $TARGET -q $qos ${exp_names[@]}"
 
 elif [ $run_type == "restart_AMIP" ]; then
   ## restartAMIP run, The -e option stands for "extend"
