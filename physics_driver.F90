@@ -112,7 +112,7 @@ use physics_types_mod,       only: alloc_physics_tendency_type, &
                                    physics_input_block_type, &
                                    dealloc_physics_tendency_type
 
-use moist_proc_utils_mod, only:    mp_removal_type
+use moist_proc_utils_mod, only:    mp_removal_type, column_diag
   
 use aerosol_mod,             only: aerosol_init, aerosol_driver, &
                                    aerosol_time_vary, &
@@ -159,6 +159,9 @@ use monin_obukhov_mod,        only: monin_obukhov_init
 use edmf_mynn_mod,            only: edmf_mynn_init, edmf_mynn_end, &
                                     edmf_input_type, edmf_output_type, edmf_ls_mp_type, &
                                     edmf_mynn_driver
+
+use     constants_mod, only: vonkarm, rdgas, rvgas, kappa, grav, &
+                             cp_air, dens_h2o, hlv, hlf, hls, pi
 !--> yhc, add edmf_mynn
 
 #ifdef SCM
@@ -628,6 +631,8 @@ type(precip_flux_type)              :: Precip_flux
 
 !<-- yhc
 integer :: id_diff_t_vdif, id_diff_m_vdif, id_num_updraft, id_qldt_vdif, id_qadt_vdif, id_qidt_vdif, id_qdt_vdif_test, id_tdt_vdif_test, id_tdt_radturb, id_tt_phys, id_qq_phys
+
+integer :: id_LWP0
 !--> yhc
                             contains
 
@@ -1434,6 +1439,10 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
       id_qq_phys = register_diag_field (mod_name, 'qq_phys', axes(1:3), Time, &
                     'specific humidity in physics_down', 'kg/kg' , &
                     missing_value=missing_value )
+
+      id_LWP0    = register_diag_field (mod_name, 'LWP0', axes(1:2), Time, &
+                    'Liquid water path (phy_in)', 'kg/m2' , &
+                     missing_value=missing_value )
       !---> yhc
 
      !-------- CMIP diagnostics --------
@@ -1999,6 +2008,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                        size(Physics_tendency_block%u_dt,3)  )  :: &
         udt_before_vdiff_down, vdt_before_vdiff_down, tdt_before_vdiff_down2,  &
         tdt_dum, tdt_mf_dum, tdt_rad_only, &
+        pmass, &
         rdt_dum1, rdt_dum2
 
       real, dimension( size(Physics_tendency_block%q_dt,1), &
@@ -2052,6 +2062,17 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       !------- specific humidity in physics_down (units: kg/kg) at full level -------
       if ( id_qq_phys > 0) then
         used = send_data (id_qq_phys, r(:,:,:,1), Time_next, is, js, 1 )
+      endif
+
+      !------- LWP0 -------
+      if ( id_LWP0 > 0) then
+        do kk=1,size(Physics_tendency_block%q_dt,3)
+          pmass(:,:,kk) =    &
+                    (Physics_input_block%p_half(:,:,kk+1) - Physics_input_block%p_half(:,:,kk))/grav
+        end do
+        call column_diag    &
+             (id_LWP0, is, js, Time_next, Physics_input_block%q(:,:,:,nql), 1.0,   &
+                                                          pmass)
       endif
 !---> yhc, 2022-06-28
 
