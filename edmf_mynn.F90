@@ -60,7 +60,7 @@ use   field_manager_mod, only: MODEL_ATMOS
 
 use  tracer_manager_mod, only: get_number_tracers, get_tracer_index,           &
                                get_tracer_names
-use moist_proc_utils_mod, only : rh_calc
+use moist_proc_utils_mod, only : column_diag, rh_calc
 
 use random_numbers_mod,    only:  randomNumberStream,   &
                                   getRandomNumbers
@@ -549,6 +549,8 @@ integer :: id_num_updraft, id_num_det, id_num_ndet_zent, id_num_ndet_pent
 integer :: id_rlz_ratio, id_rlz_tracer, id_L0_edmf, id_edmf_MF_mask
 
 integer :: id_tdt_edmf_ED, id_tdt_edmf_MF
+
+integer :: id_LWP0
 
 !---------------------------------------------------------------------
 
@@ -1199,6 +1201,10 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
   id_edmf_MF_mask = register_diag_field (mod_name, 'edmf_MF_mask', axes(1:2), Time, &
                  'edmf MF mask. 0: no MF. 1: MF', 'none' , &
+                 missing_value=missing_value )
+
+  id_LWP0      = register_diag_field (mod_name, 'LWP0', axes(1:2), Time, &
+                 'Liquid water path (phy_in)', 'kg/m2' , &
                  missing_value=missing_value )
 
 !-----------------------------------------------------------------------
@@ -8029,7 +8035,7 @@ subroutine edmf_mynn_driver ( &
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2), &
                    size(Physics_input_block%t,3)) :: &
-          tmp_3d, diag_full
+          tmp_3d, diag_full, pmass
 
   real, dimension (size(Physics_input_block%t,1), &
                    size(Physics_input_block%t,2), &
@@ -8908,6 +8914,21 @@ subroutine edmf_mynn_driver ( &
       if ( id_edmf_MF_mask > 0) then
         used = send_data (id_edmf_MF_mask, Input_edmf%mf_mask, Time_next, is, js )
       endif
+
+      !------- LWP0 -------
+      if ( id_LWP0 > 0) then
+        !used = send_data (id_LWP0, Input_edmf%mf_mask, Time_next, is, js )
+        do k=1,kx
+          pmass(:,:,k) =    &
+                    (Physics_input_block%p_half(:,:,k+1) - Physics_input_block%p_half(:,:,k))/grav
+        end do
+        call column_diag    &
+             (id_LWP0, is, js, Time_next, Physics_input_block%q(:,:,:,nql), 1.0,   &
+                                                          pmass)
+      endif
+
+
+
 !send_data
 
 !----------
