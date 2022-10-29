@@ -35,6 +35,9 @@ use             fv_pack, only: nlon, mlat, nlev, beglat, endlat, beglon, &
                                pnats, consv_te, ptop, fv_init, fv_domain, &
                                fv_end, change_time, p_var, restart_format, area, &
                                ak, bk, rlon, rlat, ng_d, f_d, nt_prog, get_eta_level
+
+  use scm_rf01_mod, only: rf01_aer_init  ! yhc 2022-10-29
+
                                   
    implicit none
    private
@@ -120,6 +123,10 @@ logical                        :: do_netcdf_restart = .true.
 integer :: nsphum, nql, nqi, nqa, nqn, nqni
 integer :: vadvec_scheme
 
+!<-- yhc 2022-10-29
+logical, public                :: do_aer_prof = .false.
+!--> yhc 2022-10-29
+
 !--------------------- version number ----------------------------------
 !
 character(len=128) :: version = '$Id$'
@@ -135,6 +142,7 @@ namelist /scm_rf02_nml/ tracer_vert_advec_scheme,                   &
                         p_omega_zero, divf,                         &
                         do_rad, do_geo, do_vadv,                    &
                         rho_sfc, ustar_sfc, flux_t_sfc, flux_q_sfc, &
+                        do_aer_prof, & ! yhc 2022-10-29 
                         configuration
 
 ! diagnostics
@@ -276,6 +284,9 @@ real maxerror
 integer i
 real,  dimension(size(pt,1),size(pt,2))    :: elev
 integer :: j
+
+integer kim  ! yhc 2022-10-29
+
 #include "fv_point.inc"
        nsphum = get_tracer_index(MODEL_ATMOS, 'sphum')
        nql = get_tracer_index ( MODEL_ATMOS, 'liq_wat' )
@@ -411,6 +422,15 @@ integer :: j
     ! ZNT 02/23/2020 - Note: Also need to initialize u_srf and v_srf
     u_srf(:,:)=ua(:,:,KDIM)
     v_srf(:,:)=va(:,:,KDIM)
+  
+    !<--- yhc 2022-10-29
+    kdim = size(pt,3)
+
+    if (do_aer_prof) then
+       call rf01_aer_init(kdim)
+    end if
+    !---> yhc 2022-10-29
+
 
 end subroutine rf02_forc_init
 
