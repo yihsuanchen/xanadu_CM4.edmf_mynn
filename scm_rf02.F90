@@ -94,7 +94,7 @@ use             fv_pack, only: nlon, mlat, nlev, beglat, endlat, beglon, &
 
 real,    private               :: p00 = 100000.
 
-character(len=64)              :: configuration = 'base'
+character(len=64)              :: configuration = 'base_mod'   ! "base" has a bug: q_t should be z-zi, not zi-z
 
 integer, public                :: tracer_vert_advec_scheme = 3
 integer, public                :: temp_vert_advec_scheme = 3
@@ -945,7 +945,8 @@ end subroutine get_rf02_flx
        real, parameter :: zi = 795.0
        real, parameter :: ztop = 2500.0
 
-       if ( configuration.ne.'dry' ) then
+       !if ( configuration.ne.'dry' ) then
+       if ( configuration.eq.'base' ) then  ! yhc 2022-11-02
 
 !        Original sounding
 !        Specified sounding below ztop
@@ -974,7 +975,8 @@ end subroutine get_rf02_flx
                     ,0.0 )
          endif
 
-       else
+       !else
+       elseif ( configuration.eq.'dry' ) then  ! yhc 2022-11-02
 
 !        Alternate sounding modified with drier air above the inversion
 !        Specified sounding below ztop
@@ -1003,7 +1005,42 @@ end subroutine get_rf02_flx
                     ,0.0 )
          endif
 
-       endif
+       elseif ( configuration.eq.'base_mod' ) then  ! yhc 2022-11-02
+         ! follows Eq (3) in Ackerman et al. (2009, MWR)
+         !   q_t above zi has a typo. The correct one: 5 "+" 3*(1-exp((z-zi)/500))
+
+!        Original sounding
+!        Specified sounding below ztop
+
+         if ( z <= ztop ) then
+           u =  3.0 + 0.0043 * z
+           v = -9.0 + 0.0056 * z
+           if ( z < zi ) then
+             thetal = 288.3
+             qt = 9.45e-3
+           else
+             thetal = 295.0 + (z-zi)**(1.0/3.0)
+             qt = 5.0e-3 + 3.0e-3*( 1.0 - exp( (z-zi)/500. ) )
+           endif
+
+!        Above ztop, we simply extend the sounding using constant
+!        dtheta/dz, drt/dz, u, v.
+
+         else
+           u =  3.0 + 0.0043 * ztop
+           v = -9.0 + 0.0056 * ztop
+           thetal = 295.0 + (ztop-zi)**(1.0/3.0)                &
+                    + 3.5e-3*(z-ztop)
+           qt = max( 5.0e-3 + 3.0e-3*( 1.0 - exp( (ztop-zi)/500. ) ) &
+                     - 2.0e-6*(z-ztop)                               &
+                    ,0.0 )
+         endif
+
+       else   ! yhc 2022-11-02
+         call error_mesg('rf02_snd',  &
+                         'the value of configuration in scm_rf02_nml is not supported', FATAL)
+
+       endif  ! end if of configuration
 
        return
        end subroutine rf02_snd
