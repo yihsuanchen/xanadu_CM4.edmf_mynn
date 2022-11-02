@@ -125,6 +125,7 @@ integer :: vadvec_scheme
 
 !<-- yhc 2022-10-29
 logical, public                :: do_aer_prof = .false.
+logical                        :: do_init_cloud_free = .false.
 !--> yhc 2022-10-29
 
 !--------------------- version number ----------------------------------
@@ -142,7 +143,7 @@ namelist /scm_rf02_nml/ tracer_vert_advec_scheme,                   &
                         p_omega_zero, divf,                         &
                         do_rad, do_geo, do_vadv,                    &
                         rho_sfc, ustar_sfc, flux_t_sfc, flux_q_sfc, &
-                        do_aer_prof, & ! yhc 2022-10-29 
+                        do_aer_prof, do_init_cloud_free, & ! yhc 2022-10-29 
                         configuration
 
 ! diagnostics
@@ -405,6 +406,12 @@ integer kim  ! yhc 2022-10-29
                       'failed to converge while creating blended sounding', FATAL)
     endif
 
+    !<--- yhc 2022-10-29  set cloud-free initial condition
+    if (do_init_cloud_free) then
+      q(:,:,:,nql) = 0.
+    end if
+    !---> yhc 2022-10-29
+
 !   Initialize cloud amount
 
     where ( q(:,:,:,nql) > 0.0 )
@@ -424,8 +431,6 @@ integer kim  ! yhc 2022-10-29
     v_srf(:,:)=va(:,:,KDIM)
   
     !<--- yhc 2022-10-29
-    kdim = size(pt,3)
-
     if (do_aer_prof) then
        call rf01_aer_init(kdim)
     end if
