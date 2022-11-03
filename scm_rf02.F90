@@ -94,7 +94,9 @@ use             fv_pack, only: nlon, mlat, nlev, beglat, endlat, beglon, &
 
 real,    private               :: p00 = 100000.
 
-character(len=64)              :: configuration = 'base_mod'   ! "base" has a bug: q_t should be z-zi, not zi-z
+character(len=64)              :: configuration = 'base'   ! "base" configuration is based on Eq 2 in Wyant et al. (2007)
+                                                           ! Note that a companion paper, Ackerman et al. (2009, MWR), has a typo in
+                                                           ! their Eq 3.
 
 integer, public                :: tracer_vert_advec_scheme = 3
 integer, public                :: temp_vert_advec_scheme = 3
@@ -947,6 +949,8 @@ end subroutine get_rf02_flx
 
        !if ( configuration.ne.'dry' ) then
        if ( configuration.eq.'base' ) then  ! yhc 2022-11-02
+         ! "base" configuration is based on Eq 2 in Wyant et al. (2007)
+         ! Note that a companion paper, Ackerman et al. (2009, MWR), has a typo in their Eq 3.
 
 !        Original sounding
 !        Specified sounding below ztop
@@ -1005,36 +1009,36 @@ end subroutine get_rf02_flx
                     ,0.0 )
          endif
 
-       elseif ( configuration.eq.'base_mod' ) then  ! yhc 2022-11-02
-         ! follows Eq (3) in Ackerman et al. (2009, MWR)
-         !   q_t above zi has a typo. The correct one: 5 "+" 3*(1-exp((z-zi)/500))
-
-!        Original sounding
-!        Specified sounding below ztop
-
-         if ( z <= ztop ) then
-           u =  3.0 + 0.0043 * z
-           v = -9.0 + 0.0056 * z
-           if ( z < zi ) then
-             thetal = 288.3
-             qt = 9.45e-3
-           else
-             thetal = 295.0 + (z-zi)**(1.0/3.0)
-             qt = 5.0e-3 + 3.0e-3*( 1.0 - exp( (z-zi)/500. ) )
-           endif
-
-!        Above ztop, we simply extend the sounding using constant
-!        dtheta/dz, drt/dz, u, v.
-
-         else
-           u =  3.0 + 0.0043 * ztop
-           v = -9.0 + 0.0056 * ztop
-           thetal = 295.0 + (ztop-zi)**(1.0/3.0)                &
-                    + 3.5e-3*(z-ztop)
-           qt = max( 5.0e-3 + 3.0e-3*( 1.0 - exp( (ztop-zi)/500. ) ) &
-                     - 2.0e-6*(z-ztop)                               &
-                    ,0.0 )
-         endif
+!       elseif ( configuration.eq.'wrong' ) then  ! yhc 2022-11-02
+!         ! follows Eq (3) in Ackerman et al. (2009, MWR)
+!         !   q_t above zi has a typo. The correct one: 5 "+" 3*(1-exp((z-zi)/500))
+!
+!!        Original sounding
+!!        Specified sounding below ztop
+!
+!         if ( z <= ztop ) then
+!           u =  3.0 + 0.0043 * z
+!           v = -9.0 + 0.0056 * z
+!           if ( z < zi ) then
+!             thetal = 288.3
+!             qt = 9.45e-3
+!           else
+!             thetal = 295.0 + (z-zi)**(1.0/3.0)
+!             qt = 5.0e-3 + 3.0e-3*( 1.0 - exp( (z-zi)/500. ) )
+!           endif
+!
+!!        Above ztop, we simply extend the sounding using constant
+!!        dtheta/dz, drt/dz, u, v.
+!
+!         else
+!           u =  3.0 + 0.0043 * ztop
+!           v = -9.0 + 0.0056 * ztop
+!           thetal = 295.0 + (ztop-zi)**(1.0/3.0)                &
+!                    + 3.5e-3*(z-ztop)
+!           qt = max( 5.0e-3 + 3.0e-3*( 1.0 - exp( (ztop-zi)/500. ) ) &
+!                     - 2.0e-6*(z-ztop)                               &
+!                    ,0.0 )
+!         endif
 
        else   ! yhc 2022-11-02
          call error_mesg('rf02_snd',  &
