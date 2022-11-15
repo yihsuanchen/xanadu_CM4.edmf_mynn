@@ -135,6 +135,12 @@ logical                        :: do_read_rf02_forc_any = .false.       ! yhc 20
 character*100                  :: option_read_rf02_forc_any = "test"    ! yhc 2022-08-06, option for specified forcing profiles
 character*100                  :: option_lf_forcing = "none"            ! horizontal advective tendencies.
                                                                         !   availabe: "MERRA2_DYCOMS_3hr_10Jul1030Z"
+character*100                  :: omega_profile = "p"                   ! determine omega profile
+                                                                        ! = "p", w = -D*z when p>p_omega_zero, otherwise w=0
+                                                                        ! = "z", w = -D*z when z<z_omega_top, w=0 above z_omega_zero
+                                                                        !        linear interpolation in between
+real                           :: z_omega_top  = 1600.                  ! meters. This setting is the same as scm_rf01.F90
+real                           :: z_omega_zero = 2400.                  ! meters
 !--> yhc 2022-10-29
 
 !--------------------- version number ----------------------------------
@@ -154,6 +160,7 @@ namelist /scm_rf02_nml/ tracer_vert_advec_scheme,                   &
                         rho_sfc, ustar_sfc, flux_t_sfc, flux_q_sfc, &
                         do_aer_prof, do_init_cloud_free, & ! yhc 2022-10-29 
                         do_any_profiles, option_any_profiles, do_read_rf02_forc_any, option_read_rf02_forc_any, option_lf_forcing, & ! yhc 2022-11-10
+                        omega_profile, z_omega_top, z_omega_zero,  & ! yhc 2022-11-15
                         configuration
 
 ! diagnostics
@@ -678,11 +685,33 @@ ps=psfc; ph(:,:,1)=0.;
 ! --- compute large-scale subsidence
 kdim = size(pt,3)
 do k=1,kdim
-   if (pf(1,1,k) > p_omega_zero) then
-      omga(:,:,k) = pf(1,1,k)/(rdgas*pt(1,1,k))*grav * zf(1,1,k)*divf
+
+   !<--- yhc 2022-11-15
+   if (trim(omega_profile) .eq. "p") then
+     if (pf(1,1,k) > p_omega_zero) then
+        omga(:,:,k) = pf(1,1,k)/(rdgas*pt(1,1,k))*grav * zf(1,1,k)*divf
+     else
+        omga(:,:,k) =0.
+     end if
+
+   elseif (trim(omega_profile) .eq. "z") then
+      if ( zf(1,1,k) < 1600.0 ) then
+         omga(:,:,k) = pf(1,1,k)/(rdgas*pt(1,1,k))*grav  &
+                       * divf*zf(1,1,k)
+      elseif ( zf(1,1,k) < 2400.0 ) then
+         omga(:,:,k) = pf(1,1,k)/(rdgas*pt(1,1,k))*grav  &
+                       * (divf*1600. - divf*2.*(zf(1,1,k)-1600.) )
+      else
+         omga(:,:,k) = 0.
+      end if
+
    else
-      omga(:,:,k) =0.
-   end if
+      call error_mesg('update_rf02_forc',  &
+                      'the value of omega_profile scm_rf02_nml is not supported', FATAL)
+     
+   endif  ! end if of omega_profile
+   !---> yhc 2022-11-15
+
 end do
 
 ! --- compute dp, pi_fac, theta
@@ -778,13 +807,35 @@ if (do_vadv) then
    dT_adi=rdgas*pt(:,:,:)*omga(:,:,:)/cp_air/pf(:,:,:)
 
    omega_h=0.0
-   do k=2,kdim
-      if (ph(1,1,k) > p_omega_zero) then
-         omega_h(:,:,k) = ph(1,1,k)/(rdgas*0.5*(pt(1,1,k)+pt(1,1,k-1))) * grav * zh(1,1,k)*divf
-      else
-         omega_h(:,:,k) =0.
-      end if
-   end do
+   !<--- yhc 2022-11-15
+   if (trim(omega_profile) .eq. "p") then
+     do k=2,kdim
+        if (ph(1,1,k) > p_omega_zero) then
+           omega_h(:,:,k) = ph(1,1,k)/(rdgas*0.5*(pt(1,1,k)+pt(1,1,k-1))) * grav * zh(1,1,k)*divf
+        else
+           omega_h(:,:,k) =0.
+        end if
+     end do
+
+   elseif (trim(omega_profile) .eq. "z") then
+     do k=2,kdim
+        if ( zh(1,1,k) < 1600.0 ) then
+           omega_h(:,:,k) = ph(1,1,k)/(rdgas*0.5*(pt(1,1,k)+pt(1,1,k-1)))*grav &
+                         * divf*zh(1,1,k)
+        elseif ( zh(1,1,k) < 2400.0 ) then
+           omega_h(:,:,k) = ph(1,1,k)/(rdgas*0.5*(pt(1,1,k)+pt(1,1,k-1)))*grav &
+                         * (divf*1600. - divf*2.*(zh(1,1,k)-1600.))
+        else
+           omega_h(:,:,k) = 0.
+        end if
+     end do
+
+   else
+      call error_mesg('update_rf02_forc',  &
+                      'the value of omega_profile scm_rf02_nml is not supported', FATAL)
+     
+   endif  ! end if of omega_profile
+   !---> yhc 2022-11-15
 
    !<-- yhc, 2022-08-07
    call read_rf02_forc_lf (dT_lf, dqv_lf)  ! read large-scale horizontal forcing
