@@ -130,7 +130,7 @@ logical, public                :: do_aer_prof = .false.
 logical                        :: do_init_cloud_free = .false.
 
 logical                        :: do_any_profiles     = .false.         ! yhc 2022-08-06, read specified profiles as initial conditions 
-character*100                  :: option_any_profiles = "test"          ! yhc 2022-08-06, option for initial conditions
+character*100                  :: option_any_profiles = "none"          ! yhc 2022-08-06, option for initial conditions
 logical                        :: do_read_rf02_forc_any = .false.       ! yhc 2022-08-06, read specified forcing profiles
 character*100                  :: option_read_rf02_forc_any = "test"    ! yhc 2022-08-06, option for specified forcing profiles
 character*100                  :: option_lf_forcing = "none"            ! horizontal advective tendencies.
@@ -288,7 +288,7 @@ integer, parameter :: itmax = 10
 
 real, dimension(size(pt,3)+1) :: eta, peta
 real, dimension(size(pt,3))   :: T_us_std, qv_us_std
-real, dimension(size(pt,3))   :: thetal_rf02, rt_rf02, u_rf02, v_rf02, T_rf02, qv_rf02, ql_rf02 
+real, dimension(size(pt,3))   :: thetal_rf02, rt_rf02, u_rf02, v_rf02, T_rf02, qv_rf02, qa_rf02, ql_rf02 
 
 real, dimension(size(pt,1),size(pt,2),size(pt,3)+1) :: ph, zh, zhnew
 real, dimension(size(pt,1),size(pt,2),size(pt,3))   :: pf, zf, zfnew
@@ -426,12 +426,13 @@ integer kim  ! yhc 2022-10-29
 
     !<--- yhc 2022-11-10
     if (do_any_profiles) then   ! read specified profiles, e.g. those from AM4
-      call rf02_snd_any_profiles(u_rf02, v_rf02, T_rf02, qv_rf02, ql_rf02)
+      call rf02_snd_any_profiles(u_rf02, v_rf02, T_rf02, qv_rf02, qa_rf02, ql_rf02)
       do k=1,kdim
         pt(:,:,k)  = max ( T_rf02(k), 200.0 )
         ua(:,:,k) = u_rf02(k)
         va(:,:,k) = v_rf02(k)
         q(:,:,k,nsphum) = qv_rf02(k)
+        q(:,:,k,nqa) = qa_rf02(k)
         q(:,:,k,nql) = ql_rf02(k)
       enddo
     endif
@@ -1246,7 +1247,7 @@ end subroutine compute_p_z
 !###################################
 
 !<-- yhc, 2022-11-10
-subroutine rf02_snd_any_profiles(u_rf02, v_rf02, T_rf02, qv_rf02, ql_rf02)
+subroutine rf02_snd_any_profiles(u_rf02, v_rf02, T_rf02, qv_rf02, qa_rf02, ql_rf02)
   !=================================
   ! Description
   !    read specific profiles as RF01 initial conditions
@@ -1258,10 +1259,11 @@ subroutine rf02_snd_any_profiles(u_rf02, v_rf02, T_rf02, qv_rf02, ql_rf02)
   !   v_rf02: meridional wind speed (m/s)
   !   T_rf02: temperature (K) 
   !   qv_rf02: specific humidity (kg/kg) 
+  !   qa_rf02: cloud fraction (0-1, unitless) 
   !   ql_rf02: cloud liquid specific humidity (kg/kg)  
   !-------------------
   real, intent(out), dimension(:) :: &
-    u_rf02, v_rf02, T_rf02, qv_rf02, ql_rf02
+    u_rf02, v_rf02, T_rf02, qv_rf02, qa_rf02, ql_rf02
 
   !------------------
   ! local argument
@@ -1270,7 +1272,7 @@ subroutine rf02_snd_any_profiles(u_rf02, v_rf02, T_rf02, qv_rf02, ql_rf02)
 !------------------------------------
 
   !--- initialize
-  u_rf02=0.; v_rf02=0.; T_rf02=0.; qv_rf02=0.; ql_rf02=0.
+  u_rf02=0.; v_rf02=0.; T_rf02=0.; qv_rf02=0.; qa_rf02=0.; ql_rf02=0.
 
   !--- set u and v following subsoutine rf02_snd_stevens
   u_rf02(:) = 7.0
