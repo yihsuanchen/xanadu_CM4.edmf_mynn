@@ -313,7 +313,7 @@ integer, parameter :: itmax = 10
 
 real, dimension(size(pt,3)+1) :: eta, peta
 real, dimension(size(pt,3))   :: T_us_std, qv_us_std
-real, dimension(size(pt,3))   :: u_rf01, v_rf01, T_rf01, qv_rf01, ql_rf01 
+real, dimension(size(pt,3))   :: u_rf01, v_rf01, T_rf01, qv_rf01, qa_rf01, ql_rf01 
 
 real, dimension(size(pt,1),size(pt,2),size(pt,3)+1) :: ph, zh, zhnew
 real, dimension(size(pt,1),size(pt,2),size(pt,3))   :: pf, zf, zfnew
@@ -429,12 +429,13 @@ integer :: j
 
      !--- read specified profiles, e.g. those from AM4
      elseif (do_any_profiles) then ! yhc, 2022-08-06
-           call rf01_snd_any_profiles(u_rf01, v_rf01, T_rf01, qv_rf01, ql_rf01)
+           call rf01_snd_any_profiles(u_rf01, v_rf01, T_rf01, qv_rf01, qa_rf01, ql_rf01)
            do k=1,kdim
              pt(:,:,k)  = T_rf01(k)
              ua(:,:,k) = u_rf01(k)
              va(:,:,k) = v_rf01(k)
              q(:,:,k,nsphum) = qv_rf01(k)
+             q(:,:,k,nqa) = qa_rf01(k)
              q(:,:,k,nql) = ql_rf01(k)
            enddo
 
@@ -1535,7 +1536,7 @@ end subroutine compute_p_z
 !###################################
 
 !<-- yhc, 2022-08-06
-subroutine rf01_snd_any_profiles(u_rf01, v_rf01, T_rf01, qv_rf01, ql_rf01)
+subroutine rf01_snd_any_profiles(u_rf01, v_rf01, T_rf01, qv_rf01, qa_rf01, ql_rf01)
   !=================================
   ! Description
   !    read specific profiles as RF01 initial conditions
@@ -1547,10 +1548,11 @@ subroutine rf01_snd_any_profiles(u_rf01, v_rf01, T_rf01, qv_rf01, ql_rf01)
   !   v_rf01: meridional wind speed (m/s)
   !   T_rf01: temperature (K) 
   !   qv_rf01: specific humidity (kg/kg) 
+  !   qa_rf01: cloud fraction (0-1, unitless) 
   !   ql_rf01: cloud liquid specific humidity (kg/kg)  
   !-------------------
   real, intent(out), dimension(:) :: &
-    u_rf01, v_rf01, T_rf01, qv_rf01, ql_rf01
+    u_rf01, v_rf01, T_rf01, qv_rf01, qa_rf01, ql_rf01
 
   !------------------
   ! local argument
@@ -1559,7 +1561,7 @@ subroutine rf01_snd_any_profiles(u_rf01, v_rf01, T_rf01, qv_rf01, ql_rf01)
 !------------------------------------
 
   !--- initialize
-  u_rf01=0.; v_rf01=0.; T_rf01=0.; qv_rf01=0.; ql_rf01=0.
+  u_rf01=0.; v_rf01=0.; T_rf01=0.; qv_rf01=0.; qa_rf01=0.; ql_rf01=0.
 
   !--- set u and v following subsoutine rf01_snd_stevens
   u_rf01(:) = 7.0
