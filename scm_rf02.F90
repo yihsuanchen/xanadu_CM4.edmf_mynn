@@ -141,7 +141,9 @@ character*100                  :: omega_profile = "p"                   ! determ
                                                                         !        linear interpolation in between
 real                           :: z_omega_top  = 1600.                  ! meters. This setting is the same as scm_rf01.F90
 real                           :: z_omega_zero = 2400.                  ! meters
+real                           :: ql_rescale_factor = 1.                ! rescale initial ql to match LES or OBS initial ql
 !--> yhc 2022-10-29
+
 
 !--------------------- version number ----------------------------------
 !
@@ -160,7 +162,7 @@ namelist /scm_rf02_nml/ tracer_vert_advec_scheme,                   &
                         rho_sfc, ustar_sfc, flux_t_sfc, flux_q_sfc, &
                         do_aer_prof, do_init_cloud_free, & ! yhc 2022-10-29 
                         do_any_profiles, option_any_profiles, do_read_rf02_forc_any, option_read_rf02_forc_any, option_lf_forcing, & ! yhc 2022-11-10
-                        omega_profile, z_omega_top, z_omega_zero,  & ! yhc 2022-11-15
+                        omega_profile, z_omega_top, z_omega_zero, ql_rescale_factor,  & ! yhc 2022-11-15
                         configuration
 
 ! diagnostics
@@ -400,7 +402,8 @@ integer kim  ! yhc 2022-10-29
       ua(:,:,k) = u_rf02(k)
       va(:,:,k) = v_rf02(k)
       q(:,:,k,nsphum) = qv_rf02(k)
-      q(:,:,k,nql) = ql_rf02(k)
+      !q(:,:,k,nql) = ql_rf02(k)
+      q(:,:,k,nql) = ql_rf02(k) * ql_rescale_factor  ! yhc add ql_rescale_factor
      enddo
      
      print*,'=======interpolate initial sounding ========='
