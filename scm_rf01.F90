@@ -1640,7 +1640,7 @@ subroutine rf01_snd_any_profiles(u_rf01, v_rf01, T_rf01, qv_rf01, qa_rf01, ql_rf
  9.08925645e-03, 9.16563727e-03, 9.25226324e-03, 9.32184514e-03, &
  9.32184514e-03 /)
 
-  elseif (trim(option_any_profiles) .eq. "MERRA2_DYCOMS_3hr_10Jul1030Z_RF01") then
+  elseif (trim(option_any_profiles) .eq. "MERRA2_DYCOMS_3havg_10Jul1030Z_RF01") then
     !--- T & Q profiles in MERRA-2 in DYCOMS region, 3-hourly average fileds at 1030 UTC, July 10, 2001
     !    2022-11-27 add
 
@@ -1885,7 +1885,7 @@ subroutine read_rf01_forc_any(tdt_any, qvdt_any, omega_any)
     enddo   ! end loop of j
     enddo   ! end loop of i
 
-  elseif (trim(option_read_rf01_forc_any) .eq. "MERRA2_DYCOMS_3hr_10Jul1030Z_RF01") then
+  elseif (trim(option_read_rf01_forc_any) .eq. "MERRA2_DYCOMS_3havg_10Jul1030Z_RF01") then
     !--- T & Q profiles in MERRA-2 in DYCOMS region, 3-hourly average fileds at 1030 UTC, July 10, 2001
     !    2022-11-27 add
     do i=1,ix
