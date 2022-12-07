@@ -146,6 +146,7 @@ logical                        :: do_read_rf01_forc_any = .false.       ! yhc 20
 character*100                  :: option_read_rf01_forc_any = "none"    ! yhc 2022-08-06, option for specified forcing profiles
 character*100                  :: option_lf_forcing = "none"            ! horizontal advective tendencies.
                                                                         !   availabe: "MERRA2_DYCOMS_3hr_10Jul1030Z"
+real                           :: ql_rescale_factor = 1.                ! rescale initial ql to match LES or OBS initial ql
 
 integer :: nsphum, nql, nqi, nqa, nqn, nqni
 integer :: vadvec_scheme
@@ -170,7 +171,7 @@ namelist /scm_rf01_nml/ tracer_vert_advec_scheme,                   &
                         do_init_cloud_free, &             ! yhc 05/10/2022
                         zi_stevens,         &             ! yhc 05/16/2022
                         do_any_profiles, option_any_profiles, do_read_rf01_forc_any, option_read_rf01_forc_any, & ! yhc 2022-08-06
-                        option_lf_forcing,  & ! yhc 2022-09-21
+                        option_lf_forcing,  ql_rescale_factor, & ! yhc 2022-09-21
                         do_aer_prof                       ! ZNT 03/29/2021
 
 
@@ -423,7 +424,8 @@ integer :: j
            ua(:,:,k) = u_snd
            va(:,:,k) = v_snd
            q(:,:,k,nsphum) = qv_snd
-           q(:,:,k,nql) = ql_snd
+           !q(:,:,k,nql) = ql_snd 
+           q(:,:,k,nql) = ql_snd * ql_rescale_factor  ! yhc add ql_rescale_factor
 
          enddo
 
