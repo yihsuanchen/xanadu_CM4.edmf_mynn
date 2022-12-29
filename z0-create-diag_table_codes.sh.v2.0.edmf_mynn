@@ -132,6 +132,12 @@ all_names=(\
 #	  "edmf_qt 			! qt in updrafts 		! kg/kg		! full" 
 #	  "edmf_thl 			! thl in updrafts		! K		! full" 
 #	  "edmf_ent 			! entrainment in updrafts	! 1/m		! full" 
+#	  "edmf_det 			! dentrainment in updrafts	! 1/m		! full" 
+	  "num_updraft 			! number of edmf updrafts	! none		! half" 
+#	  "num_det 			! number of dentrainment in edmf updrafts	! none		! full" 
+
+#	  "num_ndet_zent 		! number of negative dentrainment with zero entrainment in edmf updrafts	! none		! full" 
+#	  "num_ndet_pent 		! number of negative dentrainment with positive entrainment in edmf updrafts	! none		! full" 
 #	  "edmf_qc 			! qc in updrafts		! kg/kg		! full" 
 #          "thl_edmf			! grid-scale theta_li in edmf_mynn	! K		! full"
 #          "qt_edmf			! grid-scale qt in edmf_mynn		! kg/kg		! full"
@@ -181,13 +187,63 @@ all_names=(\
 #          "qadt_edmf_orig		! cldfra tendency from edmf_mynn original	! 1/s	! full	"  \
 #          "qidt_edmf_orig		! qi tendency from edmf_mynn original	! kg/kg/s	! full	"  \
 #          "qldt_edmf_orig		! ql tendency from edmf_mynn original	! kg/kg/s	! full	"  \
-          #-----------------
-          "qldt_edmf_ED		! ql tendency from edmf_mynn, ED	! kg/kg/s	! full	"  \
-          "qldt_edmf_MF		! ql tendency from edmf_mynn, MF	! kg/kg/s	! full	"  \
-          "qidt_edmf_ED		! qi tendency from edmf_mynn, ED	! kg/kg/s	! full	"  \
-          "qidt_edmf_MF		! qi tendency from edmf_mynn, MF	! kg/kg/s	! full	"  \
-          "qadt_edmf_ED		! qa tendency from edmf_mynn, ED	! 1/s		! full	"  \
-          "qadt_edmf_MF		! qa tendency from edmf_mynn, MF	! 1/s		! full	"  \
+#          #-----------------
+#          "qldt_edmf_ED		! ql tendency from edmf_mynn, ED	! kg/kg/s	! full	"  \
+#          "qldt_edmf_MF		! ql tendency from edmf_mynn, MF	! kg/kg/s	! full	"  \
+#          "qidt_edmf_ED		! qi tendency from edmf_mynn, ED	! kg/kg/s	! full	"  \
+#          "qidt_edmf_MF		! qi tendency from edmf_mynn, MF	! kg/kg/s	! full	"  \
+#          "qadt_edmf_ED		! qa tendency from edmf_mynn, ED	! 1/s		! full	"  \
+#          "qadt_edmf_MF		! qa tendency from edmf_mynn, MF	! 1/s		! full	"  \
+#          #-----------------
+#          "qldt_edmf_MF_adv		! ql tendency from edmf_mynn, MF_adv	! kg/kg/s	! full	"  \
+#          "qldt_edmf_MF_eddy		! ql tendency from edmf_mynn, MF_eddy	! kg/kg/s	! full	"  \
+#          "qidt_edmf_MF_adv		! qi tendency from edmf_mynn, MF_adv	! kg/kg/s	! full	"  \
+#          "qidt_edmf_MF_eddy		! qi tendency from edmf_mynn, MF_eddy	! kg/kg/s	! full	"  \
+#          "qadt_edmf_MF_adv		! qa tendency from edmf_mynn, MF_adv	! 1/s		! full	"  \
+#          "qadt_edmf_MF_eddy		! qa tendency from edmf_mynn, MF_eddy	! 1/s		! full	"  \
+#          "qadt_edmf_MF_ent		! qa tendency from edmf_mynn, MF_ent	! 1/s		! full	"  \
+#          "qldt_edmf_MF_ent		! ql tendency from edmf_mynn, MF_ent	! kg/kg/s	! full	"  \
+#          "qidt_edmf_MF_ent		! qi tendency from edmf_mynn, MF_ent	! kg/kg/s	! full	"  \
+#          "qadt_edmf_MF_det		! qa tendency from edmf_mynn, MF_det	! 1/s		! full	"  \
+#          "qldt_edmf_MF_det		! ql tendency from edmf_mynn, MF_det	! kg/kg/s	! full	"  \
+#          "qidt_edmf_MF_det		! qi tendency from edmf_mynn, MF_det	! kg/kg/s	! full	"  \
+#          "qadt_edmf_MF_sub		! qa tendency from edmf_mynn, MF_sub	! 1/s		! full	"  \
+#          "qldt_edmf_MF_sub		! ql tendency from edmf_mynn, MF_sub	! kg/kg/s	! full	"  \
+#          "qidt_edmf_MF_sub		! qi tendency from edmf_mynn, MF_sub	! kg/kg/s	! full	"  \
+#          #-----------------
+#           "a_moist_half 		! moist updraft area on phalf		! none		! half"
+#           "a_moist_full 		! moist updraft area on pfull		! none		! full"
+#           "mf_moist_half		! moist updraft mass flux on phalf	! kg/m2/s	! half"
+#           "mf_moist_full		! moist updraft mass flux on pfull	! kg/m2/s	! full"
+#           "qv_moist_half		! spec humid of moist updraft on phalf  ! kg/kg         ! half"
+#           "qv_moist_full		! spec humid of moist updraft on pfull  ! kg/kg         ! full"
+#           #---
+#           "a_dry_half 			! dry updraft area on phalf		! none		! half"
+#           "a_dry_full 			! dry updraft area on pfull		! none		! full"
+#           "mf_dry_half			! dry updraft mass flux on phalf	! kg/m2/s	! half"
+#           "mf_dry_full			! dry updraft mass flux on pfull	! kg/m2/s	! full"
+#           "qv_dry_half			! spec humid of dry updraft on phalf  ! kg/kg         ! half"
+#           "qv_dry_full			! spec humid of dry updraft on pfull  ! kg/kg         ! full"
+#           #---
+#           "mf_all_half  		! updraft mass flux on phalf      	! kg/m2/s       ! half"
+#           "mf_all_full  		! updraft mass flux on pfull      	! kg/m2/s       ! full"
+#          "z_pbl			! depth of planetary boundary layer 	! m		! 1:2"
+#           "rlz_ratio		! ratio for realizability limiter	! none		! 1:2"
+#           "rlz_tracer		! tracer name for realizability limiter	! none		! 1:2"
+#           "rlz_tracer		! tracer name for realizability limiter	! none		! 1:2"
+#           #---
+#            "qldt_vdif		! liquid water tendency from vert diff	! kg/kg/s	! full"
+#            "qadt_vdif		! cloud fraction tendency from vert diff	! 1/s	! full"
+#            "qidt_vdif		! ice water tendency from vert diff	! kg/kg/s	! full"
+#            "qdt_vdif_test		! spec humid tendency from vert diff	! kg/kg/s	! full"
+#          "tdt_edmf_ED		! temperature tendency from edmf_mynn, ED	! K/s	! full	"  \
+#          "tdt_edmf_MF		! tempearture tendency from edmf_mynn, MF	! K/s	! full	"  \
+#          "tdt_radturb		! tempearture tendency from rad and vert diff	! K/s	! full	"  \
+#          "L0_edmf		! entrainemnt length scale in MF	! m	! 1:2	"  \
+#          "edmf_MF_mask		! edmf MF mask. 0: no MF. 1: MF		! none	! 1:2	"  \
+#           #---
+          "tt_phys		! temperature in physics_down	! K	! full	"  \
+          "qq_phys		! specific humidity in physics_down	! kg/kg	! full	"  \
           )
 #        "!	!	!"
 i=0
@@ -404,7 +460,7 @@ EOF
 
     field_all="${field_all} ,${field1}"
 cat >> $ftemp_send << EOF
-!------- $name1 (units: $units1) at $axes1_name level -------
+      !------- $name1 (units: $units1) at $axes1_name level -------
       if ( id_${field1} > 0) then
         used = send_data (id_${field1}, $field1, $send_time, $is_js_ks $send_end)
       endif

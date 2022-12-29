@@ -52,11 +52,15 @@ if [ $option -a $option == "backup" ]; then
 #         "$codedir/vert_turb_driver/vert_turb_driver.F90" 
 #         "$codedir/entrain/entrain.F90" \
 #         "$codedir/convection_driver/convection_driver.F90"
+   #"$codedir/convection_driver/convection_driver.F90"
+   #"$codedir/moist_conv/moist_conv.F90"
+   #"$codedir/lscloud_driver/lscloud_driver.F90"
 #radiation/driver/radiation_driver_diag.F90
 files_input=(\
-   "$codedir/convection_driver/convection_driver.F90"
-   "$codedir/moist_conv/moist_conv.F90"
-   "$codedir/lscloud_driver/lscloud_driver.F90"
+   #"$codedir/shallow_cu/uw_conv.F90"
+   #"$codedir/shallow_cu/conv_utilities_k.F90"
+   #"$codedir/convection_driver/moistproc_kernels.F90"
+         "$codedir/convection_driver/convection_driver.F90"
             )
 
 # option: replace, copy ${replace_dir}/${filename}${replace_tail} to $files_input 
@@ -67,11 +71,29 @@ elif [ $option -a $option == "replace" ]; then
   comd="cp"
 
 files_input=(\
-            "$codedir/edmf_mynn/edmf_mynn.F90"
-            "$codedir/physics_driver/physics_driver.F90"
-            "$srcdir/atmos_drivers/coupled/atmos_model.F90"
-            "$codedir/donner_deep/fms_donner.F90"
-            "$codedir/radiation/driver/radiation_driver_diag.F90"
+                "$codedir/edmf_mynn/edmf_mynn.F90"
+                "$codedir/physics_driver/physics_driver.F90"
+                "$srcdir/atmos_drivers/coupled/atmos_model.F90"
+                "$codedir/macrophysics/tiedtke_macro.F90"
+                "$codedir/lscloud_driver/lscloud_driver.F90"
+                "$codedir/lscloud_driver/lscloud_types.F90"
+                "$codedir/lscloud_driver/lscloud_netcdf.F90"
+                "$codedir/physics_driver/physics_types.F90"
+                "$codedir/moist_processes/moist_processes.F90"
+                "$codedir/moist_processes/moist_processes_utils.F90"
+                "$codedir/convection_driver/convection_driver.F90"
+                "$codedir/shallow_cu/uw_conv.F90"
+                "$codedir/shallow_cu/conv_utilities_k.F90"
+                "$codedir/convection_driver/moistproc_kernels.F90"
+                #-----------
+                #"$codedir/macrophysics/ls_cloud_macrophysics.F90"
+                #"$codedir/microphysics/rotstayn_klein_mp.F90"
+                #-----------
+            #"$codedir/edmf_mynn/edmf_mynn.F90"
+            #"$codedir/physics_driver/physics_driver.F90"
+            #"$srcdir/atmos_drivers/coupled/atmos_model.F90"
+            #"$codedir/donner_deep/fms_donner.F90"
+            #"$codedir/radiation/driver/radiation_driver_diag.F90"
            )
          #"$codedir/convection_driver/convection_driver.F90"
          #"$codedir/mass_flux/mass_flux.F90" 

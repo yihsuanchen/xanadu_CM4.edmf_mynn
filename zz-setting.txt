@@ -14,6 +14,7 @@
 PLATFORM=ncrc4.intel19
 #PLAT__FORM=ncrc4.intel18
 TARGET=openmp
+TAR__GET=debug
 
 #---------------------------
 # XML directory and name

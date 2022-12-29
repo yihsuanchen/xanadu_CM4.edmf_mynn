@@ -11372,6 +11372,37 @@ subroutine check_trc_rlzbility (dt, tracers, tracers_tend, lon, lat, &
 
 end subroutine check_trc_rlzbility
 
+!###################################
+
+function degrees_to_radians(degree,opt_latlon) 
+! convert degress (N,E,W) to radians
+  real :: degrees_to_radians
+  real :: degree, degree_work, radian
+  character*3 :: opt_latlon
+!----------------------
+  radian = -999.99
+
+  !--- input degree is longitude
+  if (opt_latlon.eq."lon") then
+
+    if (degree.lt.0.) then   ! degrees_W
+      degree_work = 360. + degree
+    else
+      degree_work = degree
+    end if
+
+    radian = degree_work/360. * 2.*pi
+
+  !--- input degree is latitude
+  elseif (opt_latlon.eq."lat") then
+    degree_work = degree
+    radian = degree_work/360. * 2.*pi
+
+  endif
+
+  degrees_to_radians = radian
+
+end function degrees_to_radians
 
 !#############################
 ! Mellor-Yamada
@@ -11494,6 +11525,7 @@ program test111
 
   integer option_edmf2ls_mp
 
+  real :: tmp1, tmp2
 !==============================
 !==============================
 !  Input profiles
@@ -13069,6 +13101,12 @@ endif ! end if of input profile
   print*,'upwind          ,', upwind
   print*,'------------------------'
   print*,''
+
+  tmp1 = 360.  ! degree
+  tmp2 = degrees_to_radians (tmp1,"lon")
+
+  print*,'degree,radian,',tmp1, tmp2
+  stop
 
   area = 1.e+10
   Physics_input_block%p_full = p_full
