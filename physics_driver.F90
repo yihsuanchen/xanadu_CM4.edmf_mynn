@@ -2093,6 +2093,14 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       end if
 !---> yhc, 2022-07-15
 
+!<--- yhc, 2023-01-12
+      !--- compute T & Q vertical tendencies and write out to history files
+      call compute_vert_adv_tend (is, ie, js, je, Time_next, &
+                                  dt, p_full, p_half, Physics_input_block%omega, t, r(:,:,:,1))
+!---> yhc, 2023-01-12
+
+
+
 !---------------------------------------------------------------------
 !    verify that the module is initialized.
 !---------------------------------------------------------------------
