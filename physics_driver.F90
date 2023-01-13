@@ -636,7 +636,7 @@ type(precip_flux_type)              :: Precip_flux
 !<-- yhc
 integer :: id_diff_t_vdif, id_diff_m_vdif, id_num_updraft, id_qldt_vdif, id_qadt_vdif, id_qidt_vdif, id_qdt_vdif_test, id_tdt_vdif_test, id_tdt_radturb, id_tt_phys, id_qq_phys
 
-integer :: id_LWP0
+integer :: id_LWP0, id_tdt_vadv, id_qdt_vadv
 !--> yhc
                             contains
 
@@ -1446,6 +1446,12 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
 
       id_LWP0    = register_diag_field (mod_name, 'LWP0', axes(1:2), Time, &
                     'Liquid water path (phy_in)', 'kg/m2' , &
+                     missing_value=missing_value )
+      id_tdt_vadv = register_diag_field (mod_name, 'tdt_vadv', axes(1:3), Time, &
+                     'temperature tendency due to air vertical motion', 'kg/kg/s' , &
+                     missing_value=missing_value )
+      id_qdt_vadv = register_diag_field (mod_name, 'qdt_vadv', axes(1:3), Time, &
+                     'specific humidity tendency due to air vertical motion', 'kg/kg/s' , &
                      missing_value=missing_value )
       !---> yhc
 
@@ -5310,5 +5316,136 @@ end do   ! end loop of n
   end subroutine compute_vert_adv_tend_offline
 !---> yhc, 2022-07-15
 
+!<--- yhc, 2023-01-12
+!#######################################################################
+  subroutine compute_vert_adv_tend (is, ie, js, je, Time_next, &
+                                    dts, pf, ph, omega_f, pt, qq)
+
+    use vert_advection_mod,       only: vert_advection, SECOND_CENTERED, &
+                                        FOURTH_CENTERED, FINITE_VOLUME_LINEAR, &
+                                        FINITE_VOLUME_PARABOLIC, &
+                                        SECOND_CENTERED_WTS, FOURTH_CENTERED_WTS, &
+                                        ADVECTIVE_FORM
+
+    use      constants_mod, only:  rdgas, rvgas, cp_air, hlv, kappa, grav, pi, SECONDS_PER_DAY
+
+    !------------------
+    ! purpose    
+    !------------------
+    ! Given necessary information (set by input_profile), 
+    ! use AM4 vert_advection module to compute offline vertical advection of temperaure and specific humidity
+    ! This can be used to decompose full dynamical tendencies (*dt_dyn) into horizontal and vertical components
+
+    !------------------
+    ! input argument    
+    !------------------
+    type(time_type), intent(in)           :: Time_next
+    integer, intent(in)                   :: is, ie, js, je
+
+    real   , intent(in) :: dts                        ! time step (sec)
+    real   , dimension(:,:,:), intent(in) :: &        ! dim (nlon, nlat, nlev)
+      pf,        &   ! pressure at full levels (Pa)
+      pt,        &   ! temperature (K)
+      qq             ! specific humidity  (kg/kg) 
+
+    real   , dimension(:,:,:), intent(in) :: &        ! dim (nlon, nlat, nlev+1)
+      ph,        &   !  pressure at half levels (Pa)
+      omega_f        !  vertical pressure velocity at full levels (Pa/s)
+      
+    !------------------
+    ! local argument
+    !------------------
+    real, dimension(size(pt,1),size(pt,2),size(pt,3))   :: &
+      dT_vadv,   &   !  temperature vertical advection (K/s)
+      dT_adi,    &   !  temperature tendencies due to adiabatic heating (K/s)
+      tdt_vadv,  &   !  sum of dT_vadv and dT_adi (K/s)
+      dqv_vadv,  &   !  specific humidity vertical advection (kg/kg/s)
+      dp,        &   !  pressure thickness between half levels (Pa)
+      omega_h        !  vertical pressure velocity at half levels (Pa/s)
+
+    integer i,j,k,kdim
+    integer :: vadvec_scheme
+    logical used
+
+!------------------------------------
+
+    !------------------- 
+    !  initialization
+    !------------------- 
+    dT_vadv=0. ; dT_adi=0. ; tdt_vadv=0. ; dqv_vadv=0. ; dp=0.
+    kdim = size(pt,3)
+
+    ! --- compute dp, pi_fac, theta
+    do k = 2,kdim+1
+      dp(:,:,k-1) = ph(:,:,k) - ph(:,:,k-1)
+    enddo
+
+    !--- get omega at half levels
+    omega_h(:,:,kdim+1) = 0.
+    omega_h(:,:,1)      = omega_f(:,:,1)
+    do k = 2,kdim
+      omega_h(:,:,k) = 0.5 * (omega_f(:,:,k-1) + omega_f(:,:,k))
+    enddo
+
+    !------------------------------------ 
+    !  compute temperature tendencies
+    !------------------------------------ 
+
+    !--- compute temperature tendency due to adiabatic heating
+    dT_adi=rdgas*pt(:,:,:)*omega_f(:,:,:)/cp_air/pf(:,:,:)
+
+    !--- compute temperature vertical advection
+    select case (temp_vert_advec_scheme)
+     case(1)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=SECOND_CENTERED,form=ADVECTIVE_FORM)
+     case(2)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FOURTH_CENTERED,form=ADVECTIVE_FORM)
+     case(3)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FINITE_VOLUME_LINEAR,form=ADVECTIVE_FORM)
+     case(4)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FINITE_VOLUME_PARABOLIC,form=ADVECTIVE_FORM)
+     case(5)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=SECOND_CENTERED_WTS,form=ADVECTIVE_FORM)
+     case(6)
+        call vert_advection(dts,omega_h,dp,pt,dT_vadv,scheme=FOURTH_CENTERED_WTS,form=ADVECTIVE_FORM)
+     end select
+
+    !--- total temperature tendencies
+    tdt_vadv = dT_vadv + dT_adi
+
+    !------------------------------------ 
+    !  compute specific humidity tendencies
+    !------------------------------------ 
+
+    !--- compute tracer vertical advection
+     SELECT CASE (tracer_vert_advec_scheme)
+            CASE(1)
+                 vadvec_scheme = SECOND_CENTERED
+            CASE(2)
+                 vadvec_scheme = FOURTH_CENTERED
+            CASE(3)
+                 vadvec_scheme = FINITE_VOLUME_LINEAR
+            CASE(4)
+                 vadvec_scheme = FINITE_VOLUME_PARABOLIC
+            CASE(5)
+                 vadvec_scheme = SECOND_CENTERED_WTS
+            CASE(6)
+                 vadvec_scheme = FOURTH_CENTERED_WTS
+     END SELECT
+     call vert_advection(dts,omega_h,dp,qq,dqv_vadv,scheme=vadvec_scheme,form=ADVECTIVE_FORM)
+
+    !------------------------------------ 
+    !  write out to history files
+    !------------------------------------ 
+      if ( id_tdt_vadv > 0) then
+        used = send_data (id_tdt_vadv, tdt_vadv, Time_next, is, js, 1 )
+      endif
+
+      if ( id_qdt_vadv > 0) then
+        used = send_data (id_qdt_vadv, dqv_vadv, Time_next, is, js, 1 )
+      endif
+
+!---> yhc, 2023-01-12
+  end subroutine compute_vert_adv_tend
 
 end module physics_driver_mod
