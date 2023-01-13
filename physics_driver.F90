@@ -422,6 +422,9 @@ integer :: input_profile = -1
 integer :: temp_vert_advec_scheme = 4
 integer :: tracer_vert_advec_scheme =4
 integer :: printout_vert_adv_tend = 1
+
+logical :: do_tdt_rad_lock = .false.   ! yhc 2023-01-12. .true. : using tdt_rad in Lock scheme.
+                                       !                 .false.: using tdt_lw in Lock scheme (default)
 !--> yhc, add edmf_mynn nml
 
 
@@ -439,6 +442,7 @@ namelist / physics_driver_nml / do_radiation, do_clubb,  do_cosp, &
                                 do_stop_run, do_writeout_column_nml, do_bomex_radf, ii_write, jj_write, lat_write, lon_write, & ! yhc add
                                 tdt_max, do_limit_tdt, tdt_limit, &  ! yhc add
                                 do_vert_adv_tend_offline, input_profile, printout_vert_adv_tend, temp_vert_advec_scheme, tracer_vert_advec_scheme, & ! yhc add
+                                do_tdt_rad_lock, & ! yhc add
                                 max_diam_drop, use_tau, cosp_frequency
 
 
@@ -2266,6 +2270,20 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
       end do
 
       call mpp_clock_begin ( turb_clock )
+
+      if (do_tdt_rad_lock) then
+      call vert_turb_driver (is, js, Time, Time_next, dt,            &
+                             Rad_flux_block%tdt_rad, frac_land,      &  ! yhc 2023-01-12, use tdt_rad instead of tdt_lw
+                             p_half, p_full, z_half, z_full,         &
+                             t_ref, q_ref,                           &  ! cjg: PBL depth mods
+                             u_star, b_star, q_star, rough_mom,      &
+                             lat, convect(is:ie,js:je),              &
+                             u, v, t, r(:,:,:,1), r, um, vm,                  &
+                             tm, rm(:,:,:,1), rm, rdiag,                      &
+                             udt, vdt, tdt, rdt(:,:,:,1), rdt,                &
+                             diff_t_vert, diff_m_vert, gust, z_pbl, tke_avg = tke_avg)
+
+      else
       call vert_turb_driver (is, js, Time, Time_next, dt,            &
                              Rad_flux_block%tdt_lw, frac_land,  &
                              p_half, p_full, z_half, z_full,         &
@@ -2276,6 +2294,7 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
                              tm, rm(:,:,:,1), rm, rdiag,                      &
                              udt, vdt, tdt, rdt(:,:,:,1), rdt,                &
                              diff_t_vert, diff_m_vert, gust, z_pbl, tke_avg = tke_avg)
+     endif
      call mpp_clock_end ( turb_clock )
      pbltop(is:ie,js:je) = z_pbl(:,:)
      tke   (is:ie,js:je) = tke_avg(:,:)
@@ -4755,7 +4774,6 @@ integer                                 :: ierr
                                         SECOND_CENTERED_WTS, FOURTH_CENTERED_WTS, &
                                         ADVECTIVE_FORM
 
-    use             fv_pack, only: nlev
     use      constants_mod, only:  rdgas, rvgas, cp_air, hlv, kappa, grav, pi, SECONDS_PER_DAY
 
     !------------------
