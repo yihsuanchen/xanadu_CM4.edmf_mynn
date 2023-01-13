@@ -425,6 +425,7 @@ integer :: printout_vert_adv_tend = 1
 
 logical :: do_tdt_rad_lock = .false.   ! yhc 2023-01-12. .true. : using tdt_rad in Lock scheme.
                                        !                 .false.: using tdt_lw in Lock scheme (default)
+logical :: do_compute_vert_adv_tend = .false.  ! diagnose vertical advection tendencies
 !--> yhc, add edmf_mynn nml
 
 
@@ -442,7 +443,7 @@ namelist / physics_driver_nml / do_radiation, do_clubb,  do_cosp, &
                                 do_stop_run, do_writeout_column_nml, do_bomex_radf, ii_write, jj_write, lat_write, lon_write, & ! yhc add
                                 tdt_max, do_limit_tdt, tdt_limit, &  ! yhc add
                                 do_vert_adv_tend_offline, input_profile, printout_vert_adv_tend, temp_vert_advec_scheme, tracer_vert_advec_scheme, & ! yhc add
-                                do_tdt_rad_lock, & ! yhc add
+                                do_tdt_rad_lock, do_compute_vert_adv_tend, & ! yhc add
                                 max_diam_drop, use_tau, cosp_frequency
 
 
@@ -2095,8 +2096,10 @@ real,  dimension(:,:,:), intent(out)  ,optional :: diffm, difft
 
 !<--- yhc, 2023-01-12
       !--- compute T & Q vertical tendencies and write out to history files
-      call compute_vert_adv_tend (is, ie, js, je, Time_next, &
-                                  dt, p_full, p_half, Physics_input_block%omega, t, r(:,:,:,1))
+      if (do_compute_vert_adv_tend) then
+        call compute_vert_adv_tend (is, ie, js, je, Time_next, &
+                                    dt, p_full, p_half, Physics_input_block%omega, t, r(:,:,:,1))
+      endif
 !---> yhc, 2023-01-12
 
 
@@ -5368,7 +5371,9 @@ end do   ! end loop of n
       dT_adi,    &   !  temperature tendencies due to adiabatic heating (K/s)
       tdt_vadv,  &   !  sum of dT_vadv and dT_adi (K/s)
       dqv_vadv,  &   !  specific humidity vertical advection (kg/kg/s)
-      dp,        &   !  pressure thickness between half levels (Pa)
+      dp             !  pressure thickness between half levels (Pa)
+
+    real, dimension(size(pt,1),size(pt,2),size(pt,3)+1)   :: &
       omega_h        !  vertical pressure velocity at half levels (Pa/s)
 
     integer i,j,k,kdim
@@ -5394,6 +5399,16 @@ end do   ! end loop of n
     do k = 2,kdim
       omega_h(:,:,k) = 0.5 * (omega_f(:,:,k-1) + omega_f(:,:,k))
     enddo
+
+!write(6,*) 'ggaa, pf',pf
+!write(6,*) 'ggaa, ph', ph
+!write(6,*) 'ggaa, omega_f', omega_f
+!write(6,*) 'ggaa, pt', pt
+!write(6,*) 'ggaa, qq', qq
+
+!write(6,*) 'ggaa, dp', dp
+!write(6,*) 'ggaa, omega_h', omega_h
+
 
     !------------------------------------ 
     !  compute temperature tendencies
