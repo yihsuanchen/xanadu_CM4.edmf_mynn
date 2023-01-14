@@ -18154,6 +18154,33 @@ cloud-free initial conditions
     </input>
   </experiment>
 
+  <experiment name="RF01-00cf-am4p0_scmRAD_ql0.5_L07div" inherit="RF01-00cf-am4p0_scmRAD_ql0.5">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 9.7e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .false. 
+        do_stevens = .true.
+        do_any_profiles = .false.
+        option_any_profiles = "xxx"
+        do_read_rf01_forc_any = .false.
+        option_read_rf01_forc_any = "xxx"
+        ql_rescale_factor = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
   <experiment name="RF01-00cf-am4p0_scmRAD_ql0.5_CGhadv" inherit="RF01-00cf-am4p0_scmRAD_ql0.5">
     <input>
       <namelist name="scm_rf01_nml">
@@ -18162,6 +18189,34 @@ cloud-free initial conditions
         momentum_vert_advec_scheme = 1,
         vert_advec_cond = .true.,
         divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .false. 
+        do_stevens = .true.
+        do_any_profiles = .false.
+        option_any_profiles = "xxx"
+        do_read_rf01_forc_any = .false.
+        option_read_rf01_forc_any = "xxx"
+        option_lf_forcing = "CGILSstyle_hadv_RF01"
+        ql_rescale_factor = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="RF01-00cf-am4p0_scmRAD_ql0.5_L07div_CGhadv" inherit="RF01-00cf-am4p0_scmRAD_ql0.5">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 9.7e-6,
         p_omega_zero = 90000.,
         do_rad = .true.,
         do_vadv =.true.,
@@ -18245,7 +18300,7 @@ cloud-free initial conditions
         vert_advec_cond = .true.,
         divf = 3.75e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -18263,16 +18318,16 @@ cloud-free initial conditions
     </input>
   </experiment>
 
-  <experiment name="RF01-00cf-am4p0_am4RAD_ql0.5_2Xdiv" inherit="RF01-00cf-am4p0_am4RAD_ql0.5">
+  <experiment name="RF01-00cf-am4p0_am4RAD_ql0.5_L07div" inherit="RF01-00cf-am4p0_am4RAD_ql0.5">
     <input>
       <namelist name="scm_rf01_nml">
         tracer_vert_advec_scheme = 4,
         temp_vert_advec_scheme = 4,
         momentum_vert_advec_scheme = 1,
         vert_advec_cond = .true.,
-        divf = 7.5e-6,
+        divf = 9.7e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -18299,7 +18354,35 @@ cloud-free initial conditions
         vert_advec_cond = .true.,
         divf = 3.75e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .false. 
+        do_stevens = .true.
+        do_any_profiles = .false.
+        option_any_profiles = "xxx"
+        do_read_rf01_forc_any = .false.
+        option_read_rf01_forc_any = "xxx"
+        option_lf_forcing = "CGILSstyle_hadv_RF01"
+        ql_rescale_factor = 0.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="RF01-00cf-am4p0_am4RAD_ql0.5_L07div_CGhadv" inherit="RF01-00cf-am4p0_am4RAD_ql0.5">
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 9.7e-6,
+        p_omega_zero = 90000.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -18327,7 +18410,7 @@ cloud-free initial conditions
         vert_advec_cond = .true.,
         divf = 3.75e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -18354,7 +18437,7 @@ cloud-free initial conditions
         vert_advec_cond = .true.,
         divf = 3.75e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -18381,7 +18464,7 @@ cloud-free initial conditions
         vert_advec_cond = .true.,
         divf = 3.75e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -18408,7 +18491,7 @@ cloud-free initial conditions
         vert_advec_cond = .true.,
         divf = 3.75e-6,
         p_omega_zero = 90000.,
-        do_rad = .true.,
+        do_rad = .false.,
         do_vadv =.true.,
         do_geo  =.true.,
         ustar_sfc  =   0.25,
@@ -18426,7 +18509,7 @@ cloud-free initial conditions
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_scmRAD" inherit="RF02-am4p0">
+  <experiment name="RF02-00cf-am4p0_scmRAD_ql1.5" inherit="RF02-am4p0">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18446,11 +18529,12 @@ cloud-free initial conditions
  do_aer_prof = T,
  do_init_cloud_free = F,
  omega_profile = "z"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_scmRAD_2Xdiv" inherit="RF02-00cf-am4p0_scmRAD">
+  <experiment name="RF02-00cf-am4p0_scmRAD_ql1.5_2Xdiv" inherit="RF02-00cf-am4p0_scmRAD_ql1.5">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18470,11 +18554,37 @@ cloud-free initial conditions
  do_aer_prof = T,
  do_init_cloud_free = F,
  omega_profile = "z"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_scmRAD_CGhadv" inherit="RF02-00cf-am4p0_scmRAD">
+  <experiment name="RF02-00cf-am4p0_scmRAD_ql1.5_L07div" inherit="RF02-00cf-am4p0_scmRAD_ql1.5">
+    <input>
+      <namelist name="scm_rf02_nml">
+ TRACER_VERT_ADVEC_SCHEME        =           4,
+ TEMP_VERT_ADVEC_SCHEME  =           4,
+ MOMENTUM_VERT_ADVEC_SCHEME      =           1,
+ VERT_ADVEC_COND = T,
+ P_OMEGA_ZERO    =   90000.0000000000     ,
+ DIVF    =  9.90000000000000E-006,
+ DO_RAD  = T,
+ DO_GEO  = T,
+ DO_VADV = T,
+ RHO_SFC =   1.21000000000000     ,
+ USTAR_SFC       =  0.250000000000000     ,
+ FLUX_T_SFC      =   16.0000000000000     ,
+ FLUX_Q_SFC      =   93.0000000000000     ,
+ CONFIGURATION   = base
+ do_aer_prof = T,
+ do_init_cloud_free = F,
+ omega_profile = "z"
+ ql_rescale_factor = 1.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="RF02-00cf-am4p0_scmRAD_ql1.5_CGhadv" inherit="RF02-00cf-am4p0_scmRAD_ql1.5">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18495,11 +18605,38 @@ cloud-free initial conditions
  do_init_cloud_free = F,
  omega_profile = "z"
  OPTION_LF_FORCING = "CGILSstyle_hadv_RF02"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_scmRAD_FAM4n" inherit="RF02-00cf-am4p0_scmRAD">
+  <experiment name="RF02-00cf-am4p0_scmRAD_ql1.5_L07div_CGhadv" inherit="RF02-00cf-am4p0_scmRAD_ql1.5">
+    <input>
+      <namelist name="scm_rf02_nml">
+ TRACER_VERT_ADVEC_SCHEME        =           4,
+ TEMP_VERT_ADVEC_SCHEME  =           4,
+ MOMENTUM_VERT_ADVEC_SCHEME      =           1,
+ VERT_ADVEC_COND = T,
+ P_OMEGA_ZERO    =   90000.0000000000     ,
+ DIVF    =  9.9000000000000E-006,
+ DO_RAD  = T,
+ DO_GEO  = T,
+ DO_VADV = T,
+ RHO_SFC =   1.21000000000000     ,
+ USTAR_SFC       =  0.250000000000000     ,
+ FLUX_T_SFC      =   16.0000000000000     ,
+ FLUX_Q_SFC      =   93.0000000000000     ,
+ CONFIGURATION   = base
+ do_aer_prof = T,
+ do_init_cloud_free = F,
+ omega_profile = "z"
+ OPTION_LF_FORCING = "CGILSstyle_hadv_RF02"
+ ql_rescale_factor = 1.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="RF02-00cf-am4p0_scmRAD_ql1.5_FAM4n" inherit="RF02-00cf-am4p0_scmRAD_ql1.5">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18519,15 +18656,16 @@ cloud-free initial conditions
  do_aer_prof = T,
  do_init_cloud_free = F,
  omega_profile = "z"
-        do_any_profiles = .true.
-        option_any_profiles = "nudgeAM4_DYCOMS_3havg_11Jul1030Z_RF02"
+        do_any_profiles = .false.
+        option_any_profiles = "xxx"
         do_read_rf02_forc_any = .true.
         option_read_rf02_forc_any = "nudgeAM4_DYCOMS_3havg_11Jul1030Z_tdtDyn_RF02"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_scmRAD_FMRA" inherit="RF02-00cf-am4p0_scmRAD">
+  <experiment name="RF02-00cf-am4p0_scmRAD_ql1.5_FMRA" inherit="RF02-00cf-am4p0_scmRAD_ql1.5">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18551,11 +18689,12 @@ cloud-free initial conditions
         option_any_profiles = "xxx"
         do_read_rf02_forc_any = .true.
         option_read_rf02_forc_any = "MERRA2_DYCOMS_3havg_11Jul1030Z_RF02"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_am4RAD" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
+  <experiment name="RF02-00cf-am4p0_am4RAD_ql1.5" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18575,11 +18714,12 @@ cloud-free initial conditions
  do_aer_prof = T,
  do_init_cloud_free = F,
  omega_profile = "z"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_am4RAD_2Xdiv" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
+  <experiment name="RF02-00cf-am4p0_am4RAD_ql1.5_2Xdiv" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18599,11 +18739,37 @@ cloud-free initial conditions
  do_aer_prof = T,
  do_init_cloud_free = F,
  omega_profile = "z"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_am4RAD_CGhadv" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
+  <experiment name="RF02-00cf-am4p0_am4RAD_ql1.5_L07div" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf02_nml">
+ TRACER_VERT_ADVEC_SCHEME        =           4,
+ TEMP_VERT_ADVEC_SCHEME  =           4,
+ MOMENTUM_VERT_ADVEC_SCHEME      =           1,
+ VERT_ADVEC_COND = T,
+ P_OMEGA_ZERO    =   90000.0000000000     ,
+ DIVF    =  9.90000000000000E-006,
+ DO_RAD  = F,
+ DO_GEO  = T,
+ DO_VADV = T,
+ RHO_SFC =   1.21000000000000     ,
+ USTAR_SFC       =  0.250000000000000     ,
+ FLUX_T_SFC      =   16.0000000000000     ,
+ FLUX_Q_SFC      =   93.0000000000000     ,
+ CONFIGURATION   = base
+ do_aer_prof = T,
+ do_init_cloud_free = F,
+ omega_profile = "z"
+ ql_rescale_factor = 1.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="RF02-00cf-am4p0_am4RAD_ql1.5_CGhadv" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18624,11 +18790,38 @@ cloud-free initial conditions
  do_init_cloud_free = F,
  omega_profile = "z"
  OPTION_LF_FORCING = "CGILSstyle_hadv_RF02"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_am4RAD_FAM4n" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
+  <experiment name="RF02-00cf-am4p0_am4RAD_ql1.5_L07div_CGhadv" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
+    <input>
+      <namelist name="scm_rf02_nml">
+ TRACER_VERT_ADVEC_SCHEME        =           4,
+ TEMP_VERT_ADVEC_SCHEME  =           4,
+ MOMENTUM_VERT_ADVEC_SCHEME      =           1,
+ VERT_ADVEC_COND = T,
+ P_OMEGA_ZERO    =   90000.0000000000     ,
+ DIVF    =  9.90000000000000E-006,
+ DO_RAD  = F,
+ DO_GEO  = T,
+ DO_VADV = T,
+ RHO_SFC =   1.21000000000000     ,
+ USTAR_SFC       =  0.250000000000000     ,
+ FLUX_T_SFC      =   16.0000000000000     ,
+ FLUX_Q_SFC      =   93.0000000000000     ,
+ CONFIGURATION   = base
+ do_aer_prof = T,
+ do_init_cloud_free = F,
+ omega_profile = "z"
+ OPTION_LF_FORCING = "CGILSstyle_hadv_RF02"
+ ql_rescale_factor = 1.5
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="RF02-00cf-am4p0_am4RAD_ql1.5_FAM4n" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18652,11 +18845,12 @@ cloud-free initial conditions
         option_any_profiles = "xxx"
         do_read_rf02_forc_any = .true.
         option_read_rf02_forc_any = "nudgeAM4_DYCOMS_3havg_11Jul1030Z_tdtDyn_RF02"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_am4RAD_FMRA" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
+  <experiment name="RF02-00cf-am4p0_am4RAD_ql1.5_FMRA" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18680,11 +18874,12 @@ cloud-free initial conditions
         option_any_profiles = "xxx"
         do_read_rf02_forc_any = .true.
         option_read_rf02_forc_any = "MERRA2_DYCOMS_3havg_11Jul1030Z_RF02"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_am4RAD_ICAM4n_FAM4n" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
+  <experiment name="RF02-00cf-am4p0_am4RAD_ql1.5_ICAM4n_FAM4n" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18708,11 +18903,12 @@ cloud-free initial conditions
         option_any_profiles = "nudgeAM4_DYCOMS_3havg_11Jul1030Z_RF02"
         do_read_rf02_forc_any = .true.
         option_read_rf02_forc_any = "nudgeAM4_DYCOMS_3havg_11Jul1030Z_tdtDyn_RF02"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="RF02-00cf-am4p0_am4RAD_ICMRA_FMRA" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
+  <experiment name="RF02-00cf-am4p0_am4RAD_ql1.5_ICMRA_FMRA" inherit="RF02-am4p0_aerT_clr_am4RAD_sw">
     <input>
       <namelist name="scm_rf02_nml">
  TRACER_VERT_ADVEC_SCHEME        =           4,
@@ -18736,6 +18932,7 @@ cloud-free initial conditions
         option_any_profiles = "MERRA2_DYCOMS_3havg_11Jul1030Z_RF02"
         do_read_rf02_forc_any = .true.
         option_read_rf02_forc_any = "MERRA2_DYCOMS_3havg_11Jul1030Z_RF02"
+ ql_rescale_factor = 1.5
       </namelist>
     </input>
   </experiment>
@@ -19480,7 +19677,13 @@ cloud-free initial conditions
     </input>
   </experiment>
 
-
+  <experiment name="xx1-RF01-00cf-am4p0_scmRAD_ql0.5" inherit="RF01-00cf-am4p0_scmRAD_ql0.5">
+    <input>
+      <namelist name="physics_driver_nml">
+        do_compute_vert_adv_tend = T 
+      </namelist>
+    </input>
+  </experiment>
 
 
 <!--
