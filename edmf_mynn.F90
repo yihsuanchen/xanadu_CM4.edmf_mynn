@@ -5,6 +5,9 @@ module edmf_mynn_mod
 !
 ! Author: Yi-Hsuan Chen (yihsuan@umich.edu)
 !
+! If creating an offline version of this program, seach "Mellor–Yamada" to find where the MYNN-EDMF module is and the interface 
+! between this module and AM4 is.
+!
 ! References:
 
 !    Olson, J. B., J. S. Kenyon, W. A. Angevine, J. M. Brown, M. Pagowski, and K. Su?selj, 2019: A description of the MYNN-EDMF scheme and the coupling to other components in WRF–ARW. NOAA Tech. Memo. OAR GSD-61, 42 pp., https://doi.org/10.25923/n9wm-be49.
@@ -7898,7 +7901,8 @@ END SUBROUTINE edmf_JPL
 !################################
 !
 !  GFDL model interface, yhc
-!    Mellor-Yamada
+!    Mellor-Yamada (Above is MYNN-EDMF module. Below is the interface between MYNN-EDMF and AM4.)
+!                  (Some codes are needed to change if using in an offline model. Search "Mellor-Yamada")
 !
 !################################
 !################################
@@ -12196,7 +12200,7 @@ end function degrees_to_radians
 
 
 !#############################
-! Mellor-Yamada
+! Mellor-Yamada (Above is the interface between MYNN-EDMF and AM4.)
 !#############################
 
 end module edmf_mynn_mod
