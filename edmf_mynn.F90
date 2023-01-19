@@ -472,10 +472,10 @@ end type edmf_ls_mp_type
   integer :: option_ent=1                       ! =1, use original stochastic entrainment formula
                                                 ! =2, separate entrainment into stochastic and deterministic parts
                                                 !     controlling by alpha_st (1 completely stochastic, 0 completely deterministic)
+  real    :: alpha_st=0.5                       ! used when option_ent=2
 
   !character*20 :: option_surface_flux = "star"      ! surface fluxes are determined by "star" quantities, i.e. u_star, q_star, and b_star
   character*20 :: option_surface_flux = "updated"  ! surface fluxes are determined by "updated" quantities, i.e. u_flux, v_flux, shflx, and lh flx
-  real    :: alpha_st=0.5
   real    :: rc_MF = 10.e-6                     ! assumed cloud droplet radius in plumes (meters)
 
   character*20 :: do_debug_option = "all"       ! debugging purpose. print out problematic columns and (if needed) stop the model
@@ -562,7 +562,6 @@ integer :: id_LWP0
 
 !#######################################################################
 
-!subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd, edmf2ls_mp)
 subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
 
 !-----------------------------------------------------------------------
@@ -575,11 +574,6 @@ subroutine edmf_mynn_init(lonb, latb, axes, time, id, jd, kd)
  integer,              intent(in) :: id, jd, kd, axes(4)
  type(time_type),      intent(in) :: time
  real, dimension(:,:), intent(in) :: lonb, latb
-
-!-----------------------------------------------------------------------
-!  (Intent out)
-!-----------------------------------------------------------------------
-!  type(edmf_ls_mp_type), intent(out) :: edmf2ls_mp
 
 !-----------------------------------------------------------------------
 !  (Intent local)
