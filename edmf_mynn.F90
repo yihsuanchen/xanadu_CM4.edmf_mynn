@@ -1,25 +1,22 @@
 module edmf_mynn_mod
 
 !=======================================================================
-! GFDL driver for the EDMF-MYNN (Eddy-Diffusivity/Mass-Flux Mellor–Yamada–Nakanishi–Niino) parameterization.
+! GFDL driver for the MYNN-EDMF (Eddy-Diffusivity/Mass-Flux Mellor–Yamada–Nakanishi–Niino) parameterization.
 !
-! Author: Yi-Hsuan Chen
+! Author: Yi-Hsuan Chen (yihsuan@umich.edu)
 !
-! For a scientific description, refer to the following publications:
+! References:
 
 !    Olson, J. B., J. S. Kenyon, W. A. Angevine, J. M. Brown, M. Pagowski, and K. Su?selj, 2019: A description of the MYNN-EDMF scheme and the coupling to other components in WRF–ARW. NOAA Tech. Memo. OAR GSD-61, 42 pp., https://doi.org/10.25923/n9wm-be49.
-
-!    Wu, E., H. Yang, J. Kleissl, K. Suselj, M. J. Kurowski, and J. Teixeira, 2020: On the parameterization of convective downdrafts for marine stratocumulus clouds. Mon. Weather Rev., 148, 1931–1950, https://doi.org/10.1175/MWR-D-19-0292.1.
 !
+!    Suselj, K., M. J. Kurowski, and J. Teixeira, 2019b: A Unified Eddy-Diffusivity/Mass-Flux Approach for Modeling Atmospheric Convection. J. Atmos. Sci., 76, 2505–2537, https://doi.org/10.1175/jas-d-18-0239.1.
+!
+!    Wu, E., H. Yang, J. Kleissl, K. Suselj, M. J. Kurowski, and J. Teixeira, 2020: On the parameterization of convective downdrafts for marine stratocumulus clouds. Mon. Weather Rev., 148, 1931–1950, https://doi.org/10.1175/MWR-D-19-0292.1.
 !
 ! History
 !   2020/12/15  ver 1.0
-!   2020/12/20  ver 2.0, the mynn and edmf_* programs are taken from 
-!                        xanadu_CM4.edmf_mynn/offline-edmf_mynn_v1_loop.F90, 939a7f5a9fe1f13c009b25925a0e4207593155d5
-!   2021/01/04  ver 2.1, the mynn and edmf_* programs are taken from 
-!                        xanadu_CM4.edmf_mynn/offline-edmf_mynn_v1_loop.F90, 44a5ce610f3ba13f36ca421d4052c2543668df95
-!   2021/01/05  ver 2.2, the mynn and edmf_* programs are taken from 
-!                        xanadu_CM4.edmf_mynn/offline-edmf_mynn_v1_loop.F90, fe4d5aa337747eb04ec6cefbc0cf0cbb738fdfed
+!   .....
+!   2022/03/15  A bunch of MF sensitivity tests
 !=======================================================================
 
 use           mpp_mod, only: input_nml_file
@@ -265,7 +262,8 @@ end type edmf_ls_mp_type
    INTEGER , PARAMETER :: p_qnc= 0
    INTEGER , PARAMETER :: p_qni= 0
 
-!<--- yhc note: these are pocied from the WRF MYNN-EDMF module
+!<--- yhc note: the parameters below are copied direcly from the WRF MYNN-EDMF module
+
 ! The parameters below depend on stability functions of module_sf_mynn.
   REAL, PARAMETER :: cphm_st=5.0, cphm_unst=16.0, &
                      cphh_st=5.0, cphh_unst=16.0
@@ -335,7 +333,6 @@ end type edmf_ls_mp_type
   !for TKE in the upper PBL/cloud layer.
   !REAL, PARAMETER :: scaleaware=0.
 
-
   !Adding top-down diffusion driven by cloud-top radiative cooling
   INTEGER, PARAMETER :: bl_mynn_topdown = 0
 
@@ -367,7 +364,7 @@ end type edmf_ls_mp_type
   REAL, PARAMETER:: K7= .105785160E-9
   REAL, PARAMETER:: K8= .161444444E-12
 ! end-
-!---> yhc note: these are pocied from the WRF MYNN-EDMF module
+!---> yhc note: the parameters above are copied direcly from the WRF MYNN-EDMF module
 
 !---------------------------------------------------------------------
 ! --- Namelist
@@ -390,21 +387,34 @@ end type edmf_ls_mp_type
   INTEGER :: bl_mynn_edmf_part = 1         ! partition area into updrafts and remaining environment
   INTEGER :: bl_mynn_cloudmix  = 1         ! 1 - cloud species are mixed separately, 0 - not
   INTEGER :: bl_mynn_mixqt     = 2         ! will mix moist conserved variables, after mixing invokes PDF cloud scheme to convert moist variables to dry
-  INTEGER :: bl_mynn_stabfunc  = 1       !  option for stability function. 0 - MYNN, 1 - Suselj et al. (2019)
+  INTEGER :: bl_mynn_stabfunc  = 1         ! option for stability function. 0 - MYNN, 1 - Suselj et al. (2019)
   INTEGER :: icloud_bl         = 1         ! 1, cloud cover and liquid water from the PDF scheme will be on the cloud output
   INTEGER :: spp_pbl           = 0         ! 1 stochastic perturbation to condensation  
 
   integer :: initflag = 1                 ! (when 1 it initializes TKE using level 2 MYNN scheme)
   logical :: FLAG_QI  = .true.            ! (flags for whether cloud and ice mixing rations and number concentrations are mixed separately)
-  logical :: FLAG_QNI = .false.           ! all false except FLAG_QI that Kay Suselj said "bl_mynn_cloudmix=1 and FLAG_QI=.true." on 12/11/2020
+  logical :: FLAG_QNI = .false.           ! all false except FLAG_QI (Kay Suselj, "bl_mynn_cloudmix=1 and FLAG_QI=.true.", personal communication, 12/11/2020)
   logical :: FLAG_QC  = .false.
   logical :: FLAG_QNC = .false.
 
-  logical :: expmf = .true.              ! .true.  ... explicit mass-flux, .false. .... implicit mass-flux
+
+  integer :: edmf_type=2                 ! =0, the standard MYNN code, in which the PDF cloud scheme is used before and after mixing. 
+                                         !     the cloud tendeices are computed from the differences between cloud variables before and after mixing.
+                                         ! =1, the input (before mixing) cloud variables are from AM4. The cloud variables after mixing are diagnosed from
+                                         !     the MYNN PDF cloud scheme. The tendencies are the differences between these two cloud variables.
+                                         ! =2, approximate ql and qi tendencies from AM4 ED and MF terms, and then recover T and qv tendencies 
+
+  integer :: NUP = 100                   ! the number of updrafts
+  real    :: UPSTAB = 1.                 ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
+  logical :: expmf = .true.              ! .true.  ... mass-flux are solved explicitly in the EDMF, 
+                                         ! .false. ... mass-flux are solved implicitly in the EDMF
   real    :: upwind = 1.                 ! upwind=1. ... use upwind approximation for mass-flux calculation
                                          ! upwind=0.5 ... use centered difference for mass-flux calculation
                                          ! explicit mass-flux can use either upwind or centered-difference
                                          ! implicit mass-flux must uses the centered differencing method.  
+
+
+
   real    :: L0_flag  = 100.             ! entrainemnt length scale (m)
                                          !   if L0_flag = -1., set L0 to this function, L0= (PBLH/100)**2 
                                          !   if L0_flag = -2., set L0 as a step function, 
@@ -412,16 +422,10 @@ end type edmf_ls_mp_type
                                          !                            10  m if z_pbl <= z_limit_L0;
 
   real    :: L0_min   = 5.               ! when L0_flag=-1., minimum L0 
-                                         ! when L0_flag=-2., L0 value for z_pbl <= z_limit_L0
+                                         ! when L0_flag=-2., L0 value when z_pbl <= z_limit_L0
   real    :: L0_max   = 100.             ! when L0_flag=-1., maximum L0
-                                         ! when L0_flag=-2., L0 value for z_pbl > z_limit_L0
-  real    :: z_limit_L0 = 500.           ! step function when L0_flag=-2.
-  integer :: NUP = 100                   ! the number of updrafts
-  real    :: UPSTAB = 1.                 ! stability parameter for massflux, (mass flux is limited so that dt/dz*a_i*w_i<UPSTAB)
-
-  integer :: edmf_type=2                 ! =0, the standard MYNN code, in which the PDF cloud scheme before mixing and after the mixing and compute the tendencies of liquid and cloud properties from the differences between these two.
-                                         ! =1, tendencies of moist variables from the PDF scheme after mixing and from the input values (from Tiedtke, presumably)
-                                         ! =2, approximate ql and qi tendencies from AM4 ED and MF terms, and then recover T and qv tendencies 
+                                         ! when L0_flag=-2., L0 value when z_pbl > z_limit_L0
+  real    :: z_limit_L0 = 500.           ! used when L0_flag=-2
 
   logical :: do_qdt_same_as_qtdt = .false.  ! = .true., for testing purposes, evaporate/condensate the liquid and ice water that is produced during mixing. 
 
