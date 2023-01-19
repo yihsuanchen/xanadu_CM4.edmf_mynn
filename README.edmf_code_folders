@@ -1,0 +1,45 @@
+=====================================================
+README - the code folders for three EDMF configurations
+
+Yi-Hsuan Chen (yihsuan@umich.edu)
+January, 2023
+=====================================================
+
+There are three different EDMF configurations I have done in AM4:
+
+*********************
+*********************
+*********************
+
+(1) AM4 + MYNN-EDMF
+
+Folders: xanadu_CM4.edmf_mynn, the codes and scripts to run AMIP simulations.
+         xanadu_SCM.edmf_mynn, the codes and scripts to run SCM.
+         mdt_CM4.edmf_mynn,    the codes and scripts to run coupled simulations.
+
+All simulations share the same code bases in "xanadu_CM4.edmf_mynn". Note that "xanadu_CM4.edmf_mynn" is a git repository. 
+
+
+*********************
+*********************
+*********************
+
+(2) AM4 + dry MF
+
+Folders: xanadu_CM4.mf_qmf, the codes and scripts to run AMIP simulations.
+         xanadu_SCM.mf_qmf, the codes and scripts to run SCM.
+
+All simulations share the same code bases in "xanadu_CM4.mf_qmf". Note that "xanadu_CM4.mf_qmf" is a git repository. 
+
+*********************
+*********************
+*********************
+
+(3) AM4 with different calling sequence for the PBL and convection schemes 
+
+Folders: xanadu_CM4.moist_down, the codes and scripts to run AMIP simulations.
+         xanadu_SCM.moist_down, the codes and scripts to run SCM.
+
+All simulations share the same code bases in "xanadu_CM4.moist_down". Note that "xanadu_CM4.moist_down" is a git repository.      
+
+
