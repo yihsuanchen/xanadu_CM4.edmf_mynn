@@ -1449,7 +1449,7 @@ real,    dimension(:,:,:),    intent(out),  optional :: diffm, difft
                     'Liquid water path (phy_in)', 'kg/m2' , &
                      missing_value=missing_value )
       id_tdt_vadv = register_diag_field (mod_name, 'tdt_vadv', axes(1:3), Time, &
-                     'temperature tendency due to air vertical motion', 'kg/kg/s' , &
+                     'temperature tendency due to air vertical motion', 'K/s' , &
                      missing_value=missing_value )
       id_qdt_vadv = register_diag_field (mod_name, 'qdt_vadv', axes(1:3), Time, &
                      'specific humidity tendency due to air vertical motion', 'kg/kg/s' , &
