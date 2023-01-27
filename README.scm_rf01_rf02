@@ -1,0 +1,53 @@
+=========================
+ README - Run RF01 and RF02 SCM with best estimates of large-scale forcings: 
+
+   1. Divergence rate estimate from flight observation from Lenschow et al. (2007, Journal of Atmospheric and Oceanic Technology).
+      The divergence rate in RF01 & RF02 SCM/LES intercomparison protocols (Stevens et al. 2005, MWR; Ackerman et al. 2009, MWR) are about half of those estimates from Lenschow et al. (2007).
+
+   2. Horizontal advective tendencies based on CGILS-style formula (Zhang et al., 2012, JAMES). No horizontal advective tendencies in RF01 & RF02 SCM/LES intercomparison protocol.
+
+ Yi-Hsuan Chen (yihsuan@umich.edu)
+
+ January 26, 2023
+=========================
+
+Steps:
+
+1. Copy modified scm_rf01.F90 and scm_rf02.F90 to your SCM code direscoties.
+
+     > cp scm_rf01.F90.yhc230126 ${SCMXML}/awg_include/scm_include/code_updates/scm_rf01.F90
+     > cp scm_rf02.F90.yhc230126 ${SCMSRC}/src//atmos_scm/forc/scm_rf02.F90
+     
+     where SCMXML=/ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_SCM/
+           SCMSRC=/ncrc/home2/Yi-hsuan.Chen/awg/xanadu/SCM_am4_xanadu_original/
+     in my code directories.
+
+2. Recompile the SCM.
+
+3. Add experiments into your XML. My sample XML is "scm_xanadu_original.xml", which includes the setup of these experiments:
+
+     #--- RF01, scmRAD & am4RAD
+          "RF01-am4p0_scmRAD_ql0.5"
+          "RF01-am4p0_scmRAD_ql0.5_L07div_CGhadv"
+          "RF01-am4p0_am4RAD_ql0.5"
+          "RF01-am4p0_am4RAD_ql0.5_L07div_CGhadv"
+
+     #--- RF02, scmRAD & am4RAD
+          "RF02-am4p0_scmRAD_ql1.5"
+          "RF02-am4p0_scmRAD_ql1.5_L07div_CGhadv"
+          "RF02-am4p0_am4RAD_ql1.5"
+          "RF02-am4p0_am4RAD_ql1.5_L07div_CGhadv"
+
+     The description of each experiment is in "scm_xanadu_original.xml".
+
+4. Run the SCM experiments, for example,
+
+     > frerun -o -s -x scm_xanadu_original.xml -p ncrc4.intel19 -t prod,openmp -r basic --cluster=c4 RF01-am4p0_am4RAD_ql0.5 
+
+5. My output
+     
+     Feel free to check out my outputs at analysis: /archive/Yi-hsuan.Chen/awg/xanadu/SCM_am4_xanadu_original/$EXPNAME
+
+6. Done.
+
+
