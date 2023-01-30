@@ -1,0 +1,28 @@
+=========================
+ README - AM4 MYNN-EDMF experiments
+
+ Yi-Hsuan Chen (yihsuan@umich.edu)
+
+ January 29, 2023
+=========================
+
+XML file: awg_xanadu_am4p0_edmf_mynn_clean.xml
+
+Experiments:
+
+  c96L33_am4p0-mynn_edmf_field_table
+      - standard AM4 with one change: Using field_table_am4p11_edmf_mynn, because some variables in MYNN-EDMF are semi-prognostic.
+
+  c96L33_am4p0-mynnED
+      - AM4 with MYNN ED scheme. 
+      - MYNN ED is put in physics_down where the PBL scheme is called.
+      - Because the shallow plume needs PBL depth, here the PBL depth is diagnosed as the same was as Lock does, not from MYNN-EDMF.
+
+  c96L33_am4p0-mynn_edmf_EDonly
+      - AM4 with the MYNN-EDMF framework, but only ED is on. AM4 shallow plume is still on.
+      - This aims to test the MYNN-EDMF machinery.
+      - The results are similar to c96L33_am4p0-mynnED
+
+  c96L33_am4p0-mynn_edmf_EDMF
+      - AM4 with the full MYNN-EDMF.
+      - Shallow plume is turn off. 
