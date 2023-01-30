@@ -3696,14 +3696,25 @@ Like c96L48_am4b6_DDFull but with 33 levels like c96L33_am4p0_donner
 <!-- ================================ -->
 
 
-  <experiment name="v01_00a-c96L33_am4p0" inherit="a00-c96L33_am4p0_donner">
+  <experiment name="c96L33_am4p0-mynn_edmf_field_table" inherit="c96L33_am4p0_donner">
+    <description>
+       Standard AM4 with one change:
+         1. Using field_table_am4p11_edmf_mynn, because some variables in MYNN-EDMF are semi-prognostic.
+    </description>
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+    </input>
     <postProcess>
       <!--xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess']/postProcess/node())"/-->
       <xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess_EDMF']/postProcess/node())"/>
     </postProcess>
   </experiment>   
 
-  <experiment name="v01_00b-noSH-c96L33_am4p0" inherit="v01_00a-c96L33_am4p0">
+  <experiment name="c96L33_am4p0-mynn_edmf_field_table_noSH" inherit="c96L33_am4p0-mynn_edmf_field_table">
+    <description>
+       Same as c96L33_am4p0-mynn_edmf_field_table, but turn off AM4 shallow plume by setting:
+       1. EIS_MAX =   -100000. in uw_conv_nml
+    </description>
     <input>
      <namelist name="uw_conv_nml">
  ICLOSURE        =           0,
@@ -3791,7 +3802,14 @@ Like c96L48_am4b6_DDFull but with 33 levels like c96L33_am4p0_donner
     </input>
   </experiment>   
 
-  <experiment name="v01_c96L33-am4p0_pblhUW_SH_noVDIFF" inherit="v01_00a-c96L33_am4p0">
+  <experiment name="c96L33_am4p0-mynn_edmf_field_table_pblhUW_noVDIFF" inherit="c96L33_am4p0-mynn_edmf_field_table">
+    <description>
+       Same as c96L33_am4p0-mynn_edmf_field_table, but
+       1. Using Lock's PBL depth formula by setting these in uw_conv_nml
+            -  COMPUTE_PBLHT   = T,
+            -  PARCEL_BUOY     =  0.250000000000000     
+       2. Turn off all PBL schemes
+    </description>
     <input>
       <namelist name="vert_turb_driver_nml">
  DO_SHALLOW_CONV = F,
@@ -3897,7 +3915,15 @@ Like c96L48_am4b6_DDFull but with 33 levels like c96L33_am4p0_donner
     </input>
   </experiment>
 
-  <experiment name="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF" inherit="v01_00a-c96L33_am4p0">
+  <experiment name="c96L33_am4p0-mynn_edmf_field_table_pblhUW_noVDIFF_noSH" inherit="c96L33_am4p0-mynn_edmf_field_table">
+    <description>
+       Same as c96L33_am4p0-mynn_edmf_field_table, but
+       1. Using Lock's PBL depth formula by setting these in uw_conv_nml
+            -  COMPUTE_PBLHT   = T,
+            -  PARCEL_BUOY     =  0.250000000000000     
+       2. Turn off all PBL schemes
+       3. turn off AM4 shallow plume by setting EIS_MAX =   -100000. in uw_conv_nml
+    </description>
     <input>
       <namelist name="vert_turb_driver_nml">
  DO_SHALLOW_CONV = F,
@@ -4003,7 +4029,11 @@ Like c96L48_am4b6_DDFull but with 33 levels like c96L33_am4p0_donner
     </input>
   </experiment>
 
-  <experiment name="v01_00d-mynnED-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_SH_noVDIFF">
+  <experiment name="c96L33_am4p0-mynnED" inherit="c96L33_am4p0-mynn_edmf_field_table_pblhUW_noVDIFF">
+    <description>
+       AM4 with MYNN ED
+       Same as c96L33_am4p0-mynn_edmf_field_table, but turning on MYNN ED
+    </description>
     <input>
       <namelist name="physics_driver_nml">
  DO_EDMF_MYNN    = T,
@@ -4028,7 +4058,7 @@ Like c96L48_am4b6_DDFull but with 33 levels like c96L33_am4p0_donner
     </input>
   </experiment>
 
-  <experiment name="v01_01a-edmf_EDonly-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_SH_noVDIFF">
+  <experiment name="c96L33_am4p0-mynn_edmf_EDonly" inherit="c96L33_am4p0-mynn_edmf_field_table_pblhUW_noVDIFF">
     <input>
       <namelist name="physics_driver_nml">
  DO_EDMF_MYNN    = T,
@@ -4049,28 +4079,7 @@ Like c96L48_am4b6_DDFull but with 33 levels like c96L33_am4p0_donner
     </input>
   </experiment>
 
-  <experiment name="v01_01b-edmf_EDonly_noSH-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
-    <input>
-      <namelist name="physics_driver_nml">
- DO_EDMF_MYNN    = T,
- DO_EDMF_MYNN_DIAGNOSTIC    = F,
- DO_WRITEOUT_COLUMN_NML  = F,
- II_WRITE        =        0,
- JJ_WRITE        =        0,
- do_tracers_selective = 0
-      </namelist>
-      <namelist name="edmf_mynn_nml">
- DO_WRITEOUT_COLUMN_NML  = F,
- II_WRITE        =        0,
- JJ_WRITE        =        0,
- DO_STOP_RUN     = F,
- bl_mynn_edmf = 0
- do_option_edmf2ls_mp = 99
-      </namelist>
-    </input>
-  </experiment>
-
-  <experiment name="v01_02a-edmf_MFexp_QxDet_Lo100-c96L33_am4p0" inherit="v01_c96L33-am4p0_pblhUW_noSH_noVDIFF">
+  <experiment name="c96L33_am4p0-mynn_edmf_EDMF" inherit="c96L33_am4p0-mynn_edmf_field_table_pblhUW_noVDIFF_noSH">
     <input>
       <namelist name="physics_driver_nml">
  DO_EDMF_MYNN    = T,
