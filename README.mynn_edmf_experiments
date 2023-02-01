@@ -6,8 +6,12 @@
  January 31, 2023
 =========================
 
+*******************
 XML file: awg_xanadu_am4p0_edmf_mynn_clean.xml
+  
+FRE command: frerun -o -s -x awg_xanadu_am4p0_edmf_mynn_clean.xml -p ncrc4.intel19 -t openmp -q normal c96L33_am4p0-mynnED c96L33_am4p0-mynn_edmf_EDonly c96L33_am4p0-mynn_edmf_EDMF
 
+*******************
 Experiments:
 
   c96L33_am4p0-mynn_edmf_field_table
@@ -29,6 +33,7 @@ Experiments:
       - AM4 with the full MYNN-EDMF.
       - AM4 shallow plume is turn off, because the MF can do shallow convection.
 
+*******************
 Outputs:
 
   analysis:/archive/Yi-hsuan.Chen/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/${EXPNAME}
