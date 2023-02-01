@@ -3705,8 +3705,8 @@ Like c96L48_am4b6_DDFull but with 33 levels like c96L33_am4p0_donner
       <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
     </input>
     <postProcess>
-      <!--xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess']/postProcess/node())"/-->
-      <xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess_EDMF']/postProcess/node())"/>
+      <xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess']/postProcess/node())"/>
+      <!--xi:include xpointer="xpointer(//freInclude[@name='c96_amip_postprocess_EDMF']/postProcess/node())"/-->
     </postProcess>
   </experiment>   
 
