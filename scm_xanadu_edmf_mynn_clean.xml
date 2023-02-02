@@ -3897,7 +3897,7 @@ unset occam_file
 
 <!-- Additional Experiments: ZNT 20200226 -->
   <freInclude name="scm_rf01_a_basic">
-        <run days="5" hours="0" overrideParams="fms_nml :clock_grain='ROUTINE'; soil_nml :init_temp=292.5">
+        <run days="1" hours="0" overrideParams="fms_nml :clock_grain='ROUTINE'; soil_nml :init_temp=292.5">
                                 <!-- Initialize soil temperature to initial TSKIN (even though we are over ocean!) -->
                 <resources jobWallclock="01:00:00">
                 <atm ranks="1" threads="1"    layout = "1,1"  io_layout = "1,1" />
@@ -3909,7 +3909,7 @@ unset occam_file
   </freInclude>
 
   <freInclude name="scm_rf02_basic">
-        <run days="5" hours="0" overrideParams="fms_nml :clock_grain='ROUTINE'; soil_nml :init_temp=292.5">
+        <run days="1" hours="0" overrideParams="fms_nml :clock_grain='ROUTINE'; soil_nml :init_temp=292.5">
                                 <!-- Initialize soil temperature to initial TSKIN (even though we are over ocean!) -->
                 <resources jobWallclock="01:00:00">
                 <atm ranks="1" threads="1"    layout = "1,1"  io_layout = "1,1" />
@@ -6141,6 +6141,453 @@ unset occam_file
 <!--= DYCOMS RF01 & RF02 EXPERIMENTS, with modified large-scale forcings =-->
 <!--= Yi-Hsuan Chen, January 26, 2023 =-->
 <!--=============================================-->
+
+  <experiment name="RF01-am4p0_aerT" inherit="RF01_A_$(AWG_EXPERIMENT)">
+    <description>
+       Compare to the standard RF01 settings, there are two changes:
+         1. The initial aerosol profiles are based on AM4 AMIP (1980 to 2014) July climatology, instead of aerosol-free profiles.
+    </description>
+    <input>
+      <namelist name="scm_rf01_nml">
+        tracer_vert_advec_scheme = 4,
+        temp_vert_advec_scheme = 4,
+        momentum_vert_advec_scheme = 1,
+        vert_advec_cond = .true.,
+        divf = 3.75e-6,
+        p_omega_zero = 90000.,
+        do_rad = .true.,
+        do_vadv =.true.,
+        do_geo  =.true.,
+        ustar_sfc  =   0.25,
+        flux_t_sfc =  15.0,
+        flux_q_sfc = 115.0,
+        do_aer_prof = .true.  <!-- use AM4 AMIP (1980 to 2014) July aerosol climatology yhc 2021-03-29 -->
+        do_init_cloud_free = .false.
+        do_stevens = .true.
+        do_any_profiles = .false.
+        option_any_profiles = "xxx"
+        do_read_rf01_forc_any = .false.
+        option_read_rf01_forc_any = "xxx"
+        ql_rescale_factor = 1. 
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="RF01-mynn_edmf_field_table" inherit="RF01-am4p0_aerT">
+    <description>
+       Same as RF01-am4p0_aerT with on change:
+         1. Using field_table_am4p11_edmf_mynn, because some variables in MYNN-EDMF are semi-prognostic.
+    </description>
+    <input>
+      <xi:include xpointer="xpointer(//freInclude[@name='field_table_am4p11_edmf_mynn']/input/node())"/>
+    </input>
+  </experiment>   
+
+  <experiment name="RF01-mynn_edmf_field_table_noSH" inherit="RF01-mynn_edmf_field_table">
+    <description>
+       Same as RF01-mynn_edmf_field_table, but turn off AM4 shallow plume by setting:
+       1. EIS_MAX =   -100000. in uw_conv_nml
+    </description>
+    <input>
+     <namelist name="uw_conv_nml">
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   -100000.     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>   
+
+  <experiment name="RF01-mynn_edmf_field_table_pblhUW_noVDIFF" inherit="RF01-mynn_edmf_field_table">
+    <description>
+       Same as RF01-mynn_edmf_field_table, but
+       1. Using Lock's PBL depth formula by setting these in uw_conv_nml
+            -  COMPUTE_PBLHT   = T,
+            -  PARCEL_BUOY     =  0.250000000000000     
+       2. Turn off all PBL schemes
+    </description>
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ GUST_SCHEME     = beljaars                ,
+ CONSTANT_GUST   =   1.00000000000000     ,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ GUST_FACTOR     =   1.00000000000000     ,
+ DO_SIMPLE       = F,
+ WP2_MIN =  4.000000000000000E-004,
+ ALTERNATE_ZPBL  =           0
+     </namelist>
+     <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   8.00000000000000     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="RF01-mynn_edmf_field_table_pblhUW_noVDIFF_noSH" inherit="RF01-mynn_edmf_field_table">
+    <description>
+       Same as RF01-mynn_edmf_field_table, but
+       1. Using Lock's PBL depth formula by setting these in uw_conv_nml
+            -  COMPUTE_PBLHT   = T,
+            -  PARCEL_BUOY     =  0.250000000000000     
+       2. Turn off all PBL schemes
+       3. turn off AM4 shallow plume by setting EIS_MAX =   -100000. in uw_conv_nml
+    </description>
+    <input>
+      <namelist name="vert_turb_driver_nml">
+ DO_SHALLOW_CONV = F,
+ DO_MELLOR_YAMADA        = F,
+ DO_TKE_TURB     = F,
+ GUST_SCHEME     = beljaars                ,
+ CONSTANT_GUST   =   1.00000000000000     ,
+ DO_MOLECULAR_DIFFUSION  = F,
+ DO_STABLE_BL    = F,
+ DO_DIFFUSIVITY  = F,
+ DO_EDT  = F,
+ DO_ENTRAIN      = F,
+ GUST_FACTOR     =   1.00000000000000     ,
+ DO_SIMPLE       = F,
+ WP2_MIN =  4.000000000000000E-004,
+ ALTERNATE_ZPBL  =           0
+     </namelist>
+     <namelist name="uw_conv_nml">
+ COMPUTE_PBLHT   = T,
+ PARCEL_BUOY     =  0.250000000000000     ,
+ ICLOSURE        =           0,
+ RKM_SH1 =   7.00000000000000     ,
+ RKM_SH  =   3.00000000000000     ,
+ CLDHGT_MAX      =   50000.0000000000     ,
+ PLEV_CIN        =   60000.0000000000     ,
+ PLEV_OMG        =   60000.0000000000     ,
+ EIS_MAX =   -100000.     ,
+ EIS_MIN =  0.000000000000000E+000,
+ DO_PEFF_LAND    = F,
+ DO_DEEP = T,
+ IDPCHOICE       =           2,
+ DO_COLDT        = T,
+ DO_LANDS        = F,
+ DO_UWCMT        = F,
+ DO_VARYING_RPEN = F,
+ DO_NEW_CONVCLD  = T,
+ DO_MSE_BUDGET   = F,
+ RPEN_CHOICE     =           0,
+ DO_FAST = F,
+ DO_ICE  = T,
+ DO_PPEN = T,
+ DO_FORCEDLIFTING        = F,
+ DO_GUST_QT      = F,
+ USE_NEW_LET     = T,
+ DO_HLFLX_ZERO   = T,
+ DO_NEW_QNACT    = T,
+ DO_2ND_ACT      = T,
+ N0      =   100000000.000000     ,
+ ATOPEVAP        =  0.000000000000000E+000,
+ APPLY_TENDENCY  = T,
+ PREVENT_UNREASONABLE    = T,
+ DO_MINMSE       = T,
+ AEROL   =  1.000000000000000E-012,
+ TKEMIN  =  1.000000000000000E-006,
+ CLDHGT_MAX_SHALLOW      =  0.000000000000000E+000,
+ DO_UMF_PBL      = T,
+ WMIN_RATIO      =  5.000000000000000E-002,
+ LANDFACT_M      =  0.500000000000000     ,
+ PBLHT0  =   500.000000000000     ,
+ LOFACTOR0       =  0.500000000000000     ,
+ LOCHOICE        =           0,
+ DO_DOWNDRAFT    = F,
+ DO_AUTO_AERO    = F,
+ DO_RESCALE      = T,
+ DO_RESCALE_T    = T,
+ WREL_MIN        =   1.00000000000000     ,
+ DO_DEBUG        = F,
+ TMAX0   =   363.150000000000     ,
+ DO_CONV_MICRO_N = F,
+ CUSH_REF        =  0.000000000000000E+000,
+ DO_PROG_GUST    = T,
+ TAU_GUST        =   7200.00000000000     ,
+ GEFF    =   1.00000000000000     ,
+ CGUST0  =   2.00000000000000     ,
+ CGUST_MAX       =   4.00000000000000     ,
+ SIGMA0  =  0.500000000000000     ,
+ DO_QCTFLX_ZERO  = F,
+ DO_DETRAN_ZERO  = F,
+ DURATION        =   10800.0000000000
+ DO_SUBCLOUD_FLX = F,
+ DO_NEW_SUBFLX   = T,
+ SRC_CHOICE      =           1,
+ GQT_CHOICE      =           0,
+ ZERO_OUT_CONV_AREA      = F,
+ TRACER_CHECK_TYPE       =           2,
+ USE_TURB_TKE    = F,
+ USE_LCL_ONLY    = F,
+ DO_NEW_PEVAP    = F,
+ PLEV_FOR        =   60000.0000000000     ,
+ STOP_AT_LET     = T,
+ USE_PBLHTTKE_AVG        = F,
+ USE_HLQTSRC_AVG = F,
+ USE_CAPECIN_AVG = F,
+ REPRODUCE_OLD_VERSION   = F,
+ DO_PLEV_UMF     = F,
+ PLEV_UMF        =   70000.0000000000     ,
+ SHALLOW_UMF_THRESH      =  1.000000000000000E-003,
+ DO_EIS_LIMIT    = T,
+ DO_EIS_LIMITN   = F,
+ DO_LTS_LIMIT    = F,
+ DO_LTS_LIMITN   = F
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="RF01-mynnED" inherit="RF01-mynn_edmf_field_table_pblhUW_noVDIFF">
+    <description>
+       DYCOMS-II RF01 SCM with MYNN ED
+         - MYNN ED is put in physics_down where the PBL scheme is called.
+         - Because the shallow plume needs PBL depth, here the PBL depth is diagnosed as the same way as Lock does, not from MYNN-EDMF.
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 0
+ do_return_edmf_mynn_diff_only = T
+ do_edmf_mynn_in_physics = "down"
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99
+ option_surface_flux = "star"
+ edmf_type = 1
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="RF01-mynn_edmf_EDonly" inherit="RF01-mynn_edmf_field_table_pblhUW_noVDIFF">
+    <description>
+      - using the MYNN-EDMF framework, but only ED is on. AM4 shallow plume is still on.
+      - MYNN-EDMF is in physics_up.
+      - This aims to test the MYNN-EDMF machinery.
+      - The results are similar to RF01-mynnED
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 0
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 0
+ do_option_edmf2ls_mp = 99
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="RF01-mynn_edmf_EDMF" inherit="RF01-mynn_edmf_field_table_pblhUW_noVDIFF_noSH">
+    <description>
+      DYCOMS-II RF01 SCM with MYNN-EDMF
+      - AM4 with the full MYNN-EDMF.
+      - AM4 shallow plume is turn off, because the MF can do shallow convection.
+    </description>
+    <input>
+      <namelist name="physics_driver_nml">
+ DO_EDMF_MYNN    = T,
+ DO_EDMF_MYNN_DIAGNOSTIC    = F,
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ do_tracers_selective = 6
+      </namelist>
+      <namelist name="edmf_mynn_nml">
+ DO_WRITEOUT_COLUMN_NML  = F,
+ II_WRITE        =        0,
+ JJ_WRITE        =        0,
+ DO_STOP_RUN     = F,
+ bl_mynn_edmf = 3
+ EXPMF   = T,
+ UPWIND  =   1.00000000000000     ,
+ do_option_edmf2ls_mp = 4
+ QX_MF   =           2,
+ L0_flag = 100.
+      </namelist>
+    </input>
+  </experiment>
 
   <experiment name="RF01-am4p0_scmRAD_ql0.5" inherit="RF01_A_$(AWG_EXPERIMENT)">
     <description>
