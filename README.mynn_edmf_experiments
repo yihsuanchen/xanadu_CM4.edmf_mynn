@@ -1,18 +1,36 @@
 =========================
- README - AM4 MYNN-EDMF experiments
+ README - AM4 & SCM MYNN-EDMF experiments
 
  Yi-Hsuan Chen (yihsuan@umich.edu)
 
- January 31, 2023
+ February 2, 2023
 =========================
 
-*******************
-XML file: awg_xanadu_am4p0_edmf_mynn_clean.xml
-  
-FRE command: frerun -o -s -x awg_xanadu_am4p0_edmf_mynn_clean.xml -p ncrc4.intel19 -t openmp -q normal c96L33_am4p0-mynnED c96L33_am4p0-mynn_edmf_EDonly c96L33_am4p0-mynn_edmf_EDMF
+**********************
+**********************
+**********************
 
-*******************
-Experiments:
+ AM4 with MYNN-EDMF
+
+**********************
+**********************
+**********************
+
+  #---------------------------------
+  # Source code, XML, and compile
+  #---------------------------------
+
+  Source code: /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/src/
+
+  XML file: awg_xanadu_am4p0_edmf_mynn_clean.xml
+
+  FRAMAKE command: fremake -F -x awg_xanadu_am4p0_edmf_mynn_clean.xml -p ncrc4.intel19 -t openmp cm4p12_xanadu_am4p0_edmf_mynn
+
+  #---------------------------------
+  # AM4 Experiments:
+  #---------------------------------
+
+  FRERUN command: frerun -o -s -x awg_xanadu_am4p0_edmf_mynn_clean.xml -p ncrc4.intel19 -t openmp -q normal c96L33_am4p0-mynnED c96L33_am4p0-mynn_edmf_EDonly c96L33_am4p0-mynn_edmf_EDMF
 
   c96L33_am4p0-mynn_edmf_field_table
       - standard AM4 with one change: Using field_table_am4p11_edmf_mynn, because some variables in MYNN-EDMF are semi-prognostic.
@@ -33,9 +51,61 @@ Experiments:
       - AM4 with the full MYNN-EDMF.
       - AM4 shallow plume is turn off, because the MF can do shallow convection.
 
-*******************
-Outputs:
+  #---------------------------------
+  #  Outputs:
+  #---------------------------------
 
   analysis:/archive/Yi-hsuan.Chen/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/${EXPNAME}
+
+
+
+**********************
+**********************
+**********************
+
+ SCM with MYNN-EDMF
+
+**********************
+**********************
+**********************
+
+  #---------------------------------
+  # Source code, XML, and compile
+  #---------------------------------
+  
+  Source code: /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/SCM_am4_xanadu_edmf_mynn/src/
+               /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_SCM/awg_include/scm_include/
+
+  XML file: scm_xanadu_edmf_mynn_clean.xml
+
+  FRAMAKE command: fremake -F -x scm_xanadu_edmf_mynn_clean.xml -p ncrc4.intel19 -t prod,openmp SCM_am4_xanadu_edmf_mynn
+
+  #---------------------------------
+  # SCM Experiments:
+  #---------------------------------
+
+  RF01-mynnED
+      - DYCOMS-II RF01 SCM with MYNN ED scheme. 
+      - MYNN ED is put in physics_down where the PBL scheme is called.
+      - Because the shallow plume needs PBL depth, here the PBL depth is diagnosed as the same way as Lock does, not from MYNN-EDMF.
+
+  RF01-mynn_edmf_EDonly
+      - DYCOMS-II RF01 SCM with the MYNN-EDMF framework, but only ED is on. AM4 shallow plume is still on.
+      - MYNN-EDMF is in physics_up.
+      - This aims to test the MYNN-EDMF machinery.
+      - The results are similar to RF01-mynnED
+
+  RF01-mynn_edmf_EDMF
+      - DYCOMS-II RF01 SCM with the full MYNN-EDMF.
+      - AM4 shallow plume is turn off, because the MF can do shallow convection.
+
+  #---------------------------------
+  #  Outputs:
+  #---------------------------------
+
+  analysis:/archive/Yi-hsuan.Chen/awg/xanadu/SCM_am4_xanadu_edmf_mynn/${EXPNAME}
+
+
+
 
 
