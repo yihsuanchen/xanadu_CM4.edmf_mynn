@@ -4033,6 +4033,8 @@ Like c96L48_am4b6_DDFull but with 33 levels like c96L33_am4p0_donner
     <description>
        AM4 with MYNN ED
        Same as c96L33_am4p0-mynn_edmf_field_table, but turning on MYNN ED
+         - MYNN ED is put in physics_down where the PBL scheme is called.
+         - Because the shallow plume needs PBL depth, here the PBL depth is diagnosed as the same way as Lock does, not from MYNN-EDMF.
     </description>
     <input>
       <namelist name="physics_driver_nml">
@@ -4059,6 +4061,12 @@ Like c96L48_am4b6_DDFull but with 33 levels like c96L33_am4p0_donner
   </experiment>
 
   <experiment name="c96L33_am4p0-mynn_edmf_EDonly" inherit="c96L33_am4p0-mynn_edmf_field_table_pblhUW_noVDIFF">
+    <description>
+      - AM4 with the MYNN-EDMF framework, but only ED is on. AM4 shallow plume is still on.
+      - MYNN-EDMF is in physics_up.
+      - This aims to test the MYNN-EDMF machinery.
+      - The results are similar to RF01-mynnED
+    </description>
     <input>
       <namelist name="physics_driver_nml">
  DO_EDMF_MYNN    = T,
@@ -4080,6 +4088,10 @@ Like c96L48_am4b6_DDFull but with 33 levels like c96L33_am4p0_donner
   </experiment>
 
   <experiment name="c96L33_am4p0-mynn_edmf_EDMF" inherit="c96L33_am4p0-mynn_edmf_field_table_pblhUW_noVDIFF_noSH">
+    <description>
+      - AM4 with the full MYNN-EDMF.
+      - AM4 shallow plume is turn off, because the MF can do shallow convection.
+    </description>
     <input>
       <namelist name="physics_driver_nml">
  DO_EDMF_MYNN    = T,
