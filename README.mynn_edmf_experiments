@@ -3,7 +3,7 @@
 
  Yi-Hsuan Chen (yihsuan@umich.edu)
 
- February 2, 2023
+ February 4, 2023
 =========================
 
 **********************
@@ -17,20 +17,46 @@
 **********************
 
   #---------------------------------
-  # Source code, XML, and compile
+  # Source code & XML
   #---------------------------------
 
   Source code: /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/src/
 
   XML file: awg_xanadu_am4p0_edmf_mynn_clean.xml
 
-  FRAMAKE command: fremake -F -x awg_xanadu_am4p0_edmf_mynn_clean.xml -p ncrc4.intel19 -t openmp cm4p12_xanadu_am4p0_edmf_mynn
-
   #---------------------------------
-  # AM4 Experiments:
+  # Compile the code
   #---------------------------------
 
-  FRERUN command: frerun -o -s -x awg_xanadu_am4p0_edmf_mynn_clean.xml -p ncrc4.intel19 -t openmp -q normal c96L33_am4p0-mynnED c96L33_am4p0-mynn_edmf_EDonly c96L33_am4p0-mynn_edmf_EDMF
+  1. Copy the entire source code directory to your directory (${USER} is your user name):
+       > mkdir -p /ncrc/home2/${USER}/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/
+       > cd /ncrc/home2/${USER}/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/
+       > cp -r /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/src/ ./
+
+  2. Copy my XML directory to your directory
+       > mkdir -p /ncrc/home2/${USER}/awg/xanadu/
+       > cd /ncrc/home2/${USER}/awg/xanadu/
+       > cp -r /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_am4p0_edmf_mynn ./
+
+  3. The XML, awg_xanadu_am4p0_edmf_mynn_clean.xml, should be fine. Modify it if needed. 
+
+  4. Compile the code
+      > cd /ncrc/home2/${USER}/awg/xanadu/xml_xanadu_am4p0_edmf_mynn
+      > fremake -F -x awg_xanadu_am4p0_edmf_mynn_clean.xml -p ncrc4.intel19 -t openmp cm4p12_xanadu_am4p0_edmf_mynn
+
+  #---------------------------------
+  # run AM4 Experiments:
+  #---------------------------------
+
+  > cd /ncrc/home2/${USER}/awg/xanadu/xml_xanadu_am4p0_edmf_mynn
+
+  ###--- regression tests ---###
+  > frerun -o -s -x awg_xanadu_am4p0_edmf_mynn_clean.xml -p ncrc4.intel19 -t openmp -r basic -q normal c96L33_am4p0-mynnED c96L33_am4p0-mynn_edmf_EDonly c96L33_am4p0-mynn_edmf_EDMF
+
+  ###--- AMIP simulations ---###
+  > frerun -o -s -x awg_xanadu_am4p0_edmf_mynn_clean.xml -p ncrc4.intel19 -t openmp -q normal c96L33_am4p0-mynnED c96L33_am4p0-mynn_edmf_EDonly c96L33_am4p0-mynn_edmf_EDMF
+
+  ###--- description of the experiments ---###
 
   c96L33_am4p0-mynn_edmf_field_table
       - standard AM4 with one change: Using field_table_am4p11_edmf_mynn, because some variables in MYNN-EDMF are semi-prognostic.
@@ -56,7 +82,6 @@
   #---------------------------------
 
   analysis:/archive/Yi-hsuan.Chen/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/${EXPNAME}
-
 
 
 **********************
