@@ -10,7 +10,7 @@ Steps:
 
 XML: scm_xanadu_original.xml
 
-1. Copy scm_cgils.F90.yhc230203 and scm_forc.F90.yhc230203 to your SCM code direscoties
+1. Copy scm_cgils.F90.yhc230203 and scm_forc.F90.yhc230203 to your SCM code direscoties. For example, 
 
      > cp scm_cgils.F90.yhc230203  ${SCMSRC}/src//atmos_scm/forc/scm_cgils.F90
      > cp scm_forc.F90.yhc230203  ${SCMXML}/awg_include/scm_include/code_updates/scm_forc.F90
