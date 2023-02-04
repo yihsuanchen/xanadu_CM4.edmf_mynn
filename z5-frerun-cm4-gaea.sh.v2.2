@@ -32,7 +32,12 @@ this_dir=`pwd`  # this directory
 
 #--- set CM4 experiment name, which is must defined in the xml_file
 exp_names=(\
-          "c96L33_am4p0_nudge2000_Jul2001"
+          #"c96L33_am4p0-mynn_edmf_field_table"
+          "c96L33_am4p0-mynnED"
+          "c96L33_am4p0-mynn_edmf_EDonly"
+          "c96L33_am4p0-mynn_edmf_EDMF"
+          #-----
+          #"c96L33_am4p0_nudge2000_Jul2001"
           #"c96L33_am4p0_standard"
           #"c96L33_am4p0_lock_tdt_rad"
           #-----
@@ -221,10 +226,10 @@ TARGET=`grep "TARGET=" $setting_file | cut -d '=' -f 2`
 
 #regression="debug"        
 #regression="debug_30d"
-#regression="basic"
+regression="basic"
 #regression="basic_30d"
 #regression="basic_24node"
-regression="basic_24node_30d"
+#regression="basic_24node_30d"
 #regression="basic_864_1thread"
 #regression="basic_864_1thread_30d"
 
@@ -232,8 +237,8 @@ regression="basic_24node_30d"
 qos="normal"
 #qos="urgent"
 
-run_type="regression"
-#run_type="AMIP"
+#run_type="regression"
+run_type="AMIP"
 #run_type="restart_AMIP"
 
 #frerun_others="-o"
