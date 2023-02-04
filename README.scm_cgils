@@ -1,0 +1,36 @@
+=========================
+ README - Run CGILS SCM cases using GFDL AM4 SCM
+
+ Yi-Hsuan Chen (Yi-Hsuan.Chen@noaa.gov)
+
+ February 3, 2023
+=========================
+
+Steps:
+
+XML: scm_xanadu_original.xml
+
+1. Copy scm_cgils.F90.yhc230203 and scm_forc.F90.yhc230203 to your SCM code direscoties
+
+     > cp scm_cgils.F90.yhc230203  ${SCMSRC}/src//atmos_scm/forc/scm_cgils.F90
+     > cp scm_forc.F90.yhc230203  ${SCMXML}/awg_include/scm_include/code_updates/scm_forc.F90
+     
+     where SCMXML=/ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_SCM/
+           SCMSRC=/ncrc/home2/Yi-hsuan.Chen/awg/xanadu/SCM_am4_xanadu_original/
+     in my code directories.
+
+2. Recompile the SCM. For example.
+
+     > fremake -F -x scm_xanadu_original.xml -p ncrc4.intel19 -t prod,openmp SCM_am4_xanadu_original
+
+3. Run the SCM experiments, for example,
+
+     > frerun -o -s -x scm_xanadu_original.xml -p ncrc4.intel19 -t prod,openmp -r basic_100d --cluster=c4 CGILS_ctl_s6 CGILS_ctl_s11 CGILS_ctl_s12 CGILS_p2k_s6 CGILS_p2k_s11 CGILS_p2k_s12
+
+4. My output
+     
+     Feel free to check out my outputs at analysis: /archive/Yi-hsuan.Chen/awg/xanadu/SCM_am4_xanadu_original/$EXPNAME
+
+5. Done.
+
+
