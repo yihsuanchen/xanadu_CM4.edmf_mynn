@@ -1,5 +1,21 @@
 module scm_cgils_mod
 
+  !=======================================================================
+  ! Module of CGILS (CFMIP-GASS Intercomparison of LES and SCM models) in GFDL AM4 SCM
+  !
+  ! Author: Yi-Hsuan Chen (yihsuan@umich.edu) 
+  !
+  ! Date:
+  !   September, 2022
+  !
+  ! CGILS Forcing data:
+  !   http://cloud.somas.stonybrook.edu/mzhang/cgils/cfmip_figs/
+  !
+  ! References
+  !   Zhang, M., C. S. Bretherton, P. N. Blossey, S. Bony, F. Brient, and J. C. Golaz, 2012: The CGILS experimental design to investigate low cloud feedbacks in general circulation models by using single-column and large-eddy simulation models. J. Adv. Model. Earth Syst., 4, 1–15, https://doi.org/10.1029/2012MS000182.
+  !  
+  !=======================================================================
+
    use            fms_mod, only:  check_nml_error,                      &
                                   mpp_pe, mpp_root_pe,                  &
                                   write_version_number,                 &
@@ -84,18 +100,26 @@ integer :: nsphum, nql, nqi, nqa, nqn, nqni
 integer :: vadvec_scheme
 
 !--- namelist parameters
-integer, public                :: tracer_vert_advec_scheme = 3
-integer, public                :: temp_vert_advec_scheme = 3
-integer, public                :: momentum_vert_advec_scheme = 3
-logical, public                :: do_aer_prof = .true.
-character(len=20) , public     :: do_surface_fluxes = 'none'
-character(len=20) , public     :: do_nudge_terms = 'u_v_t_q'
-real, public                   :: tau_nudging = 10800.        ! nudging scale (seconds). Default is 3h.
-real, public                   :: plev_nudging = 600.e+2      ! nudging above this pressure level (Pa) 
-real, public                   :: c_T = 0.                    ! bulk tranfer conefficient (m/s) in bulk surface flux calculation 
-                                                              ! set in reading cgils_case. c_T=0.0081 in S6 and S11, =0.0104 in S12. 
-                                                              ! Ref: Blossey et al. (2013 JAMES), Table 1 and Eq A2 & A3 
-character(len=20) , public     :: cgils_case    = "none"
+integer, public                :: tracer_vert_advec_scheme = 3     ! choice for tracer vertical advection scheme
+integer, public                :: temp_vert_advec_scheme = 3       ! choice for temperature vertical advection scheme
+integer, public                :: momentum_vert_advec_scheme = 3   ! choice for momentum vertical advection scheme
+logical, public                :: do_aer_prof = .true.             ! .true.: using July 2001 climatology aerosol profile
+character(len=20) , public     :: do_surface_fluxes = 'bulk'       ! choice of surface flux calculation method
+                                                                   !   "bulk": bulk surface flux formula 
+                                                                   !           following Blossey et al. (2013, JAMES), Eq A2 and A3
+                                                                   !   "prescribed": ONLY FOR TEST PURPOSE. 
+                                                                   !                 Read surface fluxes from CGILS forcing files
+character(len=20) , public     :: do_nudge_terms = 'u_v_t_q'       ! variables nudge to CGILS profile
+                                                                   !   available: none, u_v_t_q, u_v, and t_q
+real, public                   :: tau_nudging = 10800.             ! nudging scale (seconds). Default is 3h.
+real, public                   :: plev_nudging = 600.e+2           ! nudging above this pressure level (Pa) 
+real, public                   :: c_T = 0.                         ! bulk tranfer conefficient (m/s) in bulk surface flux calculation 
+                                                                   ! set in reading cgils_case. c_T=0.0081 in S6 and S11, =0.0104 in S12. 
+                                                                   ! Ref: Blossey et al. (2013 JAMES), Table 1 and Eq A2 & A3 
+character(len=20) , public     :: cgils_case    = "none"           ! CGILS cases
+                                                                   !   available: ctl_s6, ctl_s11, ctl_s12, p2k_s6, p2k_s11, and p2k_s12
+
+!--- CGILS forcing data, downloaded from http://cloud.somas.stonybrook.edu/mzhang/cgils/cfmip_figs/
 character(len=200), public     :: cgils_ctl_s6_nc  = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s6.nc'
 character(len=200), public     :: cgils_ctl_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s11.nc'
 character(len=200), public     :: cgils_ctl_s12_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/ctl_s12.nc'
@@ -104,9 +128,13 @@ character(len=200), public     :: cgils_p2k_s11_nc = '/ncrc/home2/Yi-hsuan.Chen/
 character(len=200), public     :: cgils_p2k_s12_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/data/CGILS/p2k_s12.nc'
 character(len=200), public     :: dephy_nc = '/ncrc/home2/Yi-hsuan.Chen/work/research/edmf_AM4/code/xanadu_SCM.original/BOMEX_REF_SCM_driver.nc'
 
-integer :: do_stop = -1
-integer :: do_debug_printout = -1  ! =-1, do not call
-                                   ! = 1, call it in cgils_forc_init
+integer :: do_stop = -1            ! stop the SCM if needed
+                                   !  = -1, do not call
+                                   !  /=-1, stop the model at given places
+                  
+integer :: do_debug_printout = -1  ! print out statement foe debugging 
+                                   ! =-1, do not call
+                                   ! /= 1, print out statement foe debugging 
 
 namelist /scm_cgils_nml/ &
                         do_stop, do_debug_printout, &
