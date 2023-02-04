@@ -6017,18 +6017,29 @@ unset occam_file
     </input>
   </experiment>
 
-  <experiment name="CGILS_ctl_s12_sflx_pscrb" inherit="CGILS_$(AWG_EXPERIMENT)">
+  <experiment name="CGILS_ctl_s6" inherit="CGILS_$(AWG_EXPERIMENT)">
     <input>
       <namelist name="scm_cgils_nml">
-        cgils_case = 'ctl_s12'
+        cgils_case = 'ctl_s6'
         do_stop = -1 
         do_debug_printout = -1 
-        do_surface_fluxes = 'prescribed'
+        do_surface_fluxes = 'bulk'
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="CGILS_ctl_s12_sflx_bulk" inherit="CGILS_$(AWG_EXPERIMENT)">
+  <experiment name="CGILS_ctl_s11" inherit="CGILS_$(AWG_EXPERIMENT)">
+    <input>
+      <namelist name="scm_cgils_nml">
+        cgils_case = 'ctl_s11'
+        do_stop = -1 
+        do_debug_printout = -1 
+        do_surface_fluxes = 'bulk'
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="CGILS_ctl_s12" inherit="CGILS_$(AWG_EXPERIMENT)">
     <input>
       <namelist name="scm_cgils_nml">
         cgils_case = 'ctl_s12'
@@ -6039,21 +6050,32 @@ unset occam_file
     </input>
   </experiment>
 
-  <experiment name="CGILS_ctl_s11_sflx_pscrb" inherit="CGILS_$(AWG_EXPERIMENT)">
+  <experiment name="CGILS_p2k_s6" inherit="CGILS_$(AWG_EXPERIMENT)">
     <input>
       <namelist name="scm_cgils_nml">
-        cgils_case = 'ctl_s11'
+        cgils_case = 'p2k_s6'
         do_stop = -1 
         do_debug_printout = -1 
-        do_surface_fluxes = 'prescribed'
+        do_surface_fluxes = 'bulk'
       </namelist>
     </input>
   </experiment>
 
-  <experiment name="CGILS_ctl_s11_sflx_bulk" inherit="CGILS_$(AWG_EXPERIMENT)">
+  <experiment name="CGILS_p2k_s11" inherit="CGILS_$(AWG_EXPERIMENT)">
     <input>
       <namelist name="scm_cgils_nml">
-        cgils_case = 'ctl_s11'
+        cgils_case = 'p2k_s11'
+        do_stop = -1 
+        do_debug_printout = -1 
+        do_surface_fluxes = 'bulk'
+      </namelist>
+    </input>
+  </experiment>
+
+  <experiment name="CGILS_p2k_s12" inherit="CGILS_$(AWG_EXPERIMENT)">
+    <input>
+      <namelist name="scm_cgils_nml">
+        cgils_case = 'p2k_s12'
         do_stop = -1 
         do_debug_printout = -1 
         do_surface_fluxes = 'bulk'
