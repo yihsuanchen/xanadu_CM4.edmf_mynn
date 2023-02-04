@@ -7,12 +7,26 @@
 =========================
 
 ****************************
-XML: scm_xanadu_original_cgils.xml
-  
-     search "CGILS" and "cgils" to see where CGILS cases are set up.
+****************************
+ Source code & XML
+****************************
+****************************
+
+  Source code: scm_cgils.F90.yhc230203, set up CGILS cases
+               scm_forc.F90.yhc230203,  call CGILS cases  
+
+  XML: scm_xanadu_original_cgils.xml
+     - search "CGILS" and "cgils" to see where CGILS cases are set up.
+     - Instead of using this xml, it may be easier to copy all CGILS parts into your own xml.
+
+
 
 ****************************
-Steps:
+****************************
+ Compile SCM and run CGILS cases
+   diag_table of SCM CGILS: /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_SCM/awg_include/scm_include/diag_table/diag_table_scm_cgils
+****************************
+****************************
 
 1. Copy scm_cgils.F90.yhc230203 and scm_forc.F90.yhc230203 to your SCM code direscoties. For example, 
 
