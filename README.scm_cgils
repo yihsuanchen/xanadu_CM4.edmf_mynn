@@ -6,9 +6,13 @@
  February 3, 2023
 =========================
 
-Steps:
+****************************
+XML: scm_xanadu_original_cgils.xml
+  
+     search "CGILS" and "cgils" to see where CGILS cases are set up.
 
-XML: scm_xanadu_original.xml
+****************************
+Steps:
 
 1. Copy scm_cgils.F90.yhc230203 and scm_forc.F90.yhc230203 to your SCM code direscoties. For example, 
 
@@ -21,11 +25,11 @@ XML: scm_xanadu_original.xml
 
 2. Recompile the SCM. For example.
 
-     > fremake -F -x scm_xanadu_original.xml -p ncrc4.intel19 -t prod,openmp SCM_am4_xanadu_original
+     > fremake -F -x scm_xanadu_original_cgils.xml -p ncrc4.intel19 -t prod,openmp SCM_am4_xanadu_original
 
 3. Run the SCM experiments, for example,
 
-     > frerun -o -s -x scm_xanadu_original.xml -p ncrc4.intel19 -t prod,openmp -r basic_100d --cluster=c4 CGILS_ctl_s6 CGILS_ctl_s11 CGILS_ctl_s12 CGILS_p2k_s6 CGILS_p2k_s11 CGILS_p2k_s12
+     > frerun -o -s -x scm_xanadu_original_cgils.xml -p ncrc4.intel19 -t prod,openmp -r basic_100d --cluster=c4 CGILS_ctl_s6 CGILS_ctl_s11 CGILS_ctl_s12 CGILS_p2k_s6 CGILS_p2k_s11 CGILS_p2k_s12
 
 4. My output
      
