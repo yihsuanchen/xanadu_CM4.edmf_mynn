@@ -22,7 +22,7 @@
 
   Source code: /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/src/
 
-  XML file: awg_xanadu_am4p0_edmf_mynn_clean.xml
+  XML file: a/ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_am4p0_edmf_mynn/awg_xanadu_am4p0_edmf_mynn_clean.xml
 
   #---------------------------------
   # Compile the code
@@ -45,7 +45,8 @@
       > fremake -F -x awg_xanadu_am4p0_edmf_mynn_clean.xml -p ncrc4.intel19 -t openmp cm4p12_xanadu_am4p0_edmf_mynn
 
   #---------------------------------
-  # run AM4 Experiments:
+  # Run AM4 Experiments:
+  #   the diag_table: /ncrc/home2/${USER}/awg/xanadu/xml_xanadu_am4p0_edmf_mynn/awg_include/diag_table/diag_table_atmos
   #---------------------------------
 
   > cd /ncrc/home2/${USER}/awg/xanadu/xml_xanadu_am4p0_edmf_mynn
@@ -95,19 +96,44 @@
 **********************
 
   #---------------------------------
-  # Source code, XML, and compile
+  # Source code & XML
   #---------------------------------
   
   Source code: /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/SCM_am4_xanadu_edmf_mynn/src/
                /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_SCM/awg_include/scm_include/
 
-  XML file: scm_xanadu_edmf_mynn_clean.xml
-
-  FRAMAKE command: fremake -F -x scm_xanadu_edmf_mynn_clean.xml -p ncrc4.intel19 -t prod,openmp SCM_am4_xanadu_edmf_mynn
+  XML file: /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_SCM/scm_xanadu_edmf_mynn_clean.xml
 
   #---------------------------------
-  # SCM Experiments:
+  # Compile the code
   #---------------------------------
+
+  1. Copy the entire source code directory to your directory (${USER} is your user name):
+       > mkdir -p /ncrc/home2/${USER}/awg/xanadu/SCM_am4_xanadu_edmf_mynn/
+       > cd /ncrc/home2/${USER}/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/
+       > cp -r /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/SCM_am4_xanadu_edmf_mynn/src/ ./
+
+  2. Copy my XML directory to your directory
+       > mkdir -p /ncrc/home2/${USER}/awg/xanadu/
+       > cd /ncrc/home2/${USER}/awg/xanadu/
+       > cp -r /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_SCM ./ 
+
+  3. The XML, scm_xanadu_edmf_mynn_clean.xml, should be fine. Modify it if needed. 
+
+  4. Compile the code
+       > cd /ncrc/home2/${USER}/awg/xanadu/xml_xanadu_SCM
+       > fremake -F -x scm_xanadu_edmf_mynn_clean.xml -p ncrc4.intel19 -t prod,openmp SCM_am4_xanadu_edmf_mynn
+
+  #---------------------------------
+  # Run SCM Experiments:
+  #   the diag_table: 
+  #---------------------------------
+
+  > cd /ncrc/home2/${USER}/awg/xanadu/xml_xanadu_SCM
+
+  > frerun -o -s -x scm_xanadu_edmf_mynn_clean.xml -p ncrc4.intel19 -t prod,openmp -r basic --cluster=c4 RF01-mynnED RF01-mynn_edmf_EDonly RF01-mynn_edmf_EDMF
+
+  ###--- description of the experiments ---###
 
   RF01-mynnED
       - DYCOMS-II RF01 SCM with MYNN ED scheme. 
@@ -129,8 +155,5 @@
   #---------------------------------
 
   analysis:/archive/Yi-hsuan.Chen/awg/xanadu/SCM_am4_xanadu_edmf_mynn/${EXPNAME}
-
-
-
 
 
