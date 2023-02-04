@@ -1,10 +1,56 @@
 =========================
- README - AM4 & SCM MYNN-EDMF experiments
+ README - AM4 & SCM MYNN-EDMF (Mellor–Yamada–Nakanishi–Niino Eddy-Diffusivity/Mass-Flux) experiments
 
  Yi-Hsuan Chen (yihsuan@umich.edu)
 
  February 4, 2023
 =========================
+
+**********************
+**********************
+**********************
+
+ MYNN-EDMF codes 
+   - AM4 and SCM share the same code base
+   - search 'yhc' to see the changes in the codes
+
+**********************
+**********************
+**********************
+
+  #--- Brief descriptions of the added/modified codes ---#
+
+  src/atmos_param/edmf_mynn/edmf_mynn.F90
+    - The interface between MYNN-EDMF program and GFDL AM4
+
+  src/atmos_param/physics_driver/physics_driver.F90
+    - Call mynn_edmf in physics driver
+
+  src/atmos_param/macrophysics/tiedtke_macro.F90
+    - Pass MF mass flux to Tiedtke scheme
+
+  src/atmos_param/lscloud_driver/lscloud_driver.F90
+  src/atmos_param/lscloud_driver/lscloud_types.F90
+  src/atmos_param/lscloud_driver/lscloud_netcdf.F90
+    - Add new variables for diagnostic purposes
+
+  src/atmos_param/physics_driver/physics_types.F90
+    - Add new variables in physics buffer
+
+  src/atmos_param/moist_processes/moist_processes.F90
+  src/atmos_param/moist_processes/moist_processes_utils.F90
+    - Pass variables from physics_driver to moist_processes
+
+  src/atmos_param/convection_driver/convection_driver.F90
+    - Include edmf contributions to convective_area and env_qv
+
+  src/atmos_param/shallow_cu/uw_conv.F90
+    - Add 'compute_pblht' & 'parcel_buoy' to the namelist. Thanks Dr. Zhihong Tan for providing this code.
+
+  src/atmos_param/shallow_cu/conv_utilities_k.F90
+  src/atmos_param/convection_driver/moistproc_kernels.F90
+    - Seem the same as the standard AM4
+  
 
 **********************
 **********************
