@@ -14,6 +14,8 @@
    - AM4 and SCM share the same code base
    - search 'yhc' to see the changes in the codes
 
+ Source code: /ncrc/home2/Yi-hsuan.Chen/awg/xanadu/cm4p12_xanadu_am4p0_edmf_mynn/src/
+
 **********************
 **********************
 **********************
@@ -21,7 +23,7 @@
   #--- Brief descriptions of the added/modified codes ---#
 
   src/atmos_param/edmf_mynn/edmf_mynn.F90
-    - The interface between MYNN-EDMF program and GFDL AM4
+    - The interface between the MYNN-EDMF program and GFDL AM4/SCM
 
   src/atmos_param/physics_driver/physics_driver.F90
     - Call mynn_edmf in physics driver
@@ -46,12 +48,7 @@
 
   src/atmos_param/shallow_cu/uw_conv.F90
     - Add 'compute_pblht' & 'parcel_buoy' to the namelist. Thanks Dr. Zhihong Tan for providing this code.
-
-  src/atmos_param/shallow_cu/conv_utilities_k.F90
-  src/atmos_param/convection_driver/moistproc_kernels.F90
-    - Seem the same as the standard AM4
   
-
 **********************
 **********************
 **********************
