@@ -47,7 +47,7 @@
     - Include edmf contributions to convective_area and env_qv
 
   src/atmos_param/shallow_cu/uw_conv.F90
-    - Add 'compute_pblht' & 'parcel_buoy' to the namelist. Thanks Dr. Zhihong Tan for providing this code.
+    - Add 'compute_pblht = T' & 'parcel_buoy = 0.25' in the namelist. Thanks Dr. Zhihong Tan for providing this code.
   
 **********************
 **********************
