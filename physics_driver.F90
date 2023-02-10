@@ -112,7 +112,7 @@ use physics_types_mod,       only: alloc_physics_tendency_type, &
                                    physics_input_block_type, &
                                    dealloc_physics_tendency_type
 
-use moist_proc_utils_mod, only:    mp_removal_type, column_diag
+use moist_proc_utils_mod, only:    mp_removal_type, column_diag  ! output LWP0
   
 use aerosol_mod,             only: aerosol_init, aerosol_driver, &
                                    aerosol_time_vary, &
