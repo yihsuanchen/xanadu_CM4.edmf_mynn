@@ -21,7 +21,8 @@ TAR__GET=debug
 #---------------------------
 
 xml_dir=/ncrc/home2/Yi-hsuan.Chen/awg/xanadu/xml_xanadu_am4p0_edmf_mynn
-xml_name=awg_xanadu_am4p0_edmf_mynn.xml
+xml_##name=awg_xanadu_am4p0_edmf_mynn.xml
+xml_name=awg_xanadu_am4p0_edmf_mynn_clean.xml
 
 #---------------------------
 # set model name, FMS_COMP_EXPNAME
